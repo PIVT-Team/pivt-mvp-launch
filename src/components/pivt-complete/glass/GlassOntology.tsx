@@ -20,12 +20,12 @@ interface GraphEdge {
 }
 
 const typeColors: Record<string, string> = {
-  deal: '#3B82F6',
-  stakeholder: '#A855F7',
+  deal: '#7C3AED',
+  stakeholder: '#A78BFA',
   document: '#22C55E',
   payment: '#F59E0B',
   escrow: '#06B6D4',
-  waterfall: '#EC4899',
+  waterfall: '#C084FC',
 };
 
 export const GlassOntology: React.FC = () => {
@@ -82,7 +82,7 @@ export const GlassOntology: React.FC = () => {
     <div className="h-full flex flex-col" style={{ background: '#0B0B0B', color: '#fff' }}>
       {/* Header */}
       <div className="flex items-center gap-4 p-4 border-b border-white/10">
-        <Zap className="w-5 h-5 text-cyan-400" />
+        <Zap className="w-5 h-5 text-accent" />
         <h2 className="text-lg font-semibold">Deal Ontology — {deal.codeName}</h2>
         <div className="flex-1" />
         <div className="relative">
@@ -91,7 +91,7 @@ export const GlassOntology: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search entities..."
-            className="bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-cyan-400/50 w-64"
+            className="bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-accent/50 w-64"
           />
         </div>
         <div className="flex items-center gap-3 text-xs">

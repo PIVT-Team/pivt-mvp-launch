@@ -9,9 +9,9 @@ export const CommandCenterCover: React.FC = () => {
   const { stakeholders, documents, payments, pendingApprovals, setActiveSection } = usePIVTStore();
 
   const stats = [
-    { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, color: 'text-blue-500' },
-    { label: 'Recipients', value: deal.totalRecipients, icon: Users, color: 'text-purple-500' },
-    { label: 'Documents', value: deal.documentsUploaded, icon: FileCheck, color: 'text-emerald-500' },
+    { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, color: 'text-accent' },
+    { label: 'Recipients', value: deal.totalRecipients, icon: Users, color: 'text-accent/70' },
+    { label: 'Documents', value: deal.documentsUploaded, icon: FileCheck, color: 'text-validated' },
     { label: 'Ready to Pay', value: `${deal.readyToPayPercent}%`, icon: Shield, color: 'text-accent' },
     { label: 'Discrepancies', value: deal.discrepanciesFound, icon: AlertTriangle, color: 'text-discrepancy' },
     { label: 'Pending Approvals', value: pendingApprovals.length, icon: Clock, color: 'text-orange-400' },

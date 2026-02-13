@@ -7,7 +7,8 @@ export type ViewMode = 'cover' | 'glass';
 
 export type ActiveSection =
   | 'command' | 'deals' | 'waterfall' | 'stakeholders' | 'documents'
-  | 'escrow' | 'approvals' | 'payments' | 'reports' | 'audit';
+  | 'escrow' | 'approvals' | 'payments' | 'reports' | 'audit'
+  | 'demo' | 'ingestion' | 'closing';
 
 export type EntityType = 'deal' | 'stakeholder' | 'document' | 'payment' | 'escrow' | 'approval';
 

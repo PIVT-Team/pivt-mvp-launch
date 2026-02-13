@@ -8,6 +8,7 @@ import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { navigationByMode } from '@/lib/navigation';
 import { Sun, Moon, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import pivtLogo from '@/assets/pivt-logo.png';
 
 // Cover sections
 import { CommandCenterCover } from './cover/CommandCenterCover';
@@ -19,6 +20,9 @@ import { EscrowCover } from './cover/EscrowCover';
 import { ApprovalsCover } from './cover/ApprovalsCover';
 import { PaymentsCover } from './cover/PaymentsCover';
 import { AuditCover, ReportsCover } from './cover/AuditAndReports';
+import { DemoExperienceCover } from './cover/DemoExperienceCover';
+import { DocumentIngestionCover } from './cover/DocumentIngestionCover';
+import { ClosingCenterCover } from './cover/ClosingCenterCover';
 
 // Glass
 import { GlassOntology } from './glass/GlassOntology';
@@ -26,10 +30,13 @@ import { GlassOntology } from './glass/GlassOntology';
 const coverSections: Record<ActiveSection, React.FC> = {
   command: CommandCenterCover,
   deals: DealsCover,
+  demo: DemoExperienceCover,
   waterfall: WaterfallCover,
   stakeholders: StakeholdersCover,
   documents: DocumentsCover,
+  ingestion: DocumentIngestionCover,
   escrow: EscrowCover,
+  closing: ClosingCenterCover,
   approvals: ApprovalsCover,
   payments: PaymentsCover,
   audit: AuditCover,
@@ -96,16 +103,13 @@ export const PIVTCompleteUnified: React.FC = () => {
       >
         {/* Logo */}
         <div className="p-4 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-white font-bold text-sm shrink-0">
-            P
-          </div>
+          <img src={pivtLogo} alt="PIVT" className="h-8 w-auto shrink-0" />
           {!sidebarCollapsed && (
             <motion.span
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="font-semibold text-white tracking-wide"
             >
-              PIVT
             </motion.span>
           )}
         </div>
