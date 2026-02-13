@@ -3,7 +3,7 @@ import {
   Shield, History, Bot, Droplets, BarChart3, MessageSquare,
   Building2, TrendingUp, Upload, AlertTriangle,
   Users, CreditCard, Settings, Plug, Lock, Database,
-  PieChart, Phone, Wallet, FolderCog,
+  PieChart, Phone, Wallet, FolderCog, Play, FileSearch, Landmark,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -20,10 +20,13 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
   manda: [
     { label: 'Command Center', icon: LayoutDashboard, path: 'command' },
     { label: 'Active Deals', icon: Briefcase, path: 'deals' },
+    { label: 'Demo Experience', icon: Play, path: 'demo' },
     { label: 'Waterfall', icon: Calculator, path: 'waterfall' },
     { label: 'Stakeholders', icon: Users, path: 'stakeholders' },
     { label: 'Documents', icon: FileCheck, path: 'documents' },
+    { label: 'Ingestion', icon: FileSearch, path: 'ingestion' },
     { label: 'Escrow', icon: Shield, path: 'escrow' },
+    { label: 'Closing Center', icon: Landmark, path: 'closing' },
     { label: 'Approvals', icon: Send, path: 'approvals' },
     { label: 'Payments', icon: CreditCard, path: 'payments' },
     { label: 'Audit', icon: History, path: 'audit' },
