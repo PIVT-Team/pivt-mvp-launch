@@ -108,15 +108,17 @@ export const PIVTCompleteUnified: React.FC = () => {
         }}
       >
         {/* Logo */}
-        <div className="p-4 flex items-center gap-3">
-          <img src={pivtLogo} alt="PIVT" className="h-8 w-auto shrink-0" />
+        <div className="p-4 flex flex-col items-center gap-1">
+          <img src={pivtLogo} alt="PIVT" className={`${sidebarCollapsed ? 'h-10' : 'h-20'} w-auto shrink-0 transition-all duration-300`} />
           {!sidebarCollapsed && (
-            <motion.span
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="font-semibold text-white tracking-wide"
+              className="text-center"
             >
-            </motion.span>
+              <p className="text-[10px] text-white/50 tracking-[0.15em] uppercase">Payout Initiation Verification</p>
+              <p className="text-[9px] text-white/30 italic mt-0.5">The Intelligence Layer Behind Every Close</p>
+            </motion.div>
           )}
         </div>
 
