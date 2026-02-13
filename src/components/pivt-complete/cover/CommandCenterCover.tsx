@@ -3,6 +3,8 @@ import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import { Shield, FileCheck, Users, AlertTriangle, TrendingUp, Clock } from 'lucide-react';
+import { NewtonInsights } from './NewtonInsights';
+import { ActivityFeed } from './ActivityFeed';
 
 export const CommandCenterCover: React.FC = () => {
   const deal = useSelectedDeal();
@@ -66,13 +68,23 @@ export const CommandCenterCover: React.FC = () => {
         </div>
       </motion.div>
 
+      {/* Newton Insights + Activity Feed side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <motion.div {...fadeInUp} className="pivt-card p-5">
+          <NewtonInsights />
+        </motion.div>
+        <motion.div {...fadeInUp} className="pivt-card p-5 max-h-[500px] overflow-y-auto">
+          <ActivityFeed />
+        </motion.div>
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { label: 'View Waterfall', section: 'waterfall' as const },
           { label: 'Review Approvals', section: 'approvals' as const },
           { label: 'Check Escrow', section: 'escrow' as const },
-          { label: 'Audit Trail', section: 'audit' as const },
+          { label: 'Portfolio Analytics', section: 'reports' as const },
         ].map(action => (
           <button
             key={action.label}
