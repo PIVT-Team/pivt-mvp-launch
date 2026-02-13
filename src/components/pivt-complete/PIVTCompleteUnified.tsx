@@ -116,8 +116,8 @@ export const PIVTCompleteUnified: React.FC = () => {
               animate={{ opacity: 1 }}
               className="text-center"
             >
-              <p className="text-[11px] text-white/60 tracking-[0.12em] uppercase font-medium">Payout Initiation Verification Technology</p>
-              <p className="text-[11px] text-white/40 italic mt-1">The Intelligence Layer Behind Every Close</p>
+              <p className="text-xs text-white/70 tracking-[0.1em] uppercase font-semibold">Payout Initiation Verification Technology</p>
+              <p className="text-xs text-white/50 italic mt-1.5">The Intelligence Layer Behind Every Close</p>
             </motion.div>
           )}
         </div>
