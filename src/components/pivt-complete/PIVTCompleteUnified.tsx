@@ -32,6 +32,9 @@ import { GlassOntology } from './glass/GlassOntology';
 // Global floating chat
 import { NewtonGlobalChat } from '../newton/NewtonGlobalChat';
 
+// Deal Wizard
+import { DealWizard } from '../deal-wizard/DealWizard';
+
 const coverSections: Record<ActiveSection, React.FC> = {
   command: CommandCenterCover,
   deals: DealsCover,
@@ -221,6 +224,9 @@ export const PIVTCompleteUnified: React.FC = () => {
 
       {/* Newton floating chat (available everywhere) */}
       <NewtonGlobalChat />
+
+      {/* Deal Intake Wizard */}
+      <DealWizard />
     </div>
   );
 };

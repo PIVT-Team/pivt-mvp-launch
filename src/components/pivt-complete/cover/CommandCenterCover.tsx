@@ -1,14 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
+import { useDealWizardStore } from '@/stores/dealWizardStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
-import { Shield, FileCheck, Users, AlertTriangle, TrendingUp, Clock } from 'lucide-react';
+import { Shield, FileCheck, Users, AlertTriangle, TrendingUp, Clock, Plus } from 'lucide-react';
 import { NewtonInsights } from './NewtonInsights';
 import { ActivityFeed } from './ActivityFeed';
 
 export const CommandCenterCover: React.FC = () => {
   const deal = useSelectedDeal();
   const { stakeholders, documents, payments, pendingApprovals, setActiveSection } = usePIVTStore();
+  const openWizard = useDealWizardStore(s => s.openWizard);
 
   const stats = [
     { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, color: 'text-accent' },
@@ -21,9 +23,18 @@ export const CommandCenterCover: React.FC = () => {
 
   return (
     <motion.div {...staggerChildren} className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">{deal.name}</h1>
-        <p className="text-muted-foreground mt-1">{deal.buyerName} acquiring {deal.targetCompany} · {deal.sector}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{deal.name}</h1>
+          <p className="text-muted-foreground mt-1">{deal.buyerName} acquiring {deal.targetCompany} · {deal.sector}</p>
+        </div>
+        <button
+          onClick={openWizard}
+          className="flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-foreground rounded-lg text-sm font-semibold hover:bg-accent/90 transition-all"
+        >
+          <Plus className="w-4 h-4" />
+          New Deal
+        </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">

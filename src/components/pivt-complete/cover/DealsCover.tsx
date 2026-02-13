@@ -1,10 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Plus } from 'lucide-react';
 import { usePIVTStore } from '@/stores/pivtStore';
+import { useDealWizardStore } from '@/stores/dealWizardStore';
 import { fadeInUp } from '@/lib/animations';
 
 export const DealsCover: React.FC = () => {
   const { deals, selectedDealId, setSelectedDealId, setActiveSection } = usePIVTStore();
+  const openWizard = useDealWizardStore(s => s.openWizard);
 
   const statusColors: Record<string, string> = {
     drafting: 'bg-muted-foreground',
@@ -18,11 +21,20 @@ export const DealsCover: React.FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Active Deals</h2>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Total Portfolio: </span>
-          <span className="font-mono font-semibold text-foreground">
-            ${(deals.reduce((s, d) => s + d.consideration, 0) / 1e9).toFixed(1)}B
-          </span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>Total Portfolio: </span>
+            <span className="font-mono font-semibold text-foreground">
+              ${(deals.reduce((s, d) => s + d.consideration, 0) / 1e9).toFixed(1)}B
+            </span>
+          </div>
+          <button
+            onClick={openWizard}
+            className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-semibold hover:bg-accent/90 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            New Deal
+          </button>
         </div>
       </div>
 
