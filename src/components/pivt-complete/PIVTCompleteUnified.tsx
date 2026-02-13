@@ -19,7 +19,8 @@ import { DocumentsCover } from './cover/DocumentsCover';
 import { EscrowCover } from './cover/EscrowCover';
 import { ApprovalsCover } from './cover/ApprovalsCover';
 import { PaymentsCover } from './cover/PaymentsCover';
-import { AuditCover, ReportsCover } from './cover/AuditAndReports';
+import { AuditCover } from './cover/AuditAndReports';
+import { AnalyticsDashboard } from './cover/AnalyticsDashboard';
 import { DemoExperienceCover } from './cover/DemoExperienceCover';
 import { DocumentIngestionCover } from './cover/DocumentIngestionCover';
 import { ClosingCenterCover } from './cover/ClosingCenterCover';
@@ -44,7 +45,7 @@ const coverSections: Record<ActiveSection, React.FC> = {
   approvals: ApprovalsCover,
   payments: PaymentsCover,
   audit: AuditCover,
-  reports: ReportsCover,
+  reports: AnalyticsDashboard,
   newton: NewtonCover,
 };
 
