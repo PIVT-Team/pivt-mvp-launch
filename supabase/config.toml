@@ -1,1 +1,4 @@
 project_id = "hipjywloeveadfndzary"
+
+[functions.newton]
+verify_jwt = false
