@@ -4,6 +4,7 @@ import {
   Building2, TrendingUp, Upload, AlertTriangle,
   Users, CreditCard, Settings, Plug, Lock, Database,
   PieChart, Phone, Wallet, FolderCog, Play, FileSearch, Landmark,
+  Atom,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -31,6 +32,7 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
     { label: 'Payments', icon: CreditCard, path: 'payments' },
     { label: 'Audit', icon: History, path: 'audit' },
     { label: 'Reports', icon: BarChart3, path: 'reports' },
+    { label: 'Newton AI', icon: Atom, path: 'newton' },
   ],
   credit: [
     { label: 'Dashboard', icon: LayoutDashboard, path: 'command' },

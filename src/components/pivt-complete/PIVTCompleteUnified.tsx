@@ -23,9 +23,13 @@ import { AuditCover, ReportsCover } from './cover/AuditAndReports';
 import { DemoExperienceCover } from './cover/DemoExperienceCover';
 import { DocumentIngestionCover } from './cover/DocumentIngestionCover';
 import { ClosingCenterCover } from './cover/ClosingCenterCover';
+import { NewtonCover } from './cover/NewtonCover';
 
 // Glass
 import { GlassOntology } from './glass/GlassOntology';
+
+// Global floating chat
+import { NewtonGlobalChat } from '../newton/NewtonGlobalChat';
 
 const coverSections: Record<ActiveSection, React.FC> = {
   command: CommandCenterCover,
@@ -41,6 +45,7 @@ const coverSections: Record<ActiveSection, React.FC> = {
   payments: PaymentsCover,
   audit: AuditCover,
   reports: ReportsCover,
+  newton: NewtonCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
@@ -210,6 +215,9 @@ export const PIVTCompleteUnified: React.FC = () => {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Newton floating chat (available everywhere) */}
+      <NewtonGlobalChat />
     </div>
   );
 };

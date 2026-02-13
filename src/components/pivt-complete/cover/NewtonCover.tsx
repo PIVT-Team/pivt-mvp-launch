@@ -1,20 +1,33 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSelectedDeal } from '@/stores/pivtStore';
+import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
 import { springConfig } from '@/lib/animations';
-import { Bot, Send, Loader2, Sparkles, X, Minimize2 } from 'lucide-react';
+import {
+  Bot, Send, Loader2, Sparkles, Command, Plus, History,
+  Trash2, AlertTriangle, CheckCircle2, TrendingUp, Users,
+  FileText, Shield, X,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
+import pivtLogo from '@/assets/pivt-logo.png';
 
-type Msg = { role: 'user' | 'assistant'; content: string };
+// ------- Types -------
+type Msg = { role: 'user' | 'assistant' | 'system'; content: string; timestamp: number; action?: any };
 
+interface Conversation {
+  id: string;
+  title: string;
+  messages: Msg[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+// ------- Streaming -------
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newton`;
-
-const SUGGESTIONS = [
-  'Summarize the current deal readiness',
-  'Explain the waterfall distribution tiers',
-  'What discrepancies should I watch for?',
-  'Walk me through the escrow release timeline',
-];
 
 async function streamChat({
   messages,
@@ -22,7 +35,7 @@ async function streamChat({
   onDone,
   onError,
 }: {
-  messages: Msg[];
+  messages: { role: string; content: string }[];
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (err: string) => void;
@@ -41,11 +54,7 @@ async function streamChat({
     onError(data.error || `Error ${resp.status}`);
     return;
   }
-
-  if (!resp.body) {
-    onError('No response body');
-    return;
-  }
+  if (!resp.body) { onError('No response body'); return; }
 
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
@@ -77,7 +86,7 @@ async function streamChat({
     }
   }
 
-  // flush remaining
+  // flush
   if (buffer.trim()) {
     for (let raw of buffer.split('\n')) {
       if (!raw) continue;
@@ -92,63 +101,200 @@ async function streamChat({
       } catch {}
     }
   }
-
   onDone();
 }
 
+// ------- Context-aware suggestions -------
+const DEAL_SUGGESTIONS = [
+  'Summarize the closing readiness for this deal',
+  'What discrepancies should I watch for in the waterfall?',
+  'Explain the escrow release timeline and holdback structure',
+  'Who are the key stakeholders and what is their KYC status?',
+  'Walk me through the payment execution workflow',
+  'What are the biggest risks to closing on schedule?',
+];
+
+const getSectionSuggestions = (section: string): string[] => {
+  const map: Record<string, string[]> = {
+    command: ['Give me an executive summary of deal readiness', 'What needs my attention right now?'],
+    waterfall: ['Verify the waterfall tiers reconcile to deal value', 'Explain the preferred return calculation'],
+    stakeholders: ['Which stakeholders have incomplete KYC?', 'Summarize ownership distribution'],
+    documents: ['Are there any document discrepancies?', 'What documents are still pending review?'],
+    escrow: ['When is the next escrow release?', 'What are the indemnity holdback terms?'],
+    approvals: ['What approvals are blocking closing?', 'Summarize critical pending approvals'],
+    payments: ['What payments are ready to execute?', 'Show me the payment batch status'],
+    closing: ['What is the wire verification status?', 'Are all bank details confirmed?'],
+  };
+  return map[section] || [];
+};
+
+// ------- Intelligence Cards -------
+const IntelligenceCard: React.FC<{ type: string; data: any }> = ({ type, data }) => {
+  const iconMap: Record<string, React.ElementType> = {
+    risk: AlertTriangle,
+    status: CheckCircle2,
+    metric: TrendingUp,
+    stakeholder: Users,
+    document: FileText,
+    compliance: Shield,
+  };
+  const Icon = iconMap[type] || Sparkles;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      className="rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm p-4 space-y-2"
+    >
+      <div className="flex items-center gap-2">
+        <Icon className="w-4 h-4 text-accent" />
+        <span className="text-xs font-medium uppercase text-muted-foreground">{data.title || type}</span>
+      </div>
+      {data.value && <p className="font-mono text-lg font-semibold">{data.value}</p>}
+      {data.description && <p className="text-sm text-muted-foreground">{data.description}</p>}
+      {data.items && (
+        <div className="space-y-1">
+          {data.items.map((item: string, i: number) => (
+            <div key={i} className="flex items-center gap-2 text-xs">
+              <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// ------- Newton Panel (sidebar section) -------
 export const NewtonCover: React.FC = () => {
   const deal = useSelectedDeal();
+  const { activeSection } = usePIVTStore();
   const [messages, setMessages] = useState<Msg[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
+  // Auto-scroll
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+    if (scrollRef.current) {
+      const el = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]') || scrollRef.current;
+      el.scrollTop = el.scrollHeight;
+    }
   }, [messages]);
+
+  // Keyboard shortcut ⌘N
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'n' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Contextual greeting
+  const getGreeting = useCallback(() => {
+    const greetings: Record<string, string> = {
+      command: `I can provide an executive overview of ${deal.codeName}, identify risks, and summarize what needs your attention.`,
+      deals: `I can help you compare deals, analyze portfolio exposure, and identify cross-deal patterns.`,
+      waterfall: `I can verify waterfall calculations, check tier reconciliation, and explain distribution mechanics.`,
+      stakeholders: `I can review KYC status, flag missing documentation, and summarize ownership structures.`,
+      documents: `I can identify document discrepancies, cross-reference data points, and flag missing filings.`,
+      escrow: `I can explain escrow terms, calculate release timelines, and verify holdback amounts.`,
+      approvals: `I can prioritize pending approvals, identify bottlenecks, and suggest routing optimizations.`,
+      payments: `I can review payment batches, verify wire instructions, and track execution status.`,
+      closing: `I can assess closing readiness, identify blocking items, and recommend next steps.`,
+    };
+    return greetings[activeSection] || `Ask me anything about ${deal.codeName}. I have full oversight of the deal structure, stakeholders, documents, and financials.`;
+  }, [activeSection, deal.codeName]);
+
+  // Initialize with greeting
+  useEffect(() => {
+    if (messages.length === 0 && !activeConvId) {
+      setMessages([{ role: 'system', content: getGreeting(), timestamp: Date.now() }]);
+    }
+  }, [activeSection]);
+
+  const newConversation = () => {
+    const id = Math.random().toString(36).slice(2, 10);
+    if (messages.length > 1) {
+      const title = messages.find(m => m.role === 'user')?.content.slice(0, 50) || 'Untitled';
+      setConversations(prev => [{
+        id: activeConvId || Math.random().toString(36).slice(2, 10),
+        title,
+        messages: [...messages],
+        createdAt: messages[0]?.timestamp || Date.now(),
+        updatedAt: Date.now(),
+      }, ...prev].slice(0, 20));
+    }
+    setMessages([{ role: 'system', content: getGreeting(), timestamp: Date.now() }]);
+    setActiveConvId(id);
+    setShowHistory(false);
+  };
+
+  const loadConversation = (conv: Conversation) => {
+    setMessages(conv.messages);
+    setActiveConvId(conv.id);
+    setShowHistory(false);
+  };
+
+  const deleteConversation = (id: string) => {
+    setConversations(prev => prev.filter(c => c.id !== id));
+    if (activeConvId === id) newConversation();
+  };
+
+  const contextPrefix = useCallback(() => {
+    return `[Active deal: ${deal.codeName} — ${deal.buyerName} acquiring ${deal.targetCompany} for $${(deal.consideration / 1e9).toFixed(1)}B | Status: ${deal.status} | Closing: ${deal.closingDate} | ${deal.totalRecipients} recipients | ${deal.documentsUploaded} docs uploaded | ${deal.discrepanciesFound} discrepancies | ${deal.readyToPayPercent}% ready to pay | Current view: ${activeSection}]\n\n`;
+  }, [deal, activeSection]);
 
   const send = async (text: string) => {
     if (!text.trim() || isLoading) return;
     setError(null);
 
-    // Prepend deal context to user message
-    const contextPrefix = messages.length === 0
-      ? `[Context: Active deal is ${deal.codeName} — ${deal.buyerName} acquiring ${deal.targetCompany} for $${(deal.consideration / 1e9).toFixed(1)}B, status: ${deal.status}, closing: ${deal.closingDate}, ${deal.totalRecipients} recipients, ${deal.documentsUploaded} docs, ${deal.discrepanciesFound} discrepancies, ${deal.readyToPayPercent}% ready]\n\n`
-      : '';
-
-    const userMsg: Msg = { role: 'user', content: text };
-    const allMessages = [...messages, userMsg];
-    setMessages(allMessages);
+    const userMsg: Msg = { role: 'user', content: text, timestamp: Date.now() };
+    const allMsgs = [...messages.filter(m => m.role !== 'system'), userMsg];
+    setMessages(prev => [...prev, userMsg]);
     setInput('');
     setIsLoading(true);
 
-    // Build messages for API with context
-    const apiMessages = allMessages.map((m, i) => {
+    // Build API messages with context
+    const apiMessages = allMsgs.map((m, i) => {
       if (i === 0 && m.role === 'user') {
-        return { ...m, content: contextPrefix + m.content };
+        return { role: m.role, content: contextPrefix() + m.content };
       }
-      return m;
+      return { role: m.role, content: m.content };
     });
 
     let assistantSoFar = '';
-    const upsertAssistant = (chunk: string) => {
+    const upsert = (chunk: string) => {
       assistantSoFar += chunk;
       setMessages(prev => {
         const last = prev[prev.length - 1];
         if (last?.role === 'assistant') {
           return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantSoFar } : m);
         }
-        return [...prev, { role: 'assistant', content: assistantSoFar }];
+        return [...prev, { role: 'assistant', content: assistantSoFar, timestamp: Date.now() }];
       });
     };
 
     try {
       await streamChat({
         messages: apiMessages,
-        onDelta: upsertAssistant,
+        onDelta: upsert,
         onDone: () => setIsLoading(false),
-        onError: (err) => { setError(err); setIsLoading(false); },
+        onError: (err) => {
+          setError(err);
+          setIsLoading(false);
+          toast.error(err);
+        },
       });
     } catch (e) {
       console.error(e);
@@ -157,97 +303,167 @@ export const NewtonCover: React.FC = () => {
     }
   };
 
+  const suggestions = [
+    ...getSectionSuggestions(activeSection),
+    ...DEAL_SUGGESTIONS.slice(0, 4 - getSectionSuggestions(activeSection).length),
+  ].slice(0, 4);
+
   return (
-    <div className="space-y-4 h-[calc(100vh-8rem)] flex flex-col">
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-          <Bot className="w-5 h-5 text-accent" />
+      <div className="flex items-center justify-between pb-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+            <img src={pivtLogo} alt="Newton" className="w-6 h-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Newton</h2>
+            <p className="text-xs text-muted-foreground">
+              Deal intelligence · {deal.codeName}
+            </p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-xl font-semibold">Newton</h2>
-          <p className="text-sm text-muted-foreground">AI-powered deal intelligence · {deal.codeName}</p>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" onClick={newConversation}>
+            <Plus className="w-4 h-4 mr-1" /> New
+          </Button>
+          <Button variant="ghost" size="sm" onClick={() => setShowHistory(!showHistory)}>
+            <History className="w-4 h-4 mr-1" /> History
+          </Button>
         </div>
       </div>
 
-      {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-4 pr-2">
-        {messages.length === 0 && (
-          <div className="space-y-6 pt-8">
-            <div className="text-center">
-              <Sparkles className="w-8 h-8 text-accent mx-auto mb-3 opacity-50" />
-              <p className="text-muted-foreground">Ask Newton about {deal.codeName}</p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {SUGGESTIONS.map(s => (
-                <button
-                  key={s}
-                  onClick={() => send(s)}
-                  className="pivt-card p-3 text-sm text-left hover:border-accent/50 hover:text-accent transition-colors"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {messages.map((msg, i) => (
+      {/* History dropdown */}
+      <AnimatePresence>
+        {showHistory && (
           <motion.div
-            key={i}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={springConfig.standard}
-            className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-b border-border"
           >
-            <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${
-              msg.role === 'user'
-                ? 'bg-accent text-accent-foreground'
-                : 'bg-card border border-border'
-            }`}>
-              {msg.role === 'assistant' ? (
-                <div className="prose prose-sm dark:prose-invert max-w-none [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded">
-                  <ReactMarkdown>{msg.content}</ReactMarkdown>
-                </div>
+            <div className="py-3 space-y-1 max-h-48 overflow-y-auto">
+              {conversations.length === 0 ? (
+                <p className="text-xs text-muted-foreground px-2 py-4 text-center">No conversation history yet</p>
               ) : (
-                <p>{msg.content}</p>
+                conversations.map(conv => (
+                  <div key={conv.id} className="flex items-center justify-between group px-2 py-2 rounded-lg hover:bg-muted/50">
+                    <button onClick={() => loadConversation(conv)} className="flex-1 text-left">
+                      <p className="text-xs font-medium truncate">{conv.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{new Date(conv.updatedAt).toLocaleDateString()}</p>
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                      onClick={() => deleteConversation(conv.id)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                ))
               )}
             </div>
           </motion.div>
-        ))}
+        )}
+      </AnimatePresence>
 
-        {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
-          <div className="flex justify-start">
-            <div className="bg-card border border-border rounded-xl px-4 py-3">
-              <Loader2 className="w-4 h-4 animate-spin text-accent" />
+      {/* Messages */}
+      <ScrollArea className="flex-1 py-4" ref={scrollRef}>
+        <div className="space-y-4 pr-2">
+          {messages.map((msg, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={springConfig.standard}
+              className={cn('flex gap-3', msg.role === 'user' && 'justify-end')}
+            >
+              {msg.role === 'assistant' && (
+                <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-1">
+                  <Sparkles className="w-4 h-4 text-accent" />
+                </div>
+              )}
+              <div className={cn(
+                'px-4 py-3 rounded-xl max-w-[80%]',
+                msg.role === 'user'
+                  ? 'bg-accent text-accent-foreground'
+                  : msg.role === 'system'
+                    ? 'bg-muted/50 text-muted-foreground text-sm'
+                    : 'bg-card border border-border'
+              )}>
+                {msg.role === 'assistant' ? (
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&_code]:text-xs [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_p]:my-1.5 [&_ul]:my-1.5 [&_li]:my-0.5">
+                    <ReactMarkdown>{msg.content}</ReactMarkdown>
+                  </div>
+                ) : (
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                )}
+                {msg.action && (
+                  <Badge variant="outline" className="mt-2 text-xs">
+                    Action: {msg.action.type}
+                  </Badge>
+                )}
+              </div>
+            </motion.div>
+          ))}
+
+          {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
+                <Loader2 className="w-4 h-4 text-accent animate-spin" />
+              </div>
+              <div className="px-4 py-3 rounded-xl bg-card border border-border">
+                <p className="text-sm text-muted-foreground">Processing your request...</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {error && (
-          <div className="flex justify-center">
-            <div className="bg-blocking/10 text-blocking text-xs px-3 py-2 rounded-lg">{error}</div>
-          </div>
-        )}
-      </div>
+          {error && (
+            <div className="flex justify-center">
+              <div className="bg-blocking/10 text-blocking text-xs px-3 py-2 rounded-lg">{error}</div>
+            </div>
+          )}
+
+          {/* Suggestions */}
+          {messages.length <= 1 && !isLoading && (
+            <div className="space-y-3 pt-4">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Suggested queries</p>
+              <div className="grid grid-cols-1 gap-2">
+                {suggestions.map((q, i) => (
+                  <button
+                    key={i}
+                    onClick={() => send(q)}
+                    className="pivt-card p-3 text-xs text-left hover:border-accent/50 hover:text-accent transition-colors"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
 
       {/* Input */}
-      <div className="flex gap-2">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send(input)}
-          placeholder="Ask Newton about this deal..."
-          className="flex-1 px-4 py-3 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent/30 placeholder:text-muted-foreground"
-          disabled={isLoading}
-        />
-        <button
-          onClick={() => send(input)}
-          disabled={!input.trim() || isLoading}
-          className="px-4 py-3 rounded-xl bg-accent text-accent-foreground disabled:opacity-50 hover:bg-accent/90 transition-colors"
-        >
-          <Send className="w-4 h-4" />
-        </button>
+      <div className="pt-3 border-t border-border">
+        <form onSubmit={(e) => { e.preventDefault(); send(input); }} className="flex items-center gap-2 bg-muted/30 border border-border rounded-xl p-2">
+          <Command className="w-4 h-4 text-muted-foreground ml-2 shrink-0" />
+          <input
+            ref={inputRef}
+            placeholder="Ask Newton anything..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="flex-1 bg-transparent border-0 text-sm focus:outline-none placeholder:text-muted-foreground"
+            disabled={isLoading}
+          />
+          <Button type="submit" size="icon" className="h-8 w-8 shrink-0" disabled={!input.trim() || isLoading}>
+            <Send className="w-4 h-4" />
+          </Button>
+        </form>
+        <p className="text-[10px] text-muted-foreground mt-1.5 ml-2">
+          <kbd className="px-1 bg-muted rounded text-[10px]">⌘N</kbd> to focus · <kbd className="px-1 bg-muted rounded text-[10px]">⌘J</kbd> floating chat
+        </p>
       </div>
     </div>
   );
