@@ -4,7 +4,7 @@ import {
   Building2, TrendingUp, Upload, AlertTriangle,
   Users, CreditCard, Settings, Plug, Lock, Database,
   PieChart, Phone, Wallet, FolderCog, Play, FileSearch, Landmark,
-  Atom,
+  Atom, UserCheck,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -21,6 +21,7 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
   manda: [
     { label: 'Command Center', icon: LayoutDashboard, path: 'command' },
     { label: 'Active Deals', icon: Briefcase, path: 'deals' },
+    { label: 'KYC / KYB', icon: UserCheck, path: 'verification' },
     { label: 'Demo Experience', icon: Play, path: 'demo' },
     { label: 'Waterfall', icon: Calculator, path: 'waterfall' },
     { label: 'Stakeholders', icon: Users, path: 'stakeholders' },
@@ -33,7 +34,6 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
     { label: 'Audit', icon: History, path: 'audit' },
     { label: 'Reports', icon: BarChart3, path: 'reports' },
     { label: 'Newton AI', icon: Atom, path: 'newton' },
-    { label: 'Verification', icon: Shield, path: 'verification' },
   ],
   credit: [
     { label: 'Dashboard', icon: LayoutDashboard, path: 'command' },
