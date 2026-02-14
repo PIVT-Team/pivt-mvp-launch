@@ -125,9 +125,9 @@ export const EscrowCover: React.FC = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Escrow & Funds Tracking</h2>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className={escrowStatus === 'funded' ? 'border-validated/50 text-validated' : 'border-accent/50 text-accent'}>
+          <span className={escrowStatus === 'funded' ? 'pivt-chip pivt-chip-green' : 'pivt-chip pivt-chip-purple'}>
             {escrowStatus.toUpperCase()}
-          </Badge>
+          </span>
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <Building2 className="w-3 h-3" />
             JPMorgan Chase • FBO
@@ -136,20 +136,22 @@ export const EscrowCover: React.FC = () => {
       </div>
 
       {/* Non-custody notice */}
-      <div className="p-2.5 rounded-lg bg-accent/5 border border-accent/15 flex items-center gap-2">
-        <Info className="w-3.5 h-3.5 text-accent shrink-0" />
+      <div className="pivt-card p-3 flex items-center gap-2.5">
+        <div className="pivt-icon-chip pivt-icon-blue">
+          <Info className="w-4 h-4" strokeWidth={1.75} />
+        </div>
         <p className="text-[11px] text-muted-foreground">
           PIVT does not hold or custody client funds. Funds are held at regulated partner institutions.
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-muted/50 rounded-lg p-1 w-fit flex-wrap">
+      <div className="flex gap-1 rounded-2xl p-1.5 w-fit flex-wrap" style={{ background: 'hsl(var(--muted) / 0.5)' }}>
         {tabs.map(tab => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-md text-sm transition-colors ${
+            className={`px-4 py-2.5 rounded-xl text-sm transition-all ${
               activeTab === tab.id ? 'bg-background text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -164,42 +166,36 @@ export const EscrowCover: React.FC = () => {
           {/* Existing summary cards */}
           <div className="grid grid-cols-4 gap-5">
             <motion.div {...fadeInUp} className="pivt-card-accent p-6">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-icon-escrow/10 flex items-center justify-center">
-                  <Lock className="w-[18px] h-[18px] text-icon-escrow" strokeWidth={1.75} />
-                </div>
-                <span className="text-sm text-muted-foreground">Total Escrow</span>
+              <div className="pivt-icon-chip pivt-icon-purple mb-3">
+                <Lock className="w-[18px] h-[18px]" strokeWidth={1.75} />
               </div>
+              <p className="text-[11px] text-muted-foreground tracking-wide mb-1">Total Escrow</p>
               <p className="pivt-stat">{fmt(escrowAmount)}</p>
               <p className="text-xs text-muted-foreground mt-1.5">10% of deal value</p>
             </motion.div>
             <motion.div {...fadeInUp} className="pivt-card p-6">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-icon-success/10 flex items-center justify-center">
-                  <ArrowUpRight className="w-[18px] h-[18px] text-icon-success" strokeWidth={1.75} />
-                </div>
-                <span className="text-sm text-muted-foreground">Released</span>
+              <div className="pivt-icon-chip pivt-icon-green mb-3">
+                <ArrowUpRight className="w-[18px] h-[18px]" strokeWidth={1.75} />
               </div>
-              <p className="pivt-stat text-icon-success">{fmt(released)}</p>
+              <p className="text-[11px] text-muted-foreground tracking-wide mb-1">Released</p>
+              <p className="pivt-stat" style={{ color: 'hsl(var(--pivt-emerald))' }}>{fmt(released)}</p>
             </motion.div>
             <motion.div {...fadeInUp} className="pivt-card p-6">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-icon-pending/10 flex items-center justify-center">
-                  <Clock className="w-[18px] h-[18px] text-icon-pending" strokeWidth={1.75} />
-                </div>
-                <span className="text-sm text-muted-foreground">Held</span>
+              <div className="pivt-icon-chip pivt-icon-amber mb-3">
+                <Clock className="w-[18px] h-[18px]" strokeWidth={1.75} />
               </div>
-              <p className="pivt-stat text-icon-pending">{fmt(held)}</p>
+              <p className="text-[11px] text-muted-foreground tracking-wide mb-1">Held</p>
+              <p className="pivt-stat" style={{ color: 'hsl(var(--pivt-amber))' }}>{fmt(held)}</p>
             </motion.div>
             <motion.div {...fadeInUp} className="pivt-card p-6">
-              <div className="flex items-center gap-2.5 mb-3">
-                <div className="w-8 h-8 rounded-lg bg-icon-growth/10 flex items-center justify-center">
-                  <TrendingUp className="w-[18px] h-[18px] text-icon-growth" strokeWidth={1.75} />
-                </div>
-                <span className="text-sm text-muted-foreground">Projected Interest</span>
+              <div className="pivt-icon-chip pivt-icon-blue mb-3">
+                <TrendingUp className="w-[18px] h-[18px]" strokeWidth={1.75} />
+              </div>
+              <div className="flex items-center gap-1.5 mb-1">
+                <p className="text-[11px] text-muted-foreground tracking-wide">Projected Interest</p>
                 <InterestTooltip interestRate={interestRate} clientSplit={clientSplit} platformSplit={platformSplit} />
               </div>
-              <p className="pivt-stat text-icon-growth">{fmt(grossInterest)}</p>
+              <p className="pivt-stat" style={{ color: 'hsl(var(--pivt-blue))' }}>{fmt(grossInterest)}</p>
               <p className="text-xs text-muted-foreground mt-1.5">{interestRate}% • {holdingDays}d hold</p>
             </motion.div>
           </div>
@@ -280,7 +276,7 @@ export const EscrowCover: React.FC = () => {
 
       {/* =============== LEDGER TAB =============== */}
       {activeTab === 'ledger' && (
-        <div className="pivt-card overflow-hidden">
+        <div className="pivt-table overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/30">
             <h3 className="font-medium">Escrow Ledger</h3>
           </div>
@@ -327,7 +323,7 @@ export const EscrowCover: React.FC = () => {
               {beneficiaries.filter(b => b.status === 'verified').length}/{beneficiaries.length} verified
             </p>
           </div>
-          <div className="pivt-card overflow-hidden">
+          <div className="pivt-table overflow-hidden">
             <div className="p-3 border-b border-border bg-muted/30 grid grid-cols-7 text-xs font-medium text-muted-foreground uppercase tracking-wide">
               <span className="col-span-2">Beneficiary</span>
               <span>Type</span>

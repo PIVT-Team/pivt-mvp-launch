@@ -31,12 +31,12 @@ export const CommandCenterCover: React.FC = () => {
   };
 
   const stats = [
-    { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, color: 'text-icon-escrow' },
-    { label: 'Recipients', value: deal.totalRecipients, icon: Users, color: 'text-icon-growth' },
-    { label: 'Documents', value: deal.documentsUploaded, icon: FileCheck, color: 'text-icon-success' },
-    { label: 'Ready to Pay', value: `${deal.readyToPayPercent}%`, icon: Shield, color: 'text-icon-escrow' },
-    { label: 'Discrepancies', value: deal.discrepanciesFound, icon: AlertTriangle, color: 'text-icon-pending' },
-    { label: 'Pending Approvals', value: pendingApprovals.length, icon: Clock, color: 'text-icon-risk' },
+    { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, chip: 'pivt-icon-purple' },
+    { label: 'Recipients', value: deal.totalRecipients, icon: Users, chip: 'pivt-icon-blue' },
+    { label: 'Documents', value: deal.documentsUploaded, icon: FileCheck, chip: 'pivt-icon-green' },
+    { label: 'Ready to Pay', value: `${deal.readyToPayPercent}%`, icon: Shield, chip: 'pivt-icon-purple' },
+    { label: 'Discrepancies', value: deal.discrepanciesFound, icon: AlertTriangle, chip: 'pivt-icon-amber' },
+    { label: 'Pending Approvals', value: pendingApprovals.length, icon: Clock, chip: 'pivt-icon-red' },
   ];
 
   return (
@@ -78,10 +78,12 @@ export const CommandCenterCover: React.FC = () => {
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
         {stats.map((stat) => (
           <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-5">
-            <div className="flex items-center gap-2 mb-3">
-              <stat.icon className={`w-[18px] h-[18px] ${stat.color}`} strokeWidth={1.75} />
-              <span className="text-xs text-muted-foreground tracking-wide">{stat.label}</span>
+            <div className="flex items-center gap-2.5 mb-3">
+              <div className={`pivt-icon-chip ${stat.chip}`}>
+                <stat.icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+              </div>
             </div>
+            <p className="text-[11px] text-muted-foreground tracking-wide mb-1">{stat.label}</p>
             <p className="pivt-stat">{stat.value}</p>
           </motion.div>
         ))}
