@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
-import { navigationByMode } from '@/lib/navigation';
+import { groupedNavigationByMode } from '@/lib/navigation';
 import { Sun, Moon, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
@@ -90,7 +90,7 @@ export const PIVTCompleteUnified: React.FC = () => {
 
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
-  const nav = navigationByMode.manda;
+  const navGroups = groupedNavigationByMode.manda;
 
   // Sync URL params
   useEffect(() => {
@@ -181,26 +181,47 @@ export const PIVTCompleteUnified: React.FC = () => {
         )}
 
         {/* Nav items */}
-        <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
-          {nav.map((item) => {
-            const isActive = activeSection === item.path;
-            return (
-              <button
-                key={item.path}
-                onClick={() => setActiveSection(item.path as ActiveSection)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  isActive
-                    ? 'bg-accent/10 text-accent'
-                    : isCover
-                      ? 'text-sidebar-foreground hover:bg-sidebar-accent'
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <item.icon className="w-4 h-4 shrink-0" />
-                {!sidebarCollapsed && <span>{item.label}</span>}
-              </button>
-            );
-          })}
+        <nav className="flex-1 px-2 py-2 space-y-3 overflow-y-auto">
+          {navGroups.map((group) => (
+            <div key={group.category}>
+              {!sidebarCollapsed && (
+                <p
+                  className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
+                  style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.35)' }}
+                >
+                  {group.category}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = activeSection === item.path;
+                  return (
+                    <button
+                      key={item.path}
+                      onClick={() => setActiveSection(item.path as ActiveSection)}
+                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        isActive
+                          ? 'bg-accent/10 text-accent'
+                          : isCover
+                            ? 'text-sidebar-foreground hover:bg-sidebar-accent'
+                            : 'text-white/50 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <item.icon className="w-4 h-4 shrink-0" />
+                      {!sidebarCollapsed && (
+                        <span className="flex-1 text-left">{item.label}</span>
+                      )}
+                      {!sidebarCollapsed && item.badge && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/20 text-accent font-medium">
+                          {item.badge}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         {/* Bottom controls */}
