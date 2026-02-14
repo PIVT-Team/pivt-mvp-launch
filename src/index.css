@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -27,7 +27,7 @@
     --ring: 262 72% 55%;
     --radius: 0.75rem;
 
-    /* PIVT custom tokens */
+    /* PIVT semantic tokens */
     --validated: 152 55% 48%;
     --validated-foreground: 0 0% 100%;
     --discrepancy: 38 85% 55%;
@@ -37,13 +37,20 @@
     --surface-elevated: 224 20% 13%;
     --surface-subtle: 225 25% 9%;
 
-    /* Icon color system */
-    --icon-escrow: 262 72% 55%;
-    --icon-success: 142 55% 50%;
-    --icon-pending: 38 80% 55%;
-    --icon-growth: 217 80% 58%;
-    --icon-risk: 0 62% 55%;
-    --icon-neutral: 215 16% 47%;
+    /* Semantic icon color system */
+    --pivt-purple: 262 90% 60%;
+    --pivt-blue: 217 100% 60%;
+    --pivt-emerald: 142 71% 45%;
+    --pivt-amber: 38 92% 50%;
+    --pivt-red: 0 84% 60%;
+    --pivt-slate: 215 16% 57%;
+
+    --icon-escrow: var(--pivt-purple);
+    --icon-success: var(--pivt-emerald);
+    --icon-pending: var(--pivt-amber);
+    --icon-growth: var(--pivt-blue);
+    --icon-risk: var(--pivt-red);
+    --icon-neutral: var(--pivt-slate);
 
     --sidebar-background: 225 30% 6%;
     --sidebar-foreground: 220 14% 65%;
@@ -56,7 +63,7 @@
   }
 
   .dark {
-    /* Same as root — dark-first design */
+    /* Dark-first design — root is already dark */
   }
 }
 
@@ -73,122 +80,173 @@
   .font-mono {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
   }
+  /* Tighter heading tracking */
+  h1 { letter-spacing: -0.03em; }
+  h2 { letter-spacing: -0.025em; }
+  h3 { letter-spacing: -0.02em; }
 }
 
 @layer components {
-  /* Ambient AI background */
+
+  /* ── Ambient AI Background ── */
   .pivt-ambient-bg {
     background:
-      radial-gradient(circle at 10% 10%, hsl(262 72% 55% / 0.06), transparent 40%),
-      radial-gradient(circle at 90% 80%, hsl(217 80% 58% / 0.04), transparent 40%),
+      radial-gradient(circle at 15% 10%, hsl(262 90% 60% / 0.14), transparent 38%),
+      radial-gradient(circle at 85% 20%, hsl(217 100% 60% / 0.10), transparent 40%),
+      radial-gradient(circle at 50% 90%, hsl(262 90% 60% / 0.08), transparent 45%),
       hsl(var(--background));
   }
 
-  /* Elevated card — floating, dimensional */
+  /* ── Compute Panel Card (soft glass for non-financial) ── */
   .pivt-card {
-    @apply rounded-xl border;
-    background: hsl(var(--card));
-    border-color: hsl(var(--border) / 0.6);
-    box-shadow:
-      0 4px 24px -4px rgba(0, 0, 0, 0.4),
-      0 1px 2px rgba(0, 0, 0, 0.2),
-      inset 0 1px 0 hsl(0 0% 100% / 0.03);
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    background: hsl(var(--card) / 0.72);
+    border: 1px solid hsl(0 0% 100% / 0.07);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.40);
+    border-radius: 18px;
+    backdrop-filter: blur(10px);
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
   }
-
   .pivt-card:hover {
     transform: translateY(-2px);
-    box-shadow:
-      0 8px 32px -4px rgba(0, 0, 0, 0.5),
-      0 2px 4px rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 hsl(0 0% 100% / 0.04);
+    border-color: hsl(262 90% 60% / 0.18);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.46);
   }
 
   /* Card with accent top border */
   .pivt-card-accent {
-    @apply pivt-card;
+    background: hsl(var(--card) / 0.72);
+    border: 1px solid hsl(0 0% 100% / 0.07);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.40);
+    border-radius: 18px;
+    backdrop-filter: blur(10px);
     border-top: 2px solid hsl(var(--accent));
-    background: linear-gradient(
+    background-image: linear-gradient(
       180deg,
-      hsl(262 72% 55% / 0.06),
-      hsl(var(--card)) 40%
+      hsl(262 90% 60% / 0.08),
+      transparent 40%
     );
+    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  }
+  .pivt-card-accent:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.46);
   }
 
-  /* Financial stat number — bold, confident */
+  /* ── Crisp Table (NO blur, NO glass) ── */
+  .pivt-table {
+    background: hsl(225 30% 9%);
+    border: 1px solid hsl(0 0% 100% / 0.06);
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  /* ── Financial Stat Numbers ── */
   .pivt-stat {
-    @apply font-mono text-2xl font-bold tracking-tight;
+    @apply font-mono text-2xl font-bold;
     letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
   }
-
   .pivt-stat-lg {
     @apply font-mono text-3xl font-bold;
     letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
   }
 
-  /* Premium gradient for backgrounds */
+  /* ── Icon Chip System ── */
+  .pivt-icon-chip {
+    @apply inline-flex items-center justify-center shrink-0;
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    border: 1px solid hsl(0 0% 100% / 0.08);
+    background: hsl(0 0% 100% / 0.04);
+  }
+  .pivt-icon-purple { color: hsl(var(--pivt-purple)); background: hsl(262 90% 60% / 0.12); }
+  .pivt-icon-blue   { color: hsl(var(--pivt-blue));   background: hsl(217 100% 60% / 0.12); }
+  .pivt-icon-green  { color: hsl(var(--pivt-emerald)); background: hsl(142 71% 45% / 0.12); }
+  .pivt-icon-amber  { color: hsl(var(--pivt-amber));  background: hsl(38 92% 50% / 0.12); }
+  .pivt-icon-red    { color: hsl(var(--pivt-red));    background: hsl(0 84% 60% / 0.12); }
+  .pivt-icon-slate  { color: hsl(var(--pivt-slate));  background: hsl(215 16% 57% / 0.10); }
+
+  /* ── Status Chips (AI infra feel) ── */
+  .pivt-chip {
+    @apply inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide uppercase;
+    border: 1px solid transparent;
+  }
+  .pivt-chip-green {
+    color: hsl(var(--pivt-emerald));
+    background: hsl(142 71% 45% / 0.12);
+    border-color: hsl(142 71% 45% / 0.20);
+  }
+  .pivt-chip-purple {
+    color: hsl(var(--pivt-purple));
+    background: hsl(262 90% 60% / 0.12);
+    border-color: hsl(262 90% 60% / 0.20);
+  }
+  .pivt-chip-amber {
+    color: hsl(var(--pivt-amber));
+    background: hsl(38 92% 50% / 0.12);
+    border-color: hsl(38 92% 50% / 0.20);
+  }
+  .pivt-chip-red {
+    color: hsl(var(--pivt-red));
+    background: hsl(0 84% 60% / 0.12);
+    border-color: hsl(0 84% 60% / 0.20);
+  }
+  .pivt-chip-blue {
+    color: hsl(var(--pivt-blue));
+    background: hsl(217 100% 60% / 0.12);
+    border-color: hsl(217 100% 60% / 0.20);
+  }
+
+  /* ── Primary Button: AI gradient + glow ── */
+  .pivt-btn-primary {
+    background: linear-gradient(135deg, hsl(262 90% 60%) 0%, hsl(217 100% 60%) 100%);
+    box-shadow: 0 0 22px hsl(262 90% 60% / 0.30);
+    border: 1px solid hsl(0 0% 100% / 0.10);
+    transition: box-shadow 200ms ease, transform 200ms ease;
+  }
+  .pivt-btn-primary:hover {
+    box-shadow: 0 0 30px hsl(217 100% 60% / 0.35);
+    transform: translateY(-1px);
+  }
+
+  /* ── Gradient utilities ── */
   .pivt-gradient {
     background: linear-gradient(135deg, hsl(225 30% 6%), hsl(224 20% 12%));
   }
-
-  /* Accent glow */
   .pivt-glow {
     box-shadow: 0 0 40px -10px hsl(262 72% 55% / 0.25);
   }
 
-  /* Primary button with gradient + glow */
-  .pivt-btn-primary {
-    background: linear-gradient(135deg, hsl(262 72% 55%), hsl(217 80% 58%));
-    box-shadow: 0 0 18px hsl(262 72% 55% / 0.35);
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
-  }
-
-  .pivt-btn-primary:hover {
-    box-shadow: 0 0 28px hsl(262 72% 55% / 0.5);
-    transform: translateY(-1px);
-  }
-
-  /* Processing pulse */
+  /* ── Processing pulse (intelligent, not frantic) ── */
   .pivt-processing {
     animation: pivtPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
-
-  /* Heading tighter tracking */
-  h1, h2, h3 {
-    letter-spacing: -0.02em;
-  }
 }
 
-/* PIVT Logo Rotation — outside @layer to avoid Tailwind purge issues */
+/* ── Logo Rotation (outside @layer for purge safety) ── */
 @keyframes pivtRotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-
 .pivt-logo-spin {
   animation: pivtRotate 22s linear infinite !important;
   transform-origin: center center;
   will-change: transform;
   filter: drop-shadow(0 0 8px hsl(262 72% 55% / 0.5));
 }
-
 .pivt-logo-spin:hover {
   animation-play-state: paused !important;
 }
 
 @keyframes pivtPulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  50% { opacity: 0.55; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pivt-logo-spin {
-    animation: none !important;
-  }
-  .pivt-processing {
-    animation: none !important;
-  }
-  .pivt-card:hover {
-    transform: none;
-  }
+  .pivt-logo-spin { animation: none !important; }
+  .pivt-processing { animation: none !important; }
+  .pivt-card:hover, .pivt-card-accent:hover { transform: none; }
 }
