@@ -116,25 +116,25 @@
   }
 }
 
-/* PIVT Logo Rotation */
+/* PIVT Logo Rotation — outside @layer to avoid Tailwind purge issues */
 @keyframes pivtRotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
 .pivt-logo-spin {
-  animation: pivtRotate 22s linear infinite;
+  animation: pivtRotate 22s linear infinite !important;
   transform-origin: center center;
   will-change: transform;
-  filter: drop-shadow(0 0 6px hsl(262 72% 55% / 0.4));
+  filter: drop-shadow(0 0 8px hsl(262 72% 55% / 0.5));
 }
 
 .pivt-logo-spin:hover {
-  animation-play-state: paused;
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pivt-logo-spin {
-    animation: none;
+    animation: none !important;
   }
 }

@@ -43,7 +43,7 @@ export const CommandCenterCover: React.FC = () => {
     <motion.div {...staggerChildren} className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <img src={pivtLogo} alt="PIVT" className="pivt-logo-spin h-12 w-12 object-contain" />
+          <img src={pivtLogo} alt="PIVT" className="pivt-logo-spin h-14 w-14 object-contain rounded-full" />
           <div>
             <h1 className="text-2xl font-semibold text-foreground">{deal.name}</h1>
             <p className="text-muted-foreground mt-1">{deal.buyerName} acquiring {deal.targetCompany} · {deal.sector}</p>
