@@ -212,7 +212,7 @@ export const PIVTCompleteUnified: React.FC = () => {
                             : 'text-white/50 hover:text-white hover:bg-white/5'
                       }`}
                     >
-                      <item.icon className="w-4 h-4 shrink-0" />
+                      <item.icon className="w-4 h-4 shrink-0" style={{ color: isActive ? undefined : item.iconColor }} />
                       {!sidebarCollapsed && (
                         <span className="flex-1 text-left">{item.label}</span>
                       )}
