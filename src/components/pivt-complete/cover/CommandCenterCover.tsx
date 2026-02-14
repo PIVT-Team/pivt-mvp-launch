@@ -6,6 +6,7 @@ import { useKycStore } from '@/stores/kycStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import { Shield, FileCheck, Users, AlertTriangle, TrendingUp, Clock, Plus } from 'lucide-react';
 import { NewtonInsights } from './NewtonInsights';
+import pivtLogo from '@/assets/pivt-logo.png';
 import { ActivityFeed } from './ActivityFeed';
 import { KycGateModal } from '@/components/deal-wizard/KycGateModal';
 
@@ -41,9 +42,12 @@ export const CommandCenterCover: React.FC = () => {
   return (
     <motion.div {...staggerChildren} className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{deal.name}</h1>
-          <p className="text-muted-foreground mt-1">{deal.buyerName} acquiring {deal.targetCompany} · {deal.sector}</p>
+        <div className="flex items-center gap-4">
+          <img src={pivtLogo} alt="PIVT" className="pivt-logo-spin h-12 w-12 object-contain" />
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">{deal.name}</h1>
+            <p className="text-muted-foreground mt-1">{deal.buyerName} acquiring {deal.targetCompany} · {deal.sector}</p>
+          </div>
         </div>
         <button
           onClick={handleNewDeal}
