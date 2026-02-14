@@ -32,7 +32,7 @@ export const DealWizard: React.FC = () => {
   const {
     isOpen, currentStep, closeWizard, nextStep, prevStep,
     wizardMode, setWizardMode, confirmationId, discrepancies, approvals,
-    kyc, prefillDemo, resetWizard,
+    kyc, escrowSetup, prefillDemo, resetWizard,
   } = useDealWizardStore();
 
   if (!isOpen) return null;
@@ -45,6 +45,7 @@ export const DealWizard: React.FC = () => {
   // Gate logic
   const canProceed = (() => {
     if (currentStep === 'kyc' && wizardMode === 'live' && kyc.status !== 'approved') return false;
+    if (currentStep === 'escrow-setup' && escrowSetup.status === 'pending') return false;
     if (currentStep === 'discrepancies') {
       const unresolvedHigh = discrepancies.filter(d => d.severity === 'high' && !d.resolved).length;
       if (unresolvedHigh > 0) return false;
