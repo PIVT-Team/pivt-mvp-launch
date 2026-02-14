@@ -162,37 +162,45 @@ export const EscrowCover: React.FC = () => {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Existing summary cards */}
-          <div className="grid grid-cols-4 gap-4">
-            <motion.div {...fadeInUp} className="pivt-card p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Lock className="w-4 h-4 text-accent" />
+          <div className="grid grid-cols-4 gap-5">
+            <motion.div {...fadeInUp} className="pivt-card-accent p-6">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-icon-escrow/10 flex items-center justify-center">
+                  <Lock className="w-[18px] h-[18px] text-icon-escrow" strokeWidth={1.75} />
+                </div>
                 <span className="text-sm text-muted-foreground">Total Escrow</span>
               </div>
               <p className="pivt-stat">{fmt(escrowAmount)}</p>
-              <p className="text-xs text-muted-foreground mt-1">10% of deal value</p>
+              <p className="text-xs text-muted-foreground mt-1.5">10% of deal value</p>
             </motion.div>
-            <motion.div {...fadeInUp} className="pivt-card p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <ArrowUpRight className="w-4 h-4 text-validated" />
+            <motion.div {...fadeInUp} className="pivt-card p-6">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-icon-success/10 flex items-center justify-center">
+                  <ArrowUpRight className="w-[18px] h-[18px] text-icon-success" strokeWidth={1.75} />
+                </div>
                 <span className="text-sm text-muted-foreground">Released</span>
               </div>
-              <p className="pivt-stat text-validated">{fmt(released)}</p>
+              <p className="pivt-stat text-icon-success">{fmt(released)}</p>
             </motion.div>
-            <motion.div {...fadeInUp} className="pivt-card p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Clock className="w-4 h-4 text-discrepancy" />
+            <motion.div {...fadeInUp} className="pivt-card p-6">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-icon-pending/10 flex items-center justify-center">
+                  <Clock className="w-[18px] h-[18px] text-icon-pending" strokeWidth={1.75} />
+                </div>
                 <span className="text-sm text-muted-foreground">Held</span>
               </div>
-              <p className="pivt-stat text-discrepancy">{fmt(held)}</p>
+              <p className="pivt-stat text-icon-pending">{fmt(held)}</p>
             </motion.div>
-            <motion.div {...fadeInUp} className="pivt-card p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-accent" />
+            <motion.div {...fadeInUp} className="pivt-card p-6">
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-icon-growth/10 flex items-center justify-center">
+                  <TrendingUp className="w-[18px] h-[18px] text-icon-growth" strokeWidth={1.75} />
+                </div>
                 <span className="text-sm text-muted-foreground">Projected Interest</span>
                 <InterestTooltip interestRate={interestRate} clientSplit={clientSplit} platformSplit={platformSplit} />
               </div>
-              <p className="pivt-stat text-accent">{fmt(grossInterest)}</p>
-              <p className="text-xs text-muted-foreground mt-1">{interestRate}% • {holdingDays}d hold</p>
+              <p className="pivt-stat text-icon-growth">{fmt(grossInterest)}</p>
+              <p className="text-xs text-muted-foreground mt-1.5">{interestRate}% • {holdingDays}d hold</p>
             </motion.div>
           </div>
 

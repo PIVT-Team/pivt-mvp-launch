@@ -31,16 +31,16 @@ export const CommandCenterCover: React.FC = () => {
   };
 
   const stats = [
-    { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, color: 'text-accent' },
-    { label: 'Recipients', value: deal.totalRecipients, icon: Users, color: 'text-accent/70' },
-    { label: 'Documents', value: deal.documentsUploaded, icon: FileCheck, color: 'text-validated' },
-    { label: 'Ready to Pay', value: `${deal.readyToPayPercent}%`, icon: Shield, color: 'text-accent' },
-    { label: 'Discrepancies', value: deal.discrepanciesFound, icon: AlertTriangle, color: 'text-discrepancy' },
-    { label: 'Pending Approvals', value: pendingApprovals.length, icon: Clock, color: 'text-orange-400' },
+    { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, color: 'text-icon-escrow' },
+    { label: 'Recipients', value: deal.totalRecipients, icon: Users, color: 'text-icon-growth' },
+    { label: 'Documents', value: deal.documentsUploaded, icon: FileCheck, color: 'text-icon-success' },
+    { label: 'Ready to Pay', value: `${deal.readyToPayPercent}%`, icon: Shield, color: 'text-icon-escrow' },
+    { label: 'Discrepancies', value: deal.discrepanciesFound, icon: AlertTriangle, color: 'text-icon-pending' },
+    { label: 'Pending Approvals', value: pendingApprovals.length, icon: Clock, color: 'text-icon-risk' },
   ];
 
   return (
-    <motion.div {...staggerChildren} className="space-y-6">
+    <motion.div {...staggerChildren} className="space-y-7">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <img src={pivtLogo} alt="PIVT" className="h-14 w-14 object-contain rounded-full" style={{ filter: 'drop-shadow(0 0 8px hsl(262 72% 55% / 0.5))' }} />
@@ -51,7 +51,7 @@ export const CommandCenterCover: React.FC = () => {
         </div>
         <button
           onClick={handleNewDeal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-foreground rounded-lg text-sm font-semibold hover:bg-accent/90 transition-all"
+          className="pivt-btn-primary flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold"
         >
           <Plus className="w-4 h-4" />
           New Deal
@@ -59,7 +59,7 @@ export const CommandCenterCover: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'View Waterfall', section: 'waterfall' as const },
           { label: 'Review Approvals', section: 'approvals' as const },
@@ -69,61 +69,62 @@ export const CommandCenterCover: React.FC = () => {
           <button
             key={action.label}
             onClick={() => setActiveSection(action.section)}
-            className="pivt-card p-3 text-sm font-medium text-center hover:border-accent/50 hover:text-accent transition-colors"
+            className="pivt-card p-4 text-sm font-medium text-center hover:border-accent/40 hover:text-accent transition-all"
           >
             {action.label}
           </button>
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
         {stats.map((stat) => (
-          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4 hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex items-center gap-2 mb-2">
-              <stat.icon className={`w-4 h-4 ${stat.color}`} />
-              <span className="text-xs text-muted-foreground">{stat.label}</span>
+          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <stat.icon className={`w-[18px] h-[18px] ${stat.color}`} strokeWidth={1.75} />
+              <span className="text-xs text-muted-foreground tracking-wide">{stat.label}</span>
             </div>
-            <p className="pivt-stat text-xl">{stat.value}</p>
+            <p className="pivt-stat">{stat.value}</p>
           </motion.div>
         ))}
       </div>
 
       {/* Readiness Bar */}
-      <motion.div {...fadeInUp} className="pivt-card p-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-medium">Closing Readiness</h3>
-          <span className="font-mono text-accent font-semibold">{deal.readyToPayPercent}%</span>
+      <motion.div {...fadeInUp} className="pivt-card p-7">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold text-base">Closing Readiness</h3>
+          <span className="pivt-stat text-lg text-accent">{deal.readyToPayPercent}%</span>
         </div>
-        <div className="w-full bg-muted rounded-full h-3">
+        <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
           <motion.div
-            className="bg-accent h-3 rounded-full"
+            className="h-3 rounded-full"
+            style={{ background: 'linear-gradient(90deg, hsl(262 72% 55%), hsl(217 80% 58%))' }}
             initial={{ width: 0 }}
             animate={{ width: `${deal.readyToPayPercent}%` }}
             transition={{ duration: 1, ease: 'easeOut' }}
           />
         </div>
-        <div className="mt-4 grid grid-cols-3 gap-4 text-sm">
+        <div className="mt-5 grid grid-cols-3 gap-4 text-sm">
           <div className="flex items-center gap-2 cursor-pointer hover:text-accent transition-colors" onClick={() => setActiveSection('stakeholders')}>
-            <div className="w-2 h-2 rounded-full bg-validated" />
+            <div className="w-2.5 h-2.5 rounded-full bg-validated" />
             <span>{stakeholders.filter(s => s.kycStatus === 'verified').length} KYC Verified</span>
           </div>
           <div className="flex items-center gap-2 cursor-pointer hover:text-accent transition-colors" onClick={() => setActiveSection('documents')}>
-            <div className="w-2 h-2 rounded-full bg-validated" />
+            <div className="w-2.5 h-2.5 rounded-full bg-validated" />
             <span>{documents.filter(d => d.status === 'verified').length} Docs Verified</span>
           </div>
           <div className="flex items-center gap-2 cursor-pointer hover:text-accent transition-colors" onClick={() => setActiveSection('approvals')}>
-            <div className="w-2 h-2 rounded-full bg-discrepancy" />
+            <div className="w-2.5 h-2.5 rounded-full bg-discrepancy" />
             <span>{pendingApprovals.length} Pending Approvals</span>
           </div>
         </div>
       </motion.div>
 
       {/* Newton Insights + Activity Feed side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <motion.div {...fadeInUp} className="pivt-card p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <motion.div {...fadeInUp} className="pivt-card p-6">
           <NewtonInsights />
         </motion.div>
-        <motion.div {...fadeInUp} className="pivt-card p-5 max-h-[500px] overflow-y-auto">
+        <motion.div {...fadeInUp} className="pivt-card p-6 max-h-[500px] overflow-y-auto">
           <ActivityFeed />
         </motion.div>
       </div>
