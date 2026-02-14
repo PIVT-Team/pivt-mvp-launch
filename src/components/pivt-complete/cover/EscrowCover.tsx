@@ -4,23 +4,28 @@ import { useSelectedDeal } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import {
   Lock, ArrowUpRight, Clock, TrendingUp, Info, Building2,
-  Copy, CheckCircle2, Shield, Upload, Users, Banknote,
+  Users, AlertTriangle, Flag,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { EscrowAccountDetails } from './escrow/EscrowAccountDetails';
+import { FundingConfirmation } from './escrow/FundingConfirmation';
+import { EscrowRiskIndicators } from './escrow/EscrowRiskIndicators';
+import { ExecutionAuthSnapshot } from './escrow/ExecutionAuthSnapshot';
+import { EscrowAuditLog } from './escrow/EscrowAuditLog';
+import { InterestTooltip } from './escrow/InterestTooltip';
+import { EscrowLifecycleTimeline } from './escrow/EscrowLifecycleTimeline';
 
-type EscrowPageTab = 'overview' | 'ledger' | 'beneficiaries' | 'funding';
+type EscrowPageTab = 'overview' | 'ledger' | 'beneficiaries' | 'funding' | 'risk' | 'audit';
 
 export const EscrowCover: React.FC = () => {
   const deal = useSelectedDeal();
   const [activeTab, setActiveTab] = useState<EscrowPageTab>('overview');
-  const [escrowStatus, setEscrowStatus] = useState<'active' | 'funded'>('funded');
-  const [copied, setCopied] = useState(false);
+  const [escrowStatus, setEscrowStatus] = useState<'pending' | 'active' | 'funded' | 'disbursed' | 'closed'>('funded');
 
   const escrowAmount = deal.consideration * 0.1;
   const released = escrowAmount * 0.3;
   const held = escrowAmount - released;
 
-  // Interest calculation
   const interestRate = 4.25;
   const clientSplit = 85;
   const platformSplit = 15;
@@ -42,18 +47,14 @@ export const EscrowCover: React.FC = () => {
   const fmtCurrency = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
-  const copyRef = () => {
-    navigator.clipboard.writeText(refCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
+  // --- Data for new sections ---
 
   const beneficiaries = [
-    { id: 'b1', name: 'Andreessen Horowitz Fund VII', entityType: 'Fund', jurisdiction: 'Delaware, USA', payoutAmount: 280000000, bankMasked: 'JPM ****4821', status: 'verified' },
-    { id: 'b2', name: 'Sequoia Capital Global Growth', entityType: 'Fund', jurisdiction: 'Cayman Islands', payoutAmount: 420000000, bankMasked: 'Citi ****7293', status: 'verified' },
-    { id: 'b3', name: 'GIC Private Limited', entityType: 'Corporation', jurisdiction: 'Singapore', payoutAmount: 560000000, bankMasked: 'DBS ****1847', status: 'pending' },
-    { id: 'b4', name: 'Tiger Global Management', entityType: 'Fund', jurisdiction: 'New York, USA', payoutAmount: 350000000, bankMasked: 'GS ****5512', status: 'verified' },
-    { id: 'b5', name: 'DataStream Founders Trust', entityType: 'Trust', jurisdiction: 'Delaware, USA', payoutAmount: 910000000, bankMasked: 'BNY ****3398', status: 'verified' },
+    { id: 'b1', name: 'Andreessen Horowitz Fund VII', entityType: 'Fund', jurisdiction: 'Delaware, USA', payoutAmount: 280000000, bankMasked: 'JPM ****4821', status: 'verified' as const, changedAfterApproval: false },
+    { id: 'b2', name: 'Sequoia Capital Global Growth', entityType: 'Fund', jurisdiction: 'Cayman Islands', payoutAmount: 420000000, bankMasked: 'Citi ****7293', status: 'verified' as const, changedAfterApproval: false },
+    { id: 'b3', name: 'GIC Private Limited', entityType: 'Corporation', jurisdiction: 'Singapore', payoutAmount: 560000000, bankMasked: 'DBS ****1847', status: 'pending' as const, changedAfterApproval: false },
+    { id: 'b4', name: 'Tiger Global Management', entityType: 'Fund', jurisdiction: 'New York, USA', payoutAmount: 350000000, bankMasked: 'GS ****5512', status: 'verified' as const, changedAfterApproval: true },
+    { id: 'b5', name: 'DataStream Founders Trust', entityType: 'Trust', jurisdiction: 'Delaware, USA', payoutAmount: 910000000, bankMasked: 'BNY ****3398', status: 'verified' as const, changedAfterApproval: false },
   ];
 
   const ledger = [
@@ -71,11 +72,52 @@ export const EscrowCover: React.FC = () => {
     return { ...entry, balance: runningBalance };
   });
 
+  const riskChecks = [
+    { label: 'KYC/KYB — All parties approved', status: 'pass' as const, detail: '4/5 verified, 1 pending review' },
+    { label: 'Escrow status = Funded', status: escrowStatus === 'funded' ? 'pass' as const : 'pending' as const },
+    { label: 'Validation engine — All checks passed', status: 'pass' as const },
+    { label: 'High-severity discrepancies resolved', status: 'pass' as const, detail: '0 open high-severity items' },
+    { label: 'Required approvals complete', status: 'pending' as const, detail: '3/4 approvers signed' },
+    { label: 'Beneficiary registry complete', status: 'pass' as const },
+    { label: 'Anti-fraud screening clear', status: 'pass' as const, detail: 'OFAC/AML checks passed' },
+  ];
+
+  const approvers = [
+    { name: 'Sarah Chen', role: 'Seller Counsel', status: 'approved' as const, timestamp: '2026-02-12 14:32' },
+    { name: 'David Park', role: 'Buyer Counsel', status: 'approved' as const, timestamp: '2026-02-12 16:10' },
+    { name: 'Maria Rodriguez', role: 'Compliance Officer', status: 'approved' as const, timestamp: '2026-02-13 09:45' },
+    { name: 'James Wright', role: 'Deal Admin', status: 'pending' as const },
+  ];
+
+  const auditEntries = [
+    { timestamp: '2026-02-14 09:12', actor: 'System', action: 'Interest accrual projection recalculated', dealRef: refCode },
+    { timestamp: '2026-02-13 09:45', actor: 'Maria Rodriguez', action: 'Execution authorization approved', dealRef: refCode },
+    { timestamp: '2026-02-12 16:10', actor: 'David Park', action: 'Execution authorization approved', dealRef: refCode },
+    { timestamp: '2026-02-12 14:32', actor: 'Sarah Chen', action: 'Execution authorization approved', dealRef: refCode },
+    { timestamp: '2026-02-10 11:00', actor: 'Deal Admin', action: 'Beneficiary bank details updated (Tiger Global)', dealRef: refCode },
+    { timestamp: '2026-02-01 10:15', actor: 'Deal Admin', action: 'Working capital adjustment released', dealRef: refCode },
+    { timestamp: '2026-01-20 14:30', actor: 'Deal Admin', action: 'Escrow marked as funded', dealRef: refCode },
+    { timestamp: '2026-01-15 09:00', actor: 'System', action: 'Funding instructions generated', dealRef: refCode },
+    { timestamp: '2026-01-15 08:45', actor: 'Deal Admin', action: 'Escrow account activated at partner institution', dealRef: refCode },
+  ];
+
+  const lifecycleEvents = [
+    { date: '2026-01-15', label: 'Escrow account opened at JPMorgan Chase', status: 'completed' as const },
+    { date: '2026-01-15', label: 'Funding instructions issued', status: 'completed' as const },
+    { date: '2026-01-20', label: 'Funding confirmed', status: 'completed' as const },
+    { date: '2026-02-01', label: 'Working capital adjustment released', status: 'completed' as const },
+    { date: '2026-02-14', label: 'Execution authorization in progress', status: 'active' as const },
+    { date: '2026-06-15', label: 'Indemnity escrow release (scheduled)', status: 'upcoming' as const },
+    { date: '2027-01-15', label: 'Final escrow release (scheduled)', status: 'upcoming' as const },
+  ];
+
   const tabs: { id: EscrowPageTab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'funding', label: 'Funding' },
     { id: 'ledger', label: 'Ledger' },
     { id: 'beneficiaries', label: 'Beneficiaries' },
+    { id: 'risk', label: 'Risk & Auth' },
+    { id: 'audit', label: 'Audit Trail' },
   ];
 
   return (
@@ -102,7 +144,7 @@ export const EscrowCover: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-muted/50 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-muted/50 rounded-lg p-1 w-fit flex-wrap">
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -116,9 +158,10 @@ export const EscrowCover: React.FC = () => {
         ))}
       </div>
 
-      {/* OVERVIEW TAB */}
+      {/* =============== OVERVIEW TAB =============== */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
+          {/* Existing summary cards */}
           <div className="grid grid-cols-4 gap-4">
             <motion.div {...fadeInUp} className="pivt-card p-5">
               <div className="flex items-center gap-2 mb-2">
@@ -146,17 +189,31 @@ export const EscrowCover: React.FC = () => {
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-accent" />
                 <span className="text-sm text-muted-foreground">Projected Interest</span>
+                <InterestTooltip interestRate={interestRate} clientSplit={clientSplit} platformSplit={platformSplit} />
               </div>
               <p className="pivt-stat text-accent">{fmt(grossInterest)}</p>
               <p className="text-xs text-muted-foreground mt-1">{interestRate}% • {holdingDays}d hold</p>
             </motion.div>
           </div>
 
+          {/* Escrow Account Details */}
+          <EscrowAccountDetails
+            institutionName="JPMorgan Chase"
+            accountType="FBO (For Benefit Of)"
+            referenceCode={refCode}
+            status={escrowStatus}
+            openedAt="2026-01-15"
+            maskedAccount="****7842"
+            maskedRouting="****0210"
+            fundedAt={escrowStatus === 'funded' ? '2026-01-20 14:30 UTC' : undefined}
+          />
+
           {/* Interest Projection */}
           <motion.div {...fadeInUp} className="pivt-card p-5 border-l-2 border-l-accent">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-4 h-4 text-accent" />
               <h3 className="font-medium">Projected Interest Earnings</h3>
+              <InterestTooltip interestRate={interestRate} clientSplit={clientSplit} platformSplit={platformSplit} />
               <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium ml-auto">Projected (simulated)</span>
             </div>
             <div className="grid grid-cols-5 gap-4 text-sm">
@@ -183,107 +240,37 @@ export const EscrowCover: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Timeline */}
-          <div className="pivt-card p-5">
-            <h3 className="font-medium mb-4">Escrow Timeline</h3>
-            <div className="space-y-4">
-              {[
-                { date: '2026-01-15', event: 'Escrow funded at partner institution', amount: escrowAmount, type: 'in' },
-                { date: '2026-02-01', event: 'Working capital adjustment released', amount: released, type: 'out' },
-                { date: '2026-08-15', event: 'Indemnity escrow release (scheduled)', amount: held * 0.5, type: 'pending' },
-                { date: '2027-01-15', event: 'Final escrow release (scheduled)', amount: held * 0.5, type: 'pending' },
-              ].map((evt, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className={`w-2 h-2 rounded-full ${evt.type === 'in' ? 'bg-accent' : evt.type === 'out' ? 'bg-validated' : 'bg-muted-foreground'}`} />
-                  <span className="text-xs font-mono text-muted-foreground w-24">{evt.date}</span>
-                  <span className="flex-1 text-sm">{evt.event}</span>
-                  <span className={`font-mono text-sm ${evt.type === 'out' ? 'text-validated' : ''}`}>
-                    {evt.type === 'out' ? '-' : ''}{fmt(evt.amount)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Lifecycle Timeline */}
+          <EscrowLifecycleTimeline events={lifecycleEvents} />
         </div>
       )}
 
-      {/* FUNDING TAB */}
+      {/* =============== FUNDING TAB =============== */}
       {activeTab === 'funding' && (
         <div className="space-y-5">
-          {/* Funding Instructions */}
-          <div className="pivt-card p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Banknote className="w-4 h-4 text-accent" />
-              <h3 className="font-medium">Funding Instructions</h3>
-            </div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Bank Name</p>
-                <p className="font-medium mt-0.5">JPMorgan Chase</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Account Type</p>
-                <p className="font-medium mt-0.5">FBO (For Benefit Of)</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Routing (Masked)</p>
-                <p className="font-mono mt-0.5">****0210</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Account (Masked)</p>
-                <p className="font-mono mt-0.5">****7842</p>
-              </div>
-            </div>
-            <div className="pt-3 border-t border-border">
-              <p className="text-xs text-muted-foreground mb-1.5">Reference / Memo (Required)</p>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 px-3 py-2 bg-muted/50 rounded-lg text-accent font-mono text-sm">{refCode}</code>
-                <button onClick={copyRef} className="px-3 py-2 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors text-xs font-medium flex items-center gap-1.5">
-                  <Copy className="w-3.5 h-3.5" />
-                  {copied ? 'Copied!' : 'Copy'}
-                </button>
-              </div>
-            </div>
-          </div>
+          <FundingConfirmation
+            expectedAmount={escrowAmount}
+            receivedAmount={escrowAmount}
+            confirmedBy={escrowStatus === 'funded' ? 'Deal Admin' : null}
+            confirmedAt={escrowStatus === 'funded' ? '2026-01-20 14:30 UTC' : null}
+            isFunded={escrowStatus === 'funded'}
+            onMarkFunded={() => setEscrowStatus('funded')}
+          />
 
-          {/* Funding Confirmation */}
-          <div className="pivt-card p-5 space-y-4">
-            <div className="flex items-center gap-2">
-              <Shield className="w-4 h-4 text-accent" />
-              <h3 className="font-medium">Funding Confirmation</h3>
-              <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">Admin</span>
-            </div>
-            {escrowStatus !== 'funded' ? (
-              <>
-                <p className="text-xs text-muted-foreground">Confirm funds have been received at the partner institution.</p>
-                <div className="flex gap-3">
-                  <button className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted transition-colors text-xs">
-                    <Upload className="w-3.5 h-3.5" />
-                    Upload Receipt (Optional)
-                  </button>
-                  <button
-                    onClick={() => setEscrowStatus('funded')}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-validated text-white text-sm font-medium hover:bg-validated/80 transition-colors"
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    Mark as Funded
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="p-3 rounded-lg bg-validated/10 border border-validated/20 flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-validated" />
-                <div>
-                  <p className="text-sm font-semibold text-validated">Escrow Funded</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">Interest projection active • Ledger entry created</p>
-                </div>
-              </div>
-            )}
-          </div>
+          <EscrowAccountDetails
+            institutionName="JPMorgan Chase"
+            accountType="FBO (For Benefit Of)"
+            referenceCode={refCode}
+            status={escrowStatus}
+            openedAt="2026-01-15"
+            maskedAccount="****7842"
+            maskedRouting="****0210"
+            fundedAt={escrowStatus === 'funded' ? '2026-01-20 14:30 UTC' : undefined}
+          />
         </div>
       )}
 
-      {/* LEDGER TAB */}
+      {/* =============== LEDGER TAB =============== */}
       {activeTab === 'ledger' && (
         <div className="pivt-card overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/30">
@@ -320,7 +307,7 @@ export const EscrowCover: React.FC = () => {
         </div>
       )}
 
-      {/* BENEFICIARIES TAB */}
+      {/* =============== BENEFICIARIES TAB =============== */}
       {activeTab === 'beneficiaries' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -333,15 +320,16 @@ export const EscrowCover: React.FC = () => {
             </p>
           </div>
           <div className="pivt-card overflow-hidden">
-            <div className="p-3 border-b border-border bg-muted/30 grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <div className="p-3 border-b border-border bg-muted/30 grid grid-cols-7 text-xs font-medium text-muted-foreground uppercase tracking-wide">
               <span className="col-span-2">Beneficiary</span>
               <span>Type</span>
               <span>Jurisdiction</span>
               <span className="text-right">Payout</span>
-              <span className="text-right">Status</span>
+              <span className="text-center">Verified</span>
+              <span className="text-center">Flags</span>
             </div>
             {beneficiaries.map(b => (
-              <div key={b.id} className="p-3 border-b border-border last:border-0 grid grid-cols-6 items-center text-sm hover:bg-muted/20 transition-colors">
+              <div key={b.id} className="p-3 border-b border-border last:border-0 grid grid-cols-7 items-center text-sm hover:bg-muted/20 transition-colors">
                 <div className="col-span-2">
                   <p className="font-medium text-sm">{b.name}</p>
                   <p className="text-xs text-muted-foreground">{b.bankMasked}</p>
@@ -349,18 +337,49 @@ export const EscrowCover: React.FC = () => {
                 <span className="text-xs text-muted-foreground">{b.entityType}</span>
                 <span className="text-xs text-muted-foreground">{b.jurisdiction}</span>
                 <span className="text-right font-mono text-sm">{fmtCurrency(b.payoutAmount)}</span>
-                <div className="text-right">
+                <div className="text-center">
                   <Badge variant="outline" className={b.status === 'verified' ? 'border-validated/50 text-validated' : 'border-amber-400/50 text-amber-400'}>
                     {b.status}
                   </Badge>
                 </div>
+                <div className="text-center">
+                  {b.changedAfterApproval ? (
+                    <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-discrepancy/10 text-discrepancy text-[10px] font-medium">
+                      <Flag className="w-3 h-3" />
+                      Changed
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">—</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>
+          {beneficiaries.some(b => b.changedAfterApproval) && (
+            <div className="p-2.5 rounded-lg bg-discrepancy/10 border border-discrepancy/20 flex items-center gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-discrepancy shrink-0" />
+              <p className="text-[11px] text-discrepancy">
+                One or more beneficiaries were modified after approval. Re-verification required before execution.
+              </p>
+            </div>
+          )}
           <p className="text-[10px] text-muted-foreground italic">
             Beneficiary registry must be complete before execution can proceed. Changes after approval are flagged.
           </p>
         </div>
+      )}
+
+      {/* =============== RISK & AUTH TAB =============== */}
+      {activeTab === 'risk' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <EscrowRiskIndicators checks={riskChecks} />
+          <ExecutionAuthSnapshot approvers={approvers} allApproved={approvers.every(a => a.status === 'approved')} />
+        </div>
+      )}
+
+      {/* =============== AUDIT TRAIL TAB =============== */}
+      {activeTab === 'audit' && (
+        <EscrowAuditLog entries={auditEntries} />
       )}
     </div>
   );
