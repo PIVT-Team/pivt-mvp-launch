@@ -44,6 +44,7 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
     { label: 'MCP Agents', icon: Bot, path: 'mcp' },
     { label: 'Integrations', icon: Plug, path: 'integrations' },
     { label: 'Newton AI', icon: Atom, path: 'newton' },
+    { label: 'Autonomy', icon: Bot, path: 'autonomy' },
     { label: 'Settings', icon: Settings, path: 'settings' },
   ],
   credit: [

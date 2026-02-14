@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-type SettingsTab = 'team' | 'integrations' | 'autonomy';
+type SettingsTab = 'team' | 'integrations';
 
 interface TeamMember {
   id: string;
@@ -46,20 +46,6 @@ const INTEGRATIONS: Integration[] = [
   { id: 'aws', name: 'AWS S3', description: 'Document storage', status: 'connected', icon: Lock, category: 'Storage' },
 ];
 
-interface AutonomySetting {
-  id: string;
-  label: string;
-  description: string;
-  enabled: boolean;
-  level: 'full' | 'supervised' | 'manual';
-}
-
-const AUTONOMY_DEFAULTS: AutonomySetting[] = [
-  { id: 'auto-kyc', label: 'Auto-approve KYC', description: 'Automatically approve KYC when all documents are verified', enabled: true, level: 'full' },
-  { id: 'auto-match', label: 'Auto-match invoices', description: 'Match incoming invoices to budget line items', enabled: true, level: 'full' },
-  { id: 'auto-escalate', label: 'Auto-escalate approvals', description: 'Escalate if approval takes > 2 hours', enabled: false, level: 'supervised' },
-  { id: 'auto-notify', label: 'Smart notifications', description: 'AI-prioritized notification delivery', enabled: true, level: 'full' },
-];
 
 const roleColors: Record<string, string> = {
   admin: 'border-accent/50 text-accent',
@@ -70,17 +56,12 @@ const roleColors: Record<string, string> = {
 
 export const SettingsCover: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('team');
-  const [autonomy, setAutonomy] = useState(AUTONOMY_DEFAULTS);
-
-  const toggleAutonomy = (id: string) => {
-    setAutonomy(prev => prev.map(a => a.id === id ? { ...a, enabled: !a.enabled } : a));
-  };
 
   return (
     <motion.div {...staggerChildren} className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-        <p className="text-muted-foreground mt-1">Team management, integrations, and AI autonomy controls</p>
+        <p className="text-muted-foreground mt-1">Team management and integrations</p>
       </div>
 
       {/* Tabs */}
@@ -88,7 +69,6 @@ export const SettingsCover: React.FC = () => {
         {([
           { id: 'team' as SettingsTab, label: 'Team & Roles', icon: Users },
           { id: 'integrations' as SettingsTab, label: 'Integrations', icon: Plug },
-          { id: 'autonomy' as SettingsTab, label: 'Autonomy', icon: Bot },
         ]).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-colors ${activeTab === tab.id ? 'bg-background text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
             <tab.icon className="w-4 h-4" />
@@ -191,85 +171,6 @@ export const SettingsCover: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Autonomy */}
-        {activeTab === 'autonomy' && (
-          <motion.div key="autonomy" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-            <div>
-              <h3 className="text-xl font-semibold text-foreground">Autonomy Settings</h3>
-              <p className="text-sm text-muted-foreground mt-1">Configure AI agent behavior</p>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={springConfig.standard}
-              className="pivt-card overflow-hidden"
-            >
-              {autonomy.map((setting, index) => (
-                <motion.div
-                  key={setting.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ ...springConfig.standard, delay: index * 0.03 }}
-                  className="p-5 flex items-center justify-between border-b border-border last:border-0"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center">
-                      <Sliders className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{setting.label}</p>
-                      <p className="text-xs text-muted-foreground">{setting.description}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => toggleAutonomy(setting.id)}
-                    className={`w-12 h-7 rounded-full transition-colors relative ${
-                      setting.enabled ? 'bg-validated' : 'bg-muted'
-                    }`}
-                  >
-                    <motion.div
-                      initial={false}
-                      animate={{ x: setting.enabled ? 20 : 2 }}
-                      transition={springConfig.standard}
-                      className="absolute top-1 w-5 h-5 rounded-full bg-white shadow"
-                    />
-                  </button>
-                </motion.div>
-              ))}
-            </motion.div>
-
-            {/* Autonomy Level */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...springConfig.standard, delay: 0.2 }}
-              className="pivt-card p-6"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <Shield className="w-5 h-5 text-accent" />
-                <h3 className="text-sm font-medium text-foreground">Autonomy Level</h3>
-              </div>
-              <div className="flex items-center gap-4">
-                {['Conservative', 'Balanced', 'Aggressive'].map((level, i) => (
-                  <button
-                    key={level}
-                    className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${
-                      i === 1
-                        ? 'bg-foreground text-background'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
-                    }`}
-                  >
-                    {level}
-                  </button>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground mt-3">
-                Balanced: Agents prepare and stage work, but require human approval for payments over $1M.
-              </p>
-            </motion.div>
-          </motion.div>
-        )}
       </AnimatePresence>
     </motion.div>
   );

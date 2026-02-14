@@ -11,7 +11,7 @@ export type ActiveSection =
   | 'demo' | 'ingestion' | 'closing' | 'newton' | 'verification' | 'admin-verification'
   | 'messages' | 'notifications'
   | 'cap-table' | 'workspace' | 'recipient' | 'lp-portal' | 'onboarding'
-  | 'mcp' | 'cockpit' | 'settings' | 'integrations';
+  | 'mcp' | 'cockpit' | 'settings' | 'integrations' | 'autonomy';
 
 export type EntityType = 'deal' | 'stakeholder' | 'document' | 'payment' | 'escrow' | 'approval';
 
