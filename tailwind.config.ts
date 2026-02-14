@@ -63,6 +63,13 @@ export default {
           DEFAULT: "hsl(var(--blocking))",
           foreground: "hsl(var(--blocking-foreground))",
         },
+        // Icon color system
+        "icon-escrow": "hsl(var(--icon-escrow))",
+        "icon-success": "hsl(var(--icon-success))",
+        "icon-pending": "hsl(var(--icon-pending))",
+        "icon-growth": "hsl(var(--icon-growth))",
+        "icon-risk": "hsl(var(--icon-risk))",
+        "icon-neutral": "hsl(var(--icon-neutral))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

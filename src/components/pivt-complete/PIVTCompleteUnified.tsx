@@ -128,9 +128,8 @@ export const PIVTCompleteUnified: React.FC = () => {
 
   return (
     <div
-      className="flex h-screen overflow-hidden transition-colors duration-300"
+      className="flex h-screen overflow-hidden transition-colors duration-300 pivt-ambient-bg"
       style={{
-        background: isCover ? 'hsl(var(--background))' : '#0B0B0B',
         color: isCover ? 'hsl(var(--foreground))' : '#fff',
       }}
     >
@@ -248,7 +247,7 @@ export const PIVTCompleteUnified: React.FC = () => {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto flex flex-col">
         {/* Top header bar */}
-        <div className="shrink-0 px-6 py-3 flex items-center gap-3 border-b" style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.08)' }}>
+        <div className="shrink-0 px-6 py-4 flex items-center gap-3 border-b" style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.08)' }}>
           {/* Search */}
           <button
             onClick={() => setCommandOpen(true)}
@@ -326,7 +325,7 @@ export const PIVTCompleteUnified: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={springConfig.standard}
-              className="p-8 max-w-6xl mx-auto"
+              className="p-10 max-w-6xl mx-auto"
             >
               <ActiveCoverSection />
             </motion.div>
