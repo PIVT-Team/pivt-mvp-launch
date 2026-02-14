@@ -39,6 +39,7 @@ import { MCPIntegrationsCover } from './cover/MCPIntegrationsCover';
 import { GlassCockpitCover } from './cover/GlassCockpitCover';
 import { SettingsCover } from './cover/SettingsCover';
 import { IntegrationsCover } from './cover/IntegrationsCover';
+import { AutonomyCover } from './cover/AutonomyCover';
 
 // Glass
 import { GlassOntology } from './glass/GlassOntology';
@@ -77,6 +78,7 @@ const coverSections: Record<ActiveSection, React.FC> = {
   cockpit: GlassCockpitCover,
   settings: SettingsCover,
   integrations: IntegrationsCover,
+  autonomy: AutonomyCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
