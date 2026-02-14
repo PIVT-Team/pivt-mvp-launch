@@ -15,6 +15,18 @@ export interface UserKyc {
   submitted_at: string | null;
   reviewed_at: string | null;
   admin_notes: string | null;
+  // Banking / Wire details (from GitHub repo pattern)
+  bank_name: string | null;
+  bank_address: string | null;
+  account_holder_name: string | null;
+  account_number_last4: string | null;
+  routing_number: string | null;
+  swift_bic: string | null;
+  iban: string | null;
+  bank_country: string | null;
+  wire_currency: string | null;
+  intermediary_bank: string | null;
+  bank_verified: boolean;
 }
 
 export interface OrgKyb {

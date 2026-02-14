@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Shield, CheckCircle2, Clock, AlertTriangle, Upload, ChevronDown, Zap } from 'lucide-react';
+import { Shield, CheckCircle2, Clock, AlertTriangle, Upload, ChevronDown, Zap, Building2, Landmark } from 'lucide-react';
 import { useKycStore, KycStatus } from '@/stores/kycStore';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -63,6 +63,8 @@ export const VerificationCover: React.FC = () => {
   // Local form state
   const [kycForm, setKycForm] = useState({
     full_legal_name: '', date_of_birth: '', nationality: '', residential_address: '', role_at_org: '',
+    bank_name: '', bank_address: '', account_holder_name: '', account_number_last4: '',
+    routing_number: '', swift_bic: '', iban: '', bank_country: '', wire_currency: 'USD', intermediary_bank: '',
   });
   const [kybForm, setKybForm] = useState({
     legal_entity_name: '', country_jurisdiction: '', registration_number: '', registered_address: '',
@@ -77,6 +79,16 @@ export const VerificationCover: React.FC = () => {
       nationality: userKyc.nationality || '',
       residential_address: userKyc.residential_address || '',
       role_at_org: userKyc.role_at_org || '',
+      bank_name: userKyc.bank_name || '',
+      bank_address: userKyc.bank_address || '',
+      account_holder_name: userKyc.account_holder_name || '',
+      account_number_last4: userKyc.account_number_last4 || '',
+      routing_number: userKyc.routing_number || '',
+      swift_bic: userKyc.swift_bic || '',
+      iban: userKyc.iban || '',
+      bank_country: userKyc.bank_country || '',
+      wire_currency: userKyc.wire_currency || 'USD',
+      intermediary_bank: userKyc.intermediary_bank || '',
     });
   }, [userKyc]);
 
@@ -166,6 +178,70 @@ export const VerificationCover: React.FC = () => {
             <p className="text-xs font-medium text-white/50 uppercase tracking-wider">Documents</p>
             <FileUploadButton label="Government-issued Photo ID" docType="government_id" ownerType="user" required />
             <FileUploadButton label="Proof of Address" docType="proof_of_address" ownerType="user" />
+          </div>
+
+          {/* Banking & Wire Details */}
+          <div className="pt-4 border-t border-white/5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Landmark className="w-4 h-4 text-accent" />
+              <p className="text-xs font-medium text-white/50 uppercase tracking-wider">Banking & Wire Instructions</p>
+              {userKyc?.bank_verified && (
+                <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[hsl(var(--validated))]/10 text-[hsl(var(--validated))]">
+                  <CheckCircle2 className="w-3 h-3" /> Verified
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[
+                { label: 'Bank Name', key: 'bank_name', placeholder: 'e.g. JPMorgan Chase' },
+                { label: 'Account Holder Name', key: 'account_holder_name', placeholder: 'As registered with bank' },
+                { label: 'Account Number (Last 4)', key: 'account_number_last4', placeholder: '••••' },
+                { label: 'Routing / Sort Code', key: 'routing_number', placeholder: 'e.g. 021000021' },
+                { label: 'SWIFT / BIC', key: 'swift_bic', placeholder: 'e.g. CHASUS33' },
+                { label: 'IBAN (if applicable)', key: 'iban', placeholder: 'e.g. GB29 NWBK 6016 1331 9268 19' },
+                { label: 'Bank Country', key: 'bank_country', placeholder: 'e.g. United States' },
+                { label: 'Bank Address', key: 'bank_address', placeholder: 'Branch address' },
+              ].map(f => (
+                <div key={f.key}>
+                  <label className="text-xs font-medium text-white/50 uppercase tracking-wider">{f.label}</label>
+                  <input
+                    type="text"
+                    value={(kycForm as any)[f.key]}
+                    onChange={e => setKycForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                    disabled={!kycEditable}
+                    placeholder={f.placeholder}
+                    className="mt-1 w-full px-3 py-2.5 bg-[#0F1220] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-accent disabled:opacity-50"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Wire Currency</label>
+                <select
+                  value={kycForm.wire_currency}
+                  onChange={e => setKycForm(prev => ({ ...prev, wire_currency: e.target.value }))}
+                  disabled={!kycEditable}
+                  className="mt-1 w-full px-3 py-2.5 bg-[#0F1220] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-accent disabled:opacity-50"
+                >
+                  {['USD', 'EUR', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD', 'SGD', 'HKD'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Intermediary Bank (if any)</label>
+                <input
+                  type="text"
+                  value={kycForm.intermediary_bank}
+                  onChange={e => setKycForm(prev => ({ ...prev, intermediary_bank: e.target.value }))}
+                  disabled={!kycEditable}
+                  placeholder="Optional"
+                  className="mt-1 w-full px-3 py-2.5 bg-[#0F1220] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-accent disabled:opacity-50"
+                />
+              </div>
+            </div>
+            <p className="text-[10px] text-white/25 italic">Wire instructions are encrypted at rest. Only authorized deal participants can view account details.</p>
           </div>
 
           {kycEditable && (

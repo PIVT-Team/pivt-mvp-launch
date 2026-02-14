@@ -38,6 +38,20 @@ const AdminVerificationQueue: React.FC = () => {
             <div><span className="text-white/40">Address:</span> <span className="text-white/70 ml-1">{item.residential_address || '—'}</span></div>
             <div><span className="text-white/40">DOB:</span> <span className="text-white/70 ml-1">{item.date_of_birth || '—'}</span></div>
           </div>
+          {/* Banking Details */}
+          {item.bank_name && (
+            <div className="mt-2 p-3 bg-[#0F1220] rounded-lg border border-white/5">
+              <p className="text-[10px] font-medium text-white/40 uppercase tracking-wider mb-2">Banking / Wire Details</p>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div><span className="text-white/40">Bank:</span> <span className="text-white/70 ml-1">{item.bank_name}</span></div>
+                <div><span className="text-white/40">Account Holder:</span> <span className="text-white/70 ml-1">{item.account_holder_name || '—'}</span></div>
+                <div><span className="text-white/40">Last 4:</span> <span className="text-white/70 ml-1 font-mono">••••{item.account_number_last4 || '—'}</span></div>
+                <div><span className="text-white/40">Routing:</span> <span className="text-white/70 ml-1 font-mono">{item.routing_number || '—'}</span></div>
+                <div><span className="text-white/40">SWIFT/BIC:</span> <span className="text-white/70 ml-1 font-mono">{item.swift_bic || '—'}</span></div>
+                <div><span className="text-white/40">Currency:</span> <span className="text-white/70 ml-1">{item.wire_currency || 'USD'}</span></div>
+              </div>
+            </div>
+          )}
           <div>
             <label className="text-xs text-white/40">Admin Note</label>
             <textarea
