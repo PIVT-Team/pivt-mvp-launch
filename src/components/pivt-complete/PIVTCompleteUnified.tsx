@@ -7,7 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Sun, Moon, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sun, Moon, Search, ChevronLeft, ChevronRight, Bell, Settings, Upload, Eye, Layers } from 'lucide-react';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
 
@@ -225,17 +225,7 @@ export const PIVTCompleteUnified: React.FC = () => {
         </nav>
 
         {/* Bottom controls */}
-        <div className="p-3 border-t space-y-2" style={{ borderColor: isCover ? 'hsl(var(--sidebar-border))' : 'rgba(255,255,255,0.08)' }}>
-          {/* Mode toggle */}
-          <button
-            onClick={toggleMode}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/5"
-            style={{ color: isCover ? 'hsl(var(--sidebar-foreground))' : '#fff' }}
-          >
-            {isCover ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            {!sidebarCollapsed && <span>{isCover ? 'Glass Mode' : 'Cover Mode'}</span>}
-            {!sidebarCollapsed && <span className="ml-auto text-xs opacity-40">⌘G</span>}
-          </button>
+        <div className="p-3 border-t" style={{ borderColor: isCover ? 'hsl(var(--sidebar-border))' : 'rgba(255,255,255,0.08)' }}>
 
           {/* Collapse toggle */}
           <button
@@ -250,17 +240,76 @@ export const PIVTCompleteUnified: React.FC = () => {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* Search bar */}
-        <div className="shrink-0 px-8 pt-4 pb-0">
+        {/* Top header bar */}
+        <div className="shrink-0 px-6 py-3 flex items-center gap-3 border-b" style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.08)' }}>
+          {/* Search */}
           <button
             onClick={() => setCommandOpen(true)}
-            className="w-full max-w-md flex items-center gap-2 px-3 py-2 rounded-lg border text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm text-muted-foreground hover:bg-muted/50 transition-colors flex-1 max-w-md"
             style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.1)' }}
           >
             <Search className="w-4 h-4 shrink-0" />
             <span className="flex-1 text-left">Search deals, stakeholders...</span>
             <kbd className="px-1.5 py-0.5 text-xs rounded border bg-muted font-mono">⌘K</kbd>
           </button>
+
+          <div className="flex-1" />
+
+          {/* Cover / Glass toggle */}
+          <div className="flex items-center bg-muted/50 rounded-full p-0.5">
+            <button
+              onClick={() => setViewMode('cover')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                isCover ? 'bg-accent text-accent-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Eye className="w-3.5 h-3.5" />
+              Cover
+            </button>
+            <button
+              onClick={() => setViewMode('glass')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                !isCover ? 'bg-accent text-accent-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Layers className="w-3.5 h-3.5" />
+              Glass
+            </button>
+          </div>
+
+          {/* Notifications */}
+          <button
+            onClick={() => setActiveSection('notifications')}
+            className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors"
+            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.6)' }}
+          >
+            <Bell className="w-5 h-5" />
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-blocking text-white text-[9px] font-bold flex items-center justify-center">3</span>
+          </button>
+
+          {/* Import Data */}
+          <button
+            onClick={() => setActiveSection('ingestion')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
+            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.6)' }}
+          >
+            <Upload className="w-4 h-4" />
+            Import Data
+          </button>
+
+          {/* Settings */}
+          <button
+            onClick={() => setActiveSection('settings')}
+            className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
+            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.6)' }}
+          >
+            <Settings className="w-5 h-5" />
+          </button>
+
+          {/* User avatar */}
+          <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center text-accent-foreground text-sm font-semibold cursor-pointer">
+            SC
+          </div>
         </div>
         <AnimatePresence mode="wait">
           {isCover ? (
