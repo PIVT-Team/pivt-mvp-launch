@@ -32,12 +32,17 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
         { label: 'Active Deals', icon: Briefcase, path: 'deals' },
         { label: 'Deal Workspace', icon: FolderCog, path: 'workspace' },
         { label: 'Demo Experience', icon: Play, path: 'demo' },
+      ],
+    },
+    {
+      category: 'Deal Elements',
+      items: [
         { label: 'KYC / KYB', icon: UserCheck, path: 'verification' },
         { label: 'Stakeholders', icon: Users, path: 'stakeholders' },
         { label: 'Documents', icon: FileCheck, path: 'documents' },
         { label: 'Ingestion', icon: FileSearch, path: 'ingestion' },
-        { label: 'Waterfall', icon: Calculator, path: 'waterfall' },
         { label: 'Cap Table', icon: Table2, path: 'cap-table' },
+        { label: 'Waterfall', icon: Calculator, path: 'waterfall' },
         { label: 'Escrow', icon: Shield, path: 'escrow' },
         { label: 'Closing Center', icon: Landmark, path: 'closing' },
       ],
