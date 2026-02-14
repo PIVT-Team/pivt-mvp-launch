@@ -150,7 +150,7 @@ export const PIVTCompleteUnified: React.FC = () => {
             src={pivtLogo}
             alt="PIVT"
             className={`${sidebarCollapsed ? 'h-10' : 'h-20'} w-auto shrink-0 transition-all duration-300`}
-            animate={{ rotateY: [0, 180, 180, 0] }}
+            animate={{ rotateY: [0, -180, -180, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', times: [0, 0.4, 0.6, 1] }}
           />
           {!sidebarCollapsed && (
