@@ -15,7 +15,7 @@ export const Step9Execution: React.FC = () => {
       <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20 flex items-start gap-3">
         <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
         <p className="text-sm text-amber-300">
-          <strong>Simulated execution.</strong> No funds are transmitted. This generates a confirmation ID and audit log entry for demo purposes.
+          <strong>Simulated execution.</strong> Execution instruction will be sent to the partner institution. No funds are transmitted directly by PIVT. This generates a confirmation ID and audit log entry for demo purposes.
         </p>
       </div>
 
@@ -45,17 +45,17 @@ export const Step9Execution: React.FC = () => {
 
           <button
             onClick={executeSimulated}
-            className="w-full py-3 rounded-lg bg-[#5B3DF5] text-white font-semibold hover:bg-[#5B3DF5]/80 transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-lg bg-accent text-accent-foreground font-semibold hover:bg-accent/80 transition-all flex items-center justify-center gap-2"
           >
             <Shield className="w-4 h-4" />
-            Execute (Simulated)
+            Send Execution Instruction to Partner Institution
           </button>
         </>
       ) : (
         <div className="text-center py-8 space-y-4">
           <CheckCircle2 className="w-16 h-16 text-emerald-400 mx-auto" />
           <div>
-            <p className="text-xl font-bold text-white">Deal Complete</p>
+            <p className="text-xl font-bold text-white">Execution Instruction Sent</p>
             <p className="text-sm text-white/40 mt-1">Confirmation ID</p>
             <p className="font-mono text-lg text-[#5B3DF5] font-bold mt-1">{confirmationId}</p>
           </div>
@@ -63,11 +63,13 @@ export const Step9Execution: React.FC = () => {
             <p className="text-xs font-semibold text-white/60 uppercase tracking-wider">Audit Log</p>
             <div className="space-y-1 text-xs text-white/40">
               <p>• KYC verification completed</p>
+              <p>• Escrow account activated at partner institution</p>
               <p>• Deal created: {dealBasics.dealName}</p>
               <p>• Documents uploaded and validated</p>
               <p>• Discrepancies reviewed and resolved</p>
               <p>• All approvals obtained</p>
-              <p>• Simulated execution at {new Date().toLocaleString()}</p>
+              <p>• Execution instruction sent to partner institution at {new Date().toLocaleString()}</p>
+              <p>• Escrow balance reduction recorded</p>
               <p>• Confirmation ID: {confirmationId}</p>
             </div>
           </div>

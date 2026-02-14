@@ -6,6 +6,7 @@ import { WizardStepper } from './WizardStepper';
 import { WizardSidePanel } from './WizardSidePanel';
 import { Step1Account } from './steps/Step1Account';
 import { Step2Kyc } from './steps/Step2Kyc';
+import { StepEscrowSetup } from './steps/StepEscrowSetup';
 import { Step3DealBasics } from './steps/Step3DealBasics';
 import { Step4Parties } from './steps/Step4Parties';
 import { Step5Documentation } from './steps/Step5Documentation';
@@ -17,6 +18,7 @@ import { Step9Execution } from './steps/Step9Execution';
 const stepComponents: Record<WizardStep, React.FC> = {
   account: Step1Account,
   kyc: Step2Kyc,
+  'escrow-setup': StepEscrowSetup,
   'deal-basics': Step3DealBasics,
   parties: Step4Parties,
   documentation: Step5Documentation,

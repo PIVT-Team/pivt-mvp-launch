@@ -7,6 +7,10 @@ const SIDE_CONTENT: Record<WizardStep, { needed: string[]; why: string }> = {
     needed: ['Your full legal name', 'Organization details', 'Contact information'],
     why: 'We verify your identity to ensure only authorized personnel can initiate or manage deal payouts.',
   },
+  'escrow-setup': {
+    needed: ['Escrow institution selection', 'Account type (FBO or Dedicated)', 'Interest rate and split configuration'],
+    why: 'Funds are held at regulated partner institutions. Configuring escrow early ensures proper fund segregation and interest tracking.',
+  },
   kyc: {
     needed: ['Government-issued photo ID', 'Proof of address (optional)', 'Certificate of incorporation (for entities)'],
     why: 'KYC/KYB compliance is required by financial regulations. This protects all parties in the transaction.',

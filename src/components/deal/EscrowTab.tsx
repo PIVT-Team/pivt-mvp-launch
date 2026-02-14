@@ -62,6 +62,12 @@ export default function EscrowTab({ dealId, isAdmin }: { dealId: string; isAdmin
 
   return (
     <div className="space-y-6">
+      {/* Non-custody notice */}
+      <div className="p-2.5 rounded-lg bg-accent/5 border border-accent/15 flex items-center gap-2">
+        <span className="text-[11px] text-muted-foreground">
+          ℹ️ PIVT does not hold or custody client funds. Funds are held at regulated partner institutions.
+        </span>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="pivt-card p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Total Escrow</p>

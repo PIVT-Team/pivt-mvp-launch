@@ -3,20 +3,21 @@ import { create } from 'zustand';
 export type WizardMode = 'demo' | 'live';
 
 export type WizardStep =
-  | 'account' | 'kyc' | 'deal-basics' | 'parties'
+  | 'account' | 'kyc' | 'escrow-setup' | 'deal-basics' | 'parties'
   | 'documentation' | 'validation' | 'discrepancies'
   | 'approvals' | 'execution';
 
 export const WIZARD_STEPS: { key: WizardStep; label: string; number: number }[] = [
   { key: 'account', label: 'Account & Entity', number: 1 },
   { key: 'kyc', label: 'KYC / KYB', number: 2 },
-  { key: 'deal-basics', label: 'Deal Basics', number: 3 },
-  { key: 'parties', label: 'Parties & Roles', number: 4 },
-  { key: 'documentation', label: 'Documentation', number: 5 },
-  { key: 'validation', label: 'Validation', number: 6 },
-  { key: 'discrepancies', label: 'Discrepancies', number: 7 },
-  { key: 'approvals', label: 'Approvals', number: 8 },
-  { key: 'execution', label: 'Execution', number: 9 },
+  { key: 'escrow-setup', label: 'Escrow Setup', number: 3 },
+  { key: 'deal-basics', label: 'Deal Basics', number: 4 },
+  { key: 'parties', label: 'Parties & Roles', number: 5 },
+  { key: 'documentation', label: 'Documentation', number: 6 },
+  { key: 'validation', label: 'Validation', number: 7 },
+  { key: 'discrepancies', label: 'Discrepancies', number: 8 },
+  { key: 'approvals', label: 'Approvals', number: 9 },
+  { key: 'execution', label: 'Execution', number: 10 },
 ];
 
 export interface AccountData {
@@ -34,6 +35,16 @@ export interface KycData {
   corpDocUploaded: boolean;
   attestation: boolean;
   status: 'not_started' | 'in_review' | 'approved';
+}
+
+export interface EscrowSetupData {
+  institution: string;
+  accountType: 'FBO' | 'Dedicated';
+  interestRate: string;
+  clientSplit: string;
+  platformSplit: string;
+  activated: boolean;
+  maskedAccount: string;
 }
 
 export interface DealBasicsData {
@@ -90,6 +101,16 @@ export interface ApprovalCard {
   signedAt?: string;
 }
 
+const initialEscrowSetup: EscrowSetupData = {
+  institution: '',
+  accountType: 'FBO',
+  interestRate: '4.25',
+  clientSplit: '85',
+  platformSplit: '15',
+  activated: false,
+  maskedAccount: '',
+};
+
 interface DealWizardStore {
   isOpen: boolean;
   currentStep: WizardStep;
@@ -99,6 +120,7 @@ interface DealWizardStore {
   // Data
   account: AccountData;
   kyc: KycData;
+  escrowSetup: EscrowSetupData;
   dealBasics: DealBasicsData;
   parties: PartiesData;
   documents: DocUpload[];
@@ -118,6 +140,8 @@ interface DealWizardStore {
 
   updateAccount: (data: Partial<AccountData>) => void;
   updateKyc: (data: Partial<KycData>) => void;
+  updateEscrowSetup: (data: Partial<EscrowSetupData>) => void;
+  activateEscrow: () => void;
   updateDealBasics: (data: Partial<DealBasicsData>) => void;
   updateParties: (data: Partial<PartiesData>) => void;
   addDocument: (doc: DocUpload) => void;
@@ -178,6 +202,7 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
 
   account: { ...initialAccount },
   kyc: { ...initialKyc },
+  escrowSetup: { ...initialEscrowSetup },
   dealBasics: { ...initialDealBasics },
   parties: { ...initialParties },
   documents: [],
@@ -216,6 +241,16 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
 
   updateAccount: (data) => set((s) => ({ account: { ...s.account, ...data } })),
   updateKyc: (data) => set((s) => ({ kyc: { ...s.kyc, ...data } })),
+  updateEscrowSetup: (data) => set((s) => ({ escrowSetup: { ...s.escrowSetup, ...data } })),
+  
+  activateEscrow: () => {
+    const last4 = Math.floor(1000 + Math.random() * 9000).toString();
+    set((s) => ({
+      escrowSetup: { ...s.escrowSetup, activated: true, maskedAccount: last4 },
+    }));
+    get().completeStep('escrow-setup');
+  },
+
   updateDealBasics: (data) => set((s) => ({ dealBasics: { ...s.dealBasics, ...data } })),
   updateParties: (data) => set((s) => ({ parties: { ...s.parties, ...data } })),
 
@@ -254,6 +289,15 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
         phone: '+1 (212) 555-0142',
       },
       kyc: { govIdUploaded: true, proofOfAddressUploaded: true, corpDocUploaded: true, attestation: true, status: 'approved' },
+      escrowSetup: {
+        institution: 'JPMorgan Chase',
+        accountType: 'FBO',
+        interestRate: '4.25',
+        clientSplit: '85',
+        platformSplit: '15',
+        activated: true,
+        maskedAccount: '7842',
+      },
       dealBasics: {
         dealName: 'Project ATLAS',
         buyerLegalName: 'Apex Capital Partners LLC',
@@ -279,6 +323,7 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
     wizardMode: 'demo',
     account: { ...initialAccount },
     kyc: { ...initialKyc },
+    escrowSetup: { ...initialEscrowSetup },
     dealBasics: { ...initialDealBasics },
     parties: { ...initialParties },
     documents: [],
