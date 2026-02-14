@@ -42,6 +42,7 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
     { label: 'Audit', icon: History, path: 'audit' },
     { label: 'Reports', icon: BarChart3, path: 'reports' },
     { label: 'MCP Agents', icon: Bot, path: 'mcp' },
+    { label: 'Integrations', icon: Plug, path: 'integrations' },
     { label: 'Newton AI', icon: Atom, path: 'newton' },
     { label: 'Settings', icon: Settings, path: 'settings' },
   ],
@@ -62,7 +63,7 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
   admin: [
     { label: 'Dashboard', icon: LayoutDashboard, path: 'command' },
     { label: 'Verification Queue', icon: Shield, path: 'admin-verification' },
-    { label: 'Integrations', icon: Plug, path: 'documents' },
+    { label: 'Integrations', icon: Plug, path: 'integrations' },
     { label: 'API Keys', icon: Lock, path: 'escrow' },
     { label: 'Logs', icon: History, path: 'audit' },
     { label: 'Settings', icon: Settings, path: 'reports' },
