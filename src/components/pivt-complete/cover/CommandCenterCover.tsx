@@ -54,6 +54,24 @@ export const CommandCenterCover: React.FC = () => {
         </button>
       </div>
 
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: 'View Waterfall', section: 'waterfall' as const },
+          { label: 'Review Approvals', section: 'approvals' as const },
+          { label: 'Check Escrow', section: 'escrow' as const },
+          { label: 'Portfolio Analytics', section: 'reports' as const },
+        ].map(action => (
+          <button
+            key={action.label}
+            onClick={() => setActiveSection(action.section)}
+            className="pivt-card p-3 text-sm font-medium text-center hover:border-accent/50 hover:text-accent transition-colors"
+          >
+            {action.label}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         {stats.map((stat) => (
           <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4 hover:shadow-md transition-shadow cursor-pointer">
@@ -106,23 +124,6 @@ export const CommandCenterCover: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: 'View Waterfall', section: 'waterfall' as const },
-          { label: 'Review Approvals', section: 'approvals' as const },
-          { label: 'Check Escrow', section: 'escrow' as const },
-          { label: 'Portfolio Analytics', section: 'reports' as const },
-        ].map(action => (
-          <button
-            key={action.label}
-            onClick={() => setActiveSection(action.section)}
-            className="pivt-card p-3 text-sm font-medium text-center hover:border-accent/50 hover:text-accent transition-colors"
-          >
-            {action.label}
-          </button>
-        ))}
-      </div>
 
       <KycGateModal
         open={showGate}
