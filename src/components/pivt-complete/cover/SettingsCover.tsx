@@ -3,11 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, staggerChildren, springConfig } from '@/lib/animations';
 import {
   Settings, Users, Plug, Shield, Bot, Sliders, CheckCircle2,
-  Plus, Trash2, Edit, Globe, Key, Bell, Lock, ToggleLeft,
+  Plus, Trash2, Edit, Globe, Key, Bell, Lock, ToggleLeft, TrendingUp,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-type SettingsTab = 'team' | 'integrations';
+type SettingsTab = 'team' | 'integrations' | 'escrow-defaults';
 
 interface TeamMember {
   id: string;
@@ -46,7 +46,6 @@ const INTEGRATIONS: Integration[] = [
   { id: 'aws', name: 'AWS S3', description: 'Document storage', status: 'connected', icon: Lock, category: 'Storage' },
 ];
 
-
 const roleColors: Record<string, string> = {
   admin: 'border-accent/50 text-accent',
   'deal-admin': 'border-validated/50 text-validated',
@@ -56,12 +55,14 @@ const roleColors: Record<string, string> = {
 
 export const SettingsCover: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('team');
+  const [defaultRate, setDefaultRate] = useState('4.25');
+  const [defaultPlatformSplit, setDefaultPlatformSplit] = useState('15');
 
   return (
     <motion.div {...staggerChildren} className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-        <p className="text-muted-foreground mt-1">Team management and integrations</p>
+        <p className="text-muted-foreground mt-1">Team management, integrations, and escrow configuration</p>
       </div>
 
       {/* Tabs */}
@@ -69,6 +70,7 @@ export const SettingsCover: React.FC = () => {
         {([
           { id: 'team' as SettingsTab, label: 'Team & Roles', icon: Users },
           { id: 'integrations' as SettingsTab, label: 'Integrations', icon: Plug },
+          { id: 'escrow-defaults' as SettingsTab, label: 'Escrow Defaults', icon: TrendingUp },
         ]).map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm transition-colors ${activeTab === tab.id ? 'bg-background text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
             <tab.icon className="w-4 h-4" />
@@ -171,6 +173,65 @@ export const SettingsCover: React.FC = () => {
           </motion.div>
         )}
 
+        {/* Escrow Defaults (Admin) */}
+        {activeTab === 'escrow-defaults' && (
+          <motion.div key="escrow-defaults" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
+            <div className="pivt-card p-6 space-y-5">
+              <div>
+                <h3 className="font-medium mb-1">Default Escrow Interest Configuration</h3>
+                <p className="text-xs text-muted-foreground">These defaults auto-populate when creating new escrow accounts. Admin can override per deal.</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wider block mb-1.5">Default Interest Rate (%)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={defaultRate}
+                    onChange={e => setDefaultRate(e.target.value)}
+                    className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-accent"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Applied to all new escrow accounts</p>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wider block mb-1.5">Default Platform Interest Share (%)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    value={defaultPlatformSplit}
+                    onChange={e => setDefaultPlatformSplit(e.target.value)}
+                    className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-accent"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Client receives {100 - Number(defaultPlatformSplit)}%</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border">
+                <button className="px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors">
+                  Save Defaults
+                </button>
+              </div>
+            </div>
+
+            <div className="pivt-card p-5">
+              <h3 className="font-medium mb-3">Interest Rate History</h3>
+              <div className="space-y-2">
+                {[
+                  { date: '2026-02-01', rate: '4.25', by: 'Alexandra Reed' },
+                  { date: '2026-01-15', rate: '4.00', by: 'System Default' },
+                  { date: '2025-12-01', rate: '3.75', by: 'System Default' },
+                ].map((entry, i) => (
+                  <div key={i} className="flex items-center gap-4 text-sm py-2 border-b border-border last:border-0">
+                    <span className="font-mono text-xs text-muted-foreground w-24">{entry.date}</span>
+                    <span className="font-mono font-semibold">{entry.rate}%</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Set by {entry.by}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </motion.div>
   );

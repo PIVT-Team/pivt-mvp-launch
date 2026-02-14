@@ -202,6 +202,59 @@ export type Database = {
         }
         Relationships: []
       }
+      escrow_accounts: {
+        Row: {
+          account_type: string
+          created_at: string
+          deal_id: string
+          id: string
+          institution_name: string
+          interest_rate: number
+          interest_split_client_percent: number
+          interest_split_platform_percent: number
+          masked_account_number: string | null
+          opened_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_type?: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          institution_name?: string
+          interest_rate?: number
+          interest_split_client_percent?: number
+          interest_split_platform_percent?: number
+          masked_account_number?: string | null
+          opened_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_type?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          institution_name?: string
+          interest_rate?: number
+          interest_split_client_percent?: number
+          interest_split_platform_percent?: number
+          masked_account_number?: string | null
+          opened_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escrow_accounts_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       escrow_transactions: {
         Row: {
           amount: number
