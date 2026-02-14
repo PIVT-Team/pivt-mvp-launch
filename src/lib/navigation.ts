@@ -33,6 +33,7 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
     { label: 'Audit', icon: History, path: 'audit' },
     { label: 'Reports', icon: BarChart3, path: 'reports' },
     { label: 'Newton AI', icon: Atom, path: 'newton' },
+    { label: 'Verification', icon: Shield, path: 'verification' },
   ],
   credit: [
     { label: 'Dashboard', icon: LayoutDashboard, path: 'command' },
@@ -50,6 +51,7 @@ export const navigationByMode: Record<AppMode, NavigationItem[]> = {
   ],
   admin: [
     { label: 'Dashboard', icon: LayoutDashboard, path: 'command' },
+    { label: 'Verification Queue', icon: Shield, path: 'admin-verification' },
     { label: 'Integrations', icon: Plug, path: 'documents' },
     { label: 'API Keys', icon: Lock, path: 'escrow' },
     { label: 'Logs', icon: History, path: 'audit' },

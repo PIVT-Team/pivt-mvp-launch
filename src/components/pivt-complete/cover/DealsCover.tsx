@@ -1,13 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Plus } from 'lucide-react';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { useDealWizardStore } from '@/stores/dealWizardStore';
+import { useKycStore } from '@/stores/kycStore';
 import { fadeInUp } from '@/lib/animations';
+import { KycGateModal } from '@/components/deal-wizard/KycGateModal';
 
 export const DealsCover: React.FC = () => {
   const { deals, selectedDealId, setSelectedDealId, setActiveSection } = usePIVTStore();
-  const openWizard = useDealWizardStore(s => s.openWizard);
+  const { openWizard, setWizardMode, prefillDemo } = useDealWizardStore();
+  const { userKyc, orgKyb, fetchKycData } = useKycStore();
+  const [showGate, setShowGate] = useState(false);
+
+  useEffect(() => { fetchKycData(); }, []);
+
+  const handleNewDeal = () => {
+    const kycApproved = userKyc?.status === 'approved';
+    const kybApproved = orgKyb?.status === 'approved';
+    if (!kycApproved || !kybApproved) {
+      setShowGate(true);
+    } else {
+      openWizard();
+    }
+  };
 
   const statusColors: Record<string, string> = {
     drafting: 'bg-muted-foreground',
@@ -29,7 +45,7 @@ export const DealsCover: React.FC = () => {
             </span>
           </div>
           <button
-            onClick={openWizard}
+            onClick={handleNewDeal}
             className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-semibold hover:bg-accent/90 transition-all"
           >
             <Plus className="w-4 h-4" />
@@ -82,6 +98,13 @@ export const DealsCover: React.FC = () => {
           </motion.div>
         ))}
       </div>
+
+      <KycGateModal
+        open={showGate}
+        onClose={() => setShowGate(false)}
+        onGoToVerification={() => { setShowGate(false); setActiveSection('verification'); }}
+        onCreateDemo={() => { setShowGate(false); setWizardMode('demo'); prefillDemo(); openWizard(); }}
+      />
     </div>
   );
 };

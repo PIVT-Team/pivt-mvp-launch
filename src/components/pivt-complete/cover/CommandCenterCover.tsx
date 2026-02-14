@@ -1,16 +1,33 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
 import { useDealWizardStore } from '@/stores/dealWizardStore';
+import { useKycStore } from '@/stores/kycStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import { Shield, FileCheck, Users, AlertTriangle, TrendingUp, Clock, Plus } from 'lucide-react';
 import { NewtonInsights } from './NewtonInsights';
 import { ActivityFeed } from './ActivityFeed';
+import { KycGateModal } from '@/components/deal-wizard/KycGateModal';
 
 export const CommandCenterCover: React.FC = () => {
   const deal = useSelectedDeal();
   const { stakeholders, documents, payments, pendingApprovals, setActiveSection } = usePIVTStore();
-  const openWizard = useDealWizardStore(s => s.openWizard);
+  const { openWizard, setWizardMode, prefillDemo } = useDealWizardStore();
+  const { userKyc, orgKyb, fetchKycData } = useKycStore();
+  const [showGate, setShowGate] = useState(false);
+
+  useEffect(() => { fetchKycData(); }, []);
+
+  const handleNewDeal = () => {
+    // Check if KYC/KYB is approved for live deals
+    const kycApproved = userKyc?.status === 'approved';
+    const kybApproved = orgKyb?.status === 'approved';
+    if (!kycApproved || !kybApproved) {
+      setShowGate(true);
+    } else {
+      openWizard();
+    }
+  };
 
   const stats = [
     { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, color: 'text-accent' },
@@ -29,7 +46,7 @@ export const CommandCenterCover: React.FC = () => {
           <p className="text-muted-foreground mt-1">{deal.buyerName} acquiring {deal.targetCompany} · {deal.sector}</p>
         </div>
         <button
-          onClick={openWizard}
+          onClick={handleNewDeal}
           className="flex items-center gap-2 px-4 py-2.5 bg-accent text-accent-foreground rounded-lg text-sm font-semibold hover:bg-accent/90 transition-all"
         >
           <Plus className="w-4 h-4" />
@@ -106,6 +123,13 @@ export const CommandCenterCover: React.FC = () => {
           </button>
         ))}
       </div>
+
+      <KycGateModal
+        open={showGate}
+        onClose={() => setShowGate(false)}
+        onGoToVerification={() => { setShowGate(false); setActiveSection('verification'); }}
+        onCreateDemo={() => { setShowGate(false); setWizardMode('demo'); prefillDemo(); openWizard(); }}
+      />
     </motion.div>
   );
 };
