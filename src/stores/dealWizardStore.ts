@@ -37,14 +37,30 @@ export interface KycData {
   status: 'not_started' | 'in_review' | 'approved';
 }
 
+export type EscrowStatus = 'pending' | 'active' | 'funded' | 'disbursed' | 'closed';
+
 export interface EscrowSetupData {
   institution: string;
   accountType: 'FBO' | 'Dedicated';
   interestRate: string;
   clientSplit: string;
   platformSplit: string;
-  activated: boolean;
+  status: EscrowStatus;
   maskedAccount: string;
+  maskedRouting: string;
+  referenceCode: string;
+  fundingReceiptUploaded: boolean;
+}
+
+export interface Beneficiary {
+  id: string;
+  name: string;
+  entityType: 'Individual' | 'Corporation' | 'Fund' | 'Trust';
+  jurisdiction: string;
+  payoutAmount: number;
+  bankDetailsMasked: string;
+  status: 'pending' | 'verified';
+  changeFlag: boolean;
 }
 
 export interface DealBasicsData {
@@ -101,14 +117,25 @@ export interface ApprovalCard {
   signedAt?: string;
 }
 
+export interface AuditEntry {
+  id: string;
+  timestamp: string;
+  actor: string;
+  action: string;
+  dealRef: string;
+}
+
 const initialEscrowSetup: EscrowSetupData = {
   institution: '',
   accountType: 'FBO',
   interestRate: '4.25',
   clientSplit: '85',
   platformSplit: '15',
-  activated: false,
+  status: 'pending',
   maskedAccount: '',
+  maskedRouting: '',
+  referenceCode: '',
+  fundingReceiptUploaded: false,
 };
 
 interface DealWizardStore {
@@ -127,6 +154,8 @@ interface DealWizardStore {
   validationResults: ValidationItem[];
   discrepancies: Discrepancy[];
   approvals: ApprovalCard[];
+  beneficiaries: Beneficiary[];
+  auditLog: AuditEntry[];
   confirmationId: string | null;
 
   // Actions
@@ -142,6 +171,7 @@ interface DealWizardStore {
   updateKyc: (data: Partial<KycData>) => void;
   updateEscrowSetup: (data: Partial<EscrowSetupData>) => void;
   activateEscrow: () => void;
+  markEscrowFunded: () => void;
   updateDealBasics: (data: Partial<DealBasicsData>) => void;
   updateParties: (data: Partial<PartiesData>) => void;
   addDocument: (doc: DocUpload) => void;
@@ -149,7 +179,9 @@ interface DealWizardStore {
   runValidation: () => void;
   resolveDiscrepancy: (id: string) => void;
   approveRole: (id: string) => void;
+  canExecute: () => { ready: boolean; blockers: string[] };
   executeSimulated: () => void;
+  addAuditEntry: (action: string) => void;
   prefillDemo: () => void;
   resetWizard: () => void;
 }
@@ -163,6 +195,15 @@ const initialParties: PartiesData = {
   fundContact: { name: '', email: '' },
   escrowAgent: { name: '', email: '' },
 };
+
+const DEMO_BENEFICIARIES: Beneficiary[] = [
+  { id: 'b1', name: 'Andreessen Horowitz Fund VII', entityType: 'Fund', jurisdiction: 'Delaware, USA', payoutAmount: 280000000, bankDetailsMasked: 'JPM ****4821', status: 'verified', changeFlag: false },
+  { id: 'b2', name: 'Sequoia Capital Global Growth', entityType: 'Fund', jurisdiction: 'Cayman Islands', payoutAmount: 420000000, bankDetailsMasked: 'Citi ****7293', status: 'verified', changeFlag: false },
+  { id: 'b3', name: 'GIC Private Limited', entityType: 'Corporation', jurisdiction: 'Singapore', payoutAmount: 560000000, bankDetailsMasked: 'DBS ****1847', status: 'pending', changeFlag: false },
+  { id: 'b4', name: 'Tiger Global Management', entityType: 'Fund', jurisdiction: 'New York, USA', payoutAmount: 350000000, bankDetailsMasked: 'GS ****5512', status: 'verified', changeFlag: false },
+  { id: 'b5', name: 'DataStream Founders Trust', entityType: 'Trust', jurisdiction: 'Delaware, USA', payoutAmount: 910000000, bankDetailsMasked: 'BNY ****3398', status: 'verified', changeFlag: false },
+  { id: 'b6', name: 'Jane Chen (Individual)', entityType: 'Individual', jurisdiction: 'California, USA', payoutAmount: 280000000, bankDetailsMasked: 'WF ****6641', status: 'verified', changeFlag: false },
+];
 
 const DEMO_DOCS: DocUpload[] = [
   { id: 'd1', name: 'Cap Table - ATLAS.xlsx', type: 'Cap Table', status: 'parsed', isSample: true },
@@ -209,6 +250,8 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
   validationResults: [],
   discrepancies: [],
   approvals: INITIAL_APPROVALS.map(a => ({ ...a })),
+  beneficiaries: [],
+  auditLog: [],
   confirmationId: null,
 
   openWizard: () => set({ isOpen: true, currentStep: 'account' }),
@@ -242,13 +285,30 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
   updateAccount: (data) => set((s) => ({ account: { ...s.account, ...data } })),
   updateKyc: (data) => set((s) => ({ kyc: { ...s.kyc, ...data } })),
   updateEscrowSetup: (data) => set((s) => ({ escrowSetup: { ...s.escrowSetup, ...data } })),
-  
+
   activateEscrow: () => {
-    const last4 = Math.floor(1000 + Math.random() * 9000).toString();
+    const last4Acct = Math.floor(1000 + Math.random() * 9000).toString();
+    const last4Route = Math.floor(1000 + Math.random() * 9000).toString();
+    const refCode = `PIVT-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     set((s) => ({
-      escrowSetup: { ...s.escrowSetup, activated: true, maskedAccount: last4 },
+      escrowSetup: {
+        ...s.escrowSetup,
+        status: 'active',
+        maskedAccount: last4Acct,
+        maskedRouting: last4Route,
+        referenceCode: refCode,
+      },
     }));
+    get().addAuditEntry('Escrow account activated');
+    get().addAuditEntry('Funding instructions generated');
     get().completeStep('escrow-setup');
+  },
+
+  markEscrowFunded: () => {
+    set((s) => ({
+      escrowSetup: { ...s.escrowSetup, status: 'funded', fundingReceiptUploaded: true },
+    }));
+    get().addAuditEntry('Escrow marked as funded');
   },
 
   updateDealBasics: (data) => set((s) => ({ dealBasics: { ...s.dealBasics, ...data } })),
@@ -272,13 +332,45 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
     approvals: s.approvals.map(a => a.id === id ? { ...a, status: 'approved' as const, signedAt: new Date().toISOString() } : a),
   })),
 
+  canExecute: () => {
+    const s = get();
+    const blockers: string[] = [];
+    if (s.kyc.status !== 'approved') blockers.push('KYC/KYB not approved');
+    if (s.escrowSetup.status !== 'funded') blockers.push('Escrow not funded');
+    if (s.validationResults.length === 0) blockers.push('Validation not complete');
+    const unresolvedHigh = s.discrepancies.filter(d => d.severity === 'high' && !d.resolved).length;
+    if (unresolvedHigh > 0) blockers.push(`${unresolvedHigh} high-severity discrepancies unresolved`);
+    if (!s.approvals.every(a => a.status === 'approved')) blockers.push('Not all approvals obtained');
+    const unverifiedBeneficiaries = s.beneficiaries.filter(b => b.status !== 'verified').length;
+    if (unverifiedBeneficiaries > 0) blockers.push(`${unverifiedBeneficiaries} beneficiaries not verified`);
+    return { ready: blockers.length === 0, blockers };
+  },
+
+  addAuditEntry: (action) => {
+    const s = get();
+    const entry: AuditEntry = {
+      id: `audit-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      actor: s.account.fullName || 'System',
+      action,
+      dealRef: s.dealBasics.dealName || 'New Deal',
+    };
+    set((state) => ({ auditLog: [...state.auditLog, entry] }));
+  },
+
   executeSimulated: () => {
     const id = `PIVT-${Date.now().toString(36).toUpperCase()}`;
-    set({ confirmationId: id });
+    set((s) => ({
+      confirmationId: id,
+      escrowSetup: { ...s.escrowSetup, status: 'disbursed' },
+    }));
+    get().addAuditEntry('Execution instruction packet generated');
+    get().addAuditEntry(`Confirmation ID issued: ${id}`);
     get().completeStep('execution');
   },
 
   prefillDemo: () => {
+    const refCode = `PIVT-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     set({
       account: {
         fullName: 'Alexandra Reynolds',
@@ -295,8 +387,11 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
         interestRate: '4.25',
         clientSplit: '85',
         platformSplit: '15',
-        activated: true,
+        status: 'funded',
         maskedAccount: '7842',
+        maskedRouting: '0210',
+        referenceCode: refCode,
+        fundingReceiptUploaded: true,
       },
       dealBasics: {
         dealName: 'Project ATLAS',
@@ -313,6 +408,14 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
         escrowAgent: { name: 'Robert Hayes', email: 'rhayes@jpmorgan.com' },
       },
       documents: DEMO_DOCS.map(d => ({ ...d })),
+      beneficiaries: DEMO_BENEFICIARIES.map(b => ({ ...b })),
+      auditLog: [
+        { id: 'a1', timestamp: '2026-02-10T09:00:00Z', actor: 'Alexandra Reynolds', action: 'Escrow account activated', dealRef: 'Project ATLAS' },
+        { id: 'a2', timestamp: '2026-02-10T09:00:01Z', actor: 'Alexandra Reynolds', action: 'Funding instructions generated', dealRef: 'Project ATLAS' },
+        { id: 'a3', timestamp: '2026-02-11T14:30:00Z', actor: 'Alexandra Reynolds', action: 'Escrow marked as funded', dealRef: 'Project ATLAS' },
+        { id: 'a4', timestamp: '2026-02-12T10:15:00Z', actor: 'System', action: 'Interest rate set: 4.25%', dealRef: 'Project ATLAS' },
+        { id: 'a5', timestamp: '2026-02-12T10:15:01Z', actor: 'System', action: 'Interest split configured: 85% client / 15% platform', dealRef: 'Project ATLAS' },
+      ],
     });
   },
 
@@ -330,6 +433,8 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
     validationResults: [],
     discrepancies: [],
     approvals: INITIAL_APPROVALS.map(a => ({ ...a })),
+    beneficiaries: [],
+    auditLog: [],
     confirmationId: null,
   }),
 }));

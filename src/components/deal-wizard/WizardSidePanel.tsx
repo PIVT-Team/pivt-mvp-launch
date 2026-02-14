@@ -40,8 +40,8 @@ const SIDE_CONTENT: Record<WizardStep, { needed: string[]; why: string }> = {
     why: 'Sequential approvals create an immutable audit trail and ensure all stakeholders have reviewed the final terms.',
   },
   execution: {
-    needed: ['All approvals completed', 'All discrepancies resolved'],
-    why: 'This step generates a confirmation ID and audit log. In production, this would trigger actual wire transfers.',
+    needed: ['All approvals completed', 'All discrepancies resolved', 'Escrow funded', 'Beneficiary registry verified'],
+    why: 'This generates an execution instruction packet sent to the partner institution. PIVT does not hold or transmit funds.',
   },
 };
 
