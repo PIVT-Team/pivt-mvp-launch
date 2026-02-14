@@ -9,6 +9,7 @@ import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { navigationByMode } from '@/lib/navigation';
 import { Sun, Moon, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import pivtLogo from '@/assets/pivt-logo.png';
+import { CommandPalette } from './CommandPalette';
 
 // Cover sections
 import { CommandCenterCover } from './cover/CommandCenterCover';
@@ -86,6 +87,7 @@ export const PIVTCompleteUnified: React.FC = () => {
   } = usePIVTStore();
 
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
+  const [commandOpen, setCommandOpen] = React.useState(false);
   const nav = navigationByMode.manda;
 
   // Sync URL params
@@ -109,6 +111,10 @@ export const PIVTCompleteUnified: React.FC = () => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'g') {
         e.preventDefault();
         toggleMode();
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCommandOpen(true);
       }
     };
     window.addEventListener('keydown', handler);
@@ -220,7 +226,19 @@ export const PIVTCompleteUnified: React.FC = () => {
       </motion.aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        {/* Search bar */}
+        <div className="shrink-0 px-8 pt-4 pb-0">
+          <button
+            onClick={() => setCommandOpen(true)}
+            className="w-full max-w-md flex items-center gap-2 px-3 py-2 rounded-lg border text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+            style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.1)' }}
+          >
+            <Search className="w-4 h-4 shrink-0" />
+            <span className="flex-1 text-left">Search deals, stakeholders...</span>
+            <kbd className="px-1.5 py-0.5 text-xs rounded border bg-muted font-mono">⌘K</kbd>
+          </button>
+        </div>
         <AnimatePresence mode="wait">
           {isCover ? (
             <motion.div
@@ -253,6 +271,9 @@ export const PIVTCompleteUnified: React.FC = () => {
 
       {/* Deal Intake Wizard */}
       <DealWizard />
+
+      {/* Command Palette */}
+      <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
     </div>
   );
 };
