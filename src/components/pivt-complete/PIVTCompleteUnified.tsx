@@ -27,6 +27,8 @@ import { ClosingCenterCover } from './cover/ClosingCenterCover';
 import { NewtonCover } from './cover/NewtonCover';
 import { VerificationCover } from './cover/VerificationCover';
 import { AdminVerificationQueue } from './cover/AdminVerificationQueue';
+import { MessagesCover } from './cover/MessagesCover';
+import { NotificationsCover } from './cover/NotificationsCover';
 
 // Glass
 import { GlassOntology } from './glass/GlassOntology';
@@ -54,6 +56,8 @@ const coverSections: Record<ActiveSection, React.FC> = {
   newton: NewtonCover,
   verification: VerificationCover,
   'admin-verification': AdminVerificationQueue,
+  messages: MessagesCover,
+  notifications: NotificationsCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
