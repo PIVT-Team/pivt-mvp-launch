@@ -9,7 +9,9 @@ export type ActiveSection =
   | 'command' | 'deals' | 'waterfall' | 'stakeholders' | 'documents'
   | 'escrow' | 'approvals' | 'payments' | 'reports' | 'audit'
   | 'demo' | 'ingestion' | 'closing' | 'newton' | 'verification' | 'admin-verification'
-  | 'messages' | 'notifications';
+  | 'messages' | 'notifications'
+  | 'cap-table' | 'workspace' | 'recipient' | 'lp-portal' | 'onboarding'
+  | 'mcp' | 'cockpit' | 'settings';
 
 export type EntityType = 'deal' | 'stakeholder' | 'document' | 'payment' | 'escrow' | 'approval';
 

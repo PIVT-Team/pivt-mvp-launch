@@ -19,8 +19,8 @@ import { DocumentsCover } from './cover/DocumentsCover';
 import { EscrowCover } from './cover/EscrowCover';
 import { ApprovalsCover } from './cover/ApprovalsCover';
 import { PaymentsCover } from './cover/PaymentsCover';
-import { AuditCover } from './cover/AuditAndReports';
-import { AnalyticsDashboard } from './cover/AnalyticsDashboard';
+import { AuditCover, ReportsCover } from './cover/AuditAndReports';
+
 import { DemoExperienceCover } from './cover/DemoExperienceCover';
 import { DocumentIngestionCover } from './cover/DocumentIngestionCover';
 import { ClosingCenterCover } from './cover/ClosingCenterCover';
@@ -29,6 +29,14 @@ import { VerificationCover } from './cover/VerificationCover';
 import { AdminVerificationQueue } from './cover/AdminVerificationQueue';
 import { MessagesCover } from './cover/MessagesCover';
 import { NotificationsCover } from './cover/NotificationsCover';
+import { CapTableCover } from './cover/CapTableCover';
+import { DealWorkspaceCover } from './cover/DealWorkspaceCover';
+import { RecipientDashboardCover } from './cover/RecipientDashboardCover';
+import { LPPortalCover } from './cover/LPPortalCover';
+import { OnboardingCover } from './cover/OnboardingCover';
+import { MCPIntegrationsCover } from './cover/MCPIntegrationsCover';
+import { GlassCockpitCover } from './cover/GlassCockpitCover';
+import { SettingsCover } from './cover/SettingsCover';
 
 // Glass
 import { GlassOntology } from './glass/GlassOntology';
@@ -52,12 +60,20 @@ const coverSections: Record<ActiveSection, React.FC> = {
   approvals: ApprovalsCover,
   payments: PaymentsCover,
   audit: AuditCover,
-  reports: AnalyticsDashboard,
+  reports: ReportsCover,
   newton: NewtonCover,
   verification: VerificationCover,
   'admin-verification': AdminVerificationQueue,
   messages: MessagesCover,
   notifications: NotificationsCover,
+  'cap-table': CapTableCover,
+  workspace: DealWorkspaceCover,
+  recipient: RecipientDashboardCover,
+  'lp-portal': LPPortalCover,
+  onboarding: OnboardingCover,
+  mcp: MCPIntegrationsCover,
+  cockpit: GlassCockpitCover,
+  settings: SettingsCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
