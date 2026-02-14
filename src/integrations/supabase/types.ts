@@ -243,6 +243,84 @@ export type Database = {
           },
         ]
       }
+      kyc_uploads: {
+        Row: {
+          doc_type: string
+          file_name: string | null
+          file_url: string
+          id: string
+          owner_id: string
+          owner_type: string
+          uploaded_at: string
+        }
+        Insert: {
+          doc_type: string
+          file_name?: string | null
+          file_url: string
+          id?: string
+          owner_id: string
+          owner_type: string
+          uploaded_at?: string
+        }
+        Update: {
+          doc_type?: string
+          file_name?: string | null
+          file_url?: string
+          id?: string
+          owner_id?: string
+          owner_type?: string
+          uploaded_at?: string
+        }
+        Relationships: []
+      }
+      org_kyb: {
+        Row: {
+          admin_notes: string | null
+          country_jurisdiction: string | null
+          created_at: string
+          id: string
+          legal_entity_name: string | null
+          registered_address: string | null
+          registration_number: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["kyc_status"]
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          country_jurisdiction?: string | null
+          created_at?: string
+          id?: string
+          legal_entity_name?: string | null
+          registered_address?: string | null
+          registration_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["kyc_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          country_jurisdiction?: string | null
+          created_at?: string
+          id?: string
+          legal_entity_name?: string | null
+          registered_address?: string | null
+          registration_number?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["kyc_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -265,6 +343,60 @@ export type Database = {
           full_name?: string
           id?: string
           organization?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_kyc: {
+        Row: {
+          admin_notes: string | null
+          created_at: string
+          date_of_birth: string | null
+          full_legal_name: string | null
+          id: string
+          kyc_type: string
+          nationality: string | null
+          residential_address: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          role_at_org: string | null
+          status: Database["public"]["Enums"]["kyc_status"]
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          full_legal_name?: string | null
+          id?: string
+          kyc_type?: string
+          nationality?: string | null
+          residential_address?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          role_at_org?: string | null
+          status?: Database["public"]["Enums"]["kyc_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          created_at?: string
+          date_of_birth?: string | null
+          full_legal_name?: string | null
+          id?: string
+          kyc_type?: string
+          nationality?: string | null
+          residential_address?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          role_at_org?: string | null
+          status?: Database["public"]["Enums"]["kyc_status"]
+          submitted_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -341,6 +473,13 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "participant"
+      kyc_status:
+        | "not_started"
+        | "draft"
+        | "submitted"
+        | "in_review"
+        | "approved"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -469,6 +608,14 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "participant"],
+      kyc_status: [
+        "not_started",
+        "draft",
+        "submitted",
+        "in_review",
+        "approved",
+        "rejected",
+      ],
     },
   },
 } as const
