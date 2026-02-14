@@ -350,55 +350,88 @@ export type Database = {
       }
       user_kyc: {
         Row: {
+          account_holder_name: string | null
+          account_number_last4: string | null
           admin_notes: string | null
+          bank_address: string | null
+          bank_country: string | null
+          bank_name: string | null
+          bank_verified: boolean | null
           created_at: string
           date_of_birth: string | null
           full_legal_name: string | null
+          iban: string | null
           id: string
+          intermediary_bank: string | null
           kyc_type: string
           nationality: string | null
           residential_address: string | null
           reviewed_at: string | null
           reviewed_by: string | null
           role_at_org: string | null
+          routing_number: string | null
           status: Database["public"]["Enums"]["kyc_status"]
           submitted_at: string | null
+          swift_bic: string | null
           updated_at: string
           user_id: string
+          wire_currency: string | null
         }
         Insert: {
+          account_holder_name?: string | null
+          account_number_last4?: string | null
           admin_notes?: string | null
+          bank_address?: string | null
+          bank_country?: string | null
+          bank_name?: string | null
+          bank_verified?: boolean | null
           created_at?: string
           date_of_birth?: string | null
           full_legal_name?: string | null
+          iban?: string | null
           id?: string
+          intermediary_bank?: string | null
           kyc_type?: string
           nationality?: string | null
           residential_address?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           role_at_org?: string | null
+          routing_number?: string | null
           status?: Database["public"]["Enums"]["kyc_status"]
           submitted_at?: string | null
+          swift_bic?: string | null
           updated_at?: string
           user_id: string
+          wire_currency?: string | null
         }
         Update: {
+          account_holder_name?: string | null
+          account_number_last4?: string | null
           admin_notes?: string | null
+          bank_address?: string | null
+          bank_country?: string | null
+          bank_name?: string | null
+          bank_verified?: boolean | null
           created_at?: string
           date_of_birth?: string | null
           full_legal_name?: string | null
+          iban?: string | null
           id?: string
+          intermediary_bank?: string | null
           kyc_type?: string
           nationality?: string | null
           residential_address?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
           role_at_org?: string | null
+          routing_number?: string | null
           status?: Database["public"]["Enums"]["kyc_status"]
           submitted_at?: string | null
+          swift_bic?: string | null
           updated_at?: string
           user_id?: string
+          wire_currency?: string | null
         }
         Relationships: []
       }
