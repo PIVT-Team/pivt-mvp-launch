@@ -6,7 +6,6 @@ import {
   Plus, Trash2, Edit, Globe, Key, Bell, Lock, ToggleLeft,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 
 type SettingsTab = 'team' | 'integrations' | 'autonomy';
 
@@ -56,12 +55,10 @@ interface AutonomySetting {
 }
 
 const AUTONOMY_DEFAULTS: AutonomySetting[] = [
-  { id: 'auto-kyc', label: 'Automated KYC Screening', description: 'Run OFAC, PEP, and sanctions checks automatically on new stakeholders', enabled: true, level: 'full' },
-  { id: 'auto-validation', label: 'Document Auto-Validation', description: 'Automatically validate uploaded documents against deal terms', enabled: true, level: 'supervised' },
-  { id: 'auto-waterfall', label: 'Waterfall Auto-Calculation', description: 'Recalculate waterfall distribution when cap table changes', enabled: true, level: 'full' },
-  { id: 'auto-notification', label: 'Smart Notifications', description: 'AI-prioritized notifications based on deal urgency and user role', enabled: true, level: 'full' },
-  { id: 'auto-discrepancy', label: 'Discrepancy Auto-Resolution', description: 'Automatically suggest resolutions for detected discrepancies', enabled: false, level: 'supervised' },
-  { id: 'auto-payout', label: 'Payout Auto-Execution', description: 'Execute approved payouts without manual confirmation', enabled: false, level: 'manual' },
+  { id: 'auto-kyc', label: 'Auto-approve KYC', description: 'Automatically approve KYC when all documents are verified', enabled: true, level: 'full' },
+  { id: 'auto-match', label: 'Auto-match invoices', description: 'Match incoming invoices to budget line items', enabled: true, level: 'full' },
+  { id: 'auto-escalate', label: 'Auto-escalate approvals', description: 'Escalate if approval takes > 2 hours', enabled: false, level: 'supervised' },
+  { id: 'auto-notify', label: 'Smart notifications', description: 'AI-prioritized notification delivery', enabled: true, level: 'full' },
 ];
 
 const roleColors: Record<string, string> = {
@@ -196,47 +193,80 @@ export const SettingsCover: React.FC = () => {
 
         {/* Autonomy */}
         {activeTab === 'autonomy' && (
-          <motion.div key="autonomy" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-            <div className="pivt-card p-5 bg-accent/5 border-accent/20">
-              <div className="flex items-center gap-3 mb-2">
-                <Bot className="w-5 h-5 text-accent" />
-                <h3 className="font-medium">AI Autonomy Controls</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">Configure how much autonomy PIVT's AI agents have in processing deal workflows. Higher autonomy = faster processing, lower autonomy = more human oversight.</p>
+          <motion.div key="autonomy" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+            <div>
+              <h3 className="text-xl font-semibold text-foreground">Autonomy Settings</h3>
+              <p className="text-sm text-muted-foreground mt-1">Configure AI agent behavior</p>
             </div>
 
-            <div className="space-y-3">
-              {autonomy.map(setting => (
-                <motion.div key={setting.id} {...fadeInUp} className="pivt-card p-5 flex items-start gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-medium text-sm">{setting.label}</h4>
-                      <Badge variant="outline" className={`text-[9px] ${setting.level === 'full' ? 'border-validated/50 text-validated' : setting.level === 'supervised' ? 'border-accent/50 text-accent' : 'border-blocking/50 text-blocking'}`}>
-                        {setting.level}
-                      </Badge>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={springConfig.standard}
+              className="pivt-card overflow-hidden"
+            >
+              {autonomy.map((setting, index) => (
+                <motion.div
+                  key={setting.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ ...springConfig.standard, delay: index * 0.03 }}
+                  className="p-5 flex items-center justify-between border-b border-border last:border-0"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-muted/50 flex items-center justify-center">
+                      <Sliders className="w-5 h-5 text-muted-foreground" />
                     </div>
-                    <p className="text-xs text-muted-foreground">{setting.description}</p>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{setting.label}</p>
+                      <p className="text-xs text-muted-foreground">{setting.description}</p>
+                    </div>
                   </div>
-                  <Switch checked={setting.enabled} onCheckedChange={() => toggleAutonomy(setting.id)} />
+                  <button
+                    onClick={() => toggleAutonomy(setting.id)}
+                    className={`w-12 h-7 rounded-full transition-colors relative ${
+                      setting.enabled ? 'bg-validated' : 'bg-muted'
+                    }`}
+                  >
+                    <motion.div
+                      initial={false}
+                      animate={{ x: setting.enabled ? 20 : 2 }}
+                      transition={springConfig.standard}
+                      className="absolute top-1 w-5 h-5 rounded-full bg-white shadow"
+                    />
+                  </button>
                 </motion.div>
               ))}
-            </div>
+            </motion.div>
 
-            <motion.div {...fadeInUp} className="pivt-card p-5">
-              <h3 className="font-medium mb-3">Autonomy Levels Explained</h3>
-              <div className="space-y-2">
-                {[
-                  { level: 'Full', color: 'bg-validated', desc: 'AI executes automatically without human intervention' },
-                  { level: 'Supervised', color: 'bg-accent', desc: 'AI recommends actions, human approves before execution' },
-                  { level: 'Manual', color: 'bg-blocking', desc: 'Human initiates all actions, AI only assists' },
-                ].map(l => (
-                  <div key={l.level} className="flex items-center gap-3 text-sm">
-                    <div className={`w-3 h-3 rounded-full ${l.color}`} />
-                    <span className="font-medium w-24">{l.level}</span>
-                    <span className="text-muted-foreground">{l.desc}</span>
-                  </div>
+            {/* Autonomy Level */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...springConfig.standard, delay: 0.2 }}
+              className="pivt-card p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Shield className="w-5 h-5 text-accent" />
+                <h3 className="text-sm font-medium text-foreground">Autonomy Level</h3>
+              </div>
+              <div className="flex items-center gap-4">
+                {['Conservative', 'Balanced', 'Aggressive'].map((level, i) => (
+                  <button
+                    key={level}
+                    className={`flex-1 py-3 rounded-xl text-sm font-medium transition-colors ${
+                      i === 1
+                        ? 'bg-foreground text-background'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                  >
+                    {level}
+                  </button>
                 ))}
               </div>
+              <p className="text-xs text-muted-foreground mt-3">
+                Balanced: Agents prepare and stage work, but require human approval for payments over $1M.
+              </p>
             </motion.div>
           </motion.div>
         )}
