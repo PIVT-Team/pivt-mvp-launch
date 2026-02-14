@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,26 +6,26 @@
 
 @layer base {
   :root {
-    --background: 225 25% 7%;
+    --background: 228 28% 6%;
     --foreground: 220 14% 90%;
-    --card: 224 20% 12%;
+    --card: 226 22% 10%;
     --card-foreground: 220 14% 90%;
-    --popover: 224 20% 12%;
+    --popover: 226 22% 10%;
     --popover-foreground: 220 14% 90%;
     --primary: 220 14% 90%;
-    --primary-foreground: 225 25% 7%;
-    --secondary: 224 16% 16%;
+    --primary-foreground: 228 28% 6%;
+    --secondary: 224 16% 14%;
     --secondary-foreground: 220 14% 90%;
-    --muted: 224 16% 14%;
-    --muted-foreground: 220 10% 55%;
+    --muted: 224 18% 12%;
+    --muted-foreground: 220 10% 50%;
     --accent: 262 72% 55%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 224 14% 16%;
-    --input: 224 14% 16%;
+    --border: 224 14% 13%;
+    --input: 224 14% 14%;
     --ring: 262 72% 55%;
-    --radius: 0.75rem;
+    --radius: 0.625rem;
 
     /* PIVT semantic tokens */
     --validated: 152 55% 48%;
@@ -34,16 +34,16 @@
     --discrepancy-foreground: 0 0% 100%;
     --blocking: 0 62% 55%;
     --blocking-foreground: 0 0% 100%;
-    --surface-elevated: 224 20% 13%;
-    --surface-subtle: 225 25% 9%;
+    --surface-elevated: 226 22% 11%;
+    --surface-subtle: 228 28% 8%;
 
     /* Semantic icon color system */
     --pivt-purple: 262 90% 60%;
     --pivt-blue: 217 100% 60%;
-    --pivt-emerald: 142 71% 45%;
-    --pivt-amber: 38 92% 50%;
-    --pivt-red: 0 84% 60%;
-    --pivt-slate: 215 16% 57%;
+    --pivt-emerald: 152 60% 48%;
+    --pivt-amber: 38 88% 52%;
+    --pivt-red: 0 72% 56%;
+    --pivt-slate: 215 16% 52%;
 
     --icon-escrow: var(--pivt-purple);
     --icon-success: var(--pivt-emerald);
@@ -52,13 +52,13 @@
     --icon-risk: var(--pivt-red);
     --icon-neutral: var(--pivt-slate);
 
-    --sidebar-background: 225 30% 6%;
-    --sidebar-foreground: 220 14% 65%;
+    --sidebar-background: 228 32% 5%;
+    --sidebar-foreground: 220 10% 52%;
     --sidebar-primary: 262 72% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 20% 12%;
-    --sidebar-accent-foreground: 220 14% 90%;
-    --sidebar-border: 224 18% 14%;
+    --sidebar-accent: 226 22% 10%;
+    --sidebar-accent-foreground: 220 14% 88%;
+    --sidebar-border: 224 18% 11%;
     --sidebar-ring: 262 72% 55%;
   }
 
@@ -80,10 +80,11 @@
   .font-mono {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
   }
-  /* Tighter heading tracking */
-  h1 { letter-spacing: -0.03em; }
-  h2 { letter-spacing: -0.025em; }
-  h3 { letter-spacing: -0.02em; }
+  /* Editorial heading treatment */
+  h1 { letter-spacing: -0.035em; font-weight: 700; }
+  h2 { letter-spacing: -0.03em; font-weight: 600; }
+  h3 { letter-spacing: -0.02em; font-weight: 600; }
+  h4 { letter-spacing: -0.015em; font-weight: 500; }
 }
 
 @layer components {
@@ -91,52 +92,63 @@
   /* ── Ambient AI Background ── */
   .pivt-ambient-bg {
     background:
-      radial-gradient(circle at 15% 10%, hsl(262 90% 60% / 0.14), transparent 38%),
-      radial-gradient(circle at 85% 20%, hsl(217 100% 60% / 0.10), transparent 40%),
-      radial-gradient(circle at 50% 90%, hsl(262 90% 60% / 0.08), transparent 45%),
+      radial-gradient(ellipse 80% 60% at 10% 5%, hsl(262 90% 55% / 0.10), transparent),
+      radial-gradient(ellipse 70% 50% at 90% 15%, hsl(217 100% 55% / 0.07), transparent),
+      radial-gradient(ellipse 90% 40% at 40% 95%, hsl(262 90% 50% / 0.05), transparent),
       hsl(var(--background));
   }
 
-  /* ── Compute Panel Card (soft glass for non-financial) ── */
+  /* ── Compute Panel Card ── */
   .pivt-card {
-    background: hsl(var(--card) / 0.72);
-    border: 1px solid hsl(0 0% 100% / 0.07);
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.40);
-    border-radius: 18px;
-    backdrop-filter: blur(10px);
-    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    background: hsl(var(--card) / 0.82);
+    border: 1px solid hsl(0 0% 100% / 0.05);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.20),
+      0 8px 24px rgba(0, 0, 0, 0.28);
+    border-radius: 14px;
+    backdrop-filter: blur(12px);
+    transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1),
+                border-color 200ms ease;
   }
   .pivt-card:hover {
     transform: translateY(-2px);
-    border-color: hsl(262 90% 60% / 0.18);
-    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.46);
+    border-color: hsl(262 90% 60% / 0.14);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.20),
+      0 16px 40px rgba(0, 0, 0, 0.36);
   }
 
   /* Card with accent top border */
   .pivt-card-accent {
-    background: hsl(var(--card) / 0.72);
-    border: 1px solid hsl(0 0% 100% / 0.07);
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.40);
-    border-radius: 18px;
-    backdrop-filter: blur(10px);
+    background: hsl(var(--card) / 0.82);
+    border: 1px solid hsl(0 0% 100% / 0.05);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.20),
+      0 8px 24px rgba(0, 0, 0, 0.28);
+    border-radius: 14px;
+    backdrop-filter: blur(12px);
     border-top: 2px solid hsl(var(--accent));
     background-image: linear-gradient(
       180deg,
-      hsl(262 90% 60% / 0.08),
-      transparent 40%
+      hsl(262 90% 60% / 0.06),
+      transparent 35%
     );
-    transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+    transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   .pivt-card-accent:hover {
     transform: translateY(-2px);
-    box-shadow: 0 22px 50px rgba(0, 0, 0, 0.46);
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.20),
+      0 16px 40px rgba(0, 0, 0, 0.36);
   }
 
   /* ── Crisp Table (NO blur, NO glass) ── */
   .pivt-table {
-    background: hsl(225 30% 9%);
-    border: 1px solid hsl(0 0% 100% / 0.06);
-    border-radius: 14px;
+    background: hsl(228 28% 7%);
+    border: 1px solid hsl(0 0% 100% / 0.05);
+    border-radius: 12px;
     overflow: hidden;
   }
 
@@ -145,87 +157,111 @@
     @apply font-mono text-2xl font-bold;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
+    color: hsl(0 0% 96%);
   }
   .pivt-stat-lg {
-    @apply font-mono text-3xl font-bold;
-    letter-spacing: -0.03em;
+    @apply font-mono text-4xl font-extrabold;
+    letter-spacing: -0.035em;
     font-variant-numeric: tabular-nums;
+    color: hsl(0 0% 98%);
   }
 
   /* ── Icon Chip System ── */
   .pivt-icon-chip {
     @apply inline-flex items-center justify-center shrink-0;
-    width: 34px;
-    height: 34px;
-    border-radius: 12px;
-    border: 1px solid hsl(0 0% 100% / 0.08);
-    background: hsl(0 0% 100% / 0.04);
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid hsl(0 0% 100% / 0.06);
+    background: hsl(0 0% 100% / 0.03);
   }
-  .pivt-icon-purple { color: hsl(var(--pivt-purple)); background: hsl(262 90% 60% / 0.12); }
-  .pivt-icon-blue   { color: hsl(var(--pivt-blue));   background: hsl(217 100% 60% / 0.12); }
-  .pivt-icon-green  { color: hsl(var(--pivt-emerald)); background: hsl(142 71% 45% / 0.12); }
-  .pivt-icon-amber  { color: hsl(var(--pivt-amber));  background: hsl(38 92% 50% / 0.12); }
-  .pivt-icon-red    { color: hsl(var(--pivt-red));    background: hsl(0 84% 60% / 0.12); }
-  .pivt-icon-slate  { color: hsl(var(--pivt-slate));  background: hsl(215 16% 57% / 0.10); }
+  .pivt-icon-purple { color: hsl(var(--pivt-purple)); background: hsl(262 90% 60% / 0.10); }
+  .pivt-icon-blue   { color: hsl(var(--pivt-blue));   background: hsl(217 100% 60% / 0.10); }
+  .pivt-icon-green  { color: hsl(var(--pivt-emerald)); background: hsl(152 60% 48% / 0.10); }
+  .pivt-icon-amber  { color: hsl(var(--pivt-amber));  background: hsl(38 88% 52% / 0.10); }
+  .pivt-icon-red    { color: hsl(var(--pivt-red));    background: hsl(0 72% 56% / 0.10); }
+  .pivt-icon-slate  { color: hsl(var(--pivt-slate));  background: hsl(215 16% 52% / 0.08); }
 
-  /* ── Status Chips (AI infra feel) ── */
+  /* ── Status Chips ── */
   .pivt-chip {
-    @apply inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-semibold tracking-wide uppercase;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold tracking-widest uppercase;
     border: 1px solid transparent;
   }
   .pivt-chip-green {
     color: hsl(var(--pivt-emerald));
-    background: hsl(142 71% 45% / 0.12);
-    border-color: hsl(142 71% 45% / 0.20);
+    background: hsl(152 60% 48% / 0.10);
+    border-color: hsl(152 60% 48% / 0.16);
   }
   .pivt-chip-purple {
     color: hsl(var(--pivt-purple));
-    background: hsl(262 90% 60% / 0.12);
-    border-color: hsl(262 90% 60% / 0.20);
+    background: hsl(262 90% 60% / 0.10);
+    border-color: hsl(262 90% 60% / 0.16);
   }
   .pivt-chip-amber {
     color: hsl(var(--pivt-amber));
-    background: hsl(38 92% 50% / 0.12);
-    border-color: hsl(38 92% 50% / 0.20);
+    background: hsl(38 88% 52% / 0.10);
+    border-color: hsl(38 88% 52% / 0.16);
   }
   .pivt-chip-red {
     color: hsl(var(--pivt-red));
-    background: hsl(0 84% 60% / 0.12);
-    border-color: hsl(0 84% 60% / 0.20);
+    background: hsl(0 72% 56% / 0.10);
+    border-color: hsl(0 72% 56% / 0.16);
   }
   .pivt-chip-blue {
     color: hsl(var(--pivt-blue));
-    background: hsl(217 100% 60% / 0.12);
-    border-color: hsl(217 100% 60% / 0.20);
+    background: hsl(217 100% 60% / 0.10);
+    border-color: hsl(217 100% 60% / 0.16);
   }
 
   /* ── Primary Button: AI gradient + glow ── */
   .pivt-btn-primary {
-    background: linear-gradient(135deg, hsl(262 90% 60%) 0%, hsl(217 100% 60%) 100%);
-    box-shadow: 0 0 22px hsl(262 90% 60% / 0.30);
-    border: 1px solid hsl(0 0% 100% / 0.10);
-    transition: box-shadow 200ms ease, transform 200ms ease;
+    background: linear-gradient(135deg, hsl(262 90% 58%) 0%, hsl(217 100% 58%) 100%);
+    box-shadow: 0 0 20px hsl(262 90% 60% / 0.25);
+    border: 1px solid hsl(0 0% 100% / 0.12);
+    transition: box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1),
+                transform 250ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   .pivt-btn-primary:hover {
-    box-shadow: 0 0 30px hsl(217 100% 60% / 0.35);
+    box-shadow: 0 0 28px hsl(217 100% 60% / 0.30);
     transform: translateY(-1px);
   }
 
   /* ── Gradient utilities ── */
   .pivt-gradient {
-    background: linear-gradient(135deg, hsl(225 30% 6%), hsl(224 20% 12%));
+    background: linear-gradient(135deg, hsl(228 32% 5%), hsl(226 22% 10%));
   }
   .pivt-glow {
-    box-shadow: 0 0 40px -10px hsl(262 72% 55% / 0.25);
+    box-shadow: 0 0 40px -10px hsl(262 72% 55% / 0.20);
   }
 
-  /* ── Processing pulse (intelligent, not frantic) ── */
+  /* ── Processing pulse ── */
   .pivt-processing {
-    animation: pivtPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    animation: pivtPulse 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* ── Editorial section label ── */
+  .pivt-section-label {
+    @apply text-[10px] font-semibold uppercase;
+    letter-spacing: 0.12em;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* ── Sidebar nav item ── */
+  .pivt-nav-item {
+    @apply w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150;
+  }
+  .pivt-nav-item:hover {
+    background: hsl(0 0% 100% / 0.04);
+  }
+  .pivt-nav-item-active {
+    background: hsl(262 90% 60% / 0.08);
+    color: hsl(var(--accent));
+    border-left: 2px solid hsl(var(--accent));
+    padding-left: 10px;
   }
 }
 
-/* ── Logo Rotation (outside @layer for purge safety) ── */
+/* ── Logo Rotation ── */
 @keyframes pivtRotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -234,7 +270,7 @@
   animation: pivtRotate 22s linear infinite !important;
   transform-origin: center center;
   will-change: transform;
-  filter: drop-shadow(0 0 8px hsl(262 72% 55% / 0.5));
+  filter: drop-shadow(0 0 6px hsl(262 72% 55% / 0.35));
 }
 .pivt-logo-spin:hover {
   animation-play-state: paused !important;
@@ -242,11 +278,26 @@
 
 @keyframes pivtPulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+  50% { opacity: 0.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pivt-logo-spin { animation: none !important; }
   .pivt-processing { animation: none !important; }
   .pivt-card:hover, .pivt-card-accent:hover { transform: none; }
+}
+
+/* ── Custom scrollbar ── */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(0 0% 100% / 0.08);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(0 0% 100% / 0.14);
 }

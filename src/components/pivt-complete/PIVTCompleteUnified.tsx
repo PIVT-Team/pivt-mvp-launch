@@ -135,49 +135,49 @@ export const PIVTCompleteUnified: React.FC = () => {
     >
       {/* Sidebar */}
       <motion.aside
-        animate={{ width: sidebarCollapsed ? 64 : 240 }}
+        animate={{ width: sidebarCollapsed ? 56 : 232 }}
         transition={springConfig.standard}
         className="h-full flex flex-col border-r shrink-0 overflow-hidden"
         style={{
-          background: isCover ? 'hsl(var(--sidebar-background))' : '#0B0B0B',
-          borderColor: isCover ? 'hsl(var(--sidebar-border))' : 'rgba(255,255,255,0.08)',
+          background: isCover ? 'hsl(var(--sidebar-background))' : '#08090E',
+          borderColor: isCover ? 'hsl(var(--sidebar-border))' : 'rgba(255,255,255,0.06)',
         }}
       >
         {/* Logo */}
-        <div className="p-4 flex flex-col items-center gap-1">
+        <div className="px-4 pt-5 pb-3 flex flex-col items-center gap-1.5">
           <motion.img
             src={pivtLogo}
             alt="PIVT"
-            className={`${sidebarCollapsed ? 'h-10' : 'h-20'} w-auto shrink-0 transition-all duration-300`}
+            className={`${sidebarCollapsed ? 'h-8' : 'h-16'} w-auto shrink-0 transition-all duration-300`}
             style={{ transformStyle: 'preserve-3d' }}
             animate={{ rotateY: [0, 0, -180, -180, 0, 0] }}
             transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', times: [0, 0.15, 0.4, 0.6, 0.85, 1] }}
           />
           {!sidebarCollapsed && (
-            <motion.div
+            <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-center"
+              className="text-[10px] text-white/30 italic tracking-wide text-center"
             >
-              <p className="text-xs text-white/50 italic mt-1.5 whitespace-nowrap">The Intelligence Layer Behind Every Close</p>
-            </motion.div>
+              The Intelligence Layer Behind Every Close
+            </motion.p>
           )}
         </div>
 
         {/* Deal selector */}
         {!sidebarCollapsed && (
-          <div className="px-3 mb-2">
+          <div className="px-3 mb-3">
             <select
               value={selectedDealId}
               onChange={(e) => setSelectedDealId(e.target.value)}
-              className="w-full text-xs rounded-md px-2 py-1.5 border bg-transparent focus:outline-none"
+              className="w-full text-[11px] font-medium rounded-lg px-2.5 py-2 border bg-transparent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all"
               style={{
-                borderColor: isCover ? 'hsl(var(--sidebar-border))' : 'rgba(255,255,255,0.1)',
-                color: isCover ? 'hsl(var(--sidebar-foreground))' : '#fff',
+                borderColor: isCover ? 'hsl(var(--sidebar-border))' : 'rgba(255,255,255,0.08)',
+                color: isCover ? 'hsl(var(--sidebar-foreground))' : 'rgba(255,255,255,0.7)',
               }}
             >
               {deals.map(d => (
-                <option key={d.id} value={d.id} style={{ background: '#111', color: '#fff' }}>
+                <option key={d.id} value={d.id} style={{ background: '#0D0E14', color: '#fff' }}>
                   {d.codeName} — ${(d.consideration / 1e9).toFixed(1)}B
                 </option>
               ))}
@@ -185,15 +185,15 @@ export const PIVTCompleteUnified: React.FC = () => {
           </div>
         )}
 
+        {/* Subtle divider */}
+        <div className="mx-4 mb-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }} />
+
         {/* Nav items */}
-        <nav className="flex-1 px-2 py-2 space-y-3 overflow-y-auto">
+        <nav className="flex-1 px-2.5 py-1 space-y-4 overflow-y-auto">
           {navGroups.map((group) => (
             <div key={group.category}>
               {!sidebarCollapsed && (
-                <p
-                  className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider"
-                  style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.35)' }}
-                >
+                <p className="pivt-section-label px-2.5 py-1.5">
                   {group.category}
                 </p>
               )}
@@ -204,20 +204,20 @@ export const PIVTCompleteUnified: React.FC = () => {
                     <button
                       key={item.path}
                       onClick={() => setActiveSection(item.path as ActiveSection)}
-                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      className={`pivt-nav-item ${
                         isActive
-                          ? 'bg-accent/10 text-accent'
+                          ? 'pivt-nav-item-active'
                           : isCover
-                            ? 'text-sidebar-foreground hover:bg-sidebar-accent'
-                            : 'text-white/50 hover:text-white hover:bg-white/5'
+                            ? 'text-sidebar-foreground'
+                            : 'text-white/40 hover:text-white/70'
                       }`}
                     >
                       <item.icon className="w-4 h-4 shrink-0" style={{ color: isActive ? undefined : item.iconColor }} />
                       {!sidebarCollapsed && (
-                        <span className="flex-1 text-left">{item.label}</span>
+                        <span className="flex-1 text-left truncate">{item.label}</span>
                       )}
                       {!sidebarCollapsed && item.badge && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-accent/20 text-accent font-medium">
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-accent/15 text-accent font-semibold tabular-nums">
                           {item.badge}
                         </span>
                       )}
@@ -229,16 +229,14 @@ export const PIVTCompleteUnified: React.FC = () => {
           ))}
         </nav>
 
-        {/* Bottom controls */}
-        <div className="p-3 border-t" style={{ borderColor: isCover ? 'hsl(var(--sidebar-border))' : 'rgba(255,255,255,0.08)' }}>
-
-          {/* Collapse toggle */}
+        {/* Collapse toggle */}
+        <div className="p-2.5 border-t" style={{ borderColor: isCover ? 'hsl(var(--sidebar-border))' : 'rgba(255,255,255,0.05)' }}>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-white/5 transition-colors"
-            style={{ color: isCover ? 'hsl(var(--sidebar-foreground))' : 'rgba(255,255,255,0.4)' }}
+            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-white/4 transition-colors"
+            style={{ color: isCover ? 'hsl(var(--sidebar-foreground))' : 'rgba(255,255,255,0.3)' }}
           >
-            {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+            {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
           </button>
         </div>
       </motion.aside>
@@ -246,38 +244,41 @@ export const PIVTCompleteUnified: React.FC = () => {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto flex flex-col">
         {/* Top header bar */}
-        <div className="shrink-0 px-6 py-4 flex items-center gap-3 border-b" style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.08)' }}>
+        <div
+          className="shrink-0 px-6 py-3.5 flex items-center gap-4 border-b"
+          style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.06)' }}
+        >
           {/* Search */}
           <button
             onClick={() => setCommandOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg border text-sm text-muted-foreground hover:bg-muted/50 transition-colors flex-1 max-w-md"
-            style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.1)' }}
+            className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg border text-[13px] text-muted-foreground hover:bg-muted/30 transition-all flex-1 max-w-md"
+            style={{ borderColor: isCover ? 'hsl(var(--border))' : 'rgba(255,255,255,0.07)' }}
           >
-            <Search className="w-4 h-4 shrink-0" />
+            <Search className="w-3.5 h-3.5 shrink-0 opacity-50" />
             <span className="flex-1 text-left">Search deals, stakeholders...</span>
-            <kbd className="px-1.5 py-0.5 text-xs rounded border bg-muted font-mono">⌘K</kbd>
+            <kbd className="px-1.5 py-0.5 text-[10px] rounded border bg-muted/50 font-mono opacity-60">⌘K</kbd>
           </button>
 
           <div className="flex-1" />
 
           {/* Cover / Glass toggle */}
-          <div className="flex items-center bg-muted/50 rounded-full p-0.5">
+          <div className="flex items-center bg-muted/30 rounded-lg p-0.5 border border-border/50">
             <button
               onClick={() => setViewMode('cover')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide uppercase transition-all ${
                 isCover ? 'bg-accent text-accent-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Eye className="w-3.5 h-3.5" />
+              <Eye className="w-3 h-3" />
               Cover
             </button>
             <button
               onClick={() => setViewMode('glass')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold tracking-wide uppercase transition-all ${
                 !isCover ? 'bg-accent text-accent-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              <Layers className="w-3.5 h-3.5" />
+              <Layers className="w-3 h-3" />
               Glass
             </button>
           </div>
@@ -285,34 +286,34 @@ export const PIVTCompleteUnified: React.FC = () => {
           {/* Notifications */}
           <button
             onClick={() => setActiveSection('notifications')}
-            className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors"
-            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.6)' }}
+            className="relative p-2 rounded-lg hover:bg-muted/30 transition-colors"
+            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.5)' }}
           >
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-blocking text-white text-[9px] font-bold flex items-center justify-center">3</span>
+            <Bell className="w-4.5 h-4.5" />
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-blocking text-white text-[8px] font-bold flex items-center justify-center">3</span>
           </button>
 
           {/* Import Data */}
           <button
             onClick={() => setActiveSection('ingestion')}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium hover:bg-muted/50 transition-colors"
-            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.6)' }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium hover:bg-muted/30 transition-colors"
+            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.5)' }}
           >
-            <Upload className="w-4 h-4" />
-            Import Data
+            <Upload className="w-3.5 h-3.5" />
+            Import
           </button>
 
           {/* Settings */}
           <button
             onClick={() => setActiveSection('settings')}
-            className="p-2 rounded-lg hover:bg-muted/50 transition-colors"
-            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.6)' }}
+            className="p-2 rounded-lg hover:bg-muted/30 transition-colors"
+            style={{ color: isCover ? 'hsl(var(--muted-foreground))' : 'rgba(255,255,255,0.5)' }}
           >
-            <Settings className="w-5 h-5" />
+            <Settings className="w-4.5 h-4.5" />
           </button>
 
           {/* User avatar */}
-          <div className="w-9 h-9 rounded-full bg-accent flex items-center justify-center text-accent-foreground text-sm font-semibold cursor-pointer">
+          <div className="w-8 h-8 rounded-lg bg-accent/15 border border-accent/20 flex items-center justify-center text-accent text-[11px] font-bold cursor-pointer tracking-wide">
             SC
           </div>
         </div>
@@ -320,11 +321,11 @@ export const PIVTCompleteUnified: React.FC = () => {
           {isCover ? (
             <motion.div
               key={`cover-${activeSection}`}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: -6 }}
               transition={springConfig.standard}
-              className="p-10 max-w-6xl mx-auto"
+              className="p-8 lg:p-10 max-w-6xl mx-auto w-full"
             >
               <ActiveCoverSection />
             </motion.div>
