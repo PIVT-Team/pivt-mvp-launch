@@ -54,8 +54,23 @@ export const ApprovalsCover: React.FC = () => {
     setActionDialogOpen(false);
   };
 
+  // KYC gating
+  const { stakeholders } = usePIVTStore();
+  const pendingKyc = stakeholders.filter(s => s.kycStatus !== 'verified').length;
+
   return (
     <div className="space-y-6">
+      {/* KYC Gating Banner */}
+      {pendingKyc > 0 && (
+        <div className="p-4 rounded-lg border border-discrepancy/30 bg-discrepancy/5 flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-discrepancy flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-discrepancy">KYC incomplete — {pendingKyc} profile{pendingKyc > 1 ? 's' : ''} pending</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Approval workflow cannot be fully completed until all required KYC profiles are verified.</p>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">Approvals</h2>

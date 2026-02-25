@@ -91,6 +91,9 @@ const mockRecipientData = {
 };
 
 export const PaymentsCover: React.FC = () => {
+  const { stakeholders } = usePIVTStore();
+  const pendingKyc = stakeholders.filter(s => s.kycStatus !== 'verified').length;
+
   const [activeTab, setActiveTab] = useState('all-payments');
   const [selectedPayment, setSelectedPayment] = useState<typeof mockPayments[0] | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -145,6 +148,17 @@ export const PaymentsCover: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* KYC Gating Banner */}
+      {pendingKyc > 0 && (
+        <div className="p-4 rounded-lg border border-blocking/30 bg-blocking/5 flex items-center gap-3">
+          <Shield className="w-5 h-5 text-blocking flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-blocking">Cannot release payments — KYC required</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{pendingKyc} stakeholder KYC profile{pendingKyc > 1 ? 's' : ''} must be verified before funds can be disbursed.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
