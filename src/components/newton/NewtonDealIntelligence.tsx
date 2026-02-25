@@ -98,6 +98,19 @@ export const NewtonDealIntelligence: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
+  // Listen for search-to-Newton handoff
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.query) {
+        setIsOpen(true);
+        setTimeout(() => send(detail.query), 300);
+      }
+    };
+    window.addEventListener('pivt:open-newton', handler);
+    return () => window.removeEventListener('pivt:open-newton', handler);
+  }, []);
+
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);

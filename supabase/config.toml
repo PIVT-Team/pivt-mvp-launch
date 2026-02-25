@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.document-ai]
 verify_jwt = false
+
+[functions.global-search]
+verify_jwt = false
