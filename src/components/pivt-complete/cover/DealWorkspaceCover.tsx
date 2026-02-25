@@ -317,8 +317,8 @@ export const DealWorkspaceCover: React.FC = () => {
 
       {/* ── Deal Header ── */}
       <div className="pivt-card p-5">
-        <div className="flex items-center justify-between gap-6">
-          <div className="flex-1 min-w-0">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          <div className="min-w-0">
             <div className="flex items-center gap-3">
               <h1 className="text-xl font-semibold text-foreground truncate">{deal.codeName}</h1>
               {deal.hasBlocker && (
@@ -327,25 +327,25 @@ export const DealWorkspaceCover: React.FC = () => {
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground mt-0.5 text-sm">
+            <p className="text-muted-foreground mt-0.5 text-sm truncate">
               {deal.buyerName} acquiring {deal.targetCompany}
             </p>
           </div>
 
-          <div className="flex items-center gap-6 shrink-0">
-            <div className="text-right">
+          <div className="flex items-center gap-4 flex-wrap lg:ml-auto shrink-0">
+            <div className="text-left lg:text-right">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Deal Value</p>
               <p className="font-mono text-sm font-semibold">${(deal.consideration / 1e9).toFixed(1)}B</p>
             </div>
-            <div className="h-8 w-px bg-border" />
-            <div className="text-right">
+            <div className="h-8 w-px bg-border hidden lg:block" />
+            <div className="text-left lg:text-right">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Closing</p>
               <p className="text-sm font-medium flex items-center gap-1">
                 <Calendar className="w-3 h-3 text-muted-foreground" />
                 {deal.closingDate}
               </p>
             </div>
-            <div className="h-8 w-px bg-border" />
+            <div className="h-8 w-px bg-border hidden lg:block" />
             <div className="min-w-[120px]">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Readiness</p>
@@ -353,8 +353,8 @@ export const DealWorkspaceCover: React.FC = () => {
               </div>
               <Progress value={deal.readyToPayPercent} className="h-1.5" />
             </div>
-            <div className="h-8 w-px bg-border" />
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-accent hover:bg-accent/10 transition-colors">
+            <div className="h-8 w-px bg-border hidden lg:block" />
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-accent hover:bg-accent/10 transition-colors whitespace-nowrap">
               <Sparkles className="w-3.5 h-3.5" />
               What's blocking close?
             </button>
