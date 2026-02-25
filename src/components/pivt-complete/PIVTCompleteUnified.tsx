@@ -159,7 +159,7 @@ export const PIVTCompleteUnified: React.FC = () => {
               animate={{ opacity: 1 }}
               className="text-[10px] text-white/30 italic tracking-wide text-center"
             >
-              The Intelligence Layer Behind Every Close
+              The intelligence layer behind every close.
             </motion.p>
           )}
         </div>
