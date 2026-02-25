@@ -1,12 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { AddStakeholderModal } from './AddStakeholderModal';
 
 export const StakeholdersDealTab: React.FC = () => {
   const { stakeholders } = usePIVTStore();
+  const [modalOpen, setModalOpen] = useState(false);
 
   const verified = stakeholders.filter(s => s.kycStatus === 'verified').length;
   const total = stakeholders.length;
@@ -51,7 +53,10 @@ export const StakeholdersDealTab: React.FC = () => {
           <h2 className="text-xl font-semibold">Stakeholders</h2>
           <p className="text-sm text-muted-foreground mt-0.5">Manage deal participants, ownership, and payout details.</p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors">
+        <button
+          onClick={() => setModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+        >
           <Plus className="w-4 h-4" />
           Add Stakeholder
         </button>
@@ -102,6 +107,8 @@ export const StakeholdersDealTab: React.FC = () => {
           </motion.div>
         ))}
       </div>
+
+      <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} />
     </div>
   );
 };

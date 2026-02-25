@@ -185,6 +185,8 @@ interface PIVTStore {
   waterfallTiers: WaterfallTier[];
   pendingApprovals: PendingApproval[];
 
+  addStakeholder: (s: DemoStakeholder) => void;
+
   getSelectedDeal: () => DemoDeal;
   getTotalDealValue: () => number;
 }
@@ -208,6 +210,8 @@ export const usePIVTStore = create<PIVTStore>((set, get) => ({
   payments: DEMO_PAYMENTS,
   waterfallTiers: DEMO_WATERFALL,
   pendingApprovals: DEMO_APPROVALS,
+
+  addStakeholder: (s) => set((state) => ({ stakeholders: [...state.stakeholders, s] })),
 
   getSelectedDeal: () => {
     const state = get();
