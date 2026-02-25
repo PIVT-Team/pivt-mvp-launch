@@ -11,6 +11,8 @@ import { Search, ChevronLeft, ChevronRight, Bell, Upload, User } from 'lucide-re
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
 import { ImportDataModal } from './ImportDataModal';
+import { NotificationsDrawer } from './NotificationsDrawer';
+import { useNotificationStore } from '@/stores/notificationStore';
 
 // Cover sections
 import { DealsCover } from './cover/DealsCover';
@@ -45,6 +47,11 @@ export const PIVTCompleteUnified: React.FC = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
   const [importOpen, setImportOpen] = React.useState(false);
+  const [notifOpen, setNotifOpen] = React.useState(false);
+  const { unreadCount, seedDemoNotifications } = useNotificationStore();
+
+  // Seed demo notifications on first load
+  useEffect(() => { seedDemoNotifications(); }, [seedDemoNotifications]);
   const [glassMode, setGlassMode] = React.useState(() => {
     return sessionStorage.getItem('pivt-glass-mode') === 'true';
   });
@@ -219,9 +226,13 @@ export const PIVTCompleteUnified: React.FC = () => {
           </button>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground" title="Notifications">
+          <button onClick={() => setNotifOpen(true)} className="relative p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground" title="Notifications">
             <Bell className="w-4 h-4" />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
+            {unreadCount() > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                {unreadCount()}
+              </span>
+            )}
           </button>
 
           {/* Profile */}
@@ -256,6 +267,7 @@ export const PIVTCompleteUnified: React.FC = () => {
       <NewtonDealIntelligence />
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <NotificationsDrawer open={notifOpen} onOpenChange={setNotifOpen} />
     </div>
   );
 };
