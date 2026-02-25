@@ -1,19 +1,17 @@
 /**
- * PIVTCompleteUnified - Simplified workflow-driven interface
- * Global sidebar: Deals / Audit Log / Settings only
- * All deal elements live inside Deal Workspace
+ * PIVTCompleteUnified - Enterprise-first layout with optional Glass Mode
  */
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Search, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, Upload, User } from 'lucide-react';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
 
-// Cover sections (global only)
+// Cover sections
 import { DealsCover } from './cover/DealsCover';
 import { DealWorkspaceCover } from './cover/DealWorkspaceCover';
 import { AuditCover } from './cover/AuditAndReports';
@@ -21,11 +19,9 @@ import { SettingsCover } from './cover/SettingsCover';
 import { GlobalReportsCover } from './cover/GlobalReportsCover';
 import { IntegrationsCover } from './cover/IntegrationsCover';
 
-// Deal Wizard
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 
-// Sections that require deal context — redirect to deals if accessed directly
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
   'payments', 'ingestion', 'closing', 'verification', 'cap-table',
@@ -43,16 +39,36 @@ const coverSections: Record<string, React.FC> = {
 
 export const PIVTCompleteUnified: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const {
-    activeSection, setActiveSection,
-    selectedDealId,
-  } = usePIVTStore();
+  const { activeSection, setActiveSection, selectedDealId } = usePIVTStore();
 
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
+  const [glassMode, setGlassMode] = React.useState(() => {
+    return sessionStorage.getItem('pivt-glass-mode') === 'true';
+  });
   const navGroups = groupedNavigationByMode.manda;
 
-  // Sync URL params
+  // Glass mode toggle with smooth transition
+  const toggleGlassMode = useCallback(() => {
+    document.documentElement.classList.add('theme-transitioning');
+    setGlassMode(prev => {
+      const next = !prev;
+      sessionStorage.setItem('pivt-glass-mode', String(next));
+      return next;
+    });
+    setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
+  }, []);
+
+  // Apply glass-mode class to root
+  useEffect(() => {
+    if (glassMode) {
+      document.documentElement.classList.add('glass-mode');
+    } else {
+      document.documentElement.classList.remove('glass-mode');
+    }
+  }, [glassMode]);
+
+  // URL sync
   useEffect(() => {
     const section = searchParams.get('section');
     if (section) setActiveSection(section as ActiveSection);
@@ -64,34 +80,27 @@ export const PIVTCompleteUnified: React.FC = () => {
     setSearchParams(params, { replace: true });
   }, [activeSection]);
 
-  // Deal context locking: redirect deal-scoped sections to deals page
+  // Deal context locking
   useEffect(() => {
     if (DEAL_SCOPED_SECTIONS.has(activeSection) && activeSection !== 'workspace') {
-      // These sections now only exist inside workspace — redirect to workspace if deal selected, else deals
-      if (selectedDealId) {
-        setActiveSection('workspace');
-      } else {
-        setActiveSection('deals');
-      }
+      setActiveSection(selectedDealId ? 'workspace' : 'deals');
     }
   }, [activeSection, selectedDealId]);
 
   // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setCommandOpen(true);
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setCommandOpen(true); }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'g') { e.preventDefault(); toggleGlassMode(); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, []);
+  }, [toggleGlassMode]);
 
   const ActiveCoverSection = coverSections[activeSection] || DealsCover;
 
   return (
-    <div className="flex h-screen overflow-hidden transition-colors duration-300 pivt-ambient-bg" style={{ color: 'hsl(var(--foreground))' }}>
+    <div className="flex h-screen overflow-hidden pivt-ambient-bg" style={{ color: 'hsl(var(--foreground))' }}>
       {/* Sidebar */}
       <motion.aside
         animate={{ width: sidebarCollapsed ? 56 : 232 }}
@@ -116,23 +125,21 @@ export const PIVTCompleteUnified: React.FC = () => {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-[9px] text-sidebar-foreground/30 italic text-center whitespace-nowrap"
+              className="text-[9px] text-sidebar-foreground/50 italic text-center whitespace-nowrap"
             >
               The intelligence layer behind every close.
             </motion.p>
           )}
         </div>
 
-        <div className="mx-4 mb-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }} />
+        <div className="mx-4 mb-2 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }} />
 
-        {/* Nav items */}
+        {/* Nav */}
         <nav className="flex-1 px-2.5 py-1 space-y-4 overflow-y-auto">
           {navGroups.map((group) => (
             <div key={group.category}>
               {!sidebarCollapsed && (
-                <p className="pivt-section-label px-2.5 py-1.5">
-                  {group.category}
-                </p>
+                <p className="pivt-section-label px-2.5 py-1.5">{group.category}</p>
               )}
               <div className="space-y-0.5">
                 {group.items.map((item) => {
@@ -141,14 +148,10 @@ export const PIVTCompleteUnified: React.FC = () => {
                     <button
                       key={item.path}
                       onClick={() => setActiveSection(item.path as ActiveSection)}
-                      className={`pivt-nav-item ${
-                        isActive ? 'pivt-nav-item-active' : 'text-sidebar-foreground'
-                      }`}
+                      className={`pivt-nav-item ${isActive ? 'pivt-nav-item-active' : 'text-sidebar-foreground'}`}
                     >
                       <item.icon className="w-4 h-4 shrink-0" style={{ color: isActive ? undefined : item.iconColor }} />
-                      {!sidebarCollapsed && (
-                        <span className="flex-1 text-left truncate">{item.label}</span>
-                      )}
+                      {!sidebarCollapsed && <span className="flex-1 text-left truncate">{item.label}</span>}
                     </button>
                   );
                 })}
@@ -157,11 +160,11 @@ export const PIVTCompleteUnified: React.FC = () => {
           ))}
         </nav>
 
-        {/* Collapse toggle */}
+        {/* Collapse */}
         <div className="p-2.5 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-muted/20 transition-colors"
+            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-muted/40 transition-colors"
             style={{ color: 'hsl(var(--sidebar-foreground))' }}
           >
             {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
@@ -169,16 +172,20 @@ export const PIVTCompleteUnified: React.FC = () => {
         </div>
       </motion.aside>
 
-      {/* Main content */}
+      {/* Main */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* Top header bar */}
+        {/* Top bar */}
         <div
-          className="shrink-0 px-6 py-3.5 flex items-center gap-4 border-b"
-          style={{ borderColor: 'hsl(var(--border))' }}
+          className="shrink-0 px-6 py-3 flex items-center gap-4 border-b"
+          style={{
+            background: 'hsl(var(--card))',
+            borderColor: 'hsl(var(--border))',
+          }}
         >
+          {/* Search */}
           <button
             onClick={() => setCommandOpen(true)}
-            className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg border text-[13px] text-muted-foreground hover:bg-muted/30 transition-all flex-1 max-w-md"
+            className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg border text-[13px] text-muted-foreground hover:bg-muted/40 transition-all flex-1 max-w-md"
             style={{ borderColor: 'hsl(var(--border))' }}
           >
             <Search className="w-3.5 h-3.5 shrink-0 opacity-50" />
@@ -188,14 +195,34 @@ export const PIVTCompleteUnified: React.FC = () => {
 
           <div className="flex-1" />
 
-          <button
-            onClick={() => setActiveSection('settings')}
-            className="p-2 rounded-lg hover:bg-muted/30 transition-colors text-muted-foreground"
-          >
-            <Settings className="w-4.5 h-4.5" />
+          {/* Glass Mode Toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-muted-foreground font-medium">Glass</span>
+            <button
+              onClick={toggleGlassMode}
+              className="glass-toggle"
+              data-active={glassMode}
+              title="Toggle Glass Mode (⌘G)"
+            >
+              <span className="glass-toggle-thumb" />
+            </button>
+          </div>
+
+          <div className="h-5 w-px bg-border mx-1" />
+
+          {/* Import */}
+          <button className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground" title="Import Data">
+            <Upload className="w-4 h-4" />
           </button>
 
-          <div className="w-8 h-8 rounded-lg bg-accent/15 border border-accent/20 flex items-center justify-center text-accent text-[11px] font-bold cursor-pointer tracking-wide">
+          {/* Notifications */}
+          <button className="relative p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground" title="Notifications">
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-destructive" />
+          </button>
+
+          {/* Profile */}
+          <div className="w-8 h-8 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-[11px] font-bold cursor-pointer">
             SC
           </div>
         </div>
@@ -214,11 +241,8 @@ export const PIVTCompleteUnified: React.FC = () => {
         </AnimatePresence>
       </main>
 
-      {/* Deal Intake Wizard */}
       <DealWizard />
       <NewtonDealIntelligence />
-
-      {/* Command Palette */}
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
     </div>
   );
