@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import { ExecutionReadinessPanel } from './ExecutionReadinessPanel';
 
 // Mock payment data generator
 const generateMockPayments = () => {
@@ -158,6 +159,9 @@ export const PaymentsCover: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Execution Readiness */}
+      <ExecutionReadinessPanel />
 
       {/* Header */}
       <div className="flex items-center justify-between">
