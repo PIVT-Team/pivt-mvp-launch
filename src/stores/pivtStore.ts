@@ -12,7 +12,7 @@ export type ActiveSection =
   | 'ingestion' | 'closing' | 'verification' | 'admin-verification'
   | 'messages' | 'notifications'
   | 'cap-table' | 'recipient' | 'lp-portal' | 'onboarding'
-  | 'integrations';
+  | 'integrations' | 'intelligence-map';
 
 export type EntityType = 'deal' | 'stakeholder' | 'document' | 'payment' | 'escrow' | 'approval';
 
