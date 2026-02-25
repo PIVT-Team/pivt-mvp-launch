@@ -40,9 +40,9 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
                 {/* Badge */}
                 <motion.div
                   whileHover={{ scale: 1.08 }}
-                  transition={{ duration: 0.15 }}
+                  transition={{ duration: 0.12 }}
                   className={`
-                    w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 relative
+                    w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-150 relative
                     ${isComplete || isPast
                       ? 'text-accent-foreground'
                       : isActive
@@ -52,13 +52,15 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
                   `}
                   style={{
                     background: isComplete || isPast
-                      ? 'hsl(var(--accent))'
+                      ? 'linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)))'
                       : isActive
-                        ? 'linear-gradient(135deg, hsl(262 90% 55%), hsl(217 100% 55%))'
+                        ? 'linear-gradient(90deg, hsl(var(--g3-from)), hsl(var(--g3-to)))'
                         : 'transparent',
                     boxShadow: isActive
-                      ? '0 0 16px hsl(262 90% 55% / 0.35), 0 0 4px hsl(262 90% 55% / 0.2)'
-                      : 'none',
+                      ? '0 0 20px hsl(255 82% 58% / 0.35), 0 0 6px hsl(255 82% 58% / 0.25)'
+                      : isPast || isComplete
+                        ? '0 0 8px hsl(231 100% 62% / 0.15)'
+                        : 'none',
                   }}
                 >
                   {isComplete ? (
@@ -66,10 +68,32 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
                   ) : (
                     <span>{step.number}</span>
                   )}
+                  {/* Active glow ring */}
+                  {isActive && (
+                    <motion.div
+                      className="absolute inset-[-3px] rounded-full"
+                      style={{
+                        background: 'linear-gradient(90deg, hsl(var(--g3-from) / 0.3), hsl(var(--g3-to) / 0.15))',
+                      }}
+                      animate={{ opacity: [0.6, 1, 0.6] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  )}
+                  {/* Inner circle on top of glow */}
+                  {isActive && (
+                    <div
+                      className="absolute inset-0 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{
+                        background: 'linear-gradient(90deg, hsl(var(--g3-from)), hsl(var(--g3-to)))',
+                      }}
+                    >
+                      {step.number}
+                    </div>
+                  )}
                 </motion.div>
 
                 {/* Label */}
-                <span className={`text-[11px] font-medium text-center leading-tight transition-colors duration-200 ${
+                <span className={`text-[11px] font-medium text-center leading-tight transition-colors duration-150 ${
                   isActive ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
                 }`}>
                   {step.label}
@@ -98,7 +122,7 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
                 </div>
               </button>
 
-              {/* Connector line */}
+              {/* Connector line with G5 gradient progress */}
               {i < steps.length - 1 && (
                 <div className="flex-1 min-w-[24px] max-w-[60px] flex items-center pt-4 px-1">
                   <div className="w-full h-0.5 rounded-full relative overflow-hidden" style={{ background: 'hsl(var(--border))' }}>
@@ -110,7 +134,7 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
                       }}
                       transition={{ duration: 0.35, ease: 'easeOut' }}
                       style={{
-                        background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(217 100% 55%))',
+                        background: 'linear-gradient(90deg, hsl(var(--g5-from)), hsl(var(--g5-to)))',
                       }}
                     />
                   </div>
