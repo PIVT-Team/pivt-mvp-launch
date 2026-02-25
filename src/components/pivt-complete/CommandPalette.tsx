@@ -99,7 +99,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
         label: d.codeName,
         sub: `${d.buyerName} · $${(d.consideration / 1e9).toFixed(1)}B`,
         group: 'Deals',
-        action: () => { usePIVTStore.getState().setSelectedDealId(d.id); navigate('command'); },
+        action: () => { usePIVTStore.getState().setSelectedDealId(d.id); navigate('workspace'); },
       });
     });
     stakeholders.forEach(s => {

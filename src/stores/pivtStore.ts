@@ -1,17 +1,18 @@
 /**
- * PIVT Unified Store - Single source of truth for Cover/Glass modes
+ * PIVT Unified Store - Single source of truth
  */
 import { create } from 'zustand';
 
 export type ViewMode = 'cover' | 'glass';
 
 export type ActiveSection =
-  | 'command' | 'deals' | 'waterfall' | 'stakeholders' | 'documents'
-  | 'escrow' | 'approvals' | 'payments' | 'reports' | 'audit'
-  | 'demo' | 'ingestion' | 'closing' | 'newton' | 'verification' | 'admin-verification'
+  | 'deals' | 'audit' | 'settings' | 'workspace'
+  | 'waterfall' | 'stakeholders' | 'documents'
+  | 'escrow' | 'approvals' | 'payments' | 'reports'
+  | 'ingestion' | 'closing' | 'verification' | 'admin-verification'
   | 'messages' | 'notifications'
-  | 'cap-table' | 'workspace' | 'recipient' | 'lp-portal' | 'onboarding'
-  | 'mcp' | 'cockpit' | 'settings' | 'integrations' | 'autonomy';
+  | 'cap-table' | 'recipient' | 'lp-portal' | 'onboarding'
+  | 'integrations';
 
 export type EntityType = 'deal' | 'stakeholder' | 'document' | 'payment' | 'escrow' | 'approval';
 
@@ -23,13 +24,16 @@ export interface Entity {
   metadata?: Record<string, any>;
 }
 
-// Demo deal data
+// Deal workflow states
+export type DealWorkflowState = 'draft' | 'data_uploaded' | 'reconciliation' | 'awaiting_approval' | 'approved' | 'closed';
+
 export interface DemoDeal {
   id: string;
   name: string;
   codeName: string;
   consideration: number;
   status: 'drafting' | 'diligence' | 'signing' | 'closing' | 'completed';
+  workflowState: DealWorkflowState;
   buyerName: string;
   targetCompany: string;
   sector: string;
@@ -38,6 +42,8 @@ export interface DemoDeal {
   discrepanciesFound: number;
   readyToPayPercent: number;
   closingDate: string;
+  pendingApprovals: number;
+  hasBlocker: boolean;
 }
 
 export interface DemoStakeholder {
@@ -89,26 +95,29 @@ const DEMO_DEALS: DemoDeal[] = [
   {
     id: 'atlas', name: 'Project ATLAS', codeName: 'ATLAS',
     consideration: 2_800_000_000, status: 'closing',
+    workflowState: 'awaiting_approval',
     buyerName: 'Apex Capital Partners', targetCompany: 'DataStream Technologies',
     sector: 'Enterprise SaaS', totalRecipients: 28, documentsUploaded: 108,
     discrepanciesFound: 3, readyToPayPercent: 87,
-    closingDate: '2026-03-15',
+    closingDate: '2026-03-15', pendingApprovals: 2, hasBlocker: false,
   },
   {
     id: 'beacon', name: 'Project BEACON', codeName: 'BEACON',
     consideration: 1_250_000_000, status: 'diligence',
+    workflowState: 'data_uploaded',
     buyerName: 'Meridian Holdings', targetCompany: 'CloudVault Security',
     sector: 'Cybersecurity', totalRecipients: 25, documentsUploaded: 75,
     discrepanciesFound: 7, readyToPayPercent: 62,
-    closingDate: '2026-04-30',
+    closingDate: '2026-04-30', pendingApprovals: 5, hasBlocker: true,
   },
   {
     id: 'cipher', name: 'Project CIPHER', codeName: 'CIPHER',
     consideration: 4_500_000_000, status: 'signing',
+    workflowState: 'reconciliation',
     buyerName: 'Titan Strategic Group', targetCompany: 'NeuralPath AI',
     sector: 'Artificial Intelligence', totalRecipients: 48, documentsUploaded: 145,
     discrepanciesFound: 1, readyToPayPercent: 94,
-    closingDate: '2026-02-28',
+    closingDate: '2026-02-28', pendingApprovals: 1, hasBlocker: false,
   },
 ];
 
@@ -157,22 +166,18 @@ const DEMO_APPROVALS: PendingApproval[] = [
 ];
 
 interface PIVTStore {
-  // Mode
   viewMode: ViewMode;
   activeSection: ActiveSection;
   setViewMode: (mode: ViewMode) => void;
   setActiveSection: (section: ActiveSection) => void;
   toggleMode: () => void;
 
-  // Entity selection (synced across modes)
   selectedEntity: Entity | null;
   setSelectedEntity: (entity: Entity | null) => void;
 
-  // Selected deal
   selectedDealId: string;
   setSelectedDealId: (id: string) => void;
 
-  // Data
   deals: DemoDeal[];
   stakeholders: DemoStakeholder[];
   documents: DemoDocument[];
@@ -180,14 +185,13 @@ interface PIVTStore {
   waterfallTiers: WaterfallTier[];
   pendingApprovals: PendingApproval[];
 
-  // Helpers
   getSelectedDeal: () => DemoDeal;
   getTotalDealValue: () => number;
 }
 
 export const usePIVTStore = create<PIVTStore>((set, get) => ({
   viewMode: 'cover',
-  activeSection: 'command',
+  activeSection: 'deals',
   setViewMode: (mode) => set({ viewMode: mode }),
   setActiveSection: (section) => set({ activeSection: section }),
   toggleMode: () => set((s) => ({ viewMode: s.viewMode === 'cover' ? 'glass' : 'cover' })),
@@ -214,7 +218,6 @@ export const usePIVTStore = create<PIVTStore>((set, get) => ({
   },
 }));
 
-// Selector hooks
 export const useMode = () => usePIVTStore((s) => s.viewMode);
 export const useActiveSection = () => usePIVTStore((s) => s.activeSection);
 export const useSelectedDeal = () => usePIVTStore((s) => s.deals.find(d => d.id === s.selectedDealId) || s.deals[0]);

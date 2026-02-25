@@ -164,7 +164,7 @@ export const AnalyticsDashboard: React.FC = () => {
               {deals.map(d => (
                 <button
                   key={d.id}
-                  onClick={() => { setSelectedDealId(d.id); setActiveSection('command'); }}
+onClick={() => { setSelectedDealId(d.id); setActiveSection('workspace'); }}
                   className="w-full flex items-center gap-2 text-xs py-1 hover:text-accent transition-colors"
                 >
                   <div className="w-2 h-2 rounded-full" style={{ background: statusColors[d.status] }} />
@@ -186,7 +186,7 @@ export const AnalyticsDashboard: React.FC = () => {
           {riskScores.map(({ deal: d, score, daysToClose }) => (
             <button
               key={d.id}
-              onClick={() => { setSelectedDealId(d.id); setActiveSection('command'); }}
+              onClick={() => { setSelectedDealId(d.id); setActiveSection('workspace'); }}
               className="p-4 rounded-lg border border-border hover:border-accent/30 transition-colors text-left"
             >
               <div className="flex items-center justify-between mb-2">

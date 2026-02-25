@@ -1,172 +1,314 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
+import React from 'react';
+import { motion } from 'framer-motion';
+import { usePIVTStore, useSelectedDeal, DealWorkflowState } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
-  Briefcase, FileCheck, Users, Shield, Calculator, Clock, CheckCircle2,
-  AlertTriangle, ArrowRight, Layers, BarChart3, Lock, CreditCard,
+  ArrowLeft, CheckCircle2, Clock, AlertTriangle, Ban,
+  FileText, Users, Calculator, Upload, Shield, CreditCard,
+  Landmark, Search, Lock,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
-type WorkspaceTab = 'overview' | 'checklist' | 'timeline';
+// ── Workflow States ──
+const WORKFLOW_STEPS: { key: DealWorkflowState; label: string }[] = [
+  { key: 'draft', label: 'Draft' },
+  { key: 'data_uploaded', label: 'Data Uploaded' },
+  { key: 'reconciliation', label: 'Reconciliation' },
+  { key: 'awaiting_approval', label: 'Awaiting Approval' },
+  { key: 'approved', label: 'Approved (Locked)' },
+  { key: 'closed', label: 'Closed' },
+];
 
-interface ChecklistItem {
-  id: string;
-  category: string;
-  task: string;
-  status: 'complete' | 'in-progress' | 'pending' | 'blocked';
-  assignee: string;
-  dueDate: string;
+const stepIndex = (state: DealWorkflowState) => WORKFLOW_STEPS.findIndex(s => s.key === state);
+
+function getNextAction(state: DealWorkflowState, discrepancies: number, pendingApprovals: number): string {
+  switch (state) {
+    case 'draft': return 'Upload Seller Cap Table';
+    case 'data_uploaded': return 'Run reconciliation to validate data';
+    case 'reconciliation':
+      return discrepancies > 0 ? `Resolve ${discrepancies} discrepancies` : 'All checks passed — submit for approval';
+    case 'awaiting_approval':
+      return pendingApprovals > 0 ? `Awaiting ${pendingApprovals} approval(s)` : 'All approvals received';
+    case 'approved': return 'Ready to release funds';
+    case 'closed': return 'Deal closed successfully';
+    default: return '';
+  }
 }
 
-const CHECKLIST: ChecklistItem[] = [
-  { id: 'c1', category: 'Legal', task: 'Merger agreement executed', status: 'complete', assignee: 'Seller Counsel', dueDate: '2026-01-15' },
-  { id: 'c2', category: 'Legal', task: 'Board resolutions filed', status: 'complete', assignee: 'Corporate Secretary', dueDate: '2026-01-10' },
-  { id: 'c3', category: 'Financial', task: 'Cap table reconciled', status: 'complete', assignee: 'Deal Admin', dueDate: '2026-01-20' },
-  { id: 'c4', category: 'Financial', task: 'Waterfall schedule approved', status: 'in-progress', assignee: 'Buyer Counsel', dueDate: '2026-02-15' },
-  { id: 'c5', category: 'Compliance', task: 'All KYC/KYB verified', status: 'in-progress', assignee: 'Compliance Team', dueDate: '2026-02-20' },
-  { id: 'c6', category: 'Compliance', task: 'OFAC screening complete', status: 'complete', assignee: 'Compliance Team', dueDate: '2026-01-25' },
-  { id: 'c7', category: 'Banking', task: 'Wire instructions validated', status: 'pending', assignee: 'Deal Admin', dueDate: '2026-02-25' },
-  { id: 'c8', category: 'Banking', task: 'Escrow funded', status: 'complete', assignee: 'Escrow Agent', dueDate: '2026-01-15' },
-  { id: 'c9', category: 'Execution', task: 'Dual-signature approvals', status: 'pending', assignee: 'All Parties', dueDate: '2026-03-01' },
-  { id: 'c10', category: 'Execution', task: 'Funds disbursed', status: 'blocked', assignee: 'Paying Agent', dueDate: '2026-03-15' },
+// ── Demo data ──
+const DISCREPANCIES = [
+  { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
+  { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for a16z trust account', severity: 'critical' as const, resolved: false },
+  { id: 3, field: 'Tax ID', desc: 'GIC Singapore entity TIN mismatch', severity: 'warning' as const, resolved: true },
 ];
 
-const TIMELINE = [
-  { date: '2025-11-01', event: 'LOI Signed', status: 'complete' },
-  { date: '2025-12-15', event: 'Due Diligence Started', status: 'complete' },
-  { date: '2026-01-10', event: 'Definitive Agreement Executed', status: 'complete' },
-  { date: '2026-01-15', event: 'Escrow Funded', status: 'complete' },
-  { date: '2026-02-01', event: 'Regulatory Approvals Received', status: 'complete' },
-  { date: '2026-02-14', event: 'KYC/KYB Verification (In Progress)', status: 'in-progress' },
-  { date: '2026-02-28', event: 'Waterfall Finalization', status: 'pending' },
-  { date: '2026-03-10', event: 'Dual-Signature Approval Window', status: 'pending' },
-  { date: '2026-03-15', event: 'Closing & Disbursement', status: 'pending' },
+const SIGNATORIES = [
+  { name: 'Buyer Counsel', status: 'signed', timestamp: '2026-02-10 14:32 UTC' },
+  { name: 'Seller Counsel', status: 'pending', timestamp: null },
+  { name: 'Third-Party Agent', status: 'pending', timestamp: null },
 ];
 
-const statusStyles: Record<string, string> = {
-  complete: 'text-validated bg-validated/10',
-  'in-progress': 'text-accent bg-accent/10',
-  pending: 'text-muted-foreground bg-muted',
-  blocked: 'text-blocking bg-blocking/10',
-};
+const AUDIT_ENTRIES = [
+  { time: '2026-02-14 09:12', action: 'Waterfall Schedule v3 uploaded', actor: 'Deal Admin' },
+  { time: '2026-02-13 16:45', action: 'KYC verification failed — GIC Private Limited', actor: 'System' },
+  { time: '2026-02-12 11:00', action: 'Buyer Counsel approved payout execution', actor: 'Buyer Counsel' },
+  { time: '2026-02-10 14:32', action: 'Cap table reconciliation triggered', actor: 'Deal Admin' },
+  { time: '2026-02-08 10:15', action: 'Escrow account funded — $280M', actor: 'Escrow Agent' },
+  { time: '2026-02-05 08:00', action: 'Deal created', actor: 'Deal Admin' },
+];
 
 export const DealWorkspaceCover: React.FC = () => {
   const deal = useSelectedDeal();
-  const { stakeholders, documents, waterfallTiers, setActiveSection } = usePIVTStore();
-  const [activeTab, setActiveTab] = useState<WorkspaceTab>('overview');
+  const { stakeholders, documents, waterfallTiers, payments, setActiveSection } = usePIVTStore();
 
-  const completedTasks = CHECKLIST.filter(c => c.status === 'complete').length;
-  const totalTasks = CHECKLIST.length;
+  const currentIdx = stepIndex(deal.workflowState);
+  const nextAction = getNextAction(deal.workflowState, deal.discrepanciesFound, deal.pendingApprovals);
 
-  const modules = [
-    { label: 'Cap Table', icon: Users, section: 'cap-table' as const, stat: `${stakeholders.length} shareholders`, color: 'text-accent' },
-    { label: 'Waterfall', icon: Calculator, section: 'waterfall' as const, stat: `${waterfallTiers.length} tiers`, color: 'text-accent' },
-    { label: 'Documents', icon: FileCheck, section: 'documents' as const, stat: `${deal.documentsUploaded} uploaded`, color: 'text-validated' },
-    { label: 'Escrow', icon: Lock, section: 'escrow' as const, stat: `$${(deal.consideration * 0.1 / 1e6).toFixed(0)}M held`, color: 'text-discrepancy' },
-    { label: 'Approvals', icon: Shield, section: 'approvals' as const, stat: '5 pending', color: 'text-orange-400' },
-    { label: 'Payments', icon: CreditCard, section: 'payments' as const, stat: `${deal.totalRecipients} recipients`, color: 'text-accent' },
-  ];
+  const approvalsLocked = deal.workflowState === 'approved' || deal.workflowState === 'closed';
 
   return (
     <motion.div {...staggerChildren} className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Deal Workspace</h1>
-        <p className="text-muted-foreground mt-1">{deal.codeName} — {deal.buyerName} acquiring {deal.targetCompany}</p>
+      {/* Back to deals */}
+      <button
+        onClick={() => setActiveSection('deals')}
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Deals
+      </button>
+
+      {/* Deal Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{deal.codeName}</h1>
+          <p className="text-muted-foreground mt-0.5 text-sm">{deal.buyerName} acquiring {deal.targetCompany} · ${(deal.consideration / 1e9).toFixed(1)}B</p>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-muted/50 rounded-lg p-1 w-fit">
-        {(['overview', 'checklist', 'timeline'] as WorkspaceTab[]).map(tab => (
-          <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-md text-sm capitalize transition-colors ${activeTab === tab ? 'bg-background text-foreground shadow-sm font-medium' : 'text-muted-foreground hover:text-foreground'}`}>
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      <AnimatePresence mode="wait">
-        {activeTab === 'overview' && (
-          <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
-            {/* Progress */}
-            <motion.div {...fadeInUp} className="pivt-card p-6">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-medium">Closing Progress</h3>
-                <span className="font-mono text-accent font-semibold">{completedTasks}/{totalTasks} tasks</span>
-              </div>
-              <div className="w-full bg-muted rounded-full h-3">
-                <motion.div className="bg-accent h-3 rounded-full" initial={{ width: 0 }} animate={{ width: `${(completedTasks / totalTasks) * 100}%` }} transition={{ duration: 1 }} />
-              </div>
-              <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
-                {Object.entries({ complete: 'Completed', 'in-progress': 'In Progress', pending: 'Pending', blocked: 'Blocked' }).map(([status, label]) => (
-                  <div key={status} className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${status === 'complete' ? 'bg-validated' : status === 'in-progress' ? 'bg-accent' : status === 'blocked' ? 'bg-blocking' : 'bg-muted-foreground'}`} />
-                    <span>{CHECKLIST.filter(c => c.status === status).length} {label}</span>
+      {/* ─── STATE MACHINE PROGRESS BAR ─── */}
+      <motion.div {...fadeInUp} className="pivt-card p-5">
+        <div className="flex items-center justify-between">
+          {WORKFLOW_STEPS.map((step, i) => {
+            const isCurrent = i === currentIdx;
+            const isComplete = i < currentIdx;
+            const isBlocked = isCurrent && deal.hasBlocker;
+            let bg = 'bg-muted';
+            let text = 'text-muted-foreground';
+            if (isComplete) { bg = 'bg-validated'; text = 'text-validated'; }
+            else if (isBlocked) { bg = 'bg-blocking'; text = 'text-blocking'; }
+            else if (isCurrent) { bg = 'bg-accent'; text = 'text-accent'; }
+            return (
+              <React.Fragment key={step.key}>
+                <div className="flex flex-col items-center gap-1.5 flex-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${bg} ${isComplete || isCurrent ? 'text-white' : ''}`}>
+                    {isComplete ? <CheckCircle2 className="w-4 h-4" /> :
+                     isBlocked ? <Ban className="w-4 h-4" /> :
+                     isCurrent ? <Clock className="w-4 h-4 animate-pulse" /> :
+                     <span className="text-xs font-mono">{i + 1}</span>}
                   </div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Module Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {modules.map(mod => (
-                <motion.button key={mod.label} {...fadeInUp} onClick={() => setActiveSection(mod.section)} className="pivt-card p-5 text-left hover:border-accent/30 hover:shadow-md transition-all group">
-                  <mod.icon className={`w-5 h-5 ${mod.color} mb-3`} />
-                  <p className="font-medium group-hover:text-accent transition-colors">{mod.label}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{mod.stat}</p>
-                  <ArrowRight className="w-3 h-3 text-muted-foreground mt-2 group-hover:translate-x-1 transition-transform" />
-                </motion.button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        {activeTab === 'checklist' && (
-          <motion.div key="checklist" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div className="pivt-card overflow-hidden">
-              <div className="p-4 border-b border-border bg-muted/30 grid grid-cols-5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                <span className="col-span-2">Task</span>
-                <span>Assignee</span>
-                <span>Due</span>
-                <span className="text-center">Status</span>
-              </div>
-              {CHECKLIST.map(item => (
-                <div key={item.id} className="p-4 border-b border-border last:border-0 grid grid-cols-5 items-center hover:bg-muted/20 transition-colors">
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium">{item.task}</p>
-                    <p className="text-xs text-muted-foreground">{item.category}</p>
-                  </div>
-                  <span className="text-sm text-muted-foreground">{item.assignee}</span>
-                  <span className="text-sm font-mono text-muted-foreground">{item.dueDate}</span>
-                  <div className="flex justify-center">
-                    <Badge className={`text-[10px] ${statusStyles[item.status]}`}>{item.status}</Badge>
-                  </div>
+                  <span className={`text-[10px] font-medium text-center leading-tight ${text}`}>{step.label}</span>
                 </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
+                {i < WORKFLOW_STEPS.length - 1 && (
+                  <div className={`h-0.5 flex-1 mx-1 rounded ${i < currentIdx ? 'bg-validated' : 'bg-muted'}`} />
+                )}
+              </React.Fragment>
+            );
+          })}
+        </div>
+      </motion.div>
 
-        {activeTab === 'timeline' && (
-          <motion.div key="timeline" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div className="pivt-card p-6">
-              <div className="relative pl-6 space-y-6">
-                <div className="absolute left-2 top-2 bottom-2 w-0.5 bg-border" />
-                {TIMELINE.map((evt, i) => (
-                  <div key={i} className="relative flex items-start gap-4">
-                    <div className={`absolute left-[-16px] w-3 h-3 rounded-full border-2 ${evt.status === 'complete' ? 'bg-validated border-validated' : evt.status === 'in-progress' ? 'bg-accent border-accent' : 'bg-muted border-border'}`} />
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${evt.status === 'pending' ? 'text-muted-foreground' : ''}`}>{evt.event}</p>
-                      <p className="text-xs text-muted-foreground font-mono">{evt.date}</p>
-                    </div>
-                    {evt.status === 'complete' && <CheckCircle2 className="w-4 h-4 text-validated shrink-0" />}
-                    {evt.status === 'in-progress' && <Clock className="w-4 h-4 text-accent animate-pulse shrink-0" />}
-                  </div>
-                ))}
+      {/* ─── NEXT REQUIRED ACTION ─── */}
+      <motion.div {...fadeInUp} className="pivt-card p-4 border-l-4 border-accent bg-accent/5">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
+            <AlertTriangle className="w-4 h-4 text-accent" />
+          </div>
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Next Required Action</p>
+            <p className="text-sm font-semibold mt-0.5">{nextAction}</p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ─── SECTION 1: DATA ─── */}
+      <motion.div {...fadeInUp} className="pivt-card p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Users className="w-4 h-4 text-accent" />
+          <h3 className="font-medium">Data</h3>
+        </div>
+
+        {/* Cap Table Summary */}
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Cap Table · {stakeholders.length} shareholders</p>
+          <div className="space-y-1.5">
+            {stakeholders.slice(0, 5).map(s => (
+              <div key={s.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+                <span>{s.name}</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-xs text-muted-foreground">{s.ownershipPct}%</span>
+                  <span className="font-mono text-xs">${(s.payoutAmount / 1e6).toFixed(0)}M</span>
+                  <Badge className={`text-[9px] ${s.kycStatus === 'verified' ? 'bg-validated/10 text-validated' : s.kycStatus === 'failed' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
+                    {s.kycStatus}
+                  </Badge>
+                </div>
+              </div>
+            ))}
+            {stakeholders.length > 5 && <p className="text-xs text-muted-foreground">+{stakeholders.length - 5} more</p>}
+          </div>
+        </div>
+
+        {/* Waterfall Summary */}
+        <div>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Waterfall · {waterfallTiers.length} tiers</p>
+          <div className="flex gap-1 h-6 rounded overflow-hidden">
+            {waterfallTiers.map((t, i) => (
+              <div key={t.id} className="bg-accent/70 hover:bg-accent transition-colors relative group" style={{ width: `${t.percentage}%` }}>
+                <div className="absolute inset-0 flex items-center justify-center text-[8px] font-mono text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                  {t.percentage}%
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-3 mt-2">
+            {waterfallTiers.map(t => (
+              <span key={t.id} className="text-[10px] text-muted-foreground">{t.name}: ${(t.amount / 1e6).toFixed(0)}M</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Ingestion status */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Upload className="w-3.5 h-3.5" />
+          <span>{deal.documentsUploaded} files ingested</span>
+        </div>
+      </motion.div>
+
+      {/* ─── SECTION 2: DOCUMENTS ─── */}
+      <motion.div {...fadeInUp} className="pivt-card p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText className="w-4 h-4 text-accent" />
+          <h3 className="font-medium">Documents</h3>
+          <span className="text-xs text-muted-foreground ml-auto">{documents.filter(d => d.status === 'verified').length}/{documents.length} verified</span>
+        </div>
+        <div className="space-y-1.5">
+          {documents.map(doc => (
+            <div key={doc.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+              <div>
+                <span>{doc.name}</span>
+                <span className="text-xs text-muted-foreground ml-2">{doc.type}</span>
+              </div>
+              <Badge className={`text-[9px] ${doc.status === 'verified' ? 'bg-validated/10 text-validated' : doc.status === 'rejected' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
+                {doc.status}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ─── SECTION 3: RECONCILIATION RESULTS ─── */}
+      <motion.div {...fadeInUp} className="pivt-card p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Search className="w-4 h-4 text-discrepancy" />
+          <h3 className="font-medium">Reconciliation Results</h3>
+          <span className="text-xs text-muted-foreground ml-auto">{DISCREPANCIES.filter(d => !d.resolved).length} unresolved</span>
+        </div>
+        <div className="space-y-2">
+          {DISCREPANCIES.map(disc => (
+            <div key={disc.id} className={`p-3 rounded-lg border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/5' : 'border-discrepancy bg-discrepancy/5'} ${disc.resolved ? 'opacity-50' : ''}`}>
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium">{disc.field}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{disc.desc}</p>
+                </div>
+                <Badge className={`text-[9px] ${disc.resolved ? 'bg-validated/10 text-validated' : disc.severity === 'critical' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
+                  {disc.resolved ? 'Resolved' : disc.severity}
+                </Badge>
               </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ─── SECTION 4: APPROVALS ─── */}
+      <motion.div {...fadeInUp} className="pivt-card p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Shield className="w-4 h-4 text-accent" />
+          <h3 className="font-medium">Approvals</h3>
+          {approvalsLocked && (
+            <Badge className="text-[9px] bg-validated/10 text-validated ml-auto flex items-center gap-1">
+              <Lock className="w-3 h-3" /> Locked
+            </Badge>
+          )}
+        </div>
+        <div className="space-y-2">
+          {SIGNATORIES.map((sig, i) => (
+            <div key={i} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+              <span className="text-sm font-medium">{sig.name}</span>
+              <div className="flex items-center gap-3">
+                {sig.timestamp && <span className="text-[10px] text-muted-foreground font-mono">{sig.timestamp}</span>}
+                <Badge className={`text-[9px] ${sig.status === 'signed' ? 'bg-validated/10 text-validated' : 'bg-discrepancy/10 text-discrepancy'}`}>
+                  {sig.status === 'signed' ? '✓ Signed' : 'Pending'}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* ─── SECTION 5: PAYMENTS ─── */}
+      <motion.div {...fadeInUp} className={`pivt-card p-5 ${approvalsLocked ? '' : 'opacity-60 pointer-events-none'}`}>
+        <div className="flex items-center gap-2 mb-3">
+          <CreditCard className="w-4 h-4 text-accent" />
+          <h3 className="font-medium">Payments</h3>
+          {!approvalsLocked && <span className="text-[10px] text-muted-foreground ml-auto">Locked until approvals complete</span>}
+        </div>
+        <div className="space-y-1.5">
+          {payments.map(p => (
+            <div key={p.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0 text-sm">
+              <span>{p.recipientName}</span>
+              <div className="flex items-center gap-4">
+                <span className="font-mono text-xs">${(p.amount / 1e6).toFixed(0)}M</span>
+                <Badge className={`text-[9px] ${p.status === 'executed' ? 'bg-validated/10 text-validated' : p.status === 'approved' ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
+                  {p.status}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Escrow within Payments */}
+        <div className="mt-4 pt-4 border-t border-border/50">
+          <div className="flex items-center gap-2 mb-2">
+            <Landmark className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">Escrow Holdback</span>
+          </div>
+          <div className="flex items-center justify-between text-sm">
+            <span>Indemnity Escrow</span>
+            <span className="font-mono">${(deal.consideration * 0.1 / 1e6).toFixed(0)}M held</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ─── SECTION 6: AUDIT LOG ─── */}
+      <motion.div {...fadeInUp} className="pivt-card p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <FileText className="w-4 h-4 text-muted-foreground" />
+          <h3 className="font-medium">Audit Log</h3>
+        </div>
+        <div className="relative pl-5 space-y-3">
+          <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border" />
+          {AUDIT_ENTRIES.map((entry, i) => (
+            <div key={i} className="relative flex items-start gap-3">
+              <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
+              <div className="flex-1">
+                <p className="text-sm">{entry.action}</p>
+                <p className="text-[10px] text-muted-foreground">{entry.actor}</p>
+              </div>
+              <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{entry.time}</span>
+            </div>
+          ))}
+        </div>
+      </motion.div>
     </motion.div>
   );
 };
