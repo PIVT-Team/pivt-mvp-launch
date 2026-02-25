@@ -1,35 +1,71 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are Newton, an AI-powered deal intelligence assistant built into PIVT — a platform for managing complex M&A, PE, and credit transactions.
+const SYSTEM_PROMPT = `You are Newton, the Deal Intelligence Engine built into PIVT — a platform for managing complex M&A, PE, and credit transactions.
 
-Your role is to help deal professionals by:
-- Answering questions about deal structures, waterfall distributions, cap tables, and escrow terms
-- Identifying discrepancies across documents (cap table vs waterfall vs wire instructions)
-- Explaining compliance requirements and KYC status
-- Summarizing deal readiness and closing timelines
-- Providing guidance on payment workflows and stakeholder management
+YOU ARE NOT A GENERIC CHATBOT. You are a structured system intelligence layer.
 
-You have deep knowledge of:
-- M&A transaction workflows (signing, closing, post-closing)
-- Cap table structures and waterfall distributions
-- Escrow mechanics and holdback calculations
-- Wire transfer verification and bank reconciliation
-- KYC/AML compliance for institutional investors
-- Document review (merger agreements, schedules, amendments)
+## CORE RULES
+1. ONLY reference structured system data provided in the deal context. NEVER fabricate data.
+2. If a question exceeds available data, respond: "Requested analysis not supported in current configuration."
+3. Responses must be: structured, bullet-pointed, quantified, data-backed, professional tone, no conversational fluff.
+4. NEVER override deal state logic. If state is compromised, flag it.
 
-Style guidelines:
-- Be precise and institutional in tone — this is used by PE professionals and deal counsel
-- Use monospace formatting for financial figures
-- Keep responses concise but thorough
-- Reference specific deal concepts when relevant
-- If asked about a specific deal, work with whatever context the user provides
+## ROLE-AWARE BEHAVIOR
+Adjust your analysis based on the user's role:
 
-You are NOT a general-purpose chatbot. Stay focused on deal intelligence, transaction management, and financial operations.`;
+**PE Associate**: Focus on closing probability, timeline risk, blockers, financial discrepancies, operational bottlenecks, portfolio comparison.
+**Buyer Counsel**: Focus on approval integrity, data changes post-approval, reconciliation failures, wire instruction validation, governance gaps, audit defensibility.
+**Seller Counsel**: Focus on payment accuracy, waterfall correctness, shareholder reconciliation, allocation fairness, escrow confirmation, approval completeness.
+**Operating Partner**: Focus on portfolio health, systemic bottlenecks, SLA performance, cross-deal risk patterns, close-time forecasting.
+
+Default to PE Associate if role is unknown.
+
+## SUPPORTED INTELLIGENCE CATEGORIES
+
+A. **Closing Readiness**: Deal state + deadlines + blocker severity. Probability assessment.
+B. **Reconciliation & Financial Integrity**: Cap table + waterfall + payment variance analysis. Rounding thresholds. Post-approval data changes.
+C. **Approval & Governance**: Blocking approvals, overdue items, post-change approvals, dual-auth status.
+D. **Stakeholder & Compliance**: KYC status, bank verification, wire instruction changes, document completeness, jurisdictional risks.
+E. **Portfolio Intelligence**: Cross-deal risk, variance comparison, approval velocity, reconciliation rates.
+F. **Audit & Change Integrity**: Change history, version diffs, post-signoff modifications.
+
+## DEAL SAFETY ASSESSMENT
+When asked "Is this deal safe to close?", respond with:
+- **Financial Integrity**: Pass/Fail
+- **Approval Integrity**: Pass/Fail
+- **Compliance Integrity**: Pass/Fail
+- **Outstanding Risks**: count
+- **Material Exposure**: dollar amount
+If ANY gating condition unmet: "**Closing Not Recommended.**"
+
+## STATE GATING
+If reconciliation failed, approvals incomplete, or payment data changed post-approval:
+Flag: "**Deal State Compromised – Progression Locked**"
+
+## RESPONSE FORMAT
+Always use this structure:
+- Deal name and status header
+- Bullet-pointed findings with quantified data
+- Recommended action at the bottom
+- Use monospace for financial figures
+
+Example:
+**Deal: ATLAS**
+**Status: At Risk**
+
+**Blockers:**
+- Share Count Discrepancy – \`$1.2M\` variance
+- Buyer Counsel Approval Pending – 4 days overdue
+- 2 stakeholders missing wire verification
+
+**Estimated Close Probability:** 62%
+**Recommended Action:** Resolve reconciliation prior to approval escalation.`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,9 +73,63 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const { messages, dealContext } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Build contextual system message with deal data
+    let contextualPrompt = SYSTEM_PROMPT;
+    
+    if (dealContext) {
+      contextualPrompt += `\n\n## CURRENT DEAL CONTEXT\n\`\`\`json\n${JSON.stringify(dealContext, null, 2)}\n\`\`\``;
+    }
+
+    // Determine user role from auth token if available
+    const authHeader = req.headers.get("authorization");
+    let userRole = "PE Associate";
+    let userId: string | null = null;
+    
+    if (authHeader) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+        const supabase = createClient(supabaseUrl, supabaseKey, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          userId = user.id;
+          // Check role
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id);
+          if (roles && roles.length > 0) {
+            const role = roles[0].role;
+            if (role === "admin") userRole = "PE Associate"; // Admin gets full view
+          }
+          // Check deal_participants for party_role
+          if (dealContext?.deal) {
+            const { data: participants } = await supabase
+              .from("deal_participants")
+              .select("party_role")
+              .eq("user_id", user.id)
+              .limit(1);
+            if (participants && participants.length > 0) {
+              const pr = participants[0].party_role;
+              if (pr === "buyer_counsel") userRole = "Buyer Counsel";
+              else if (pr === "seller_counsel") userRole = "Seller Counsel";
+              else if (pr === "operating_partner") userRole = "Operating Partner";
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Role detection error:", e);
+      }
+    }
+
+    contextualPrompt += `\n\n## CURRENT USER ROLE: ${userRole}`;
+    contextualPrompt += `\nTailor your response for this role's priorities.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -50,7 +140,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: contextualPrompt },
           ...messages,
         ],
         stream: true,
@@ -60,22 +150,41 @@ serve(async (req) => {
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits in Settings → Workspace → Usage." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "AI gateway error" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Log Newton interaction to audit (fire-and-forget)
+    if (userId && dealContext?.deal) {
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const adminClient = createClient(supabaseUrl, serviceKey);
+        const lastUserMsg = messages.filter((m: { role: string }) => m.role === "user").pop();
+        await adminClient.from("audit_log").insert({
+          user_id: userId,
+          action: "Newton Intelligence Query",
+          details: {
+            query_category: categorizeQuery(lastUserMsg?.content || ""),
+            deal_context: dealContext.deal.codeName,
+            user_role: userRole,
+            query_summary: (lastUserMsg?.content || "").slice(0, 200),
+          },
+        });
+      } catch (e) {
+        console.error("Audit log error:", e);
+      }
     }
 
     return new Response(response.body, {
@@ -84,8 +193,19 @@ serve(async (req) => {
   } catch (e) {
     console.error("newton error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
+
+function categorizeQuery(query: string): string {
+  const q = query.toLowerCase();
+  if (q.includes("close") || q.includes("ready") || q.includes("probability") || q.includes("track")) return "Closing Readiness";
+  if (q.includes("discrepan") || q.includes("reconcil") || q.includes("variance") || q.includes("waterfall")) return "Reconciliation & Financial Integrity";
+  if (q.includes("approv") || q.includes("block") || q.includes("governance") || q.includes("sign")) return "Approval & Governance";
+  if (q.includes("kyc") || q.includes("compliance") || q.includes("bank") || q.includes("wire") || q.includes("document")) return "Stakeholder & Compliance";
+  if (q.includes("portfolio") || q.includes("cross-deal") || q.includes("average")) return "Portfolio Intelligence";
+  if (q.includes("change") || q.includes("audit") || q.includes("history") || q.includes("modif")) return "Audit & Change Integrity";
+  if (q.includes("safe") || q.includes("health") || q.includes("summarize")) return "Deal Safety Assessment";
+  return "General Intelligence";
+}

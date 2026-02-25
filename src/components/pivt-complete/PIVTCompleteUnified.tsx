@@ -19,6 +19,7 @@ import { SettingsCover } from './cover/SettingsCover';
 
 // Deal Wizard
 import { DealWizard } from '../deal-wizard/DealWizard';
+import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 
 const coverSections: Record<string, React.FC> = {
   deals: DealsCover,
@@ -211,6 +212,7 @@ export const PIVTCompleteUnified: React.FC = () => {
 
       {/* Deal Intake Wizard */}
       <DealWizard />
+      <NewtonDealIntelligence />
 
       {/* Command Palette */}
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
