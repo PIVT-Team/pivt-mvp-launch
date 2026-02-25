@@ -10,7 +10,7 @@ export type ActiveSection =
   | 'waterfall' | 'stakeholders' | 'documents'
   | 'escrow' | 'approvals' | 'payments' | 'reports'
   | 'ingestion' | 'closing' | 'verification' | 'admin-verification'
-  | 'messages' | 'notifications'
+  | 'messages' | 'notifications' | 'timeline'
   | 'cap-table' | 'recipient' | 'lp-portal' | 'onboarding'
   | 'integrations' | 'intelligence-map';
 
