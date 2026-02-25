@@ -19,6 +19,7 @@ import { DealWorkspaceCover } from './cover/DealWorkspaceCover';
 import { AuditCover } from './cover/AuditAndReports';
 import { SettingsCover } from './cover/SettingsCover';
 import { GlobalReportsCover } from './cover/GlobalReportsCover';
+import { IntegrationsCover } from './cover/IntegrationsCover';
 
 // Deal Wizard
 import { DealWizard } from '../deal-wizard/DealWizard';
@@ -37,6 +38,7 @@ const coverSections: Record<string, React.FC> = {
   reports: GlobalReportsCover,
   audit: AuditCover,
   settings: SettingsCover,
+  integrations: IntegrationsCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
