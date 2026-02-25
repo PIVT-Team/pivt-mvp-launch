@@ -94,6 +94,7 @@ export type DealWorkspaceTab =
   | 'approvals'
   | 'payments-escrow'
   | 'audit-log'
+  | 'activity'
   | 'reports'
   | 'intelligence-map';
 
@@ -111,6 +112,7 @@ export const DEAL_WORKSPACE_TABS: DealWorkspaceTabDef[] = [
   { id: 'approvals', label: 'Approvals' },
   { id: 'payments-escrow', label: 'Payments / Escrow' },
   { id: 'audit-log', label: 'Audit Log' },
+  { id: 'activity', label: 'Activity' },
   { id: 'reports', label: 'Reports' },
   { id: 'intelligence-map', label: 'Intelligence Map' },
 ];
