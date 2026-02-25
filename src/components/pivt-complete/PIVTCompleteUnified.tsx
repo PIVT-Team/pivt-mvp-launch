@@ -1,5 +1,7 @@
 /**
  * PIVTCompleteUnified - Simplified workflow-driven interface
+ * Global sidebar: Deals / Audit Log / Settings only
+ * All deal elements live inside Deal Workspace
  */
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +13,7 @@ import { Search, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
 
-// Cover sections
+// Cover sections (global only)
 import { DealsCover } from './cover/DealsCover';
 import { DealWorkspaceCover } from './cover/DealWorkspaceCover';
 import { AuditCover } from './cover/AuditAndReports';
@@ -20,6 +22,13 @@ import { SettingsCover } from './cover/SettingsCover';
 // Deal Wizard
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
+
+// Sections that require deal context — redirect to deals if accessed directly
+const DEAL_SCOPED_SECTIONS = new Set([
+  'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
+  'payments', 'ingestion', 'closing', 'verification', 'cap-table',
+  'waterfall', 'kyc',
+]);
 
 const coverSections: Record<string, React.FC> = {
   deals: DealsCover,
@@ -32,7 +41,7 @@ export const PIVTCompleteUnified: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const {
     activeSection, setActiveSection,
-    deals, selectedDealId, setSelectedDealId,
+    selectedDealId,
   } = usePIVTStore();
 
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
@@ -50,6 +59,18 @@ export const PIVTCompleteUnified: React.FC = () => {
     if (activeSection !== 'deals') params.set('section', activeSection);
     setSearchParams(params, { replace: true });
   }, [activeSection]);
+
+  // Deal context locking: redirect deal-scoped sections to deals page
+  useEffect(() => {
+    if (DEAL_SCOPED_SECTIONS.has(activeSection) && activeSection !== 'workspace') {
+      // These sections now only exist inside workspace — redirect to workspace if deal selected, else deals
+      if (selectedDealId) {
+        setActiveSection('workspace');
+      } else {
+        setActiveSection('deals');
+      }
+    }
+  }, [activeSection, selectedDealId]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -97,27 +118,6 @@ export const PIVTCompleteUnified: React.FC = () => {
             </motion.p>
           )}
         </div>
-
-        {/* Deal selector */}
-        {!sidebarCollapsed && (
-          <div className="px-3 mb-3">
-            <select
-              value={selectedDealId}
-              onChange={(e) => setSelectedDealId(e.target.value)}
-              className="w-full text-[11px] font-medium rounded-lg px-2.5 py-2 border bg-transparent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all"
-              style={{
-                borderColor: 'hsl(var(--sidebar-border))',
-                color: 'hsl(var(--sidebar-foreground))',
-              }}
-            >
-              {deals.map(d => (
-                <option key={d.id} value={d.id} style={{ background: '#0D0E14', color: '#fff' }}>
-                  {d.codeName} — ${(d.consideration / 1e9).toFixed(1)}B
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
 
         <div className="mx-4 mb-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.04)' }} />
 

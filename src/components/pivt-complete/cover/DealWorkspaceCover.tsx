@@ -1,13 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal, DealWorkflowState } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
   ArrowLeft, CheckCircle2, Clock, AlertTriangle, Ban,
-  FileText, Users, Calculator, Upload, Shield, CreditCard,
+  FileText, Users, Upload, Shield, CreditCard,
   Landmark, Search, Lock,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { DEAL_WORKSPACE_TABS, DealWorkspaceTab } from '@/lib/navigation';
+
+// Import existing cover pages for embedding
+import { StakeholdersCover } from './StakeholdersCover';
+import { VerificationCover } from './VerificationCover';
+import { CapTableCover } from './CapTableCover';
+import { WaterfallCover } from './WaterfallCover';
+import { DocumentIngestionCover } from './DocumentIngestionCover';
+import { DocumentsCover } from './DocumentsCover';
+import { ApprovalsCover } from './ApprovalsCover';
+import { PaymentsCover } from './PaymentsCover';
+import { EscrowCover } from './EscrowCover';
 
 // ── Workflow States ──
 const WORKFLOW_STEPS: { key: DealWorkflowState; label: string }[] = [
@@ -35,17 +47,11 @@ function getNextAction(state: DealWorkflowState, discrepancies: number, pendingA
   }
 }
 
-// ── Demo data ──
+// ── Demo data for reconciliation & audit ──
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
   { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for a16z trust account', severity: 'critical' as const, resolved: false },
   { id: 3, field: 'Tax ID', desc: 'GIC Singapore entity TIN mismatch', severity: 'warning' as const, resolved: true },
-];
-
-const SIGNATORIES = [
-  { name: 'Buyer Counsel', status: 'signed', timestamp: '2026-02-10 14:32 UTC' },
-  { name: 'Seller Counsel', status: 'pending', timestamp: null },
-  { name: 'Third-Party Agent', status: 'pending', timestamp: null },
 ];
 
 const AUDIT_ENTRIES = [
@@ -57,35 +63,17 @@ const AUDIT_ENTRIES = [
   { time: '2026-02-05 08:00', action: 'Deal created', actor: 'Deal Admin' },
 ];
 
-export const DealWorkspaceCover: React.FC = () => {
+// ── Overview Section (inline) ──
+const OverviewSection: React.FC = () => {
   const deal = useSelectedDeal();
-  const { stakeholders, documents, waterfallTiers, payments, setActiveSection } = usePIVTStore();
+  const { stakeholders, documents, waterfallTiers, payments } = usePIVTStore();
 
   const currentIdx = stepIndex(deal.workflowState);
   const nextAction = getNextAction(deal.workflowState, deal.discrepanciesFound, deal.pendingApprovals);
 
-  const approvalsLocked = deal.workflowState === 'approved' || deal.workflowState === 'closed';
-
   return (
-    <motion.div {...staggerChildren} className="space-y-6">
-      {/* Back to deals */}
-      <button
-        onClick={() => setActiveSection('deals')}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Deals
-      </button>
-
-      {/* Deal Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{deal.codeName}</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">{deal.buyerName} acquiring {deal.targetCompany} · ${(deal.consideration / 1e9).toFixed(1)}B</p>
-        </div>
-      </div>
-
-      {/* ─── STATE MACHINE PROGRESS BAR ─── */}
+    <div className="space-y-6">
+      {/* STATE MACHINE PROGRESS BAR */}
       <motion.div {...fadeInUp} className="pivt-card p-5">
         <div className="flex items-center justify-between">
           {WORKFLOW_STEPS.map((step, i) => {
@@ -117,7 +105,7 @@ export const DealWorkspaceCover: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* ─── NEXT REQUIRED ACTION ─── */}
+      {/* NEXT REQUIRED ACTION */}
       <motion.div {...fadeInUp} className="pivt-card p-4 border-l-4 border-accent bg-accent/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
@@ -130,185 +118,204 @@ export const DealWorkspaceCover: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* ─── SECTION 1: DATA ─── */}
-      <motion.div {...fadeInUp} className="pivt-card p-5 space-y-4">
-        <div className="flex items-center gap-2">
+      {/* Summary stats */}
+      <div className="grid grid-cols-4 gap-4">
+        {[
+          { label: 'Recipients', value: deal.totalRecipients },
+          { label: 'Documents', value: deal.documentsUploaded },
+          { label: 'Discrepancies', value: deal.discrepanciesFound, color: deal.discrepanciesFound > 0 ? 'text-discrepancy' : 'text-validated' },
+          { label: 'Pending Approvals', value: deal.pendingApprovals, color: deal.pendingApprovals > 0 ? 'text-discrepancy' : 'text-validated' },
+        ].map(stat => (
+          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+            <p className={`pivt-stat text-xl mt-1 ${stat.color || ''}`}>{stat.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Quick data preview */}
+      <div className="pivt-card p-5 space-y-3">
+        <div className="flex items-center gap-2 mb-2">
           <Users className="w-4 h-4 text-accent" />
-          <h3 className="font-medium">Data</h3>
+          <h3 className="font-medium text-sm">Top Shareholders</h3>
         </div>
-
-        {/* Cap Table Summary */}
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Cap Table · {stakeholders.length} shareholders</p>
-          <div className="space-y-1.5">
-            {stakeholders.slice(0, 5).map(s => (
-              <div key={s.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
-                <span>{s.name}</span>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs text-muted-foreground">{s.ownershipPct}%</span>
-                  <span className="font-mono text-xs">${(s.payoutAmount / 1e6).toFixed(0)}M</span>
-                  <Badge className={`text-[9px] ${s.kycStatus === 'verified' ? 'bg-validated/10 text-validated' : s.kycStatus === 'failed' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
-                    {s.kycStatus}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-            {stakeholders.length > 5 && <p className="text-xs text-muted-foreground">+{stakeholders.length - 5} more</p>}
-          </div>
-        </div>
-
-        {/* Waterfall Summary */}
-        <div>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Waterfall · {waterfallTiers.length} tiers</p>
-          <div className="flex gap-1 h-6 rounded overflow-hidden">
-            {waterfallTiers.map((t, i) => (
-              <div key={t.id} className="bg-accent/70 hover:bg-accent transition-colors relative group" style={{ width: `${t.percentage}%` }}>
-                <div className="absolute inset-0 flex items-center justify-center text-[8px] font-mono text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                  {t.percentage}%
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-3 mt-2">
-            {waterfallTiers.map(t => (
-              <span key={t.id} className="text-[10px] text-muted-foreground">{t.name}: ${(t.amount / 1e6).toFixed(0)}M</span>
-            ))}
-          </div>
-        </div>
-
-        {/* Ingestion status */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Upload className="w-3.5 h-3.5" />
-          <span>{deal.documentsUploaded} files ingested</span>
-        </div>
-      </motion.div>
-
-      {/* ─── SECTION 2: DOCUMENTS ─── */}
-      <motion.div {...fadeInUp} className="pivt-card p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <FileText className="w-4 h-4 text-accent" />
-          <h3 className="font-medium">Documents</h3>
-          <span className="text-xs text-muted-foreground ml-auto">{documents.filter(d => d.status === 'verified').length}/{documents.length} verified</span>
-        </div>
-        <div className="space-y-1.5">
-          {documents.map(doc => (
-            <div key={doc.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
-              <div>
-                <span>{doc.name}</span>
-                <span className="text-xs text-muted-foreground ml-2">{doc.type}</span>
-              </div>
-              <Badge className={`text-[9px] ${doc.status === 'verified' ? 'bg-validated/10 text-validated' : doc.status === 'rejected' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
-                {doc.status}
+        {stakeholders.slice(0, 4).map(s => (
+          <div key={s.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+            <span>{s.name}</span>
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-muted-foreground">{s.ownershipPct}%</span>
+              <span className="font-mono text-xs">${(s.payoutAmount / 1e6).toFixed(0)}M</span>
+              <Badge className={`text-[9px] ${s.kycStatus === 'verified' ? 'bg-validated/10 text-validated' : s.kycStatus === 'failed' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
+                {s.kycStatus}
               </Badge>
             </div>
-          ))}
-        </div>
-      </motion.div>
+          </div>
+        ))}
+      </div>
 
-      {/* ─── SECTION 3: RECONCILIATION RESULTS ─── */}
-      <motion.div {...fadeInUp} className="pivt-card p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Search className="w-4 h-4 text-discrepancy" />
-          <h3 className="font-medium">Reconciliation Results</h3>
-          <span className="text-xs text-muted-foreground ml-auto">{DISCREPANCIES.filter(d => !d.resolved).length} unresolved</span>
+      {/* Progress bar */}
+      <div className="pivt-card p-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-muted-foreground">Ready to Pay</span>
+          <span className="font-mono text-sm font-medium">{deal.readyToPayPercent}%</span>
         </div>
-        <div className="space-y-2">
-          {DISCREPANCIES.map(disc => (
-            <div key={disc.id} className={`p-3 rounded-lg border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/5' : 'border-discrepancy bg-discrepancy/5'} ${disc.resolved ? 'opacity-50' : ''}`}>
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-xs font-medium">{disc.field}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{disc.desc}</p>
-                </div>
-                <Badge className={`text-[9px] ${disc.resolved ? 'bg-validated/10 text-validated' : disc.severity === 'critical' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
-                  {disc.resolved ? 'Resolved' : disc.severity}
-                </Badge>
-              </div>
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${deal.readyToPayPercent}%` }} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Reconciliation Section (inline, Newton-powered) ──
+const ReconciliationSection: React.FC = () => (
+  <div className="space-y-4">
+    <div className="flex items-center gap-2 mb-3">
+      <Search className="w-4 h-4 text-discrepancy" />
+      <h3 className="font-medium">Reconciliation Results</h3>
+      <span className="text-xs text-muted-foreground ml-auto">{DISCREPANCIES.filter(d => !d.resolved).length} unresolved</span>
+    </div>
+    <p className="text-xs text-muted-foreground mb-4">Newton AI validation findings are embedded here. Discrepancy resolution status is tracked automatically.</p>
+    <div className="space-y-2">
+      {DISCREPANCIES.map(disc => (
+        <div key={disc.id} className={`pivt-card p-3 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/5' : 'border-discrepancy bg-discrepancy/5'} ${disc.resolved ? 'opacity-50' : ''}`}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-medium">{disc.field}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{disc.desc}</p>
             </div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* ─── SECTION 4: APPROVALS ─── */}
-      <motion.div {...fadeInUp} className="pivt-card p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <Shield className="w-4 h-4 text-accent" />
-          <h3 className="font-medium">Approvals</h3>
-          {approvalsLocked && (
-            <Badge className="text-[9px] bg-validated/10 text-validated ml-auto flex items-center gap-1">
-              <Lock className="w-3 h-3" /> Locked
+            <Badge className={`text-[9px] ${disc.resolved ? 'bg-validated/10 text-validated' : disc.severity === 'critical' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
+              {disc.resolved ? 'Resolved' : disc.severity}
             </Badge>
-          )}
-        </div>
-        <div className="space-y-2">
-          {SIGNATORIES.map((sig, i) => (
-            <div key={i} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-              <span className="text-sm font-medium">{sig.name}</span>
-              <div className="flex items-center gap-3">
-                {sig.timestamp && <span className="text-[10px] text-muted-foreground font-mono">{sig.timestamp}</span>}
-                <Badge className={`text-[9px] ${sig.status === 'signed' ? 'bg-validated/10 text-validated' : 'bg-discrepancy/10 text-discrepancy'}`}>
-                  {sig.status === 'signed' ? '✓ Signed' : 'Pending'}
-                </Badge>
-              </div>
-            </div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* ─── SECTION 5: PAYMENTS ─── */}
-      <motion.div {...fadeInUp} className={`pivt-card p-5 ${approvalsLocked ? '' : 'opacity-60 pointer-events-none'}`}>
-        <div className="flex items-center gap-2 mb-3">
-          <CreditCard className="w-4 h-4 text-accent" />
-          <h3 className="font-medium">Payments</h3>
-          {!approvalsLocked && <span className="text-[10px] text-muted-foreground ml-auto">Locked until approvals complete</span>}
-        </div>
-        <div className="space-y-1.5">
-          {payments.map(p => (
-            <div key={p.id} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0 text-sm">
-              <span>{p.recipientName}</span>
-              <div className="flex items-center gap-4">
-                <span className="font-mono text-xs">${(p.amount / 1e6).toFixed(0)}M</span>
-                <Badge className={`text-[9px] ${p.status === 'executed' ? 'bg-validated/10 text-validated' : p.status === 'approved' ? 'bg-accent/10 text-accent' : 'bg-muted text-muted-foreground'}`}>
-                  {p.status}
-                </Badge>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Escrow within Payments */}
-        <div className="mt-4 pt-4 border-t border-border/50">
-          <div className="flex items-center gap-2 mb-2">
-            <Landmark className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">Escrow Holdback</span>
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span>Indemnity Escrow</span>
-            <span className="font-mono">${(deal.consideration * 0.1 / 1e6).toFixed(0)}M held</span>
           </div>
         </div>
-      </motion.div>
+      ))}
+    </div>
+  </div>
+);
 
-      {/* ─── SECTION 6: AUDIT LOG ─── */}
-      <motion.div {...fadeInUp} className="pivt-card p-5">
-        <div className="flex items-center gap-2 mb-3">
-          <FileText className="w-4 h-4 text-muted-foreground" />
-          <h3 className="font-medium">Audit Log</h3>
+// ── Deal-Level Audit Section (inline) ──
+const DealAuditSection: React.FC = () => (
+  <div className="space-y-4">
+    <div className="flex items-center gap-2 mb-3">
+      <FileText className="w-4 h-4 text-muted-foreground" />
+      <h3 className="font-medium">Deal Audit Log</h3>
+    </div>
+    <p className="text-xs text-muted-foreground mb-4">Immutable activity timeline — state changes, edits, approval records, and Newton outputs.</p>
+    <div className="relative pl-5 space-y-3">
+      <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border" />
+      {AUDIT_ENTRIES.map((entry, i) => (
+        <div key={i} className="relative flex items-start gap-3">
+          <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
+          <div className="flex-1">
+            <p className="text-sm">{entry.action}</p>
+            <p className="text-[10px] text-muted-foreground">{entry.actor}</p>
+          </div>
+          <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{entry.time}</span>
         </div>
-        <div className="relative pl-5 space-y-3">
-          <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border" />
-          {AUDIT_ENTRIES.map((entry, i) => (
-            <div key={i} className="relative flex items-start gap-3">
-              <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
-              <div className="flex-1">
-                <p className="text-sm">{entry.action}</p>
-                <p className="text-[10px] text-muted-foreground">{entry.actor}</p>
-              </div>
-              <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{entry.time}</span>
-            </div>
-          ))}
+      ))}
+    </div>
+  </div>
+);
+
+// ── Stakeholders & KYC combined section ──
+const StakeholdersKycSection: React.FC = () => (
+  <div className="space-y-8">
+    <StakeholdersCover />
+    <div className="border-t border-border pt-8">
+      <VerificationCover />
+    </div>
+  </div>
+);
+
+// ── Data section (Ingestion + Cap Table + Waterfall) ──
+const DataSection: React.FC = () => (
+  <div className="space-y-8">
+    <DocumentIngestionCover />
+    <div className="border-t border-border pt-8">
+      <CapTableCover />
+    </div>
+    <div className="border-t border-border pt-8">
+      <WaterfallCover />
+    </div>
+  </div>
+);
+
+// ── Payments / Escrow combined ──
+const PaymentsEscrowSection: React.FC = () => (
+  <div className="space-y-8">
+    <PaymentsCover />
+    <div className="border-t border-border pt-8">
+      <EscrowCover />
+    </div>
+  </div>
+);
+
+// ── Tab content map ──
+const TAB_COMPONENTS: Record<DealWorkspaceTab, React.FC> = {
+  'overview': OverviewSection,
+  'stakeholders-kyc': StakeholdersKycSection,
+  'data': DataSection,
+  'documents': DocumentsCover,
+  'reconciliation': ReconciliationSection,
+  'approvals': ApprovalsCover,
+  'payments-escrow': PaymentsEscrowSection,
+  'audit-log': DealAuditSection,
+};
+
+// ── Main Component ──
+export const DealWorkspaceCover: React.FC = () => {
+  const deal = useSelectedDeal();
+  const { setActiveSection } = usePIVTStore();
+  const [activeTab, setActiveTab] = useState<DealWorkspaceTab>('overview');
+
+  const ActiveTabComponent = TAB_COMPONENTS[activeTab];
+
+  return (
+    <motion.div {...staggerChildren} className="space-y-6">
+      {/* Back to deals */}
+      <button
+        onClick={() => setActiveSection('deals')}
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Deals
+      </button>
+
+      {/* Deal Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">{deal.codeName}</h1>
+          <p className="text-muted-foreground mt-0.5 text-sm">{deal.buyerName} acquiring {deal.targetCompany} · ${(deal.consideration / 1e9).toFixed(1)}B</p>
         </div>
-      </motion.div>
+        {deal.hasBlocker && (
+          <Badge className="bg-blocking/10 text-blocking border-blocking/20">
+            <Ban className="w-3 h-3 mr-1" /> Blocked
+          </Badge>
+        )}
+      </div>
+
+      {/* Deal Workspace Tabs */}
+      <div className="flex gap-1 rounded-2xl p-1.5 flex-wrap" style={{ background: 'hsl(var(--muted) / 0.5)' }}>
+        {DEAL_WORKSPACE_TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 rounded-xl text-sm transition-all ${
+              activeTab === tab.id
+                ? 'bg-background text-foreground shadow-sm font-medium'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Active Tab Content */}
+      <div>
+        <ActiveTabComponent />
+      </div>
     </motion.div>
   );
 };

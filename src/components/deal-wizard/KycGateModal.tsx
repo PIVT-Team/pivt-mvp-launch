@@ -51,7 +51,7 @@ export const KycGateModal: React.FC<KycGateModalProps> = ({ open, onClose, onGoT
               onClick={onCreateDemo}
               className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-white/5 text-white/70 text-sm font-medium hover:bg-white/10 transition-all border border-white/10"
             >
-              <span className="flex items-center gap-2"><Briefcase className="w-4 h-4" /> Create Demo Deal Instead</span>
+              <span className="flex items-center gap-2"><Briefcase className="w-4 h-4" /> Create Deal from Template</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
