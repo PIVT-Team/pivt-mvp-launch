@@ -134,6 +134,63 @@ export type Database = {
           },
         ]
       }
+      deal_documents: {
+        Row: {
+          created_at: string
+          deal_id: string
+          doc_type: string | null
+          doc_type_confidence: number | null
+          extracted_fields: Json | null
+          extracted_text: string | null
+          file_name: string
+          file_path: string | null
+          file_size: number
+          id: string
+          mime_type: string | null
+          page_count: number | null
+          status: string
+          updated_at: string
+          uploaded_by: string | null
+          validation_flags: Json | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          doc_type?: string | null
+          doc_type_confidence?: number | null
+          extracted_fields?: Json | null
+          extracted_text?: string | null
+          file_name: string
+          file_path?: string | null
+          file_size?: number
+          id?: string
+          mime_type?: string | null
+          page_count?: number | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          validation_flags?: Json | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          doc_type?: string | null
+          doc_type_confidence?: number | null
+          extracted_fields?: Json | null
+          extracted_text?: string | null
+          file_name?: string
+          file_path?: string | null
+          file_size?: number
+          id?: string
+          mime_type?: string | null
+          page_count?: number | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          validation_flags?: Json | null
+        }
+        Relationships: []
+      }
       deal_participants: {
         Row: {
           created_at: string
