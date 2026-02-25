@@ -87,15 +87,16 @@ export const modeAccentColors: Record<AppMode, string> = {
 // Deal Workspace internal tabs
 export type DealWorkspaceTab =
   | 'overview'
-  | 'stakeholders-kyc'
+  | 'stakeholders'
+  | 'kyc-kyb'
   | 'data'
   | 'documents'
   | 'reconciliation'
   | 'approvals'
   | 'payments-escrow'
   | 'audit-log'
-  | 'activity'
   | 'reports'
+  | 'activity'
   | 'intelligence-map';
 
 export interface DealWorkspaceTabDef {
@@ -105,14 +106,15 @@ export interface DealWorkspaceTabDef {
 
 export const DEAL_WORKSPACE_TABS: DealWorkspaceTabDef[] = [
   { id: 'overview', label: 'Overview' },
-  { id: 'stakeholders-kyc', label: 'Stakeholders & KYC' },
+  { id: 'stakeholders', label: 'Stakeholders' },
+  { id: 'kyc-kyb', label: 'KYC / KYB' },
   { id: 'data', label: 'Data' },
   { id: 'documents', label: 'Documents' },
   { id: 'reconciliation', label: 'Reconciliation' },
   { id: 'approvals', label: 'Approvals' },
   { id: 'payments-escrow', label: 'Payments / Escrow' },
   { id: 'audit-log', label: 'Audit Log' },
-  { id: 'activity', label: 'Activity' },
   { id: 'reports', label: 'Reports' },
+  { id: 'activity', label: 'Activity' },
   { id: 'intelligence-map', label: 'Intelligence Map' },
 ];
