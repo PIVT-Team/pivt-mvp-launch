@@ -210,7 +210,7 @@ export const PIVTCompleteUnified: React.FC = () => {
 
           {/* Glass Mode Toggle */}
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-muted-foreground font-medium">Glass</span>
+            <span className="text-[11px] text-muted-foreground font-medium">Glass Mode</span>
             <button
               onClick={toggleGlassMode}
               className="glass-toggle"
