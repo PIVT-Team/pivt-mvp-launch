@@ -180,69 +180,74 @@ export const IntegrationsCover: React.FC = () => {
           isError ? 'border-red-500/20' : isConnected ? 'border-emerald-500/15' : isPending ? 'border-yellow-500/15' : ''
         } ${isComingSoon ? 'opacity-60' : ''}`}
       >
-        <div className="flex items-start gap-4">
-          <div className={`p-2 rounded-lg ${
-            isConnected ? 'bg-emerald-500/10' : isError ? 'bg-red-500/10' : isPending ? 'bg-yellow-500/10' : 'bg-muted/50'
-          }`}>
-            <integ.icon className={`w-5 h-5 ${
-              isConnected ? 'text-emerald-400' : isError ? 'text-red-400' : isPending ? 'text-yellow-400' : 'text-accent'
-            }`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h4 className="font-medium text-sm">{integ.name}</h4>
-              <StatusBadge status={integ.status} demo={integ.demo} />
+        <div className="flex flex-col gap-3">
+          {/* Top row: icon + info */}
+          <div className="flex items-start gap-3">
+            <div className={`p-2.5 rounded-lg shrink-0 ${
+              isConnected ? 'bg-emerald-500/10' : isError ? 'bg-red-500/10' : isPending ? 'bg-yellow-500/10' : 'bg-muted/50'
+            }`}>
+              <integ.icon className={`w-5 h-5 ${
+                isConnected ? 'text-emerald-400' : isError ? 'text-red-400' : isPending ? 'text-yellow-400' : 'text-accent'
+              }`} />
             </div>
-            <p className="text-xs text-muted-foreground">{integ.description}</p>
-            {integ.details && <p className="text-xs text-foreground/70 mt-1">{integ.details}</p>}
-            {integ.lastSync && <p className="text-[10px] text-muted-foreground mt-1">Last sync: {integ.lastSync}</p>}
-            {isError && integ.errorMessage && (
-              <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1">
-                <AlertTriangle className="w-3 h-3" /> {integ.errorMessage}
-              </p>
-            )}
+            <div className="flex-1 min-w-0">
+              <h4 className="font-medium text-sm truncate">{integ.name}</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">{integ.description}</p>
+              {integ.details && <p className="text-xs text-foreground/70 mt-1">{integ.details}</p>}
+              {integ.lastSync && <p className="text-[10px] text-muted-foreground mt-1">Last sync: {integ.lastSync}</p>}
+              {isError && integ.errorMessage && (
+                <p className="text-[11px] text-red-400 mt-1.5 flex items-center gap-1">
+                  <AlertTriangle className="w-3 h-3 shrink-0" /> {integ.errorMessage}
+                </p>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            {isConnected && (
-              <>
-                <button
-                  onClick={() => handleSync(integ)}
-                  className="text-xs px-2.5 py-1.5 rounded-lg bg-muted/60 text-muted-foreground hover:bg-muted transition-colors"
-                  title="Sync"
-                >
-                  <RefreshCw className={`w-3 h-3 ${syncing === integ.id ? 'animate-spin' : ''}`} />
+
+          {/* Bottom row: badge + actions */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/50">
+            <StatusBadge status={integ.status} demo={integ.demo} />
+            <div className="flex items-center gap-1.5">
+              {isConnected && (
+                <>
+                  <button
+                    onClick={() => handleSync(integ)}
+                    className="text-xs p-1.5 rounded-md bg-muted/60 text-muted-foreground hover:bg-muted transition-colors"
+                    title="Sync"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 ${syncing === integ.id ? 'animate-spin' : ''}`} />
+                  </button>
+                  <button
+                    onClick={() => setConfigureModal(integ)}
+                    className="text-xs p-1.5 rounded-md bg-muted/60 text-muted-foreground hover:bg-muted transition-colors"
+                    title="Configure"
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setDisconnectModal(integ)}
+                    className="text-xs p-1.5 rounded-md bg-muted/60 text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                    title="Disconnect"
+                  >
+                    <Unplug className="w-3.5 h-3.5" />
+                  </button>
+                </>
+              )}
+              {isError && (
+                <button onClick={() => handleFixIssue(integ)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors font-medium">
+                  Fix Issue
                 </button>
-                <button
-                  onClick={() => setConfigureModal(integ)}
-                  className="text-xs px-2.5 py-1.5 rounded-lg bg-muted/60 text-muted-foreground hover:bg-muted transition-colors"
-                  title="Configure"
-                >
-                  <Settings className="w-3 h-3" />
+              )}
+              {isPending && (
+                <button onClick={() => handleCheckStatus(integ)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 transition-colors font-medium">
+                  Check Status
                 </button>
-                <button
-                  onClick={() => setDisconnectModal(integ)}
-                  className="text-xs px-2.5 py-1.5 rounded-lg bg-muted/60 text-muted-foreground hover:bg-red-500/10 hover:text-red-400 transition-colors"
-                  title="Disconnect"
-                >
-                  <Unplug className="w-3 h-3" />
+              )}
+              {isAvailable && (
+                <button onClick={() => setConnectModal(integ)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-accent/10 text-accent hover:bg-accent/20 transition-colors font-medium">
+                  Connect <ArrowRight className="w-3 h-3" />
                 </button>
-              </>
-            )}
-            {isError && (
-              <button onClick={() => handleFixIssue(integ)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors font-medium">
-                Fix Issue
-              </button>
-            )}
-            {isPending && (
-              <button onClick={() => handleCheckStatus(integ)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 transition-colors font-medium">
-                Check Status
-              </button>
-            )}
-            {isAvailable && (
-              <button onClick={() => setConnectModal(integ)} className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors font-medium">
-                Connect <ArrowRight className="w-3 h-3" />
-              </button>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
