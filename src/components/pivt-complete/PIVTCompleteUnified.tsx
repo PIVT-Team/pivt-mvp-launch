@@ -18,6 +18,7 @@ import { DealsCover } from './cover/DealsCover';
 import { DealWorkspaceCover } from './cover/DealWorkspaceCover';
 import { AuditCover } from './cover/AuditAndReports';
 import { SettingsCover } from './cover/SettingsCover';
+import { GlobalReportsCover } from './cover/GlobalReportsCover';
 
 // Deal Wizard
 import { DealWizard } from '../deal-wizard/DealWizard';
@@ -33,6 +34,7 @@ const DEAL_SCOPED_SECTIONS = new Set([
 const coverSections: Record<string, React.FC> = {
   deals: DealsCover,
   workspace: DealWorkspaceCover,
+  reports: GlobalReportsCover,
   audit: AuditCover,
   settings: SettingsCover,
 };
