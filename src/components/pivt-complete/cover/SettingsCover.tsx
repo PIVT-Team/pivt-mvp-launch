@@ -1,38 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { fadeInUp, staggerChildren, springConfig } from '@/lib/animations';
+import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
-  Settings, Users, Plug, Shield, Bot, Sliders, CheckCircle2,
-  Plus, Trash2, Edit, Globe, Key, Bell, Lock, ToggleLeft, TrendingUp,
+  Users, Plug, CheckCircle2,
+  Plus, Edit, Globe, Key, Bell, Lock, TrendingUp, Shield,
+  RotateCw, Copy, Trash2, MoreHorizontal,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useTeamStore, TeamRole, ROLE_PERMISSIONS } from '@/stores/teamStore';
+import { InviteTeamMemberModal } from '../InviteTeamMemberModal';
+import { toast } from 'sonner';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type SettingsTab = 'team' | 'integrations' | 'escrow-defaults';
 
-interface TeamMember {
-  id: string;
-  name: string;
-  email: string;
-  role: 'admin' | 'deal-admin' | 'counsel' | 'viewer';
-  status: 'active' | 'invited';
-  lastActive?: string;
-}
-
-const TEAM: TeamMember[] = [
-  { id: 't1', name: 'Alexandra Reed', email: 'areed@pivt.io', role: 'admin', status: 'active', lastActive: '2 min ago' },
-  { id: 't2', name: 'James Morrison', email: 'jmorrison@pivt.io', role: 'deal-admin', status: 'active', lastActive: '1 hr ago' },
-  { id: 't3', name: 'Sarah Chen', email: 'schen@datastream.io', role: 'counsel', status: 'active', lastActive: '3 hr ago' },
-  { id: 't4', name: 'David Park', email: 'dpark@apexcap.com', role: 'counsel', status: 'active', lastActive: '1 day ago' },
-  { id: 't5', name: 'Emily Watson', email: 'ewatson@pivt.io', role: 'viewer', status: 'invited' },
-];
-
 interface Integration {
-  id: string;
-  name: string;
-  description: string;
+  id: string; name: string; description: string;
   status: 'connected' | 'available' | 'coming-soon';
-  icon: React.ElementType;
-  category: string;
+  icon: React.ElementType; category: string;
 }
 
 const INTEGRATIONS: Integration[] = [
@@ -46,17 +33,48 @@ const INTEGRATIONS: Integration[] = [
   { id: 'aws', name: 'AWS S3', description: 'Document storage', status: 'connected', icon: Lock, category: 'Storage' },
 ];
 
-const roleColors: Record<string, string> = {
-  admin: 'border-accent/50 text-accent',
-  'deal-admin': 'border-validated/50 text-validated',
-  counsel: 'border-blue-400/50 text-blue-400',
-  viewer: 'border-muted-foreground/50 text-muted-foreground',
+const roleColors: Record<TeamRole, string> = {
+  'Admin': 'border-accent/50 text-accent',
+  'Deal Manager': 'border-validated/50 text-validated',
+  'Finance Ops': 'border-blue-400/50 text-blue-400',
+  'Compliance': 'border-amber-400/50 text-amber-400',
+  'Legal Counsel (Buyer)': 'border-blue-400/50 text-blue-400',
+  'Legal Counsel (Seller)': 'border-purple-400/50 text-purple-400',
+  'Viewer': 'border-muted-foreground/50 text-muted-foreground',
 };
+
+function timeAgo(dateStr?: string): string {
+  if (!dateStr) return '—';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
+}
+
+const PERMISSION_LABELS = ['Create Deals', 'Edit Waterfall', 'Approve Payouts', 'View Documents', 'Manage Team', 'Configure Settings', 'KYC/KYB', 'Payments/Escrow', 'Reports'];
+const PERMISSION_ROLES: TeamRole[] = ['Admin', 'Deal Manager', 'Finance Ops', 'Compliance', 'Viewer'];
 
 export const SettingsCover: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('team');
   const [defaultRate, setDefaultRate] = useState('4.25');
   const [defaultPlatformSplit, setDefaultPlatformSplit] = useState('15');
+  const [inviteOpen, setInviteOpen] = useState(false);
+
+  const { members, seedDemo, revokeInvite, removeMember, resendInvite } = useTeamStore();
+
+  useEffect(() => { seedDemo(); }, [seedDemo]);
+
+  const activeMembers = members.filter((m) => m.status === 'active');
+  const pendingInvites = members.filter((m) => m.status === 'pending');
+
+  const copyInviteLink = (token?: string) => {
+    if (!token) return;
+    navigator.clipboard.writeText(`${window.location.origin}/invite?token=${token}`);
+    toast.success('Invite link copied.');
+  };
 
   return (
     <motion.div {...staggerChildren} className="space-y-6">
@@ -82,32 +100,116 @@ export const SettingsCover: React.FC = () => {
       <AnimatePresence mode="wait">
         {/* Team & Roles */}
         {activeTab === 'team' && (
-          <motion.div key="team" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-medium">Team Members ({TEAM.length})</h3>
-              <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors">
-                <Plus className="w-4 h-4" /> Invite Member
-              </button>
-            </div>
-            <div className="pivt-card overflow-hidden">
-              <div className="p-4 border-b border-border bg-muted/30 grid grid-cols-5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                <span className="col-span-2">Member</span>
-                <span>Role</span>
-                <span>Status</span>
-                <span className="text-right">Last Active</span>
+          <motion.div key="team" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+            {/* Active Members */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">Team Members ({activeMembers.length})</h3>
+                <button
+                  onClick={() => setInviteOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Invite Member
+                </button>
               </div>
-              {TEAM.map(member => (
-                <div key={member.id} className="p-4 border-b border-border last:border-0 grid grid-cols-5 items-center hover:bg-muted/20 transition-colors">
-                  <div className="col-span-2">
-                    <p className="text-sm font-medium">{member.name}</p>
-                    <p className="text-xs text-muted-foreground">{member.email}</p>
-                  </div>
-                  <Badge variant="outline" className={`text-[10px] w-fit ${roleColors[member.role]}`}>{member.role}</Badge>
-                  <Badge variant="outline" className={`text-[10px] w-fit ${member.status === 'active' ? 'border-validated/50 text-validated' : 'border-discrepancy/50 text-discrepancy'}`}>{member.status}</Badge>
-                  <span className="text-xs text-muted-foreground text-right">{member.lastActive || '—'}</span>
+              <div className="pivt-card overflow-hidden">
+                <div className="p-4 border-b border-border bg-muted/30 grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <span className="col-span-2">Member</span>
+                  <span>Role</span>
+                  <span>Access</span>
+                  <span>Status</span>
+                  <span className="text-right">Actions</span>
                 </div>
-              ))}
+                {activeMembers.map(member => (
+                  <div key={member.id} className="p-4 border-b border-border last:border-0 grid grid-cols-6 items-center hover:bg-muted/20 transition-colors">
+                    <div className="col-span-2 min-w-0">
+                      <p className="text-sm font-medium truncate">{member.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                    </div>
+                    <Badge variant="outline" className={`text-[10px] w-fit ${roleColors[member.role] || ''}`}>{member.role}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {member.accessScope === 'company-wide' ? 'All deals' : `${member.dealIds.length} deal(s)`}
+                    </span>
+                    <Badge variant="outline" className="text-[10px] w-fit border-validated/50 text-validated">Active</Badge>
+                    <div className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1.5 rounded-md hover:bg-muted/50 transition-colors text-muted-foreground">
+                            <MoreHorizontal className="w-4 h-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => toast.info('Role editor coming soon.')}>
+                            Edit Role
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => { removeMember(member.id); toast.success(`${member.name} removed.`); }}
+                            className="text-destructive"
+                          >
+                            Remove
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ))}
+                {activeMembers.length === 0 && (
+                  <p className="p-6 text-center text-sm text-muted-foreground">No active team members yet.</p>
+                )}
+              </div>
             </div>
+
+            {/* Pending Invites */}
+            {pendingInvites.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-medium">Pending Invites ({pendingInvites.length})</h3>
+                <div className="pivt-card overflow-hidden">
+                  <div className="p-4 border-b border-border bg-muted/30 grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <span className="col-span-2">Email</span>
+                    <span>Role</span>
+                    <span>Access</span>
+                    <span>Invited</span>
+                    <span className="text-right">Actions</span>
+                  </div>
+                  {pendingInvites.map(inv => (
+                    <div key={inv.id} className="p-4 border-b border-border last:border-0 grid grid-cols-6 items-center hover:bg-muted/20 transition-colors">
+                      <div className="col-span-2 min-w-0">
+                        <p className="text-sm font-medium truncate">{inv.email}</p>
+                        {inv.name && <p className="text-xs text-muted-foreground truncate">{inv.name}</p>}
+                      </div>
+                      <Badge variant="outline" className={`text-[10px] w-fit ${roleColors[inv.role] || ''}`}>{inv.role}</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {inv.accessScope === 'company-wide' ? 'All deals' : `${inv.dealIds.length} deal(s)`}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{timeAgo(inv.invitedAt)}</span>
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => { resendInvite(inv.id); toast.success('Invite resent.'); }}
+                          className="p-1.5 rounded-md hover:bg-muted/50 transition-colors text-muted-foreground"
+                          title="Resend"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => copyInviteLink(inv.inviteToken)}
+                          className="p-1.5 rounded-md hover:bg-muted/50 transition-colors text-muted-foreground"
+                          title="Copy invite link"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => { revokeInvite(inv.id); toast.success('Invite revoked.'); }}
+                          className="p-1.5 rounded-md hover:bg-muted/50 transition-colors text-destructive"
+                          title="Revoke"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Role Permissions */}
             <motion.div {...fadeInUp} className="pivt-card p-5">
@@ -117,18 +219,20 @@ export const SettingsCover: React.FC = () => {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="text-left py-2 text-xs text-muted-foreground font-medium">Permission</th>
-                      {['Admin', 'Deal Admin', 'Counsel', 'Viewer'].map(role => (
+                      {PERMISSION_ROLES.map(role => (
                         <th key={role} className="text-center py-2 text-xs text-muted-foreground font-medium">{role}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {['Create Deals', 'Edit Waterfall', 'Approve Payouts', 'View Documents', 'Manage Team', 'Configure Settings'].map(perm => (
+                    {PERMISSION_LABELS.map(perm => (
                       <tr key={perm} className="border-b border-border last:border-0">
                         <td className="py-2 text-sm">{perm}</td>
-                        {[true, perm !== 'Manage Team' && perm !== 'Configure Settings', perm === 'View Documents' || perm === 'Approve Payouts', perm === 'View Documents'].map((allowed, i) => (
-                          <td key={i} className="text-center py-2">
-                            {allowed ? <CheckCircle2 className="w-4 h-4 text-validated mx-auto" /> : <span className="text-muted-foreground">—</span>}
+                        {PERMISSION_ROLES.map(role => (
+                          <td key={role} className="text-center py-2">
+                            {ROLE_PERMISSIONS[role]?.includes(perm)
+                              ? <CheckCircle2 className="w-4 h-4 text-validated mx-auto" />
+                              : <span className="text-muted-foreground">—</span>}
                           </td>
                         ))}
                       </tr>
@@ -150,7 +254,7 @@ export const SettingsCover: React.FC = () => {
                     <div className="p-2 rounded-lg bg-muted/50">
                       <integ.icon className="w-5 h-5 text-accent" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-medium text-sm">{integ.name}</h4>
                         <Badge variant="outline" className={`text-[9px] ${integ.status === 'connected' ? 'border-validated/50 text-validated' : integ.status === 'coming-soon' ? 'border-muted-foreground/50 text-muted-foreground' : 'border-accent/50 text-accent'}`}>
@@ -158,13 +262,12 @@ export const SettingsCover: React.FC = () => {
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground">{integ.description}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{integ.category}</p>
                     </div>
                     {integ.status === 'available' && (
-                      <button className="text-xs px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors font-medium">Connect</button>
+                      <button className="text-xs px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors font-medium shrink-0">Connect</button>
                     )}
                     {integ.status === 'connected' && (
-                      <button className="text-xs px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">Configure</button>
+                      <button className="text-xs px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors shrink-0">Configure</button>
                     )}
                   </div>
                 </motion.div>
@@ -173,44 +276,29 @@ export const SettingsCover: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Escrow Defaults (Admin) */}
+        {/* Escrow Defaults */}
         {activeTab === 'escrow-defaults' && (
           <motion.div key="escrow-defaults" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
             <div className="pivt-card p-6 space-y-5">
               <div>
                 <h3 className="font-medium mb-1">Default Escrow Interest Configuration</h3>
-                <p className="text-xs text-muted-foreground">These defaults auto-populate when creating new escrow accounts. Admin can override per deal.</p>
+                <p className="text-xs text-muted-foreground">These defaults auto-populate when creating new escrow accounts.</p>
               </div>
-
               <div className="grid grid-cols-2 gap-6">
                 <div>
                   <label className="text-xs text-muted-foreground uppercase tracking-wider block mb-1.5">Default Interest Rate (%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={defaultRate}
-                    onChange={e => setDefaultRate(e.target.value)}
-                    className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-accent"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">Applied to all new escrow accounts</p>
+                  <input type="number" step="0.01" value={defaultRate} onChange={e => setDefaultRate(e.target.value)}
+                    className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-accent" />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground uppercase tracking-wider block mb-1.5">Default Platform Interest Share (%)</label>
-                  <input
-                    type="number"
-                    step="1"
-                    value={defaultPlatformSplit}
-                    onChange={e => setDefaultPlatformSplit(e.target.value)}
-                    className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-accent"
-                  />
+                  <input type="number" step="1" value={defaultPlatformSplit} onChange={e => setDefaultPlatformSplit(e.target.value)}
+                    className="w-full bg-muted/50 border border-border rounded-lg px-3 py-2.5 text-sm font-mono focus:outline-none focus:border-accent" />
                   <p className="text-[10px] text-muted-foreground mt-1">Client receives {100 - Number(defaultPlatformSplit)}%</p>
                 </div>
               </div>
-
               <div className="pt-4 border-t border-border">
-                <button className="px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors">
-                  Save Defaults
-                </button>
+                <button className="px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors">Save Defaults</button>
               </div>
             </div>
 
@@ -233,6 +321,8 @@ export const SettingsCover: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <InviteTeamMemberModal open={inviteOpen} onOpenChange={setInviteOpen} />
     </motion.div>
   );
 };
