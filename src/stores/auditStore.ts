@@ -61,7 +61,7 @@ const SEED_EVENTS: Omit<AuditEvent, 'event_id' | 'event_hash'>[] = [
     timestamp: new Date(Date.now() - 2 * 60000).toISOString(),
     deal_id: 'deal-001', actor_type: 'User', actor_id: 'u-001', actor_display_name: 'Alexandra Reed',
     actor_role: 'Admin', action: 'PAYOUT_APPROVED', object_type: 'Payment', object_id: 'pmt-001',
-    severity: 'info', summary: 'Approved payout for Sarah Chen — $840M wire transfer',
+    severity: 'info', summary: 'Approved payout for Sarah Chen — $24.5M wire transfer',
     before_state: { status: 'pending_approval' }, after_state: { status: 'approved' },
     source: 'UI', ip_address: null, user_agent: null, correlation_id: 'cor-001', category: 'financial',
   },
