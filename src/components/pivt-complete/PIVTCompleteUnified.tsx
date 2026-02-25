@@ -225,8 +225,16 @@ export const PIVTCompleteUnified: React.FC = () => {
           </button>
 
           {/* Profile */}
-          <div className="w-8 h-8 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-[11px] font-bold cursor-pointer">
-            SC
+          <div
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold cursor-pointer transition-all duration-200 hover:brightness-105 hover:scale-[1.03]"
+            style={{
+              background: 'linear-gradient(135deg, #8F6BFF, #2E1F9E)',
+              color: '#FFFFFF',
+              boxShadow: '0 4px 12px rgba(46, 31, 158, 0.25)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            JW
           </div>
         </div>
 
