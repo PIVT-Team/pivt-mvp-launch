@@ -1,5 +1,5 @@
 import {
-  Briefcase, History, Settings, FileBarChart, Plug, Users, Network,
+  Briefcase, History, Settings, FileBarChart, Plug, Users, Network, Clock,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -24,6 +24,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
       category: 'Operations',
       items: [
         { label: 'Deals', icon: Briefcase, path: 'deals', iconColor: '#5B3DF5' },
+        { label: 'Timeline', icon: Clock, path: 'timeline', iconColor: '#F59E0B' },
         { label: 'Reports', icon: FileBarChart, path: 'reports', iconColor: '#22C55E' },
         { label: 'Audit Log', icon: History, path: 'audit', iconColor: '#94A3B8' },
       ],
