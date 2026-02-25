@@ -252,7 +252,7 @@ export const NewtonCover: React.FC = () => {
   };
 
   const contextPrefix = useCallback(() => {
-    return `[Active deal: ${deal.codeName} — ${deal.buyerName} acquiring ${deal.targetCompany} for $${(deal.consideration / 1e9).toFixed(1)}B | Status: ${deal.status} | Closing: ${deal.closingDate} | ${deal.totalRecipients} recipients | ${deal.documentsUploaded} docs uploaded | ${deal.discrepanciesFound} discrepancies | ${deal.readyToPayPercent}% ready to pay | Current view: ${activeSection}]\n\n`;
+    return `[Active deal: ${deal.codeName} — ${deal.buyerName} acquiring ${deal.targetCompany} for $${(deal.consideration / 1e6).toFixed(1)}M | Status: ${deal.status} | Closing: ${deal.closingDate} | ${deal.totalRecipients} recipients | ${deal.documentsUploaded} docs uploaded | ${deal.discrepanciesFound} discrepancies | ${deal.readyToPayPercent}% ready to pay | Current view: ${activeSection}]\n\n`;
   }, [deal, activeSection]);
 
   const send = async (text: string) => {

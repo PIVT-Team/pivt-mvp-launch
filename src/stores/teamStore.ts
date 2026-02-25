@@ -34,7 +34,7 @@ interface TeamStore {
 const SEED_MEMBERS: TeamMember[] = [
   { id: 'tm-1', name: 'Alexandra Reed', email: 'areed@pivt.io', role: 'Admin', accessScope: 'company-wide', dealIds: [], status: 'active', acceptedAt: '2025-12-01T09:00:00Z' },
   { id: 'tm-2', name: 'James Morrison', email: 'jmorrison@pivt.io', role: 'Deal Manager', accessScope: 'company-wide', dealIds: [], status: 'active', acceptedAt: '2026-01-10T14:00:00Z' },
-  { id: 'tm-3', name: 'Sarah Chen', email: 'schen@datastream.io', role: 'Legal Counsel (Buyer)', accessScope: 'specific-deals', dealIds: ['deal-001'], status: 'active', acceptedAt: '2026-01-20T11:00:00Z' },
+  { id: 'tm-3', name: 'Sarah Chen', email: 'schen@northbridge.io', role: 'Legal Counsel (Buyer)', accessScope: 'specific-deals', dealIds: ['deal-001'], status: 'active', acceptedAt: '2026-01-20T11:00:00Z' },
   { id: 'tm-4', name: 'David Park', email: 'dpark@apexcap.com', role: 'Legal Counsel (Seller)', accessScope: 'specific-deals', dealIds: ['deal-001'], status: 'active', acceptedAt: '2026-02-01T16:00:00Z' },
   { id: 'tm-5', name: 'Emily Watson', email: 'ewatson@pivt.io', role: 'Viewer', accessScope: 'company-wide', dealIds: [], status: 'pending', invitedAt: '2026-02-20T10:00:00Z', invitedBy: 'Alexandra Reed', inviteToken: 'demo-token-001' },
 ];

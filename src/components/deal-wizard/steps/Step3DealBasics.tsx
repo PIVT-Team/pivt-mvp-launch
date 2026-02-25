@@ -28,8 +28,8 @@ export const Step3DealBasics: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {field('Deal Name', 'dealName', 'text', 'Project ATLAS')}
         {field('Buyer Legal Name', 'buyerLegalName', 'text', 'Apex Capital Partners LLC')}
-        {field('Seller Legal Name', 'sellerLegalName', 'text', 'DataStream Technologies Inc.')}
-        {field('Transaction Value', 'transactionValue', 'text', '2,800,000,000')}
+        {field('Seller Legal Name', 'sellerLegalName', 'text', 'Northbridge Software Inc.')}
+        {field('Transaction Value', 'transactionValue', 'text', '185,000,000')}
         {field('Target Close Date', 'targetCloseDate', 'date')}
         <div>
           <label className="block text-xs font-medium text-white/60 mb-1.5">Currency</label>

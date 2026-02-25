@@ -34,7 +34,7 @@ export const GlobalReportsCover: React.FC = () => {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: 'Active Deals', value: deals.length },
-          { label: 'Total Value', value: `$${(deals.reduce((s, d) => s + d.consideration, 0) / 1e9).toFixed(1)}B` },
+          { label: 'Total Value', value: `$${(deals.reduce((s, d) => s + d.consideration, 0) / 1e6).toFixed(0)}M` },
           { label: 'Reports Available', value: PORTFOLIO_REPORTS.length },
         ].map(s => (
           <motion.div key={s.label} {...fadeInUp} className="pivt-card p-4">

@@ -254,7 +254,7 @@ export const DemoExperienceCover: React.FC = () => {
               <h3 className="font-semibold text-xl">Deal Ready for Closing</h3>
               <p className="text-muted-foreground max-w-md mx-auto">
                 All {deal.documentsUploaded} documents validated, {deal.totalRecipients} recipients confirmed,
-                and waterfall reconciled to ${(deal.consideration / 1e9).toFixed(1)}B.
+                and waterfall reconciled to ${(deal.consideration / 1e6).toFixed(1)}M.
               </p>
               <button onClick={resetDemo} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium mx-auto mt-4">
                 <RotateCcw className="w-4 h-4" /> Replay Demo

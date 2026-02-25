@@ -101,7 +101,7 @@ export const NewtonGlobalChat: React.FC = () => {
     setInput('');
     setIsLoading(true);
 
-    const ctx = `[Deal: ${deal.codeName} | $${(deal.consideration / 1e9).toFixed(1)}B | ${deal.status} | View: ${activeSection}]\n\n`;
+    const ctx = `[Deal: ${deal.codeName} | $${(deal.consideration / 1e6).toFixed(1)}M | ${deal.status} | View: ${activeSection}]\n\n`;
     const apiMsgs = all.map((m, i) => i === 0 && m.role === 'user' ? { ...m, content: ctx + m.content } : m);
 
     let soFar = '';

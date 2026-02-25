@@ -142,7 +142,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ open, onOpenChan
           category: 'Deals',
           id: d.id,
           title: d.codeName,
-          subtitle: `${d.buyerName} · $${(d.consideration / 1e9).toFixed(1)}B`,
+          subtitle: `${d.buyerName} · $${(d.consideration / 1e6).toFixed(0)}M`,
           deepLink: 'workspace',
         });
       }

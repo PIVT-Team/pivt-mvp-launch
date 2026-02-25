@@ -51,7 +51,7 @@ export const CapTableCover: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Cap Table</h1>
-          <p className="text-muted-foreground mt-1">{deal.codeName} — {deal.totalRecipients} shareholders · ${(deal.consideration / 1e9).toFixed(1)}B consideration</p>
+          <p className="text-muted-foreground mt-1">{deal.codeName} — {deal.totalRecipients} shareholders · ${(deal.consideration / 1e6).toFixed(1)}M consideration</p>
         </div>
         <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors">
           <Download className="w-4 h-4" /> Export CSV
@@ -63,7 +63,7 @@ export const CapTableCover: React.FC = () => {
         {[
           { label: 'Total Shareholders', value: stakeholders.length, icon: Users },
           { label: 'Total Ownership', value: `${totalPct}%`, icon: PieChart },
-          { label: 'Total Payout', value: `$${(totalPayout / 1e9).toFixed(2)}B`, icon: PieChart },
+          { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: PieChart },
           { label: 'KYC Verified', value: `${stakeholders.filter(s => s.kycStatus === 'verified').length}/${stakeholders.length}`, icon: CheckCircle2 },
         ].map(stat => (
           <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4">
@@ -162,7 +162,7 @@ export const CapTableCover: React.FC = () => {
             <span>Totals</span>
             <div className="flex gap-12">
               <span className="font-mono">{totalPct}%</span>
-              <span className="font-mono">${(totalPayout / 1e9).toFixed(2)}B</span>
+              <span className="font-mono">${(totalPayout / 1e6).toFixed(1)}M</span>
             </div>
           </div>
         </motion.div>

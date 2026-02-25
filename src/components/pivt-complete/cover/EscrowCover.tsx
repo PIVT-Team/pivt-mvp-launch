@@ -50,11 +50,11 @@ export const EscrowCover: React.FC = () => {
   // --- Data for new sections ---
 
   const beneficiaries = [
-    { id: 'b1', name: 'Andreessen Horowitz Fund VII', entityType: 'Fund', jurisdiction: 'Delaware, USA', payoutAmount: 280000000, bankMasked: 'JPM ****4821', status: 'verified' as const, changedAfterApproval: false },
-    { id: 'b2', name: 'Sequoia Capital Global Growth', entityType: 'Fund', jurisdiction: 'Cayman Islands', payoutAmount: 420000000, bankMasked: 'Citi ****7293', status: 'verified' as const, changedAfterApproval: false },
-    { id: 'b3', name: 'GIC Private Limited', entityType: 'Corporation', jurisdiction: 'Singapore', payoutAmount: 560000000, bankMasked: 'DBS ****1847', status: 'pending' as const, changedAfterApproval: false },
-    { id: 'b4', name: 'Tiger Global Management', entityType: 'Fund', jurisdiction: 'New York, USA', payoutAmount: 350000000, bankMasked: 'GS ****5512', status: 'verified' as const, changedAfterApproval: true },
-    { id: 'b5', name: 'DataStream Founders Trust', entityType: 'Trust', jurisdiction: 'Delaware, USA', payoutAmount: 910000000, bankMasked: 'BNY ****3398', status: 'verified' as const, changedAfterApproval: false },
+    { id: 'b1', name: 'Andreessen Horowitz Fund VII', entityType: 'Fund', jurisdiction: 'Delaware, USA', payoutAmount: 8_500_000, bankMasked: 'JPM ****4821', status: 'verified' as const, changedAfterApproval: false },
+    { id: 'b2', name: 'Sequoia Capital Global Growth', entityType: 'Fund', jurisdiction: 'Cayman Islands', payoutAmount: 12_800_000, bankMasked: 'Citi ****7293', status: 'verified' as const, changedAfterApproval: false },
+    { id: 'b3', name: 'GIC Private Limited', entityType: 'Corporation', jurisdiction: 'Singapore', payoutAmount: 7_400_000, bankMasked: 'DBS ****1847', status: 'pending' as const, changedAfterApproval: false },
+    { id: 'b4', name: 'Tiger Global Management', entityType: 'Fund', jurisdiction: 'New York, USA', payoutAmount: 6_800_000, bankMasked: 'GS ****5512', status: 'verified' as const, changedAfterApproval: true },
+    { id: 'b5', name: 'Northbridge Founders Trust', entityType: 'Trust', jurisdiction: 'Delaware, USA', payoutAmount: 40_700_000, bankMasked: 'BNY ****3398', status: 'verified' as const, changedAfterApproval: false },
   ];
 
   const ledger = [

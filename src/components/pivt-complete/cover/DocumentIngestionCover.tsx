@@ -25,9 +25,9 @@ interface ExtractedEntity {
 
 const MOCK_ENTITIES: ExtractedEntity[] = [
   { name: 'Sarah Chen', type: 'Person', confidence: 0.99, source: 'Cap Table' },
-  { name: 'DataStream Technologies', type: 'Company', confidence: 0.98, source: 'Merger Agreement' },
+  { name: 'Northbridge Software', type: 'Company', confidence: 0.98, source: 'Merger Agreement' },
   { name: 'Apex Capital Partners', type: 'Company', confidence: 0.97, source: 'Merger Agreement' },
-  { name: '$2,800,000,000', type: 'Amount', confidence: 0.99, source: 'Merger Agreement' },
+  { name: '$185,000,000', type: 'Amount', confidence: 0.99, source: 'Merger Agreement' },
   { name: 'Sequoia Capital Fund XIV', type: 'Fund', confidence: 0.96, source: 'Cap Table' },
   { name: '30% Ownership', type: 'Percentage', confidence: 0.95, source: 'Cap Table' },
   { name: 'March 15, 2026', type: 'Date', confidence: 0.98, source: 'Closing Schedule' },

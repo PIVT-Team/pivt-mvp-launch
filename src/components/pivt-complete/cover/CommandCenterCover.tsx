@@ -31,7 +31,7 @@ export const CommandCenterCover: React.FC = () => {
   };
 
   const stats = [
-    { label: 'Deal Value', value: `$${(deal.consideration / 1e9).toFixed(1)}B`, icon: TrendingUp, chip: 'pivt-icon-purple' },
+    { label: 'Deal Value', value: `$${(deal.consideration / 1e6).toFixed(1)}M`, icon: TrendingUp, chip: 'pivt-icon-purple' },
     { label: 'Recipients', value: deal.totalRecipients, icon: Users, chip: 'pivt-icon-blue' },
     { label: 'Documents', value: deal.documentsUploaded, icon: FileCheck, chip: 'pivt-icon-green' },
     { label: 'Ready to Pay', value: `${deal.readyToPayPercent}%`, icon: Shield, chip: 'pivt-icon-purple' },

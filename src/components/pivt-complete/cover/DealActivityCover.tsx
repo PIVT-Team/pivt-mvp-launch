@@ -38,7 +38,7 @@ const TIMELINE_EVENTS = [
   { time: '2026-02-11 15:30', action: 'Cap table reconciliation triggered', actor: 'Deal Admin', category: 'data' },
   { time: '2026-02-10 14:32', action: 'Discrepancy detected: ownership % mismatch', actor: 'Newton AI', category: 'reconciliation' },
   { time: '2026-02-10 10:00', action: 'Wire instructions updated for a16z', actor: 'Sarah Chen', category: 'data' },
-  { time: '2026-02-08 10:15', action: 'Escrow account funded — $280M', actor: 'Escrow Agent', category: 'payment' },
+  { time: '2026-02-08 10:15', action: 'Escrow account funded — $18.0M', actor: 'Escrow Agent', category: 'payment' },
   { time: '2026-02-05 08:00', action: 'Deal created', actor: 'Deal Admin', category: 'deal' },
 ];
 
@@ -49,7 +49,7 @@ const DISCUSSIONS = [
   { id: 'd1', objectType: 'Discrepancy', objectName: 'ESOP Pool Ownership Mismatch', messages: 3, lastAuthor: 'Alexandra Reed', lastMessage: 'Confirmed with CFO — correct value is 7.0%. Updating cap table.', time: '30 min ago' },
   { id: 'd2', objectType: 'Document', objectName: 'Waterfall Schedule v3', messages: 5, lastAuthor: 'James Morrison', lastMessage: 'Seller counsel has reviewed and approved allocation methodology.', time: '2 hr ago' },
   { id: 'd3', objectType: 'Stakeholder', objectName: 'GIC Private Limited', messages: 2, lastAuthor: 'David Park', lastMessage: 'OFAC team escalated — awaiting compliance review from Singapore office.', time: '4 hr ago' },
-  { id: 'd4', objectType: 'Approval', objectName: 'Payout Execution — Sarah Chen $840M', messages: 4, lastAuthor: 'Emily Watson', lastMessage: 'Dual-auth satisfied. Ready for final release confirmation.', time: '1 day ago' },
+  { id: 'd4', objectType: 'Approval', objectName: 'Payout Execution — Sarah Chen $24.5M', messages: 4, lastAuthor: 'Emily Watson', lastMessage: 'Dual-auth satisfied. Ready for final release confirmation.', time: '1 day ago' },
   { id: 'd5', objectType: 'Cap Table', objectName: 'Tiger Global Ownership Row', messages: 1, lastAuthor: 'Deal Admin', lastMessage: 'Minor rounding variance ($12K) within threshold — no action needed.', time: '2 days ago' },
 ];
 

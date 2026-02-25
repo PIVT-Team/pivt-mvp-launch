@@ -63,17 +63,17 @@ export interface WaterfallState {
 const uid = () => crypto.randomUUID();
 
 const SEED_RECIPIENTS_T1: RecipientAllocation[] = [
-  { id: uid(), stakeholderId: null, externalName: 'JP Morgan Advisory', externalEmail: 'advisory@jpmorgan.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 42_000_000, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: false }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
-  { id: uid(), stakeholderId: null, externalName: 'Sullivan & Cromwell LLP', externalEmail: 'billing@sullcrom.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 28_000_000, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: false }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
-  { id: uid(), stakeholderId: null, externalName: 'Regulatory Filing Fees', externalEmail: 'ops@pivt.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 14_000_000, prerequisites: { kycRequired: false, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'PENDING' },
+  { id: uid(), stakeholderId: null, externalName: 'Goodwin Procter LLP', externalEmail: 'billing@goodwinlaw.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 1_800_000, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: false }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
+  { id: uid(), stakeholderId: null, externalName: 'Houlihan Lokey Advisory', externalEmail: 'advisory@hl.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 1_100_000, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: false }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
+  { id: uid(), stakeholderId: null, externalName: 'Regulatory Filing Fees', externalEmail: 'ops@pivt.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 300_000, prerequisites: { kycRequired: false, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'PENDING' },
 ];
 
 const SEED_RECIPIENTS_T2: RecipientAllocation[] = [
-  { id: uid(), stakeholderId: null, externalName: 'Senior Credit Facility', externalEmail: 'loans@bofa.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 280_000_000, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
+  { id: uid(), stakeholderId: null, externalName: 'Senior Credit Facility (SVB)', externalEmail: 'loans@svb.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 72_000_000, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
 ];
 
 const SEED_RECIPIENTS_T3: RecipientAllocation[] = [
-  { id: uid(), stakeholderId: null, externalName: 'Escrow Agent (Citibank)', externalEmail: 'escrow@citi.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 280_000_000, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
+  { id: uid(), stakeholderId: null, externalName: 'Escrow Agent (Citibank)', externalEmail: 'escrow@citi.com', entityType: 'entity', allocationType: 'FIXED_AMOUNT', amountOrPercent: 18_000_000, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
 ];
 
 const SEED_RECIPIENTS_T4: RecipientAllocation[] = [
@@ -85,16 +85,16 @@ const SEED_RECIPIENTS_T4: RecipientAllocation[] = [
 ];
 
 const SEED_RECIPIENTS_T5: RecipientAllocation[] = [
-  { id: uid(), stakeholderId: 's1', externalName: 'Sarah Chen', externalEmail: 'schen@datastream.io', entityType: 'individual', allocationType: 'PRO_RATA', amountOrPercent: 30, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
-  { id: uid(), stakeholderId: 's2', externalName: 'Marcus Williams', externalEmail: 'mwilliams@datastream.io', entityType: 'individual', allocationType: 'PRO_RATA', amountOrPercent: 20, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
-  { id: uid(), stakeholderId: 's6', externalName: 'Employee Option Pool', externalEmail: 'esop@datastream.io', entityType: 'entity', allocationType: 'PRO_RATA', amountOrPercent: 7, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'PENDING' },
+  { id: uid(), stakeholderId: 's1', externalName: 'Sarah Chen', externalEmail: 'schen@northbridge.io', entityType: 'individual', allocationType: 'PRO_RATA', amountOrPercent: 30, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
+  { id: uid(), stakeholderId: 's2', externalName: 'Marcus Williams', externalEmail: 'mwilliams@northbridge.io', entityType: 'individual', allocationType: 'PRO_RATA', amountOrPercent: 20, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'READY' },
+  { id: uid(), stakeholderId: 's6', externalName: 'Employee Option Pool', externalEmail: 'esop@northbridge.io', entityType: 'entity', allocationType: 'PRO_RATA', amountOrPercent: 7, prerequisites: { kycRequired: true, wireRequired: true, approvalRequired: true }, computedPayout: 0, computedPctOfPool: 0, status: 'PENDING' },
 ];
 
 const SEED_TIERS: WaterfallTier[] = [
-  { id: uid(), priority: 1, name: 'Transaction Expenses', tierCategory: 'expense', ruleType: 'FIXED_AMOUNT', ruleValue: 84_000_000, capAmount: null, recipients: SEED_RECIPIENTS_T1, computedTotal: 0, status: 'READY', expanded: false },
-  { id: uid(), priority: 2, name: 'Senior Secured Debt', tierCategory: 'debt', ruleType: 'FIXED_AMOUNT', ruleValue: 280_000_000, capAmount: null, recipients: SEED_RECIPIENTS_T2, computedTotal: 0, status: 'READY', expanded: false },
-  { id: uid(), priority: 3, name: 'Escrow Holdback', tierCategory: 'other', ruleType: 'FIXED_AMOUNT', ruleValue: 280_000_000, capAmount: null, recipients: SEED_RECIPIENTS_T3, computedTotal: 0, status: 'READY', expanded: false },
-  { id: uid(), priority: 4, name: 'Preferred Return', tierCategory: 'preferred', ruleType: 'FIXED_AMOUNT', ruleValue: 560_000_000, capAmount: null, recipients: SEED_RECIPIENTS_T4, computedTotal: 0, status: 'PENDING', expanded: false },
+  { id: uid(), priority: 1, name: 'Transaction Expenses', tierCategory: 'expense', ruleType: 'FIXED_AMOUNT', ruleValue: 3_200_000, capAmount: null, recipients: SEED_RECIPIENTS_T1, computedTotal: 0, status: 'READY', expanded: false },
+  { id: uid(), priority: 2, name: 'Senior Secured Debt', tierCategory: 'debt', ruleType: 'FIXED_AMOUNT', ruleValue: 72_000_000, capAmount: null, recipients: SEED_RECIPIENTS_T2, computedTotal: 0, status: 'READY', expanded: false },
+  { id: uid(), priority: 3, name: 'Escrow Holdback', tierCategory: 'other', ruleType: 'FIXED_AMOUNT', ruleValue: 18_000_000, capAmount: null, recipients: SEED_RECIPIENTS_T3, computedTotal: 0, status: 'READY', expanded: false },
+  { id: uid(), priority: 4, name: 'Series B Preferred', tierCategory: 'preferred', ruleType: 'FIXED_AMOUNT', ruleValue: 47_800_000, capAmount: null, recipients: SEED_RECIPIENTS_T4, computedTotal: 0, status: 'PENDING', expanded: false },
   { id: uid(), priority: 5, name: 'Common Distribution', tierCategory: 'common', ruleType: 'PERCENT_OF_POOL', ruleValue: 100, capAmount: null, recipients: SEED_RECIPIENTS_T5, computedTotal: 0, status: 'PENDING', expanded: false },
 ];
 
@@ -218,10 +218,10 @@ interface WaterfallStore {
 }
 
 function buildInitialState(): WaterfallState {
-  const result = calculateWaterfall(2_800_000_000, SEED_TIERS);
+  const result = calculateWaterfall(185_000_000, SEED_TIERS);
   return {
     dealId: 'atlas',
-    distributionPoolAmount: 2_800_000_000,
+    distributionPoolAmount: 185_000_000,
     currency: 'USD',
     tiers: result.tiers,
     unallocated: result.unallocated,

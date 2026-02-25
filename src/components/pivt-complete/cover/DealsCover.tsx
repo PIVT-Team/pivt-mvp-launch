@@ -113,7 +113,7 @@ export const DealsCover: React.FC = () => {
                   <p className="text-xs text-muted-foreground mt-1">{deal.sector} · Closing {deal.closingDate}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-mono text-lg font-semibold">${(deal.consideration / 1e9).toFixed(1)}B</p>
+                  <p className="font-mono text-lg font-semibold">${(deal.consideration / 1e6).toFixed(1)}M</p>
                   <p className="text-xs text-muted-foreground mt-1">{deal.totalRecipients} recipients</p>
                 </div>
               </div>

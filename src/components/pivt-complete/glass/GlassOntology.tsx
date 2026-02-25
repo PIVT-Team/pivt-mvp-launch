@@ -70,7 +70,7 @@ export const GlassOntology: React.FC = () => {
     ns.push({
       id: deal.id, label: deal.codeName, type: 'deal', x: cx, y: cy,
       color: typeColors.deal, size: 44,
-      metadata: { value: `$${(deal.consideration / 1e9).toFixed(1)}B`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
+      metadata: { value: `$${(deal.consideration / 1e6).toFixed(0)}M`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
     });
 
     // Stakeholders (top arc)
@@ -160,9 +160,9 @@ export const GlassOntology: React.FC = () => {
     // Simulated results
     const results: Record<string, string> = {
       'remove-stakeholder': `Removing the largest stakeholder (${stakeholders[0]?.name}) would redistribute $${(stakeholders[0]?.payoutAmount / 1e6).toFixed(0)}M across ${stakeholders.length - 1} remaining parties. Common distribution tier increases by ${((stakeholders[0]?.ownershipPct || 0)).toFixed(1)}%.`,
-      'increase-escrow': `Increasing escrow holdback by 20% ($${((deal.consideration * 0.1 * 0.2) / 1e6).toFixed(0)}M additional) reduces immediate payouts. Net effect: each stakeholder receives ~4% less at closing, with deferred release at 18-month milestone.`,
-      'delay-closing': `30-day delay impacts: 3 time-sensitive KYC verifications may expire, 2 wire instructions need revalidation, estimated additional transaction costs of $2.1M in interest and advisory fees.`,
-      'add-expense': `$50M additional expense reduces Common Distribution tier from $${(waterfallTiers[waterfallTiers.length - 1]?.amount / 1e6).toFixed(0)}M to $${((waterfallTiers[waterfallTiers.length - 1]?.amount - 50_000_000) / 1e6).toFixed(0)}M. Pro-rata reduction of ~3.1% across ${waterfallTiers[waterfallTiers.length - 1]?.recipients} recipients.`,
+      'increase-escrow': `Increasing escrow holdback by 20% ($${((deal.consideration * 0.1 * 0.2) / 1e6).toFixed(1)}M additional) reduces immediate payouts. Net effect: each stakeholder receives ~4% less at closing, with deferred release at 18-month milestone.`,
+      'delay-closing': `30-day delay impacts: 3 time-sensitive KYC verifications may expire, 2 wire instructions need revalidation, estimated additional transaction costs of $150K in interest and advisory fees.`,
+      'add-expense': `$5M additional expense reduces Common Distribution tier from $${(waterfallTiers[waterfallTiers.length - 1]?.amount / 1e6).toFixed(1)}M to $${((waterfallTiers[waterfallTiers.length - 1]?.amount - 5_000_000) / 1e6).toFixed(1)}M. Pro-rata reduction of ~3.1% across ${waterfallTiers[waterfallTiers.length - 1]?.recipients} recipients.`,
     };
     setSimResult(results[simId] || 'Simulation complete.');
   };
