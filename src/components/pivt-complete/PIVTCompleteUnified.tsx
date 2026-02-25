@@ -1,5 +1,6 @@
 /**
  * PIVTCompleteUnified - Enterprise-first layout with optional Glass Mode
+ * Gradient design system: G1-G5 tokens applied throughout
  */
 import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -114,18 +115,18 @@ export const PIVTCompleteUnified: React.FC = () => {
 
   return (
     <div className="flex h-screen overflow-hidden pivt-ambient-bg" style={{ color: 'hsl(var(--foreground))' }}>
-      {/* Sidebar */}
+      {/* Sidebar — wider, workflow-driven */}
       <motion.aside
-        animate={{ width: sidebarCollapsed ? 56 : 232 }}
+        animate={{ width: sidebarCollapsed ? 56 : 260 }}
         transition={springConfig.standard}
-        className="h-full flex flex-col border-r shrink-0 overflow-hidden"
+        className="h-full flex flex-col shrink-0 overflow-hidden"
         style={{
-          background: 'hsl(var(--sidebar-background))',
-          borderColor: 'hsl(var(--sidebar-border))',
+          background: 'linear-gradient(180deg, hsl(var(--g4-from)), hsl(var(--g4-to)))',
+          borderRight: '1px solid hsl(var(--sidebar-border))',
         }}
       >
         {/* Logo */}
-        <div className="px-4 pt-5 pb-3 flex flex-col items-center gap-1.5">
+        <div className="px-5 pt-5 pb-3 flex flex-col items-center gap-1.5">
           <motion.img
             src={pivtLogo}
             alt="PIVT"
@@ -145,14 +146,14 @@ export const PIVTCompleteUnified: React.FC = () => {
           )}
         </div>
 
-        <div className="mx-4 mb-2 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }} />
+        <div className="mx-5 mb-2 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }} />
 
         {/* Nav */}
-        <nav className="flex-1 px-2.5 py-1 space-y-4 overflow-y-auto">
+        <nav className="flex-1 px-3 py-1 space-y-5 overflow-y-auto">
           {navGroups.map((group) => (
             <div key={group.category}>
               {!sidebarCollapsed && (
-                <p className="pivt-section-label px-2.5 py-1.5">{group.category}</p>
+                <p className="pivt-section-label px-3 py-1.5">{group.category}</p>
               )}
               <div className="space-y-0.5">
                 {group.items.map((item) => {
@@ -163,7 +164,7 @@ export const PIVTCompleteUnified: React.FC = () => {
                       onClick={() => setActiveSection(item.path as ActiveSection)}
                       className={`pivt-nav-item ${isActive ? 'pivt-nav-item-active' : 'text-sidebar-foreground'}`}
                     >
-                      <item.icon className="w-4 h-4 shrink-0" style={{ color: isActive ? undefined : item.iconColor }} />
+                      <item.icon className="w-[18px] h-[18px] shrink-0" style={{ color: isActive ? undefined : item.iconColor }} />
                       {!sidebarCollapsed && <span className="flex-1 text-left truncate">{item.label}</span>}
                     </button>
                   );
@@ -174,7 +175,7 @@ export const PIVTCompleteUnified: React.FC = () => {
         </nav>
 
         {/* Collapse */}
-        <div className="p-2.5 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
+        <div className="p-3 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-muted/40 transition-colors"
@@ -198,10 +199,10 @@ export const PIVTCompleteUnified: React.FC = () => {
           {/* Search */}
           <button
             onClick={() => setCommandOpen(true)}
-            className="flex items-center gap-2.5 px-3.5 py-2 rounded-lg border text-[13px] text-muted-foreground hover:bg-muted/40 transition-all flex-1 max-w-md"
+            className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl border text-sm text-muted-foreground hover:bg-muted/40 transition-all flex-1 max-w-md"
             style={{ borderColor: 'hsl(var(--border))' }}
           >
-            <Search className="w-3.5 h-3.5 shrink-0 opacity-50" />
+            <Search className="w-4 h-4 shrink-0 opacity-50" />
             <span className="flex-1 text-left">Search deals, stakeholders...</span>
             <kbd className="px-1.5 py-0.5 text-[10px] rounded border bg-muted/50 font-mono opacity-60">⌘K</kbd>
           </button>
@@ -224,7 +225,7 @@ export const PIVTCompleteUnified: React.FC = () => {
           <div className="h-5 w-px bg-border mx-1" />
 
           {/* Import */}
-          <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-[13px]" title="Import Data">
+          <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-sm" title="Import Data">
             <Upload className="w-4 h-4" />
             <span>Import Data</span>
           </button>

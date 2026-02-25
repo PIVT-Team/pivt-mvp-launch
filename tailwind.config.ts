@@ -17,6 +17,11 @@ export default {
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
+      fontSize: {
+        'page-title': ['1.625rem', { lineHeight: '2rem', letterSpacing: '-0.035em', fontWeight: '700' }],
+        'section-title': ['1.125rem', { lineHeight: '1.625rem', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'table-header': ['0.8125rem', { lineHeight: '1.125rem', letterSpacing: '0.04em', fontWeight: '600' }],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
