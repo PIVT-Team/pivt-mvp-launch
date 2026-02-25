@@ -50,7 +50,8 @@ const FILTER_CHIPS: { value: string; label: string }[] = [
 export const TimelineCover: React.FC = () => {
   const deals = usePIVTStore(s => s.deals);
   const { setActiveSection, setSelectedDealId } = usePIVTStore();
-  const allEvents = useTimelineStore(s => s.getAllEvents());
+  const events = useTimelineStore(s => s.events);
+  const allEvents = useMemo(() => [...events].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()), [events]);
   const addAuditEvent = useAuditStore(s => s.addEvent);
 
   const [dealFilter, setDealFilter] = useState('all');
