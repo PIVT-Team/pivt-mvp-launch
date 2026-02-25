@@ -29,35 +29,35 @@ const SAMPLE_DEAL_JSON = {
   deal: {
     name: 'Project DELTA',
     codeName: 'DELTA',
-    consideration: 750_000_000,
+    consideration: 125_000_000,
     buyerName: 'Acme Holdings',
     targetCompany: 'WidgetCorp',
     sector: 'Manufacturing',
     closingDate: '2026-06-30',
   },
   stakeholders: [
-    { name: 'Jane Doe', role: 'Founder & CEO', email: 'jane@widgetcorp.com', kycStatus: 'pending', payoutAmount: 300_000_000, ownershipPct: 40 },
-    { name: 'Venture Fund I', role: 'Series A Lead', email: 'legal@venturefund.com', kycStatus: 'verified', payoutAmount: 225_000_000, ownershipPct: 30 },
+    { name: 'Jane Doe', role: 'Founder & CEO', email: 'jane@widgetcorp.com', kycStatus: 'pending', payoutAmount: 50_000_000, ownershipPct: 40 },
+    { name: 'Venture Fund I', role: 'Series A Lead', email: 'legal@venturefund.com', kycStatus: 'verified', payoutAmount: 37_500_000, ownershipPct: 30 },
   ],
   waterfall: [
-    { name: 'Senior Debt', amount: 75_000_000, percentage: 10, recipients: 1 },
-    { name: 'Common Distribution', amount: 675_000_000, percentage: 90, recipients: 8 },
+    { name: 'Senior Debt', amount: 12_500_000, percentage: 10, recipients: 1 },
+    { name: 'Common Distribution', amount: 112_500_000, percentage: 90, recipients: 8 },
   ],
 };
 
 const STAKEHOLDERS_CSV = `name,role,email,kycStatus,payoutAmount,ownershipPct
-Jane Doe,Founder & CEO,jane@widgetcorp.com,pending,300000000,40
-John Smith,CTO,john@widgetcorp.com,verified,150000000,20
-Venture Fund I,Series A Lead,legal@venturefund.com,verified,225000000,30`;
+Jane Doe,Founder & CEO,jane@widgetcorp.com,pending,50000000,40
+John Smith,CTO,john@widgetcorp.com,verified,25000000,20
+Venture Fund I,Series A Lead,legal@venturefund.com,verified,37500000,30`;
 
 const CAP_TABLE_CSV = `name,amount,percentage,recipients
-Senior Debt,75000000,10,1
-Transaction Expenses,15000000,2,3
-Common Distribution,660000000,88,12`;
+Senior Debt,12500000,10,1
+Transaction Expenses,2500000,2,3
+Common Distribution,110000000,88,12`;
 
 const WATERFALL_CSV = `name,amount,percentage,recipients
-Senior Secured Debt,75000000,10,1
-Preferred Return,150000000,20,3
+Senior Secured Debt,12500000,10,1
+Preferred Return,25000000,20,3
 Common Distribution,525000000,70,10`;
 
 function downloadFile(content: string, filename: string, mime: string) {

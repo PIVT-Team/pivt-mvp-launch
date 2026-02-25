@@ -66,7 +66,7 @@ export function getRecipientForNotification(type: string, entityId?: string): Re
   // Demo mode: return realistic mock recipients based on type
   const recipients: Record<string, ReminderRecipient> = {
     KYC: { name: 'Innovation Ventures Fund II', email: 'compliance@innovationventures.com', role: 'Stakeholder' },
-    Payment: { name: 'Sarah Chen', email: 'schen@datastream.io', role: 'Finance Contact' },
+    Payment: { name: 'Sarah Chen', email: 'schen@northbridge.io', role: 'Finance Contact' },
     Approval: { name: 'James Morrison', email: 'jmorrison@pivt.io', role: 'Approver' },
     Discrepancy: { name: 'Alexandra Reed', email: 'areed@pivt.io', role: 'Deal Owner' },
     Document: { name: 'David Park', email: 'dpark@apexcap.com', role: 'Legal Counsel' },

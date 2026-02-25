@@ -40,7 +40,7 @@ export const AnalyticsDashboard: React.FC = () => {
   // Bar chart data
   const dealComparisonData = deals.map(d => ({
     name: d.codeName,
-    value: d.consideration / 1e9,
+    value: d.consideration / 1e6,
     readiness: d.readyToPayPercent,
     discrepancies: d.discrepanciesFound,
   }));
@@ -48,7 +48,7 @@ export const AnalyticsDashboard: React.FC = () => {
   // Pie chart data
   const statusDistribution = deals.map(d => ({
     name: `${d.codeName} (${d.status})`,
-    value: d.consideration / 1e9,
+    value: d.consideration / 1e6,
     status: d.status,
   }));
 
@@ -82,7 +82,7 @@ export const AnalyticsDashboard: React.FC = () => {
       {/* Summary stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Portfolio Value', value: `$${(totalValue / 1e9).toFixed(1)}B`, icon: TrendingUp, delta: '+12%' },
+          { label: 'Total Portfolio Value', value: `$${(totalValue / 1e6).toFixed(0)}M`, icon: TrendingUp, delta: '+12%' },
           { label: 'Avg Readiness', value: `${avgReadiness}%`, icon: Target, delta: avgReadiness >= 80 ? 'On Track' : 'At Risk' },
           { label: 'Total Recipients', value: totalRecipients, icon: PieChart, delta: `${deals.length} deals` },
           { label: 'Documents Processed', value: totalDocs, icon: BarChart3, delta: 'AI verified' },
@@ -156,7 +156,7 @@ export const AnalyticsDashboard: React.FC = () => {
                     borderRadius: 8,
                     fontSize: 12,
                   }}
-                  formatter={(val: number) => [`$${val.toFixed(1)}B`, 'Value']}
+                  formatter={(val: number) => [`$${val.toFixed(0)}M`, 'Value']}
                 />
               </RPieChart>
             </ResponsiveContainer>
@@ -206,7 +206,7 @@ onClick={() => { setSelectedDealId(d.id); setActiveSection('workspace'); }}
                 />
               </div>
               <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                <span>${(d.consideration / 1e9).toFixed(1)}B · {d.sector}</span>
+                <span>${(d.consideration / 1e6).toFixed(0)}M · {d.sector}</span>
                 <span className="flex items-center gap-1">
                   {daysToClose > 0 ? (
                     <>{daysToClose}d to close</>

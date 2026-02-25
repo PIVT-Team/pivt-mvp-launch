@@ -197,12 +197,12 @@ const initialParties: PartiesData = {
 };
 
 const DEMO_BENEFICIARIES: Beneficiary[] = [
-  { id: 'b1', name: 'Andreessen Horowitz Fund VII', entityType: 'Fund', jurisdiction: 'Delaware, USA', payoutAmount: 280000000, bankDetailsMasked: 'JPM ****4821', status: 'verified', changeFlag: false },
-  { id: 'b2', name: 'Sequoia Capital Global Growth', entityType: 'Fund', jurisdiction: 'Cayman Islands', payoutAmount: 420000000, bankDetailsMasked: 'Citi ****7293', status: 'verified', changeFlag: false },
-  { id: 'b3', name: 'GIC Private Limited', entityType: 'Corporation', jurisdiction: 'Singapore', payoutAmount: 560000000, bankDetailsMasked: 'DBS ****1847', status: 'pending', changeFlag: false },
-  { id: 'b4', name: 'Tiger Global Management', entityType: 'Fund', jurisdiction: 'New York, USA', payoutAmount: 350000000, bankDetailsMasked: 'GS ****5512', status: 'verified', changeFlag: false },
-  { id: 'b5', name: 'DataStream Founders Trust', entityType: 'Trust', jurisdiction: 'Delaware, USA', payoutAmount: 910000000, bankDetailsMasked: 'BNY ****3398', status: 'verified', changeFlag: false },
-  { id: 'b6', name: 'Jane Chen (Individual)', entityType: 'Individual', jurisdiction: 'California, USA', payoutAmount: 280000000, bankDetailsMasked: 'WF ****6641', status: 'verified', changeFlag: false },
+  { id: 'b1', name: 'Andreessen Horowitz Fund VII', entityType: 'Fund', jurisdiction: 'Delaware, USA', payoutAmount: 8500000, bankDetailsMasked: 'JPM ****4821', status: 'verified', changeFlag: false },
+  { id: 'b2', name: 'Sequoia Capital Global Growth', entityType: 'Fund', jurisdiction: 'Cayman Islands', payoutAmount: 12800000, bankDetailsMasked: 'Citi ****7293', status: 'verified', changeFlag: false },
+  { id: 'b3', name: 'GIC Private Limited', entityType: 'Corporation', jurisdiction: 'Singapore', payoutAmount: 7400000, bankDetailsMasked: 'DBS ****1847', status: 'pending', changeFlag: false },
+  { id: 'b4', name: 'Tiger Global Management', entityType: 'Fund', jurisdiction: 'New York, USA', payoutAmount: 6800000, bankDetailsMasked: 'GS ****5512', status: 'verified', changeFlag: false },
+  { id: 'b5', name: 'Northbridge Founders Trust', entityType: 'Trust', jurisdiction: 'Delaware, USA', payoutAmount: 40700000, bankDetailsMasked: 'BNY ****3398', status: 'verified', changeFlag: false },
+  { id: 'b6', name: 'Jane Chen (Individual)', entityType: 'Individual', jurisdiction: 'California, USA', payoutAmount: 18500000, bankDetailsMasked: 'WF ****6641', status: 'verified', changeFlag: false },
 ];
 
 const DEMO_DOCS: DocUpload[] = [
@@ -396,8 +396,8 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
       dealBasics: {
         dealName: 'Project ATLAS',
         buyerLegalName: 'Apex Capital Partners LLC',
-        sellerLegalName: 'DataStream Technologies Inc.',
-        transactionValue: '2,800,000,000',
+        sellerLegalName: 'Northbridge Software Inc.',
+        transactionValue: '185,000,000',
         targetCloseDate: '2026-03-15',
         currency: 'USD',
       },

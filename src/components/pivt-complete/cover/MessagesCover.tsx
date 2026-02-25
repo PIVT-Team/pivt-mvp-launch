@@ -33,7 +33,7 @@ const generateMockThreads = () => {
     timestamp: i === 0 ? '2h ago' : i < 4 ? `${i * 2 + 3}h ago` : `${i - 3}d ago`,
     unread: i % 4 === 0,
     status: statuses[i % statuses.length],
-    dealValue: `$${(Math.random() * 4 + 1).toFixed(1)}B`,
+    dealValue: `$${(Math.random() * 300 + 50).toFixed(0)}M`,
     tripleSignature: scenarios[i % scenarios.length],
   }));
 };

@@ -20,7 +20,7 @@ export const StakeholdersDealTab: React.FC = () => {
     s.kycStatus === 'verified' ? 'Collected' : s.kycStatus === 'pending' ? 'Pending' : 'Not Sent';
 
   const summaryCards = [
-    { label: 'Total Payout', value: `$${(totalPayout / 1e9).toFixed(2)}B`, icon: DollarSign, color: 'text-accent' },
+    { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: DollarSign, color: 'text-accent' },
     { label: 'Verified', value: `${verified}/${total}`, icon: Shield, color: 'text-validated' },
     { label: 'KYC Complete', value: `${verified}/${total}`, icon: CheckCircle2, color: 'text-validated' },
     { label: 'Wire Collected', value: `${verified}/${total}`, icon: CreditCard, color: 'text-accent' },

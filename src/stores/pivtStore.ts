@@ -94,42 +94,42 @@ export interface PendingApproval {
 const DEMO_DEALS: DemoDeal[] = [
   {
     id: 'atlas', name: 'Project ATLAS', codeName: 'ATLAS',
-    consideration: 2_800_000_000, status: 'closing',
+    consideration: 185_000_000, status: 'closing',
     workflowState: 'awaiting_approval',
-    buyerName: 'Apex Capital Partners', targetCompany: 'DataStream Technologies',
-    sector: 'Enterprise SaaS', totalRecipients: 28, documentsUploaded: 108,
+    buyerName: 'Apex Capital Partners', targetCompany: 'Northbridge Software',
+    sector: 'Enterprise SaaS', totalRecipients: 12, documentsUploaded: 42,
     discrepanciesFound: 3, readyToPayPercent: 87,
     closingDate: '2026-03-15', pendingApprovals: 2, hasBlocker: false,
   },
   {
     id: 'beacon', name: 'Project BEACON', codeName: 'BEACON',
-    consideration: 1_250_000_000, status: 'diligence',
+    consideration: 92_000_000, status: 'diligence',
     workflowState: 'data_uploaded',
     buyerName: 'Meridian Holdings', targetCompany: 'CloudVault Security',
-    sector: 'Cybersecurity', totalRecipients: 25, documentsUploaded: 75,
+    sector: 'Cybersecurity', totalRecipients: 8, documentsUploaded: 28,
     discrepanciesFound: 7, readyToPayPercent: 62,
     closingDate: '2026-04-30', pendingApprovals: 5, hasBlocker: true,
   },
   {
     id: 'cipher', name: 'Project CIPHER', codeName: 'CIPHER',
-    consideration: 4_500_000_000, status: 'signing',
+    consideration: 340_000_000, status: 'signing',
     workflowState: 'reconciliation',
     buyerName: 'Titan Strategic Group', targetCompany: 'NeuralPath AI',
-    sector: 'Artificial Intelligence', totalRecipients: 48, documentsUploaded: 145,
+    sector: 'Artificial Intelligence', totalRecipients: 18, documentsUploaded: 56,
     discrepanciesFound: 1, readyToPayPercent: 94,
     closingDate: '2026-02-28', pendingApprovals: 1, hasBlocker: false,
   },
 ];
 
 const DEMO_STAKEHOLDERS: DemoStakeholder[] = [
-  { id: 's1', name: 'Sarah Chen', role: 'Founder & CEO', email: 'schen@datastream.io', kycStatus: 'verified', payoutAmount: 840_000_000, ownershipPct: 30 },
-  { id: 's2', name: 'Marcus Williams', role: 'CTO & Co-Founder', email: 'mwilliams@datastream.io', kycStatus: 'verified', payoutAmount: 560_000_000, ownershipPct: 20 },
-  { id: 's3', name: 'Sequoia Capital Fund XIV', role: 'Series A Lead', email: 'legal@sequoia.com', kycStatus: 'verified', payoutAmount: 420_000_000, ownershipPct: 15 },
-  { id: 's4', name: 'Andreessen Horowitz', role: 'Series B Lead', email: 'closings@a16z.com', kycStatus: 'pending', payoutAmount: 280_000_000, ownershipPct: 10 },
-  { id: 's5', name: 'Tiger Global Management', role: 'Growth Investor', email: 'ops@tigerglobal.com', kycStatus: 'verified', payoutAmount: 224_000_000, ownershipPct: 8 },
-  { id: 's6', name: 'Employee Option Pool', role: 'ESOP Trust', email: 'esop@datastream.io', kycStatus: 'pending', payoutAmount: 196_000_000, ownershipPct: 7 },
-  { id: 's7', name: 'Index Ventures', role: 'Series C Investor', email: 'legal@indexventures.com', kycStatus: 'verified', payoutAmount: 168_000_000, ownershipPct: 6 },
-  { id: 's8', name: 'GIC Private Limited', role: 'Pre-IPO Investor', email: 'investments@gic.com.sg', kycStatus: 'failed', payoutAmount: 112_000_000, ownershipPct: 4 },
+  { id: 's1', name: 'Sarah Chen', role: 'Founder & CEO', email: 'schen@northbridge.io', kycStatus: 'verified', payoutAmount: 55_500_000, ownershipPct: 30 },
+  { id: 's2', name: 'Marcus Williams', role: 'CTO & Co-Founder', email: 'mwilliams@northbridge.io', kycStatus: 'verified', payoutAmount: 37_000_000, ownershipPct: 20 },
+  { id: 's3', name: 'Sequoia Capital Fund XIV', role: 'Series A Lead', email: 'legal@sequoia.com', kycStatus: 'verified', payoutAmount: 27_750_000, ownershipPct: 15 },
+  { id: 's4', name: 'Andreessen Horowitz', role: 'Series B Lead', email: 'closings@a16z.com', kycStatus: 'pending', payoutAmount: 18_500_000, ownershipPct: 10 },
+  { id: 's5', name: 'Tiger Global Management', role: 'Growth Investor', email: 'ops@tigerglobal.com', kycStatus: 'verified', payoutAmount: 14_800_000, ownershipPct: 8 },
+  { id: 's6', name: 'Employee Option Pool', role: 'ESOP Trust', email: 'esop@northbridge.io', kycStatus: 'pending', payoutAmount: 12_950_000, ownershipPct: 7 },
+  { id: 's7', name: 'Index Ventures', role: 'Series C Investor', email: 'legal@indexventures.com', kycStatus: 'verified', payoutAmount: 11_100_000, ownershipPct: 6 },
+  { id: 's8', name: 'GIC Private Limited', role: 'Pre-IPO Investor', email: 'investments@gic.com.sg', kycStatus: 'failed', payoutAmount: 7_400_000, ownershipPct: 4 },
 ];
 
 const DEMO_DOCUMENTS: DemoDocument[] = [
@@ -144,23 +144,23 @@ const DEMO_DOCUMENTS: DemoDocument[] = [
 ];
 
 const DEMO_PAYMENTS: DemoPayment[] = [
-  { id: 'p1', recipientName: 'Sarah Chen', amount: 840_000_000, status: 'approved', method: 'Wire Transfer' },
-  { id: 'p2', recipientName: 'Marcus Williams', amount: 560_000_000, status: 'approved', method: 'Wire Transfer' },
-  { id: 'p3', recipientName: 'Sequoia Capital Fund XIV', amount: 420_000_000, status: 'pending', method: 'Wire Transfer' },
-  { id: 'p4', recipientName: 'Andreessen Horowitz', amount: 280_000_000, status: 'pending', method: 'Wire Transfer' },
-  { id: 'p5', recipientName: 'Tiger Global Management', amount: 224_000_000, status: 'executed', method: 'Wire Transfer' },
+  { id: 'p1', recipientName: 'Sarah Chen', amount: 55_500_000, status: 'approved', method: 'Wire Transfer' },
+  { id: 'p2', recipientName: 'Marcus Williams', amount: 37_000_000, status: 'approved', method: 'Wire Transfer' },
+  { id: 'p3', recipientName: 'Sequoia Capital Fund XIV', amount: 27_750_000, status: 'pending', method: 'Wire Transfer' },
+  { id: 'p4', recipientName: 'Andreessen Horowitz', amount: 18_500_000, status: 'pending', method: 'Wire Transfer' },
+  { id: 'p5', recipientName: 'Tiger Global Management', amount: 14_800_000, status: 'executed', method: 'Wire Transfer' },
 ];
 
 const DEMO_WATERFALL: WaterfallTier[] = [
-  { id: 'w1', name: 'Senior Secured Debt', amount: 280_000_000, percentage: 10, recipients: 2 },
-  { id: 'w2', name: 'Transaction Expenses', amount: 84_000_000, percentage: 3, recipients: 5 },
-  { id: 'w3', name: 'Escrow Holdback', amount: 280_000_000, percentage: 10, recipients: 1 },
-  { id: 'w4', name: 'Preferred Return', amount: 560_000_000, percentage: 20, recipients: 4 },
-  { id: 'w5', name: 'Common Distribution', amount: 1_596_000_000, percentage: 57, recipients: 16 },
+  { id: 'w1', name: 'Transaction Expenses', amount: 3_200_000, percentage: 2, recipients: 3 },
+  { id: 'w2', name: 'Senior Secured Debt', amount: 72_000_000, percentage: 39, recipients: 2 },
+  { id: 'w3', name: 'Escrow Holdback', amount: 18_000_000, percentage: 10, recipients: 1 },
+  { id: 'w4', name: 'Series B Preferred', amount: 47_800_000, percentage: 26, recipients: 4 },
+  { id: 'w5', name: 'Common Distribution', amount: 44_000_000, percentage: 23, recipients: 8 },
 ];
 
 const DEMO_APPROVALS: PendingApproval[] = [
-  { id: 'a1', type: 'Payout Execution', dealName: 'Project ATLAS', description: 'Execute $840M wire to Sarah Chen', requestedBy: 'Deal Admin', urgency: 'high', createdAt: '2026-02-12' },
+  { id: 'a1', type: 'Payout Execution', dealName: 'Project ATLAS', description: 'Execute $24.5M wire to Sarah Chen', requestedBy: 'Deal Admin', urgency: 'high', createdAt: '2026-02-12' },
   { id: 'a2', type: 'Document Review', dealName: 'Project ATLAS', description: 'Approve Waterfall Schedule v3', requestedBy: 'Seller Counsel', urgency: 'critical', createdAt: '2026-02-11' },
   { id: 'a3', type: 'KYC Override', dealName: 'Project BEACON', description: 'Override KYC for GIC Private Limited', requestedBy: 'Compliance', urgency: 'medium', createdAt: '2026-02-10' },
 ];

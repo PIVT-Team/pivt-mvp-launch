@@ -18,25 +18,25 @@ const tabs: { id: ClosingTab; label: string; icon: React.ElementType }[] = [
 ];
 
 const WIRE_INSTRUCTIONS = [
-  { id: 'w1', recipient: 'Sarah Chen', bank: 'JPMorgan Chase', account: '****4821', amount: 840_000_000, verified: true },
-  { id: 'w2', recipient: 'Marcus Williams', bank: 'Bank of America', account: '****7392', amount: 560_000_000, verified: true },
-  { id: 'w3', recipient: 'Sequoia Capital Fund XIV', bank: 'Silicon Valley Bank', account: '****1056', amount: 420_000_000, verified: true },
-  { id: 'w4', recipient: 'Andreessen Horowitz', bank: 'Morgan Stanley', account: '****8834', amount: 280_000_000, verified: false },
-  { id: 'w5', recipient: 'Tiger Global Management', bank: 'Citibank', account: '****2210', amount: 224_000_000, verified: true },
-  { id: 'w6', recipient: 'Employee Option Pool', bank: 'Pending', account: 'N/A', amount: 196_000_000, verified: false },
+  { id: 'w1', recipient: 'Sarah Chen', bank: 'JPMorgan Chase', account: '****4821', amount: 24_500_000, verified: true },
+  { id: 'w2', recipient: 'Marcus Williams', bank: 'Bank of America', account: '****7392', amount: 16_200_000, verified: true },
+  { id: 'w3', recipient: 'Sequoia Capital Fund XIV', bank: 'Silicon Valley Bank', account: '****1056', amount: 12_800_000, verified: true },
+  { id: 'w4', recipient: 'Andreessen Horowitz', bank: 'Morgan Stanley', account: '****8834', amount: 8_500_000, verified: false },
+  { id: 'w5', recipient: 'Tiger Global Management', bank: 'Citibank', account: '****2210', amount: 6_800_000, verified: true },
+  { id: 'w6', recipient: 'Employee Option Pool', bank: 'Pending', account: 'N/A', amount: 5_200_000, verified: false },
 ];
 
 const PAYMENT_BATCHES = [
-  { id: 'b1', name: 'Batch 1 — Founders', count: 2, total: 1_400_000_000, status: 'approved' as const },
-  { id: 'b2', name: 'Batch 2 — Institutional', count: 3, total: 924_000_000, status: 'pending' as const },
-  { id: 'b3', name: 'Batch 3 — ESOP & Other', count: 4, total: 476_000_000, status: 'draft' as const },
+  { id: 'b1', name: 'Batch 1 — Founders', count: 2, total: 40_700_000, status: 'approved' as const },
+  { id: 'b2', name: 'Batch 2 — Institutional', count: 3, total: 28_100_000, status: 'pending' as const },
+  { id: 'b3', name: 'Batch 3 — ESOP & Other', count: 4, total: 5_200_000, status: 'draft' as const },
 ];
 
 const RECON_ENTRIES = [
-  { date: '2026-02-12', reference: 'WR-001', expected: 840_000_000, actual: 840_000_000, matched: true },
-  { date: '2026-02-12', reference: 'WR-002', expected: 560_000_000, actual: 560_000_000, matched: true },
-  { date: '2026-02-13', reference: 'WR-003', expected: 420_000_000, actual: 0, matched: false },
-  { date: '2026-02-13', reference: 'WR-004', expected: 224_000_000, actual: 224_000_000, matched: true },
+  { date: '2026-02-12', reference: 'WR-001', expected: 24_500_000, actual: 24_500_000, matched: true },
+  { date: '2026-02-12', reference: 'WR-002', expected: 16_200_000, actual: 16_200_000, matched: true },
+  { date: '2026-02-13', reference: 'WR-003', expected: 12_800_000, actual: 0, matched: false },
+  { date: '2026-02-13', reference: 'WR-004', expected: 6_800_000, actual: 6_800_000, matched: true },
 ];
 
 export const ClosingCenterCover: React.FC = () => {
@@ -48,7 +48,7 @@ export const ClosingCenterCover: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold">Closing Center</h2>
-          <p className="text-sm text-muted-foreground">{deal.codeName} — ${(deal.consideration / 1e9).toFixed(1)}B</p>
+          <p className="text-sm text-muted-foreground">{deal.codeName} — ${(deal.consideration / 1e6).toFixed(1)}M</p>
         </div>
         <div className="flex items-center gap-2 text-sm">
           <div className="w-2 h-2 rounded-full bg-validated" />
@@ -158,7 +158,7 @@ export const ClosingCenterCover: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="font-medium">{batch.name}</h4>
-                    <p className="text-xs text-muted-foreground mt-1">{batch.count} payments · ${(batch.total / 1e9).toFixed(2)}B</p>
+                    <p className="text-xs text-muted-foreground mt-1">{batch.count} payments · ${(batch.total / 1e6).toFixed(1)}M</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <span className={`text-xs px-2 py-1 rounded-full font-medium ${statusColors[batch.status]}`}>

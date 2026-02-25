@@ -109,8 +109,8 @@ const SEED_EVENTS: Omit<AuditEvent, 'event_id' | 'event_hash'>[] = [
     timestamp: new Date(Date.now() - 3 * 3600000).toISOString(),
     deal_id: null, actor_type: 'System', actor_id: null, actor_display_name: 'System',
     actor_role: 'System', action: 'DEAL_CREATED', object_type: 'Deal', object_id: 'deal-002',
-    severity: 'info', summary: 'Created new deal: Project CIPHER ($4.5B)',
-    before_state: null, after_state: { name: 'Project CIPHER', value: 4500000000 },
+    severity: 'info', summary: 'Created new deal: Project CIPHER ($340M)',
+    before_state: null, after_state: { name: 'Project CIPHER', value: 340000000 },
     source: 'UI', ip_address: null, user_agent: null, correlation_id: null, category: 'system',
   },
   {
@@ -125,8 +125,8 @@ const SEED_EVENTS: Omit<AuditEvent, 'event_id' | 'event_hash'>[] = [
     timestamp: new Date(Date.now() - 8 * 3600000).toISOString(),
     deal_id: 'deal-001', actor_type: 'Integration', actor_id: null, actor_display_name: 'Payment Gateway',
     actor_role: 'System', action: 'WIRE_EXECUTED', object_type: 'Payment', object_id: 'pmt-003',
-    severity: 'info', summary: 'Executed wire: $224M to Tiger Global Management',
-    before_state: { status: 'prepared' }, after_state: { status: 'executed', amount: 224000000 },
+    severity: 'info', summary: 'Executed wire: $14.8M to Tiger Global Management',
+    before_state: { status: 'prepared' }, after_state: { status: 'executed', amount: 14800000 },
     source: 'Integration', ip_address: null, user_agent: null, correlation_id: 'cor-005', category: 'financial',
   },
   {

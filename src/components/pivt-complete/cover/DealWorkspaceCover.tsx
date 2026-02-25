@@ -335,7 +335,7 @@ export const DealWorkspaceCover: React.FC = () => {
           <div className="flex items-center gap-4 flex-wrap lg:ml-auto shrink-0">
             <div className="text-left lg:text-right">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Deal Value</p>
-              <p className="font-mono text-sm font-semibold">${(deal.consideration / 1e9).toFixed(1)}B</p>
+              <p className="font-mono text-sm font-semibold">${(deal.consideration / 1e6).toFixed(1)}M</p>
             </div>
             <div className="h-8 w-px bg-border hidden lg:block" />
             <div className="text-left lg:text-right">

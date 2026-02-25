@@ -90,7 +90,7 @@ export const IntelligenceMapCover: React.FC = () => {
     ns.push({
       id: deal.id, label: deal.codeName, type: 'deal', x: cx, y: cy,
       color: typeColors.deal, size: 48, riskLevel: deal.hasBlocker ? 'critical' : 'none',
-      metadata: { value: `$${(deal.consideration / 1e9).toFixed(1)}B`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
+      metadata: { value: `$${(deal.consideration / 1e6).toFixed(0)}M`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
     });
 
     // Stakeholders
