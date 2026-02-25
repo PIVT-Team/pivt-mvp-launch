@@ -10,6 +10,7 @@ import { groupedNavigationByMode } from '@/lib/navigation';
 import { Search, ChevronLeft, ChevronRight, Bell, Upload, User } from 'lucide-react';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
+import { ImportDataModal } from './ImportDataModal';
 
 // Cover sections
 import { DealsCover } from './cover/DealsCover';
@@ -43,6 +44,7 @@ export const PIVTCompleteUnified: React.FC = () => {
 
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
+  const [importOpen, setImportOpen] = React.useState(false);
   const [glassMode, setGlassMode] = React.useState(() => {
     return sessionStorage.getItem('pivt-glass-mode') === 'true';
   });
@@ -211,7 +213,7 @@ export const PIVTCompleteUnified: React.FC = () => {
           <div className="h-5 w-px bg-border mx-1" />
 
           {/* Import */}
-          <button className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground" title="Import Data">
+          <button onClick={() => setImportOpen(true)} className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground" title="Import Data">
             <Upload className="w-4 h-4" />
           </button>
 
@@ -244,6 +246,7 @@ export const PIVTCompleteUnified: React.FC = () => {
       <DealWizard />
       <NewtonDealIntelligence />
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
+      <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   );
 };

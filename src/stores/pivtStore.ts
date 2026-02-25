@@ -186,6 +186,11 @@ interface PIVTStore {
   pendingApprovals: PendingApproval[];
 
   addStakeholder: (s: DemoStakeholder) => void;
+  importStakeholders: (items: DemoStakeholder[]) => void;
+  importWaterfall: (items: WaterfallTier[]) => void;
+  importDocuments: (items: DemoDocument[]) => void;
+  importPayments: (items: DemoPayment[]) => void;
+  addDeal: (deal: DemoDeal) => void;
 
   getSelectedDeal: () => DemoDeal;
   getTotalDealValue: () => number;
@@ -212,6 +217,11 @@ export const usePIVTStore = create<PIVTStore>((set, get) => ({
   pendingApprovals: DEMO_APPROVALS,
 
   addStakeholder: (s) => set((state) => ({ stakeholders: [...state.stakeholders, s] })),
+  importStakeholders: (items) => set((state) => ({ stakeholders: [...state.stakeholders, ...items] })),
+  importWaterfall: (items) => set((state) => ({ waterfallTiers: [...state.waterfallTiers, ...items] })),
+  importDocuments: (items) => set((state) => ({ documents: [...state.documents, ...items] })),
+  importPayments: (items) => set((state) => ({ payments: [...state.payments, ...items] })),
+  addDeal: (deal) => set((state) => ({ deals: [...state.deals, deal] })),
 
   getSelectedDeal: () => {
     const state = get();
