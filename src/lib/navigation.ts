@@ -115,7 +115,7 @@ export const DEAL_WORKSPACE_TABS: DealWorkspaceTabDef[] = [
   { id: 'stakeholders', label: 'Stakeholders' },
   { id: 'kyc-kyb', label: 'KYC / KYB' },
   { id: 'data', label: 'Data' },
-  { id: 'documents', label: 'Documents' },
+  { id: 'documents', label: 'Documents & Ingestion' },
   { id: 'reconciliation', label: 'Reconciliation' },
   { id: 'approvals', label: 'Approvals' },
   { id: 'payments-escrow', label: 'Payments / Escrow' },
