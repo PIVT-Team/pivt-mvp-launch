@@ -11,8 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { DEAL_WORKSPACE_TABS, DealWorkspaceTab } from '@/lib/navigation';
 
 // Import existing cover pages for embedding
-import { StakeholdersCover } from './StakeholdersCover';
-import { VerificationCover } from './VerificationCover';
+import { StakeholdersDealTab } from './StakeholdersDealTab';
+import { KycKybDealTab } from './KycKybDealTab';
 import { CapTableCover } from './CapTableCover';
 import { WaterfallCover } from './WaterfallCover';
 import { DocumentIngestionCover } from './DocumentIngestionCover';
@@ -221,15 +221,7 @@ const DealAuditSection: React.FC = () => (
   </div>
 );
 
-// ── Stakeholders & KYC combined section ──
-const StakeholdersKycSection: React.FC = () => (
-  <div className="space-y-8">
-    <StakeholdersCover />
-    <div className="border-t border-border pt-8">
-      <VerificationCover />
-    </div>
-  </div>
-);
+// ── Stakeholders & KYC are now separate tabs ──
 
 // ── Data section (Ingestion + Cap Table + Waterfall) ──
 const DataSection: React.FC = () => (
@@ -257,15 +249,16 @@ const PaymentsEscrowSection: React.FC = () => (
 // ── Tab content map ──
 const TAB_COMPONENTS: Record<DealWorkspaceTab, React.FC> = {
   'overview': OverviewSection,
-  'stakeholders-kyc': StakeholdersKycSection,
+  'stakeholders': StakeholdersDealTab,
+  'kyc-kyb': KycKybDealTab,
   'data': DataSection,
   'documents': DocumentsCover,
   'reconciliation': ReconciliationSection,
   'approvals': ApprovalsCover,
   'payments-escrow': PaymentsEscrowSection,
   'audit-log': DealAuditSection,
-  'activity': DealActivityCover,
   'reports': DealReportsCover,
+  'activity': DealActivityCover,
   'intelligence-map': IntelligenceMapCover,
 };
 
