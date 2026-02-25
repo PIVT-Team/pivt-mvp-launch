@@ -2,3 +2,6 @@ project_id = "hipjywloeveadfndzary"
 
 [functions.newton]
 verify_jwt = false
+
+[functions.document-ai]
+verify_jwt = false
