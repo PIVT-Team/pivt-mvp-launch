@@ -213,8 +213,9 @@ export const PIVTCompleteUnified: React.FC = () => {
           <div className="h-5 w-px bg-border mx-1" />
 
           {/* Import */}
-          <button onClick={() => setImportOpen(true)} className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground" title="Import Data">
+          <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-[13px]" title="Import Data">
             <Upload className="w-4 h-4" />
+            <span>Import Data</span>
           </button>
 
           {/* Notifications */}
