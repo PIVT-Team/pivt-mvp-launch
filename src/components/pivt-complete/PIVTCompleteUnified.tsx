@@ -157,7 +157,7 @@ export const PIVTCompleteUnified: React.FC = () => {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-[10px] text-white/30 italic tracking-wide text-center"
+              className="text-[9px] text-white/30 italic text-center whitespace-nowrap"
             >
               The intelligence layer behind every close.
             </motion.p>
