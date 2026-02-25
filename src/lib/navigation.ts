@@ -1,5 +1,5 @@
 import {
-  Briefcase, History, Settings,
+  Briefcase, History, Settings, FileBarChart,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -24,6 +24,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
       category: 'Operations',
       items: [
         { label: 'Deals', icon: Briefcase, path: 'deals', iconColor: '#5B3DF5' },
+        { label: 'Reports', icon: FileBarChart, path: 'reports', iconColor: '#22C55E' },
         { label: 'Audit Log', icon: History, path: 'audit', iconColor: '#94A3B8' },
         { label: 'Settings', icon: Settings, path: 'settings' },
       ],
@@ -93,6 +94,7 @@ export type DealWorkspaceTab =
   | 'approvals'
   | 'payments-escrow'
   | 'audit-log'
+  | 'reports'
   | 'intelligence-map';
 
 export interface DealWorkspaceTabDef {
@@ -109,5 +111,6 @@ export const DEAL_WORKSPACE_TABS: DealWorkspaceTabDef[] = [
   { id: 'approvals', label: 'Approvals' },
   { id: 'payments-escrow', label: 'Payments / Escrow' },
   { id: 'audit-log', label: 'Audit Log' },
+  { id: 'reports', label: 'Reports' },
   { id: 'intelligence-map', label: 'Intelligence Map' },
 ];
