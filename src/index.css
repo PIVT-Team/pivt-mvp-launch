@@ -6,6 +6,65 @@
 
 @layer base {
   :root {
+    /* ── Enterprise Mode (Light – Default) ── */
+    --background: 222 20% 97%;
+    --foreground: 222 30% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 30% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 30% 12%;
+    --primary: 222 30% 12%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 16% 93%;
+    --secondary-foreground: 222 30% 12%;
+    --muted: 220 16% 93%;
+    --muted-foreground: 220 10% 46%;
+    --accent: 262 72% 55%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 14% 89%;
+    --input: 220 14% 89%;
+    --ring: 262 72% 55%;
+    --radius: 0.625rem;
+
+    /* PIVT semantic tokens */
+    --validated: 152 55% 42%;
+    --validated-foreground: 0 0% 100%;
+    --discrepancy: 38 85% 50%;
+    --discrepancy-foreground: 0 0% 100%;
+    --blocking: 0 62% 50%;
+    --blocking-foreground: 0 0% 100%;
+    --surface-elevated: 0 0% 100%;
+    --surface-subtle: 222 20% 96%;
+
+    /* Semantic icon color system */
+    --pivt-purple: 262 90% 55%;
+    --pivt-blue: 217 100% 55%;
+    --pivt-emerald: 152 60% 40%;
+    --pivt-amber: 38 88% 48%;
+    --pivt-red: 0 72% 50%;
+    --pivt-slate: 215 16% 48%;
+
+    --icon-escrow: var(--pivt-purple);
+    --icon-success: var(--pivt-emerald);
+    --icon-pending: var(--pivt-amber);
+    --icon-growth: var(--pivt-blue);
+    --icon-risk: var(--pivt-red);
+    --icon-neutral: var(--pivt-slate);
+
+    --sidebar-background: 225 20% 95%;
+    --sidebar-foreground: 220 10% 40%;
+    --sidebar-primary: 262 72% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 262 72% 55%;
+    --sidebar-accent-foreground: 262 72% 55%;
+    --sidebar-border: 220 14% 89%;
+    --sidebar-ring: 262 72% 55%;
+  }
+
+  /* ── Glass Mode (Dark) ── */
+  .glass-mode {
     --background: 228 28% 6%;
     --foreground: 220 14% 90%;
     --card: 226 22% 10%;
@@ -25,32 +84,19 @@
     --border: 224 14% 13%;
     --input: 224 14% 14%;
     --ring: 262 72% 55%;
-    --radius: 0.625rem;
 
-    /* PIVT semantic tokens */
     --validated: 152 55% 48%;
-    --validated-foreground: 0 0% 100%;
     --discrepancy: 38 85% 55%;
-    --discrepancy-foreground: 0 0% 100%;
     --blocking: 0 62% 55%;
-    --blocking-foreground: 0 0% 100%;
     --surface-elevated: 226 22% 11%;
     --surface-subtle: 228 28% 8%;
 
-    /* Semantic icon color system */
     --pivt-purple: 262 90% 60%;
     --pivt-blue: 217 100% 60%;
     --pivt-emerald: 152 60% 48%;
     --pivt-amber: 38 88% 52%;
     --pivt-red: 0 72% 56%;
     --pivt-slate: 215 16% 52%;
-
-    --icon-escrow: var(--pivt-purple);
-    --icon-success: var(--pivt-emerald);
-    --icon-pending: var(--pivt-amber);
-    --icon-growth: var(--pivt-blue);
-    --icon-risk: var(--pivt-red);
-    --icon-neutral: var(--pivt-slate);
 
     --sidebar-background: 228 32% 5%;
     --sidebar-foreground: 220 10% 52%;
@@ -60,10 +106,6 @@
     --sidebar-accent-foreground: 220 14% 88%;
     --sidebar-border: 224 18% 11%;
     --sidebar-ring: 262 72% 55%;
-  }
-
-  .dark {
-    /* Dark-first design — root is already dark */
   }
 }
 
@@ -89,8 +131,12 @@
 
 @layer components {
 
-  /* ── Ambient AI Background ── */
+  /* ── Ambient AI Background (Glass Mode only) ── */
   .pivt-ambient-bg {
+    background: hsl(var(--background));
+    transition: background 300ms ease, color 300ms ease;
+  }
+  .glass-mode .pivt-ambient-bg {
     background:
       radial-gradient(ellipse 80% 60% at 10% 5%, hsl(262 90% 55% / 0.10), transparent),
       radial-gradient(ellipse 70% 50% at 90% 15%, hsl(217 100% 55% / 0.07), transparent),
@@ -98,58 +144,69 @@
       hsl(var(--background));
   }
 
-  /* ── Compute Panel Card ── */
+  /* ── Card ── */
   .pivt-card {
-    background: hsl(var(--card) / 0.82);
-    border: 1px solid hsl(0 0% 100% / 0.05);
-    box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.20),
-      0 8px 24px rgba(0, 0, 0, 0.28);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
     border-radius: 14px;
-    backdrop-filter: blur(12px);
     transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
                 box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1),
-                border-color 200ms ease;
+                border-color 200ms ease,
+                background 300ms ease;
   }
   .pivt-card:hover {
     transform: translateY(-2px);
+    border-color: hsl(var(--accent) / 0.18);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+  }
+  .glass-mode .pivt-card {
+    background: hsl(var(--card) / 0.82);
+    border-color: hsl(0 0% 100% / 0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(12px);
+  }
+  .glass-mode .pivt-card:hover {
     border-color: hsl(262 90% 60% / 0.14);
-    box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.20),
-      0 16px 40px rgba(0, 0, 0, 0.36);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20), 0 16px 40px rgba(0, 0, 0, 0.36);
   }
 
   /* Card with accent top border */
   .pivt-card-accent {
-    background: hsl(var(--card) / 0.82);
-    border: 1px solid hsl(0 0% 100% / 0.05);
-    box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.20),
-      0 8px 24px rgba(0, 0, 0, 0.28);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
     border-radius: 14px;
-    backdrop-filter: blur(12px);
     border-top: 2px solid hsl(var(--accent));
-    background-image: linear-gradient(
-      180deg,
-      hsl(262 90% 60% / 0.06),
-      transparent 35%
-    );
     transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
                 box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   .pivt-card-accent:hover {
     transform: translateY(-2px);
-    box-shadow:
-      0 1px 2px rgba(0, 0, 0, 0.20),
-      0 16px 40px rgba(0, 0, 0, 0.36);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  .glass-mode .pivt-card-accent {
+    background: hsl(var(--card) / 0.82);
+    border-color: hsl(0 0% 100% / 0.05);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.28);
+    backdrop-filter: blur(12px);
+    border-top-color: hsl(var(--accent));
+    background-image: linear-gradient(180deg, hsl(262 90% 60% / 0.06), transparent 35%);
+  }
+  .glass-mode .pivt-card-accent:hover {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20), 0 16px 40px rgba(0, 0, 0, 0.36);
   }
 
-  /* ── Crisp Table (NO blur, NO glass) ── */
+  /* ── Crisp Table ── */
   .pivt-table {
-    background: hsl(228 28% 7%);
-    border: 1px solid hsl(0 0% 100% / 0.05);
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
     border-radius: 12px;
     overflow: hidden;
+  }
+  .glass-mode .pivt-table {
+    background: hsl(228 28% 7%);
+    border-color: hsl(0 0% 100% / 0.05);
   }
 
   /* ── Financial Stat Numbers ── */
@@ -157,13 +214,13 @@
     @apply font-mono text-2xl font-bold;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
-    color: hsl(0 0% 96%);
+    color: hsl(var(--foreground));
   }
   .pivt-stat-lg {
     @apply font-mono text-4xl font-extrabold;
     letter-spacing: -0.035em;
     font-variant-numeric: tabular-nums;
-    color: hsl(0 0% 98%);
+    color: hsl(var(--foreground));
   }
 
   /* ── Icon Chip System ── */
@@ -172,15 +229,25 @@
     width: 36px;
     height: 36px;
     border-radius: 10px;
-    border: 1px solid hsl(0 0% 100% / 0.06);
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--muted) / 0.5);
+  }
+  .glass-mode .pivt-icon-chip {
+    border-color: hsl(0 0% 100% / 0.06);
     background: hsl(0 0% 100% / 0.03);
   }
-  .pivt-icon-purple { color: hsl(var(--pivt-purple)); background: hsl(262 90% 60% / 0.10); }
-  .pivt-icon-blue   { color: hsl(var(--pivt-blue));   background: hsl(217 100% 60% / 0.10); }
-  .pivt-icon-green  { color: hsl(var(--pivt-emerald)); background: hsl(152 60% 48% / 0.10); }
-  .pivt-icon-amber  { color: hsl(var(--pivt-amber));  background: hsl(38 88% 52% / 0.10); }
-  .pivt-icon-red    { color: hsl(var(--pivt-red));    background: hsl(0 72% 56% / 0.10); }
-  .pivt-icon-slate  { color: hsl(var(--pivt-slate));  background: hsl(215 16% 52% / 0.08); }
+  .pivt-icon-purple { color: hsl(var(--pivt-purple)); background: hsl(262 90% 55% / 0.08); }
+  .pivt-icon-blue   { color: hsl(var(--pivt-blue));   background: hsl(217 100% 55% / 0.08); }
+  .pivt-icon-green  { color: hsl(var(--pivt-emerald)); background: hsl(152 60% 42% / 0.08); }
+  .pivt-icon-amber  { color: hsl(var(--pivt-amber));  background: hsl(38 88% 48% / 0.08); }
+  .pivt-icon-red    { color: hsl(var(--pivt-red));    background: hsl(0 72% 50% / 0.08); }
+  .pivt-icon-slate  { color: hsl(var(--pivt-slate));  background: hsl(215 16% 48% / 0.06); }
+  .glass-mode .pivt-icon-purple { background: hsl(262 90% 60% / 0.10); }
+  .glass-mode .pivt-icon-blue   { background: hsl(217 100% 60% / 0.10); }
+  .glass-mode .pivt-icon-green  { background: hsl(152 60% 48% / 0.10); }
+  .glass-mode .pivt-icon-amber  { background: hsl(38 88% 52% / 0.10); }
+  .glass-mode .pivt-icon-red    { background: hsl(0 72% 56% / 0.10); }
+  .glass-mode .pivt-icon-slate  { background: hsl(215 16% 52% / 0.08); }
 
   /* ── Status Chips ── */
   .pivt-chip {
@@ -189,49 +256,49 @@
   }
   .pivt-chip-green {
     color: hsl(var(--pivt-emerald));
-    background: hsl(152 60% 48% / 0.10);
-    border-color: hsl(152 60% 48% / 0.16);
+    background: hsl(152 60% 42% / 0.08);
+    border-color: hsl(152 60% 42% / 0.14);
   }
   .pivt-chip-purple {
     color: hsl(var(--pivt-purple));
-    background: hsl(262 90% 60% / 0.10);
-    border-color: hsl(262 90% 60% / 0.16);
+    background: hsl(262 90% 55% / 0.08);
+    border-color: hsl(262 90% 55% / 0.14);
   }
   .pivt-chip-amber {
     color: hsl(var(--pivt-amber));
-    background: hsl(38 88% 52% / 0.10);
-    border-color: hsl(38 88% 52% / 0.16);
+    background: hsl(38 88% 48% / 0.08);
+    border-color: hsl(38 88% 48% / 0.14);
   }
   .pivt-chip-red {
     color: hsl(var(--pivt-red));
-    background: hsl(0 72% 56% / 0.10);
-    border-color: hsl(0 72% 56% / 0.16);
+    background: hsl(0 72% 50% / 0.08);
+    border-color: hsl(0 72% 50% / 0.14);
   }
   .pivt-chip-blue {
     color: hsl(var(--pivt-blue));
-    background: hsl(217 100% 60% / 0.10);
-    border-color: hsl(217 100% 60% / 0.16);
+    background: hsl(217 100% 55% / 0.08);
+    border-color: hsl(217 100% 55% / 0.14);
   }
 
   /* ── Primary Button: AI gradient + glow ── */
   .pivt-btn-primary {
-    background: linear-gradient(135deg, hsl(262 90% 58%) 0%, hsl(217 100% 58%) 100%);
-    box-shadow: 0 0 20px hsl(262 90% 60% / 0.25);
+    background: linear-gradient(135deg, hsl(262 90% 55%) 0%, hsl(217 100% 55%) 100%);
+    box-shadow: 0 0 20px hsl(262 90% 55% / 0.20);
     border: 1px solid hsl(0 0% 100% / 0.12);
     transition: box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1),
                 transform 250ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   .pivt-btn-primary:hover {
-    box-shadow: 0 0 28px hsl(217 100% 60% / 0.30);
+    box-shadow: 0 0 28px hsl(217 100% 55% / 0.25);
     transform: translateY(-1px);
   }
 
   /* ── Gradient utilities ── */
   .pivt-gradient {
-    background: linear-gradient(135deg, hsl(228 32% 5%), hsl(226 22% 10%));
+    background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--muted)));
   }
   .pivt-glow {
-    box-shadow: 0 0 40px -10px hsl(262 72% 55% / 0.20);
+    box-shadow: 0 0 40px -10px hsl(262 72% 55% / 0.15);
   }
 
   /* ── Processing pulse ── */
@@ -251,13 +318,35 @@
     @apply w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150;
   }
   .pivt-nav-item:hover {
+    background: hsl(var(--muted));
+  }
+  .glass-mode .pivt-nav-item:hover {
     background: hsl(0 0% 100% / 0.04);
   }
   .pivt-nav-item-active {
-    background: hsl(262 90% 60% / 0.08);
+    background: hsl(262 90% 55% / 0.08);
     color: hsl(var(--accent));
     border-left: 2px solid hsl(var(--accent));
     padding-left: 10px;
+  }
+
+  /* ── Glass Mode Toggle ── */
+  .glass-toggle {
+    @apply relative inline-flex items-center h-7 rounded-full px-0.5 cursor-pointer transition-colors duration-300;
+    width: 52px;
+    background: hsl(var(--muted));
+  }
+  .glass-toggle[data-active="true"] {
+    background: hsl(var(--accent));
+  }
+  .glass-toggle-thumb {
+    @apply block h-5 w-5 rounded-full shadow-sm transition-transform duration-300;
+    background: hsl(var(--card));
+    transform: translateX(2px);
+  }
+  .glass-toggle[data-active="true"] .glass-toggle-thumb {
+    transform: translateX(24px);
+    background: white;
   }
 }
 
@@ -295,9 +384,19 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(0 0% 100% / 0.08);
+  background: hsl(var(--muted-foreground) / 0.2);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(0 0% 100% / 0.14);
+  background: hsl(var(--muted-foreground) / 0.35);
+}
+
+/* Theme transition */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0ms;
+}
+.theme-transitioning *, .theme-transitioning *::before, .theme-transitioning *::after {
+  transition-duration: 300ms !important;
+  transition-timing-function: ease !important;
 }
