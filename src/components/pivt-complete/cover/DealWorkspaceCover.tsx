@@ -20,6 +20,7 @@ import { DocumentsCover } from './DocumentsCover';
 import { ApprovalsCover } from './ApprovalsCover';
 import { PaymentsCover } from './PaymentsCover';
 import { EscrowCover } from './EscrowCover';
+import { IntelligenceMapCover } from './IntelligenceMapCover';
 
 // ── Workflow States ──
 const WORKFLOW_STEPS: { key: DealWorkflowState; label: string }[] = [
@@ -261,6 +262,7 @@ const TAB_COMPONENTS: Record<DealWorkspaceTab, React.FC> = {
   'approvals': ApprovalsCover,
   'payments-escrow': PaymentsEscrowSection,
   'audit-log': DealAuditSection,
+  'intelligence-map': IntelligenceMapCover,
 };
 
 // ── Main Component ──
