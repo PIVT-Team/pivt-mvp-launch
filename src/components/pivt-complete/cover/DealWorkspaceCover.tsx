@@ -1,16 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal, DealWorkflowState } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
   ArrowLeft, CheckCircle2, Clock, AlertTriangle, Ban,
   FileText, Users, Upload, Shield, CreditCard,
-  Landmark, Search, Lock,
+  Landmark, Search, Lock, Sparkles, Calendar, DollarSign,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { DEAL_WORKSPACE_TABS, DealWorkspaceTab } from '@/lib/navigation';
+import { Progress } from '@/components/ui/progress';
+import { DealWorkflowStepper, WorkflowStep } from './DealWorkflowStepper';
 
-// Import existing cover pages for embedding
+// Import existing cover pages
 import { StakeholdersDealTab } from './StakeholdersDealTab';
 import { KycKybDealTab } from './KycKybDealTab';
 import { CapTableCover } from './CapTableCover';
@@ -20,12 +21,11 @@ import { DocumentsCover } from './DocumentsCover';
 import { ApprovalsCover } from './ApprovalsCover';
 import { PaymentsCover } from './PaymentsCover';
 import { EscrowCover } from './EscrowCover';
-import { IntelligenceMapCover } from './IntelligenceMapCover';
 import { DealReportsCover } from './DealReportsCover';
 import { DealActivityCover } from './DealActivityCover';
 
-// ── Workflow States ──
-const WORKFLOW_STEPS: { key: DealWorkflowState; label: string }[] = [
+// ── Workflow state helpers ──
+const WORKFLOW_STEPS_META: { key: DealWorkflowState; label: string }[] = [
   { key: 'draft', label: 'Draft' },
   { key: 'data_uploaded', label: 'Data Uploaded' },
   { key: 'reconciliation', label: 'Reconciliation' },
@@ -34,7 +34,7 @@ const WORKFLOW_STEPS: { key: DealWorkflowState; label: string }[] = [
   { key: 'closed', label: 'Closed' },
 ];
 
-const stepIndex = (state: DealWorkflowState) => WORKFLOW_STEPS.findIndex(s => s.key === state);
+const stepIndex = (state: DealWorkflowState) => WORKFLOW_STEPS_META.findIndex(s => s.key === state);
 
 function getNextAction(state: DealWorkflowState, discrepancies: number, pendingApprovals: number): string {
   switch (state) {
@@ -50,7 +50,7 @@ function getNextAction(state: DealWorkflowState, discrepancies: number, pendingA
   }
 }
 
-// ── Demo data for reconciliation & audit ──
+// ── Demo data ──
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
   { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for a16z trust account', severity: 'critical' as const, resolved: false },
@@ -66,20 +66,44 @@ const AUDIT_ENTRIES = [
   { time: '2026-02-05 08:00', action: 'Deal created', actor: 'Deal Admin' },
 ];
 
-// ── Overview Section (inline) ──
+// ── Stepper step definitions ──
+type StepId = 'overview' | 'parties' | 'kyc' | 'data-docs' | 'reconciliation' | 'approvals' | 'payments-escrow' | 'audit-reports';
+
+interface SubNav { id: string; label: string }
+
+const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
+  'parties': [
+    { id: 'stakeholders', label: 'Stakeholders' },
+  ],
+  'data-docs': [
+    { id: 'documents', label: 'Documents & Ingestion' },
+    { id: 'data-tables', label: 'Data Tables' },
+    { id: 'cap-table', label: 'Cap Table' },
+    { id: 'waterfall', label: 'Waterfall' },
+  ],
+  'payments-escrow': [
+    { id: 'payments', label: 'Payments' },
+    { id: 'escrow', label: 'Escrow' },
+  ],
+  'audit-reports': [
+    { id: 'audit', label: 'Audit Log' },
+    { id: 'reports', label: 'Reports' },
+    { id: 'activity', label: 'Activity' },
+  ],
+};
+
+// ── Section Components ──
 const OverviewSection: React.FC = () => {
   const deal = useSelectedDeal();
-  const { stakeholders, documents, waterfallTiers, payments } = usePIVTStore();
-
+  const { stakeholders } = usePIVTStore();
   const currentIdx = stepIndex(deal.workflowState);
   const nextAction = getNextAction(deal.workflowState, deal.discrepanciesFound, deal.pendingApprovals);
 
   return (
     <div className="space-y-6">
-      {/* STATE MACHINE PROGRESS BAR */}
       <motion.div {...fadeInUp} className="pivt-card p-5">
         <div className="flex items-center justify-between">
-          {WORKFLOW_STEPS.map((step, i) => {
+          {WORKFLOW_STEPS_META.map((step, i) => {
             const isCurrent = i === currentIdx;
             const isComplete = i < currentIdx;
             const isBlocked = isCurrent && deal.hasBlocker;
@@ -99,7 +123,7 @@ const OverviewSection: React.FC = () => {
                   </div>
                   <span className={`text-[10px] font-medium text-center leading-tight ${text}`}>{step.label}</span>
                 </div>
-                {i < WORKFLOW_STEPS.length - 1 && (
+                {i < WORKFLOW_STEPS_META.length - 1 && (
                   <div className={`h-0.5 flex-1 mx-1 rounded ${i < currentIdx ? 'bg-validated' : 'bg-muted'}`} />
                 )}
               </React.Fragment>
@@ -108,7 +132,6 @@ const OverviewSection: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* NEXT REQUIRED ACTION */}
       <motion.div {...fadeInUp} className="pivt-card p-4 border-l-4 border-accent bg-accent/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
@@ -121,7 +144,6 @@ const OverviewSection: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Summary stats */}
       <div className="grid grid-cols-4 gap-4">
         {[
           { label: 'Recipients', value: deal.totalRecipients },
@@ -136,7 +158,6 @@ const OverviewSection: React.FC = () => {
         ))}
       </div>
 
-      {/* Quick data preview */}
       <div className="pivt-card p-5 space-y-3">
         <div className="flex items-center gap-2 mb-2">
           <Users className="w-4 h-4 text-accent" />
@@ -156,7 +177,6 @@ const OverviewSection: React.FC = () => {
         ))}
       </div>
 
-      {/* Progress bar */}
       <div className="pivt-card p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-muted-foreground">Ready to Pay</span>
@@ -170,7 +190,6 @@ const OverviewSection: React.FC = () => {
   );
 };
 
-// ── Reconciliation Section (inline, Newton-powered) ──
 const ReconciliationSection: React.FC = () => (
   <div className="space-y-4">
     <div className="flex items-center gap-2 mb-3">
@@ -178,7 +197,7 @@ const ReconciliationSection: React.FC = () => (
       <h3 className="font-medium">Reconciliation Results</h3>
       <span className="text-xs text-muted-foreground ml-auto">{DISCREPANCIES.filter(d => !d.resolved).length} unresolved</span>
     </div>
-    <p className="text-xs text-muted-foreground mb-4">Newton AI validation findings are embedded here. Discrepancy resolution status is tracked automatically.</p>
+    <p className="text-xs text-muted-foreground mb-4">Newton AI validation findings. Discrepancy resolution tracked automatically.</p>
     <div className="space-y-2">
       {DISCREPANCIES.map(disc => (
         <div key={disc.id} className={`pivt-card p-3 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/5' : 'border-discrepancy bg-discrepancy/5'} ${disc.resolved ? 'opacity-50' : ''}`}>
@@ -197,14 +216,12 @@ const ReconciliationSection: React.FC = () => (
   </div>
 );
 
-// ── Deal-Level Audit Section (inline) ──
 const DealAuditSection: React.FC = () => (
   <div className="space-y-4">
     <div className="flex items-center gap-2 mb-3">
       <FileText className="w-4 h-4 text-muted-foreground" />
       <h3 className="font-medium">Deal Audit Log</h3>
     </div>
-    <p className="text-xs text-muted-foreground mb-4">Immutable activity timeline — state changes, edits, approval records, and Newton outputs.</p>
     <div className="relative pl-5 space-y-3">
       <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border" />
       {AUDIT_ENTRIES.map((entry, i) => (
@@ -221,58 +238,75 @@ const DealAuditSection: React.FC = () => (
   </div>
 );
 
-// ── Stakeholders & KYC are now separate tabs ──
-
-// ── Data section (Ingestion + Cap Table + Waterfall) ──
 const DataSection: React.FC = () => (
   <div className="space-y-8">
     <DocumentIngestionCover />
-    <div className="border-t border-border pt-8">
-      <CapTableCover />
-    </div>
-    <div className="border-t border-border pt-8">
-      <WaterfallCover />
-    </div>
+    <div className="border-t border-border pt-8"><CapTableCover /></div>
+    <div className="border-t border-border pt-8"><WaterfallCover /></div>
   </div>
 );
 
-// ── Payments / Escrow combined ──
 const PaymentsEscrowSection: React.FC = () => (
   <div className="space-y-8">
     <PaymentsCover />
-    <div className="border-t border-border pt-8">
-      <EscrowCover />
-    </div>
+    <div className="border-t border-border pt-8"><EscrowCover /></div>
   </div>
 );
 
-// ── Tab content map ──
-const TAB_COMPONENTS: Record<DealWorkspaceTab, React.FC> = {
-  'overview': OverviewSection,
-  'stakeholders': StakeholdersDealTab,
-  'kyc-kyb': KycKybDealTab,
-  'data': DataSection,
-  'documents': DocumentsCover,
-  'reconciliation': ReconciliationSection,
-  'approvals': ApprovalsCover,
-  'payments-escrow': PaymentsEscrowSection,
-  'audit-log': DealAuditSection,
-  'reports': DealReportsCover,
-  'activity': DealActivityCover,
-  'intelligence-map': IntelligenceMapCover,
-};
+// ── Content map by stepId + optional subNav ──
+function getContentComponent(stepId: StepId, subNavId?: string): React.FC {
+  switch (stepId) {
+    case 'overview': return OverviewSection;
+    case 'parties': return StakeholdersDealTab;
+    case 'kyc': return KycKybDealTab;
+    case 'data-docs':
+      if (subNavId === 'cap-table') return CapTableCover;
+      if (subNavId === 'waterfall') return WaterfallCover;
+      if (subNavId === 'data-tables') return DataSection;
+      return DocumentsCover;
+    case 'reconciliation': return ReconciliationSection;
+    case 'approvals': return ApprovalsCover;
+    case 'payments-escrow':
+      if (subNavId === 'escrow') return EscrowCover;
+      return PaymentsCover;
+    case 'audit-reports':
+      if (subNavId === 'reports') return DealReportsCover;
+      if (subNavId === 'activity') return DealActivityCover;
+      return DealAuditSection;
+    default: return OverviewSection;
+  }
+}
 
 // ── Main Component ──
 export const DealWorkspaceCover: React.FC = () => {
   const deal = useSelectedDeal();
   const { setActiveSection } = usePIVTStore();
-  const [activeTab, setActiveTab] = useState<DealWorkspaceTab>('overview');
+  const [activeStepId, setActiveStepId] = useState<StepId>('overview');
+  const [activeSubNav, setActiveSubNav] = useState<string | undefined>();
 
-  const ActiveTabComponent = TAB_COMPONENTS[activeTab];
+  const handleStepClick = (id: string) => {
+    setActiveStepId(id as StepId);
+    const subs = STEP_SUB_NAV[id as StepId];
+    setActiveSubNav(subs ? subs[0].id : undefined);
+  };
+
+  const workflowSteps: WorkflowStep[] = useMemo(() => [
+    { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
+    { id: 'parties', number: 2, label: 'Parties & Stakeholders', completionPct: 85, blockers: deal.hasBlocker ? 1 : 0 },
+    { id: 'kyc', number: 3, label: 'KYC / KYB', completionPct: 72, blockers: 1 },
+    { id: 'data-docs', number: 4, label: 'Data & Documents', completionPct: 64, blockers: deal.discrepanciesFound },
+    { id: 'reconciliation', number: 5, label: 'Reconciliation', completionPct: deal.discrepanciesFound > 2 ? 40 : 78, blockers: DISCREPANCIES.filter(d => !d.resolved).length },
+    { id: 'approvals', number: 6, label: 'Approvals', completionPct: deal.pendingApprovals > 0 ? 50 : 100, blockers: deal.pendingApprovals },
+    { id: 'payments-escrow', number: 7, label: 'Payments & Escrow', completionPct: deal.readyToPayPercent, blockers: 0 },
+    { id: 'audit-reports', number: 8, label: 'Audit & Reports', completionPct: 100, blockers: 0 },
+  ], [deal]);
+
+  const subNavItems = STEP_SUB_NAV[activeStepId];
+  const ContentComponent = getContentComponent(activeStepId, activeSubNav);
 
   return (
-    <motion.div {...staggerChildren} className="space-y-6">
-      {/* Back to deals */}
+    <motion.div {...staggerChildren} className="space-y-5">
+      {/* Back */}
       <button
         onClick={() => setActiveSection('deals')}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -281,40 +315,88 @@ export const DealWorkspaceCover: React.FC = () => {
         Back to Deals
       </button>
 
-      {/* Deal Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">{deal.codeName}</h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">{deal.buyerName} acquiring {deal.targetCompany} · ${(deal.consideration / 1e9).toFixed(1)}B</p>
+      {/* ── Deal Header ── */}
+      <div className="pivt-card p-5">
+        <div className="flex items-center justify-between gap-6">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-semibold text-foreground truncate">{deal.codeName}</h1>
+              {deal.hasBlocker && (
+                <Badge className="bg-blocking/10 text-blocking border-blocking/20 shrink-0">
+                  <Ban className="w-3 h-3 mr-1" /> Blocked
+                </Badge>
+              )}
+            </div>
+            <p className="text-muted-foreground mt-0.5 text-sm">
+              {deal.buyerName} acquiring {deal.targetCompany}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-6 shrink-0">
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Deal Value</p>
+              <p className="font-mono text-sm font-semibold">${(deal.consideration / 1e9).toFixed(1)}B</p>
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div className="text-right">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Closing</p>
+              <p className="text-sm font-medium flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-muted-foreground" />
+                {deal.closingDate}
+              </p>
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <div className="min-w-[120px]">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Readiness</p>
+                <span className="font-mono text-xs font-semibold">{deal.readyToPayPercent}%</span>
+              </div>
+              <Progress value={deal.readyToPayPercent} className="h-1.5" />
+            </div>
+            <div className="h-8 w-px bg-border" />
+            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-accent hover:bg-accent/10 transition-colors">
+              <Sparkles className="w-3.5 h-3.5" />
+              What's blocking close?
+            </button>
+          </div>
         </div>
-        {deal.hasBlocker && (
-          <Badge className="bg-blocking/10 text-blocking border-blocking/20">
-            <Ban className="w-3 h-3 mr-1" /> Blocked
-          </Badge>
-        )}
       </div>
 
-      {/* Deal Workspace Tabs */}
-      <div className="flex gap-1 rounded-2xl p-1.5 flex-wrap" style={{ background: 'hsl(var(--muted) / 0.5)' }}>
-        {DEAL_WORKSPACE_TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-xl text-sm transition-all ${
-              activeTab === tab.id
-                ? 'bg-background text-foreground shadow-sm font-medium'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* ── Workflow Stepper ── */}
+      <DealWorkflowStepper
+        steps={workflowSteps}
+        activeStepId={activeStepId}
+        onStepClick={handleStepClick}
+      />
 
-      {/* Active Tab Content */}
-      <div>
-        <ActiveTabComponent />
-      </div>
+      {/* ── Sub-navigation chips ── */}
+      {subNavItems && (
+        <div className="flex gap-1.5">
+          {subNavItems.map(sub => (
+            <button
+              key={sub.id}
+              onClick={() => setActiveSubNav(sub.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                activeSubNav === sub.id
+                  ? 'bg-accent/10 text-accent border border-accent/20'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent'
+              }`}
+            >
+              {sub.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Content ── */}
+      <motion.div
+        key={`${activeStepId}-${activeSubNav}`}
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+      >
+        <ContentComponent />
+      </motion.div>
     </motion.div>
   );
 };

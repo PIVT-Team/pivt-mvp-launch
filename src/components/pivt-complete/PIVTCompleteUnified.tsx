@@ -21,6 +21,7 @@ import { AuditCover } from './cover/AuditAndReports';
 import { SettingsCover } from './cover/SettingsCover';
 import { GlobalReportsCover } from './cover/GlobalReportsCover';
 import { IntegrationsCover } from './cover/IntegrationsCover';
+import { IntelligenceMapCover } from './cover/IntelligenceMapCover';
 
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
@@ -38,6 +39,7 @@ const coverSections: Record<string, React.FC> = {
   audit: AuditCover,
   settings: SettingsCover,
   integrations: IntegrationsCover,
+  'intelligence-map': IntelligenceMapCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
