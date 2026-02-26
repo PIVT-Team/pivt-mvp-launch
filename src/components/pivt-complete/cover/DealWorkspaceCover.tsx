@@ -54,7 +54,7 @@ const AUDIT_ENTRIES = [
   { time: '2026-02-05 08:00', action: 'Deal created', actor: 'Deal Admin' },
 ];
 
-// ── Step definitions: 7 workflow steps ──
+// ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'verification' | 'structuring' | 'execution' | 'compliance' | 'ai';
 
 interface SubNav { id: string; label: string }
@@ -87,12 +87,11 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   ],
 };
 
-// ── Status label helper ──
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   not_started: { label: 'Not Started', className: 'bg-muted/60 text-muted-foreground' },
   in_progress: { label: 'In Progress', className: 'bg-amber-500/10 text-amber-600' },
   complete: { label: 'Complete', className: 'bg-emerald-500/10 text-emerald-600' },
-  needs_attention: { label: 'Attention', className: 'bg-red-500/10 text-red-500' },
+  needs_attention: { label: 'Attention', className: 'bg-red-400/10 text-red-400' },
 };
 
 // ── Section Components ──
@@ -103,13 +102,14 @@ const OverviewSection: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <motion.div {...fadeInUp} className="pivt-card p-4 border-l-4 border-accent bg-accent/5">
+      {/* V2 Next Action Panel */}
+      <motion.div {...fadeInUp} className="pivt-next-action p-5">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-xl bg-accent/12 flex items-center justify-center pivt-icon-pulse">
             <AlertTriangle className="w-4 h-4 text-accent" />
           </div>
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Next Required Action</p>
+            <p className="pivt-metric-label">Next Required Action</p>
             <p className="text-sm font-semibold mt-0.5">{nextAction}</p>
           </div>
         </div>
@@ -122,20 +122,20 @@ const OverviewSection: React.FC = () => {
           { label: 'Discrepancies', value: deal.discrepanciesFound, color: deal.discrepanciesFound > 0 ? 'text-discrepancy' : 'text-validated' },
           { label: 'Pending Approvals', value: deal.pendingApprovals, color: deal.pendingApprovals > 0 ? 'text-discrepancy' : 'text-validated' },
         ].map(stat => (
-          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-            <p className={`pivt-stat text-xl mt-1 ${stat.color || ''}`}>{stat.value}</p>
+          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-5">
+            <p className="pivt-metric-label">{stat.label}</p>
+            <p className={`pivt-stat text-xl mt-2 ${stat.color || ''}`}>{stat.value}</p>
           </motion.div>
         ))}
       </div>
 
-      <div className="pivt-card p-5 space-y-3">
+      <div className="pivt-card p-6 space-y-3">
         <div className="flex items-center gap-2 mb-2">
           <Users className="w-4 h-4 text-accent" />
           <h3 className="font-medium text-sm">Top Shareholders</h3>
         </div>
         {stakeholders.slice(0, 4).map(s => (
-          <div key={s.id} className="flex items-center justify-between text-sm py-1.5 border-b border-border/50 last:border-0">
+          <div key={s.id} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
             <span>{s.name}</span>
             <div className="flex items-center gap-4">
               <span className="text-xs text-muted-foreground">{s.ownershipPct}%</span>
@@ -148,13 +148,19 @@ const OverviewSection: React.FC = () => {
         ))}
       </div>
 
-      <div className="pivt-card p-4">
+      <div className="pivt-card p-5">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground">Ready to Pay</span>
+          <span className="pivt-metric-label">Ready to Pay</span>
           <span className="font-mono text-sm font-medium">{deal.readyToPayPercent}%</span>
         </div>
-        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div className="h-full bg-accent rounded-full transition-all" style={{ width: `${deal.readyToPayPercent}%` }} />
+        <div className="w-full h-2 bg-muted/40 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: 'linear-gradient(90deg, hsl(var(--g5-from)), hsl(var(--g5-to)))' }}
+            initial={{ width: 0 }}
+            animate={{ width: `${deal.readyToPayPercent}%` }}
+            transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
+          />
         </div>
       </div>
     </div>
@@ -171,7 +177,7 @@ const ReconciliationSection: React.FC = () => (
     <p className="text-xs text-muted-foreground mb-4">Newton AI validation findings. Discrepancy resolution tracked automatically.</p>
     <div className="space-y-2">
       {DISCREPANCIES.map(disc => (
-        <div key={disc.id} className={`pivt-card p-3 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/5' : 'border-discrepancy bg-discrepancy/5'} ${disc.resolved ? 'opacity-50' : ''}`}>
+        <div key={disc.id} className={`pivt-card p-4 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/4' : 'border-discrepancy bg-discrepancy/4'} ${disc.resolved ? 'opacity-50' : ''}`}>
           <div className="flex items-start justify-between">
             <div>
               <p className="text-xs font-medium">{disc.field}</p>
@@ -194,7 +200,7 @@ const DealAuditSection: React.FC = () => (
       <h3 className="font-medium">Deal Audit Log</h3>
     </div>
     <div className="relative pl-5 space-y-3">
-      <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border" />
+      <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border/40" />
       {AUDIT_ENTRIES.map((entry, i) => (
         <div key={i} className="relative flex items-start gap-3">
           <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
@@ -250,7 +256,6 @@ const SectionWithSideTabs: React.FC<{
 
   return (
     <div className="space-y-4">
-      {/* Section header with status chip */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-foreground">{stepLabel}</h2>
         <Badge className={`text-[10px] px-2.5 py-0.5 ${statusCfg.className}`}>
@@ -259,16 +264,15 @@ const SectionWithSideTabs: React.FC<{
       </div>
 
       <div className="flex gap-6">
-        {/* Vertical side tabs */}
         <div className="w-44 shrink-0 space-y-0.5">
           {subs.map(sub => (
             <button
               key={sub.id}
               onClick={() => onSubChange(sub.id)}
-              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm ${
                 activeSub === sub.id
                   ? 'font-semibold text-foreground border-l-[3px] bg-accent/8'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border-l-[3px] border-transparent'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/30 border-l-[3px] border-transparent'
               }`}
               style={activeSub === sub.id ? {
                 borderImage: 'linear-gradient(180deg, hsl(var(--g2-from)), hsl(var(--g2-to))) 1',
@@ -278,8 +282,6 @@ const SectionWithSideTabs: React.FC<{
             </button>
           ))}
         </div>
-
-        {/* Main content */}
         <div className="flex-1 min-w-0">
           {children}
         </div>
@@ -325,68 +327,68 @@ export const DealWorkspaceCover: React.FC = () => {
       {/* Back */}
       <button
         onClick={() => setActiveSection('deals')}
-        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="w-4 h-4" />
         Back to Deals
       </button>
 
-      {/* ── Deal Header ── */}
-      <div className="pivt-card p-5">
+      {/* ── V2 Deal Header (Panel Layer) ── */}
+      <div className="pivt-panel p-6">
         <div className="flex flex-col lg:flex-row lg:items-center gap-4">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-semibold text-foreground truncate">{deal.codeName}</h1>
+              <h1 className="text-2xl font-semibold text-foreground truncate" style={{ letterSpacing: '-0.04em' }}>{deal.codeName}</h1>
               {deal.hasBlocker && (
-                <Badge className="bg-blocking/10 text-blocking border-blocking/20 shrink-0">
+                <Badge className="bg-blocking/10 text-blocking border-blocking/15 shrink-0">
                   <Ban className="w-3 h-3 mr-1" /> Blocked
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground mt-0.5 text-sm truncate">
+            <p className="text-muted-foreground/70 mt-1 text-sm truncate font-normal">
               {deal.buyerName} acquiring {deal.targetCompany}
             </p>
           </div>
 
-          <div className="flex items-center gap-4 flex-wrap lg:ml-auto shrink-0">
+          <div className="flex items-center gap-5 flex-wrap lg:ml-auto shrink-0">
             <div className="text-left lg:text-right">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Deal Value</p>
-              <p className="font-mono text-sm font-semibold">${(deal.consideration / 1e6).toFixed(1)}M</p>
+              <p className="pivt-metric-label">Deal Value</p>
+              <p className="font-mono text-base font-medium mt-1">${(deal.consideration / 1e6).toFixed(1)}M</p>
             </div>
-            <div className="h-8 w-px bg-border hidden lg:block" />
+            <div className="h-8 w-px bg-border/30 hidden lg:block" />
             <div className="text-left lg:text-right">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Closing</p>
-              <p className="text-sm font-medium flex items-center gap-1">
-                <Calendar className="w-3 h-3 text-muted-foreground" />
+              <p className="pivt-metric-label">Closing</p>
+              <p className="text-sm font-medium flex items-center gap-1 mt-1">
+                <Calendar className="w-3 h-3 text-muted-foreground/50" />
                 {deal.closingDate}
               </p>
             </div>
-            <div className="h-8 w-px bg-border hidden lg:block" />
+            <div className="h-8 w-px bg-border/30 hidden lg:block" />
             <div className="min-w-[120px]">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Readiness</p>
-                <span className="font-mono text-xs font-semibold">{deal.readyToPayPercent}%</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="pivt-metric-label">Readiness</p>
+                <span className="font-mono text-xs font-medium">{deal.readyToPayPercent}%</span>
               </div>
               <Progress value={deal.readyToPayPercent} className="h-1.5" />
             </div>
-            <div className="h-8 w-px bg-border hidden lg:block" />
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-accent hover:bg-accent/10 transition-colors whitespace-nowrap">
-              <Sparkles className="w-3.5 h-3.5" />
+            <div className="h-8 w-px bg-border/30 hidden lg:block" />
+            <button className="pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-accent whitespace-nowrap">
+              <Sparkles className="w-3.5 h-3.5 pivt-spark" />
               What's blocking close?
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Blocking Issues Alert Strip ── */}
+      {/* ── V2 Blocking Issues Alert (softer) ── */}
       {totalBlockers > 0 && (
         <motion.div
           {...fadeInUp}
-          className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-blocking/20 bg-blocking/5"
+          className="pivt-alert-soft flex items-center gap-3 px-4 py-2.5"
         >
-          <AlertTriangle className="w-4 h-4 text-blocking shrink-0" />
+          <AlertTriangle className="w-4 h-4 text-blocking/80 shrink-0" />
           <span className="text-sm text-foreground">
-            <span className="font-semibold text-blocking">{totalBlockers} items</span>
+            <span className="font-semibold text-blocking/80">{totalBlockers} items</span>
             {' '}need attention across{' '}
             <span className="font-semibold">{sectionsWithBlockers} sections</span>
           </span>
@@ -395,14 +397,14 @@ export const DealWorkspaceCover: React.FC = () => {
               const firstBlocked = workflowSteps.find(s => s.blockers > 0);
               if (firstBlocked) handleStepClick(firstBlocked.id);
             }}
-            className="ml-auto text-xs font-medium text-blocking hover:text-blocking/80 transition-colors whitespace-nowrap"
+            className="ml-auto text-xs font-medium text-blocking/70 hover:text-blocking transition-colors whitespace-nowrap"
           >
             View all →
           </button>
         </motion.div>
       )}
 
-      {/* ── Workflow Stepper ── */}
+      {/* ── V2 Workflow Stepper ── */}
       <DealWorkflowStepper
         steps={workflowSteps}
         activeStepId={activeStepId}
@@ -414,7 +416,7 @@ export const DealWorkspaceCover: React.FC = () => {
         key={`${activeStepId}-${activeSubNav}`}
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.25 }}
+        transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
       >
         {subNavItems ? (
           <SectionWithSideTabs
