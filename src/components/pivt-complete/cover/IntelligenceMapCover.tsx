@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { springConfig, fadeInUp } from '@/lib/animations';
 
 // ── Types ──
@@ -688,34 +689,44 @@ export const IntelligenceMapCover: React.FC = () => {
         <div className="flex items-center gap-2 shrink-0">
           {viewMode === 'deal' && (
             <>
-              <button
-                onClick={() => setHighlightRisk(!highlightRisk)}
-                className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all duration-200 ${
-                  highlightRisk
-                    ? 'text-foreground bg-muted/40'
-                    : 'text-muted-foreground/50 hover:text-muted-foreground'
-                }`}
-              >
-                <AlertTriangle className="w-3 h-3 shrink-0" />
-                <span className="hidden lg:inline">Risk</span>
-                {riskNodeCount > 0 && (
-                  <span className={`text-[10px] whitespace-nowrap ${highlightRisk ? 'text-blocking/70' : 'text-muted-foreground/40'}`}>
-                    · {riskNodeCount}
-                  </span>
-                )}
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setHighlightRisk(!highlightRisk)}
+                    className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all duration-200 ${
+                      highlightRisk
+                        ? 'text-foreground bg-muted/40'
+                        : 'text-muted-foreground/50 hover:text-muted-foreground'
+                    }`}
+                  >
+                    <AlertTriangle className="w-3 h-3 shrink-0" />
+                    <span className="hidden lg:inline">Risk</span>
+                    {riskNodeCount > 0 && (
+                      <span className={`text-[10px] whitespace-nowrap ${highlightRisk ? 'text-blocking/70' : 'text-muted-foreground/40'}`}>
+                        · {riskNodeCount}
+                      </span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Highlight flagged risk nodes</TooltipContent>
+              </Tooltip>
 
-              <button
-                onClick={() => setShowSimPanel(!showSimPanel)}
-                className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all duration-200 ${
-                  showSimPanel
-                    ? 'text-foreground bg-muted/40'
-                    : 'text-muted-foreground/50 hover:text-muted-foreground'
-                }`}
-              >
-                <Play className="w-3 h-3 shrink-0" />
-                <span className="hidden lg:inline">What-If</span>
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setShowSimPanel(!showSimPanel)}
+                    className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all duration-200 ${
+                      showSimPanel
+                        ? 'text-foreground bg-muted/40'
+                        : 'text-muted-foreground/50 hover:text-muted-foreground'
+                    }`}
+                  >
+                    <Play className="w-3 h-3 shrink-0" />
+                    <span className="hidden lg:inline">What-If</span>
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Simulate changes to see how structure and payouts are affected</TooltipContent>
+              </Tooltip>
 
               <button
                 onClick={handleGoToWorkspace}
