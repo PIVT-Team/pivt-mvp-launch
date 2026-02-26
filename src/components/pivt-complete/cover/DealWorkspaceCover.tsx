@@ -4,11 +4,11 @@ import { usePIVTStore, useSelectedDeal, DealWorkflowState } from '@/stores/pivtS
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
   ArrowLeft, AlertTriangle, Ban,
-  FileText, Users, Search, Sparkles, Calendar,
+  FileText, Users, Search, Sparkles, Calendar, Brain,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { DealWorkflowStepper, WorkflowStep } from './DealWorkflowStepper';
+import { DealWorkflowStepper, WorkflowStep, deriveStatus } from './DealWorkflowStepper';
 
 // Import existing cover pages
 import { StakeholdersDealTab } from './StakeholdersDealTab';
@@ -22,19 +22,9 @@ import { PaymentsCover } from './PaymentsCover';
 import { EscrowCover } from './EscrowCover';
 import { DealReportsCover } from './DealReportsCover';
 import { DealActivityCover } from './DealActivityCover';
+import { AIDashboardCover } from './AIDashboardCover';
 
-// ── Workflow state helpers ──
-const WORKFLOW_STEPS_META: { key: DealWorkflowState; label: string }[] = [
-  { key: 'draft', label: 'Draft' },
-  { key: 'data_uploaded', label: 'Data Uploaded' },
-  { key: 'reconciliation', label: 'Reconciliation' },
-  { key: 'awaiting_approval', label: 'Awaiting Approval' },
-  { key: 'approved', label: 'Approved (Locked)' },
-  { key: 'closed', label: 'Closed' },
-];
-
-const stepIndex = (state: DealWorkflowState) => WORKFLOW_STEPS_META.findIndex(s => s.key === state);
-
+// ── Workflow helpers ──
 function getNextAction(state: DealWorkflowState, discrepancies: number, pendingApprovals: number): string {
   switch (state) {
     case 'draft': return 'Upload Seller Cap Table';
@@ -49,7 +39,6 @@ function getNextAction(state: DealWorkflowState, discrepancies: number, pendingA
   }
 }
 
-// ── Demo data ──
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
   { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for a16z trust account', severity: 'critical' as const, resolved: false },
@@ -65,30 +54,45 @@ const AUDIT_ENTRIES = [
   { time: '2026-02-05 08:00', action: 'Deal created', actor: 'Deal Admin' },
 ];
 
-// ── Stepper step definitions ──
-type StepId = 'overview' | 'parties' | 'kyc' | 'data-docs' | 'reconciliation' | 'approvals' | 'payments-escrow' | 'audit-reports';
+// ── Step definitions: 7 workflow steps ──
+type StepId = 'overview' | 'stakeholders' | 'verification' | 'structuring' | 'execution' | 'compliance' | 'ai';
 
 interface SubNav { id: string; label: string }
 
 const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
-  'parties': [
-    { id: 'stakeholders', label: 'Stakeholders' },
+  stakeholders: [
+    { id: 'parties', label: 'Parties' },
+    { id: 'ownership', label: 'Ownership' },
+    { id: 'permissions', label: 'Permissions' },
   ],
-  'data-docs': [
-    { id: 'documents', label: 'Documents & Ingestion' },
-    { id: 'data-tables', label: 'Data Tables' },
+  verification: [
+    { id: 'kyc', label: 'KYC / KYB' },
+    { id: 'documents', label: 'Documents' },
+    { id: 'reconciliation', label: 'Reconciliation' },
+  ],
+  structuring: [
     { id: 'cap-table', label: 'Cap Table' },
     { id: 'waterfall', label: 'Waterfall' },
+    { id: 'data-ingestion', label: 'Data Ingestion' },
   ],
-  'payments-escrow': [
+  execution: [
+    { id: 'approvals', label: 'Approvals' },
     { id: 'payments', label: 'Payments' },
     { id: 'escrow', label: 'Escrow' },
   ],
-  'audit-reports': [
+  compliance: [
     { id: 'audit', label: 'Audit Log' },
     { id: 'reports', label: 'Reports' },
     { id: 'activity', label: 'Activity' },
   ],
+};
+
+// ── Status label helper ──
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  not_started: { label: 'Not Started', className: 'bg-muted/60 text-muted-foreground' },
+  in_progress: { label: 'In Progress', className: 'bg-amber-500/10 text-amber-600' },
+  complete: { label: 'Complete', className: 'bg-emerald-500/10 text-emerald-600' },
+  needs_attention: { label: 'Attention', className: 'bg-red-500/10 text-red-500' },
 };
 
 // ── Section Components ──
@@ -205,44 +209,84 @@ const DealAuditSection: React.FC = () => (
   </div>
 );
 
-const DataSection: React.FC = () => (
-  <div className="space-y-8">
-    <DocumentIngestionCover />
-    <div className="border-t border-border pt-8"><CapTableCover /></div>
-    <div className="border-t border-border pt-8"><WaterfallCover /></div>
-  </div>
-);
-
-const PaymentsEscrowSection: React.FC = () => (
-  <div className="space-y-8">
-    <PaymentsCover />
-    <div className="border-t border-border pt-8"><EscrowCover /></div>
-  </div>
-);
-
-// ── Content map by stepId + optional subNav ──
+// ── Content resolver ──
 function getContentComponent(stepId: StepId, subNavId?: string): React.FC {
   switch (stepId) {
     case 'overview': return OverviewSection;
-    case 'parties': return StakeholdersDealTab;
-    case 'kyc': return KycKybDealTab;
-    case 'data-docs':
-      if (subNavId === 'cap-table') return CapTableCover;
+    case 'stakeholders':
+      if (subNavId === 'ownership') return CapTableCover;
+      return StakeholdersDealTab;
+    case 'verification':
+      if (subNavId === 'documents') return DocumentsCover;
+      if (subNavId === 'reconciliation') return ReconciliationSection;
+      return KycKybDealTab;
+    case 'structuring':
       if (subNavId === 'waterfall') return WaterfallCover;
-      if (subNavId === 'data-tables') return DataSection;
-      return DocumentsCover;
-    case 'reconciliation': return ReconciliationSection;
-    case 'approvals': return ApprovalsCover;
-    case 'payments-escrow':
+      if (subNavId === 'data-ingestion') return DocumentIngestionCover;
+      return CapTableCover;
+    case 'execution':
+      if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'escrow') return EscrowCover;
-      return PaymentsCover;
-    case 'audit-reports':
+      return ApprovalsCover;
+    case 'compliance':
       if (subNavId === 'reports') return DealReportsCover;
       if (subNavId === 'activity') return DealActivityCover;
       return DealAuditSection;
+    case 'ai': return AIDashboardCover;
     default: return OverviewSection;
   }
 }
+
+// ── Vertical Sub-Tab Layout ──
+const SectionWithSideTabs: React.FC<{
+  subs: SubNav[];
+  activeSub: string;
+  onSubChange: (id: string) => void;
+  stepLabel: string;
+  stepStatus: string;
+  children: React.ReactNode;
+}> = ({ subs, activeSub, onSubChange, stepLabel, stepStatus, children }) => {
+  const statusCfg = STATUS_LABELS[stepStatus] || STATUS_LABELS.not_started;
+
+  return (
+    <div className="space-y-4">
+      {/* Section header with status chip */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">{stepLabel}</h2>
+        <Badge className={`text-[10px] px-2.5 py-0.5 ${statusCfg.className}`}>
+          {statusCfg.label}
+        </Badge>
+      </div>
+
+      <div className="flex gap-6">
+        {/* Vertical side tabs */}
+        <div className="w-44 shrink-0 space-y-0.5">
+          {subs.map(sub => (
+            <button
+              key={sub.id}
+              onClick={() => onSubChange(sub.id)}
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+                activeSub === sub.id
+                  ? 'font-semibold text-foreground border-l-[3px] bg-accent/8'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40 border-l-[3px] border-transparent'
+              }`}
+              style={activeSub === sub.id ? {
+                borderImage: 'linear-gradient(180deg, hsl(var(--g2-from)), hsl(var(--g2-to))) 1',
+              } : undefined}
+            >
+              {sub.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ── Main Component ──
 export const DealWorkspaceCover: React.FC = () => {
@@ -259,13 +303,12 @@ export const DealWorkspaceCover: React.FC = () => {
 
   const workflowSteps: WorkflowStep[] = useMemo(() => [
     { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-    { id: 'parties', number: 2, label: 'Parties & Stakeholders', completionPct: 85, blockers: deal.hasBlocker ? 1 : 0 },
-    { id: 'kyc', number: 3, label: 'KYC / KYB', completionPct: 72, blockers: 1 },
-    { id: 'data-docs', number: 4, label: 'Data & Documents', completionPct: 64, blockers: deal.discrepanciesFound },
-    { id: 'reconciliation', number: 5, label: 'Reconciliation', completionPct: deal.discrepanciesFound > 2 ? 40 : 78, blockers: DISCREPANCIES.filter(d => !d.resolved).length },
-    { id: 'approvals', number: 6, label: 'Approvals', completionPct: deal.pendingApprovals > 0 ? 50 : 100, blockers: deal.pendingApprovals },
-    { id: 'payments-escrow', number: 7, label: 'Payments & Escrow', completionPct: deal.readyToPayPercent, blockers: 0 },
-    { id: 'audit-reports', number: 8, label: 'Audit & Reports', completionPct: 100, blockers: 0 },
+    { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 85, blockers: deal.hasBlocker ? 1 : 0 },
+    { id: 'verification', number: 3, label: 'Verification', completionPct: 72, blockers: 1 },
+    { id: 'structuring', number: 4, label: 'Structuring', completionPct: 64, blockers: deal.discrepanciesFound },
+    { id: 'execution', number: 5, label: 'Execution', completionPct: deal.pendingApprovals > 0 ? 50 : 100, blockers: deal.pendingApprovals },
+    { id: 'compliance', number: 6, label: 'Compliance', completionPct: 100, blockers: 0 },
+    { id: 'ai', number: 7, label: 'AI', completionPct: 0, blockers: 0 },
   ], [deal]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
@@ -273,6 +316,9 @@ export const DealWorkspaceCover: React.FC = () => {
 
   const subNavItems = STEP_SUB_NAV[activeStepId];
   const ContentComponent = getContentComponent(activeStepId, activeSubNav);
+
+  const currentStep = workflowSteps.find(s => s.id === activeStepId);
+  const currentStatus = currentStep ? deriveStatus(currentStep) : 'not_started';
 
   return (
     <motion.div {...staggerChildren} className="space-y-5">
@@ -346,7 +392,6 @@ export const DealWorkspaceCover: React.FC = () => {
           </span>
           <button
             onClick={() => {
-              // Find first section with blockers
               const firstBlocked = workflowSteps.find(s => s.blockers > 0);
               if (firstBlocked) handleStepClick(firstBlocked.id);
             }}
@@ -364,25 +409,6 @@ export const DealWorkspaceCover: React.FC = () => {
         onStepClick={handleStepClick}
       />
 
-      {/* ── Sub-navigation chips ── */}
-      {subNavItems && (
-        <div className="flex gap-1.5">
-          {subNavItems.map(sub => (
-            <button
-              key={sub.id}
-              onClick={() => setActiveSubNav(sub.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
-                activeSubNav === sub.id
-                  ? 'bg-accent/10 text-accent border border-accent/20'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent'
-              }`}
-            >
-              {sub.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* ── Content ── */}
       <motion.div
         key={`${activeStepId}-${activeSubNav}`}
@@ -390,7 +416,19 @@ export const DealWorkspaceCover: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25 }}
       >
-        <ContentComponent />
+        {subNavItems ? (
+          <SectionWithSideTabs
+            subs={subNavItems}
+            activeSub={activeSubNav || subNavItems[0].id}
+            onSubChange={setActiveSubNav}
+            stepLabel={currentStep?.label || ''}
+            stepStatus={currentStatus}
+          >
+            <ContentComponent />
+          </SectionWithSideTabs>
+        ) : (
+          <ContentComponent />
+        )}
       </motion.div>
     </motion.div>
   );
