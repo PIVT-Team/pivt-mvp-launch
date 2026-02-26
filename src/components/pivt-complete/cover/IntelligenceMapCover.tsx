@@ -777,28 +777,43 @@ export const IntelligenceMapCover: React.FC = () => {
                   </radialGradient>
                 </defs>
 
-                {/* Edges — curved paths */}
+                {/* Edges — curved paths, always visible */}
                 {edges.map((e, i) => {
                   const from = nodes.find(n => n.id === e.from);
                   const to = nodes.find(n => n.id === e.to);
                   if (!from || !to) return null;
                   const visible = filteredIds.has(from.id) && filteredIds.has(to.id);
                   const highlighted = hoveredNode ? connectedIds.has(from.id) && connectedIds.has(to.id) : false;
-                  // Slight curve via quadratic bezier
+                  const dimmedEdge = hoveredNode && !highlighted;
                   const mx = (from.x + to.x) / 2;
                   const my = (from.y + to.y) / 2;
                   const dx = to.x - from.x;
                   const dy = to.y - from.y;
                   const cx2 = mx - dy * 0.08;
                   const cy2 = my + dx * 0.08;
+
+                  let strokeColor = 'hsl(var(--muted-foreground))';
+                  let strokeOp = visible ? 0.22 : 0.06;
+                  let strokeW = e.strength ? Math.max(1, e.strength * 1.5) : 1;
+
+                  if (highlighted) {
+                    strokeColor = 'hsl(var(--accent))';
+                    strokeOp = 0.6;
+                    strokeW = 2;
+                  } else if (dimmedEdge) {
+                    strokeOp = 0.06;
+                  }
+
                   return (
                     <path key={i}
                       d={`M${from.x},${from.y} Q${cx2},${cy2} ${to.x},${to.y}`}
                       fill="none"
-                      stroke={highlighted ? 'hsl(var(--accent))' : visible ? 'hsl(var(--border))' : 'hsl(var(--border) / 0.15)'}
-                      strokeWidth={highlighted ? 2 : e.strength ? Math.max(0.8, e.strength * 1.5) : 0.8}
+                      stroke={strokeColor}
+                      strokeWidth={strokeW}
+                      strokeLinecap="round"
                       strokeDasharray={e.label === 'receives_payment' ? '4 3' : undefined}
-                      strokeOpacity={highlighted ? 0.7 : visible ? 0.3 : 0.08}
+                      strokeOpacity={strokeOp}
+                      style={{ transition: 'stroke-opacity 0.2s, stroke 0.2s' }}
                     />
                   );
                 })}
