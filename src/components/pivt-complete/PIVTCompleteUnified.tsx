@@ -167,12 +167,21 @@ export const PIVTCompleteUnified: React.FC = () => {
               )}
               <div className="space-y-0.5">
                 {group.items.map((item) => {
+                  const isPanelItem = item.path === 'newton' || item.path === 'support';
                   const isActive = activeSection === item.path;
                   return (
                     <button
                       key={item.path}
-                      onClick={() => setActiveSection(item.path as ActiveSection)}
-                      className={`pivt-nav-item ${isActive ? 'pivt-nav-item-active' : 'text-sidebar-foreground'}`}
+                      onClick={() => {
+                        if (item.path === 'newton') {
+                          window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+                        } else if (item.path === 'support') {
+                          window.dispatchEvent(new CustomEvent('pivt:open-support'));
+                        } else {
+                          setActiveSection(item.path as ActiveSection);
+                        }
+                      }}
+                      className={`pivt-nav-item ${isActive && !isPanelItem ? 'pivt-nav-item-active' : 'text-sidebar-foreground'}`}
                     >
                       <item.icon className="w-[18px] h-[18px] shrink-0" style={{ color: isActive ? undefined : item.iconColor }} />
                       {!sidebarCollapsed && <span className="flex-1 text-left truncate">{item.label}</span>}
