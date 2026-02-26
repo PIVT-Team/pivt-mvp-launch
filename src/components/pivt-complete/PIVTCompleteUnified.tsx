@@ -248,11 +248,7 @@ export const PIVTCompleteUnified: React.FC = () => {
             <TooltipTrigger asChild>
               <button
                 onClick={() => setActiveSection('ai' as ActiveSection)}
-                className={`pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold relative group ${
-                  activeSection === 'ai'
-                    ? 'text-accent pivt-ai-glow'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+                className="pivt-btn-primary pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white relative group rounded-xl"
               >
                 <Brain className="w-4 h-4 pivt-spark" />
                 <span>AI Deal Scan</span>

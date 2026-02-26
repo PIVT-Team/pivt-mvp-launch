@@ -107,7 +107,7 @@ export const SettingsCover: React.FC = () => {
                 <h3 className="font-medium">Team Members ({activeMembers.length})</h3>
                 <button
                   onClick={() => setInviteOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+                  className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white"
                 >
                   <Plus className="w-4 h-4" /> Invite Member
                 </button>

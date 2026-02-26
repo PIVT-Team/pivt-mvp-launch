@@ -83,18 +83,17 @@ export const GlobalReportsCover: React.FC = () => {
                       <Download className="w-3.5 h-3.5 mr-1.5" /> Download
                     </Button>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
+                  <button
                     onClick={() => setModalReport(report)}
                     disabled={generating}
+                    className="pivt-btn-primary flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-white disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none"
                   >
                     {generating ? (
-                      <><Clock className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Generating…</>
+                      <><Clock className="w-3.5 h-3.5 animate-spin" /> Generating…</>
                     ) : (
-                      <><Download className="w-3.5 h-3.5 mr-1.5" /> Generate</>
+                      <><Download className="w-3.5 h-3.5" /> Generate</>
                     )}
-                  </Button>
+                  </button>
                 </div>
               </motion.div>
             );
