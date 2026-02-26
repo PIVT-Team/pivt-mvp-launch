@@ -356,6 +356,7 @@ export const IntelligenceMapCover: React.FC = () => {
   const [simResult, setSimResult] = useState<string | null>(null);
   const [showDealDetail, setShowDealDetail] = useState(false);
   const [viewMode, setViewMode] = useState<'deal' | 'portfolio'>('deal');
+  const [labelMode, setLabelMode] = useState<'off' | 'smart' | 'all'>('smart');
   const [filters, setFilters] = useState<Record<string, boolean>>({
     stakeholder: true, waterfall: true, compliance: true, document: true, payment: true,
   });
@@ -463,6 +464,56 @@ export const IntelligenceMapCover: React.FC = () => {
     });
     return ids;
   }, [hoveredNode, edges]);
+
+  // Smart label visibility: compute which labels to show by priority with collision detection
+  const smartVisibleIds = useMemo(() => {
+    if (labelMode === 'off') return new Set<string>();
+    if (labelMode === 'all') return new Set(nodes.map(n => n.id));
+
+    // Priority scoring: deal=100, risk critical=80, risk warning=60, risk info=40, then by connectivity
+    const connectionCount = new Map<string, number>();
+    edges.forEach(e => {
+      connectionCount.set(e.from, (connectionCount.get(e.from) || 0) + 1);
+      connectionCount.set(e.to, (connectionCount.get(e.to) || 0) + 1);
+    });
+
+    const scored = nodes.map(n => {
+      let score = 0;
+      if (n.type === 'deal') score = 100;
+      else if (n.riskLevel === 'critical') score = 80;
+      else if (n.riskLevel === 'warning') score = 60;
+      else if (n.riskLevel === 'info') score = 40;
+      score += (connectionCount.get(n.id) || 0) * 3;
+      // Key entity types get a boost
+      if (n.type === 'escrow' || n.type === 'stakeholder') score += 10;
+      return { node: n, score };
+    }).sort((a, b) => b.score - a.score);
+
+    // Take top 10 candidates, then collision-check
+    const candidates = scored.slice(0, 12);
+    const placed: { x: number; y: number; w: number; h: number }[] = [];
+    const visible = new Set<string>();
+
+    for (const { node } of candidates) {
+      const labelLen = Math.min(node.label.length, 18);
+      const w = labelLen * 7; // approx width
+      const h = 16;
+      const lx = node.x - w / 2;
+      const ly = node.y + node.size / 2 + 10;
+
+      // Check collision with already-placed labels
+      const collides = placed.some(p =>
+        lx < p.x + p.w && lx + w > p.x && ly < p.y + p.h && ly + h > p.y
+      );
+
+      if (!collides) {
+        placed.push({ x: lx, y: ly, w, h });
+        visible.add(node.id);
+      }
+    }
+
+    return visible;
+  }, [nodes, edges, labelMode]);
 
   const runSimulation = (simId: string) => {
     setActiveSim(simId);
@@ -673,6 +724,24 @@ export const IntelligenceMapCover: React.FC = () => {
                 <ExternalLink className="w-3 h-3 shrink-0" />
                 <span className="hidden lg:inline">Open Deal</span>
               </button>
+
+              {/* Label mode toggle */}
+              <div className="w-px h-5 bg-border/30 mx-0.5 shrink-0" />
+              <div className="flex items-center gap-0.5">
+                {(['off', 'smart', 'all'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setLabelMode(mode)}
+                    className={`px-2 h-7 rounded text-[10px] font-medium whitespace-nowrap transition-all duration-200 ${
+                      labelMode === mode
+                        ? 'text-foreground bg-muted/50'
+                        : 'text-muted-foreground/40 hover:text-muted-foreground'
+                    }`}
+                  >
+                    {mode === 'off' ? 'Labels Off' : mode === 'smart' ? 'Smart' : 'All Labels'}
+                  </button>
+                ))}
+              </div>
             </>
           )}
         </div>
@@ -743,8 +812,8 @@ export const IntelligenceMapCover: React.FC = () => {
                   const dimmed = hoveredNode && !isConnected;
                   const showHalo = highlightRisk && node.riskLevel && node.riskLevel !== 'none';
                   const isDealNode = node.type === 'deal';
-                  // Tiered label visibility: always show for deal node, hovered, or selected
-                  const showLabel = isDealNode || isHovered || isSelected;
+                  // Smart label: show if deal/hovered/selected/connected-to-hovered, or in smartVisibleIds
+                  const showLabel = isDealNode || isHovered || isSelected || (isConnected && hoveredNode !== null) || smartVisibleIds.has(node.id);
                   return (
                     <g key={node.id}
                       onClick={() => handleNodeClick(node)}
