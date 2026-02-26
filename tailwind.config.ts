@@ -18,9 +18,20 @@ export default {
         mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
-        'page-title': ['1.625rem', { lineHeight: '2rem', letterSpacing: '-0.035em', fontWeight: '700' }],
-        'section-title': ['1.125rem', { lineHeight: '1.625rem', letterSpacing: '-0.02em', fontWeight: '600' }],
+        'page-title': ['1.625rem', { lineHeight: '2rem', letterSpacing: '-0.04em', fontWeight: '600' }],
+        'section-title': ['1.125rem', { lineHeight: '1.625rem', letterSpacing: '-0.025em', fontWeight: '600' }],
         'table-header': ['0.8125rem', { lineHeight: '1.125rem', letterSpacing: '0.04em', fontWeight: '600' }],
+        'metric-label': ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.12em', fontWeight: '600' }],
+        'metric-value': ['1.5rem', { lineHeight: '1.75rem', letterSpacing: '-0.02em', fontWeight: '500' }],
+      },
+      spacing: {
+        'dls-xs': '4px',
+        'dls-sm': '8px',
+        'dls-md': '16px',
+        'dls-lg': '24px',
+        'dls-xl': '32px',
+        'dls-2xl': '48px',
+        'dls-3xl': '64px',
       },
       colors: {
         border: "hsl(var(--border))",
