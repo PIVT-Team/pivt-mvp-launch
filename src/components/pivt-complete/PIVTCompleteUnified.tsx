@@ -251,7 +251,7 @@ export const PIVTCompleteUnified: React.FC = () => {
                   <motion.div
                     layoutId="ai-toolbar-underline"
                     className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
-                    style={{ background: 'linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)))' }}
+                    style={{ background: 'var(--pivt-gradient-accent)' }}
                   />
                 )}
               </button>
@@ -282,11 +282,11 @@ export const PIVTCompleteUnified: React.FC = () => {
 
           {/* Profile */}
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold cursor-pointer transition-all duration-200 hover:brightness-105 hover:scale-[1.03]"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold cursor-pointer pivt-gradient-interactive"
             style={{
-              background: 'linear-gradient(135deg, #8F6BFF, #2E1F9E)',
+              background: 'var(--pivt-gradient-primary)',
               color: '#FFFFFF',
-              boxShadow: '0 4px 12px rgba(46, 31, 158, 0.25)',
+              boxShadow: 'var(--pivt-gradient-glow)',
               letterSpacing: '-0.02em',
             }}
           >
