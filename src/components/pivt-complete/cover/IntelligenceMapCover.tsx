@@ -1,15 +1,18 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
+import { usePIVTStore, useSelectedDeal, DemoDeal } from '@/stores/pivtStore';
 import {
-  Search, Play, RotateCcw, X, ArrowRight, Sparkles,
-  Eye, Users, CreditCard, FileText, Shield, Activity,
+  Search, Play, RotateCcw, X, ArrowRight, Sparkles, ChevronDown, Check,
+  Eye, Users, CreditCard, FileText, Shield, Activity, ExternalLink,
+  Calendar, AlertTriangle, Ban, TrendingUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Progress } from '@/components/ui/progress';
 import { springConfig, fadeInUp } from '@/lib/animations';
 
+// ── Types ──
 interface GraphNode {
   id: string;
   label: string;
@@ -60,9 +63,290 @@ const SIMULATIONS = [
   { id: 'add-expense', label: 'Add $50M transaction expense', description: 'See how additional fees flow through the waterfall' },
 ];
 
+// ── Deal Selector Dropdown ──
+const DealSelectorDropdown: React.FC<{
+  deals: DemoDeal[];
+  selectedDealId: string;
+  onSelect: (id: string) => void;
+}> = ({ deals, selectedDealId, onSelect }) => {
+  const [open, setOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const selected = deals.find(d => d.id === selectedDealId) || deals[0];
+
+  const filtered = searchTerm
+    ? deals.filter(d => d.codeName.toLowerCase().includes(searchTerm.toLowerCase()) || d.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : deals;
+
+  const statusDot: Record<string, string> = {
+    drafting: 'bg-muted-foreground/40',
+    diligence: 'bg-amber-400',
+    signing: 'bg-blue-400',
+    closing: 'bg-emerald-500',
+    completed: 'bg-emerald-600',
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/50 bg-background/60 backdrop-blur-sm hover:bg-muted/40 transition-all text-sm"
+      >
+        <span className={`w-2 h-2 rounded-full ${statusDot[selected.status] || 'bg-muted-foreground/40'}`} />
+        <span className="font-medium">Viewing: {selected.codeName}</span>
+        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+            <motion.div
+              initial={{ opacity: 0, y: -4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.98 }}
+              transition={{ duration: 0.15 }}
+              className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border/50 bg-background/95 backdrop-blur-xl shadow-xl z-50 overflow-hidden"
+            >
+              <div className="p-2">
+                <div className="relative mb-2">
+                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    placeholder="Search deals..."
+                    className="w-full bg-muted/40 border border-border/50 rounded-lg pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:border-accent/40"
+                    autoFocus
+                  />
+                </div>
+              </div>
+              <div className="max-h-60 overflow-y-auto px-1 pb-1">
+                {filtered.map(deal => (
+                  <button
+                    key={deal.id}
+                    onClick={() => { onSelect(deal.id); setOpen(false); setSearchTerm(''); }}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-all ${
+                      deal.id === selectedDealId ? 'bg-accent/8' : 'hover:bg-muted/40'
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${statusDot[deal.status] || 'bg-muted-foreground/40'}`} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{deal.codeName}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{deal.buyerName} → {deal.targetCompany}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-mono text-xs">${(deal.consideration / 1e6).toFixed(0)}M</p>
+                      <p className="text-[10px] text-muted-foreground">{deal.readyToPayPercent}%</p>
+                    </div>
+                    {deal.id === selectedDealId && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ── Deal Detail Side Panel ──
+const DealDetailPanel: React.FC<{
+  deal: DemoDeal;
+  onClose: () => void;
+  onGoToWorkspace: () => void;
+  riskCount: number;
+}> = ({ deal, onClose, onGoToWorkspace, riskCount }) => (
+  <motion.div
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: 20 }}
+    className="absolute top-4 right-4 w-80 rounded-2xl border border-border/50 overflow-hidden bg-background/95 backdrop-blur-xl shadow-xl z-10"
+  >
+    <div className="p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold text-sm">Deal Details</h3>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div>
+        <h4 className="text-lg font-semibold" style={{ letterSpacing: '-0.03em' }}>{deal.codeName}</h4>
+        <p className="text-xs text-muted-foreground/70 mt-0.5">{deal.buyerName} acquiring {deal.targetCompany}</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="pivt-card p-3">
+          <p className="pivt-metric-label">Deal Value</p>
+          <p className="font-mono text-sm font-medium mt-1">${(deal.consideration / 1e6).toFixed(0)}M</p>
+        </div>
+        <div className="pivt-card p-3">
+          <p className="pivt-metric-label">Readiness</p>
+          <p className="font-mono text-sm font-medium mt-1">{deal.readyToPayPercent}%</p>
+        </div>
+        <div className="pivt-card p-3">
+          <p className="pivt-metric-label">Risk Nodes</p>
+          <p className={`font-mono text-sm font-medium mt-1 ${riskCount > 0 ? 'text-blocking' : 'text-validated'}`}>{riskCount}</p>
+        </div>
+        <div className="pivt-card p-3">
+          <p className="pivt-metric-label">Approvals</p>
+          <p className={`font-mono text-sm font-medium mt-1 ${deal.pendingApprovals > 0 ? 'text-discrepancy' : 'text-validated'}`}>{deal.pendingApprovals}</p>
+        </div>
+      </div>
+
+      <div className="space-y-2 text-xs">
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Discrepancies</span>
+          <span className={`font-medium ${deal.discrepanciesFound > 0 ? 'text-discrepancy' : 'text-validated'}`}>{deal.discrepanciesFound}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Closing Date</span>
+          <span className="font-medium">{deal.closingDate}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-muted-foreground">Sector</span>
+          <span className="font-medium">{deal.sector}</span>
+        </div>
+      </div>
+
+      <button
+        onClick={onGoToWorkspace}
+        className="w-full pivt-btn-primary text-white text-xs font-medium py-2.5 rounded-xl flex items-center justify-center gap-2"
+      >
+        <ExternalLink className="w-3.5 h-3.5" />
+        Go to Deal Workspace
+      </button>
+    </div>
+  </motion.div>
+);
+
+// ── Portfolio View (aggregate graph of all deals) ──
+const PortfolioGraph: React.FC<{
+  deals: DemoDeal[];
+  onDealClick: (dealId: string) => void;
+}> = ({ deals, onDealClick }) => {
+  const [hoveredDeal, setHoveredDeal] = useState<string | null>(null);
+  const cx = 400, cy = 300;
+
+  // Position deals in a circle
+  const dealNodes = deals.map((d, i) => {
+    const angle = (2 * Math.PI * i) / deals.length - Math.PI / 2;
+    const radius = deals.length <= 3 ? 160 : 200;
+    return {
+      ...d,
+      x: cx + Math.cos(angle) * radius,
+      y: cy + Math.sin(angle) * radius,
+      riskLevel: d.hasBlocker ? 'critical' as const : d.discrepanciesFound > 3 ? 'warning' as const : 'none' as const,
+    };
+  });
+
+  // Find shared stakeholders (demo: just connect deals that share sectors conceptually)
+  const crossEdges: { from: string; to: string; label: string }[] = [];
+  // For demo, connect deals that share high risk
+  for (let i = 0; i < dealNodes.length; i++) {
+    for (let j = i + 1; j < dealNodes.length; j++) {
+      if (dealNodes[i].pendingApprovals > 0 && dealNodes[j].pendingApprovals > 0) {
+        crossEdges.push({ from: dealNodes[i].id, to: dealNodes[j].id, label: 'shared_risk' });
+      }
+    }
+  }
+
+  return (
+    <svg width="100%" height="100%" viewBox="0 0 800 600" className="absolute inset-0">
+      <defs>
+        <radialGradient id="portfolio-glow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.2" />
+          <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="p-halo-critical" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#EF4444" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id="p-halo-warning" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+        </radialGradient>
+      </defs>
+
+      {/* Center label */}
+      <text x={cx} y={cy - 10} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="10" fontWeight="500">
+        PORTFOLIO
+      </text>
+      <text x={cx} y={cy + 8} textAnchor="middle" fill="hsl(var(--foreground))" fontSize="13" fontWeight="600">
+        {deals.length} Deals
+      </text>
+      <text x={cx} y={cy + 24} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="10">
+        ${(deals.reduce((s, d) => s + d.consideration, 0) / 1e6).toFixed(0)}M Total
+      </text>
+
+      {/* Cross-deal edges */}
+      {crossEdges.map((e, i) => {
+        const from = dealNodes.find(d => d.id === e.from);
+        const to = dealNodes.find(d => d.id === e.to);
+        if (!from || !to) return null;
+        return (
+          <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+            stroke="hsl(var(--accent))" strokeWidth="1" strokeDasharray="6 3" strokeOpacity="0.3"
+          />
+        );
+      })}
+
+      {/* Spokes from center */}
+      {dealNodes.map(d => (
+        <line key={`spoke-${d.id}`} x1={cx} y1={cy} x2={d.x} y2={d.y}
+          stroke="hsl(var(--border))" strokeWidth="1" strokeOpacity="0.25"
+        />
+      ))}
+
+      {/* Deal nodes */}
+      {dealNodes.map(d => {
+        const isHovered = hoveredDeal === d.id;
+        const showHalo = d.riskLevel !== 'none';
+        return (
+          <g key={d.id}
+            onClick={() => onDealClick(d.id)}
+            onMouseEnter={() => setHoveredDeal(d.id)}
+            onMouseLeave={() => setHoveredDeal(null)}
+            className="cursor-pointer"
+          >
+            {showHalo && (
+              <circle cx={d.x} cy={d.y} r={50}
+                fill={d.riskLevel === 'critical' ? 'url(#p-halo-critical)' : 'url(#p-halo-warning)'}
+              >
+                <animate attributeName="r" values="45;55;45" dur="2.5s" repeatCount="indefinite" />
+              </circle>
+            )}
+            {isHovered && <circle cx={d.x} cy={d.y} r={42} fill="url(#portfolio-glow)" />}
+            <circle cx={d.x} cy={d.y} r={28} fill={typeColors.deal} opacity={0.15} />
+            <circle cx={d.x} cy={d.y} r={20} fill={typeColors.deal}
+              stroke={isHovered ? 'hsl(var(--foreground))' : showHalo ? riskHaloColors[d.riskLevel] : 'transparent'}
+              strokeWidth={2}
+            />
+            <text x={d.x} y={d.y + 38} textAnchor="middle" fill={isHovered ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'} fontSize={isHovered ? 12 : 11} fontWeight={isHovered ? 600 : 500}>
+              {d.codeName}
+            </text>
+            <text x={d.x} y={d.y + 52} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="9">
+              ${(d.consideration / 1e6).toFixed(0)}M · {d.readyToPayPercent}%
+            </text>
+            {/* Readiness arc */}
+            <circle cx={d.x} cy={d.y} r={24} fill="none" stroke="hsl(var(--border))" strokeWidth="2" opacity="0.2" />
+            <circle cx={d.x} cy={d.y} r={24} fill="none" stroke={typeColors.deal} strokeWidth="2"
+              strokeDasharray={`${(d.readyToPayPercent / 100) * 150.8} 150.8`}
+              strokeLinecap="round"
+              transform={`rotate(-90 ${d.x} ${d.y})`}
+              opacity="0.7"
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
+};
+
+// ── Main Component ──
 export const IntelligenceMapCover: React.FC = () => {
+  const { deals, stakeholders, documents, payments, waterfallTiers, setSelectedDealId, setActiveSection } = usePIVTStore();
   const deal = useSelectedDeal();
-  const { stakeholders, documents, payments, waterfallTiers } = usePIVTStore();
   const [search, setSearch] = useState('');
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
@@ -70,36 +354,41 @@ export const IntelligenceMapCover: React.FC = () => {
   const [showSimPanel, setShowSimPanel] = useState(false);
   const [activeSim, setActiveSim] = useState<string | null>(null);
   const [simResult, setSimResult] = useState<string | null>(null);
+  const [showDealDetail, setShowDealDetail] = useState(false);
+  const [viewMode, setViewMode] = useState<'deal' | 'portfolio'>('deal');
   const [filters, setFilters] = useState<Record<string, boolean>>({
-    stakeholder: true,
-    waterfall: true,
-    compliance: true,
-    document: true,
-    payment: true,
+    stakeholder: true, waterfall: true, compliance: true, document: true, payment: true,
   });
 
   const toggleFilter = (key: string) => setFilters(f => ({ ...f, [key]: !f[key] }));
 
-  // Build graph with risk annotations
+  const handleDealSwitch = useCallback((dealId: string) => {
+    setSelectedDealId(dealId);
+    setSelectedNode(null);
+    setShowDealDetail(false);
+    if (viewMode === 'portfolio') setViewMode('deal');
+  }, [setSelectedDealId, viewMode]);
+
+  const handleGoToWorkspace = useCallback(() => {
+    setActiveSection('workspace');
+  }, [setActiveSection]);
+
+  // Build graph (same logic as before)
   const { nodes, edges } = useMemo(() => {
     const ns: GraphNode[] = [];
     const es: GraphEdge[] = [];
     const cx = 400, cy = 300;
 
-    // Deal node (center, always visible)
     ns.push({
       id: deal.id, label: deal.codeName, type: 'deal', x: cx, y: cy,
       color: typeColors.deal, size: 48, riskLevel: deal.hasBlocker ? 'critical' : 'none',
       metadata: { value: `$${(deal.consideration / 1e6).toFixed(0)}M`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
     });
 
-    // Stakeholders
     if (filters.stakeholder) {
       stakeholders.forEach((s, i) => {
         const angle = (-Math.PI / 2) + (i - stakeholders.length / 2) * 0.3;
-        const risk: GraphNode['riskLevel'] =
-          s.kycStatus === 'failed' ? 'critical' :
-          s.kycStatus === 'pending' ? 'warning' : 'none';
+        const risk: GraphNode['riskLevel'] = s.kycStatus === 'failed' ? 'critical' : s.kycStatus === 'pending' ? 'warning' : 'none';
         ns.push({
           id: s.id, label: s.name, type: 'stakeholder',
           x: cx + Math.cos(angle) * 220, y: cy + Math.sin(angle) * 180,
@@ -110,13 +399,10 @@ export const IntelligenceMapCover: React.FC = () => {
       });
     }
 
-    // Documents
     if (filters.document) {
       documents.slice(0, 6).forEach((d, i) => {
         const angle = 0 + (i - 3) * 0.35;
-        const risk: GraphNode['riskLevel'] =
-          d.status === 'rejected' ? 'critical' :
-          d.status === 'pending' ? 'warning' : 'none';
+        const risk: GraphNode['riskLevel'] = d.status === 'rejected' ? 'critical' : d.status === 'pending' ? 'warning' : 'none';
         ns.push({
           id: d.id, label: d.name.slice(0, 20), type: 'document',
           x: cx + Math.cos(angle) * 260, y: cy + Math.sin(angle) * 200,
@@ -127,13 +413,10 @@ export const IntelligenceMapCover: React.FC = () => {
       });
     }
 
-    // Payments
     if (filters.payment) {
       payments.forEach((p, i) => {
         const angle = (Math.PI / 2) + (i - payments.length / 2) * 0.35;
-        const risk: GraphNode['riskLevel'] =
-          p.status === 'failed' ? 'critical' :
-          p.status === 'pending' ? 'info' : 'none';
+        const risk: GraphNode['riskLevel'] = p.status === 'failed' ? 'critical' : p.status === 'pending' ? 'info' : 'none';
         ns.push({
           id: p.id, label: p.recipientName.split(' ')[0], type: 'payment',
           x: cx + Math.cos(angle) * 230, y: cy + Math.sin(angle) * 190,
@@ -144,7 +427,6 @@ export const IntelligenceMapCover: React.FC = () => {
       });
     }
 
-    // Waterfall
     if (filters.waterfall) {
       waterfallTiers.forEach((t, i) => {
         const angle = Math.PI + (i - waterfallTiers.length / 2) * 0.35;
@@ -158,7 +440,6 @@ export const IntelligenceMapCover: React.FC = () => {
       });
     }
 
-    // Cross-entity edges
     if (filters.stakeholder && filters.payment) {
       stakeholders.forEach(s => {
         const mp = payments.find(p => p.recipientName === s.name);
@@ -196,188 +477,287 @@ export const IntelligenceMapCover: React.FC = () => {
 
   const riskNodeCount = nodes.filter(n => n.riskLevel && n.riskLevel !== 'none').length;
 
+  const handleNodeClick = useCallback((node: GraphNode) => {
+    if (node.type === 'deal') {
+      setShowDealDetail(true);
+      setSelectedNode(null);
+    } else {
+      setShowDealDetail(false);
+      setSelectedNode(node);
+    }
+  }, []);
+
   return (
     <motion.div {...fadeInUp} className="space-y-4">
-      {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Intelligence Map</h2>
-        <p className="text-sm text-muted-foreground">Relationship and risk visualization for this deal.</p>
-      </div>
-
-      {/* Toolbar */}
-      <div className="pivt-card p-3 flex items-center gap-3 flex-wrap">
-        {/* Search */}
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search entities..."
-            className="bg-muted/50 border border-border rounded-lg pl-9 pr-4 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 w-56"
-          />
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Intelligence Map</h2>
+          <p className="text-sm text-muted-foreground">Relationship and risk visualization across deals.</p>
         </div>
 
-        {/* Filters */}
-        {FILTER_DEFS.map(f => (
+        {/* View Mode Toggle */}
+        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border/30">
           <button
-            key={f.key}
-            onClick={() => toggleFilter(f.key)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-all border ${
-              filters[f.key]
-                ? 'bg-accent/10 border-accent/20 text-foreground'
-                : 'bg-muted/30 border-border text-muted-foreground'
+            onClick={() => setViewMode('deal')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              viewMode === 'deal' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <f.icon className="w-3 h-3" />
-            {f.label}
+            Deal View
           </button>
-        ))}
-
-        <div className="flex-1" />
-
-        {/* Risk toggle */}
-        <div className="flex items-center gap-2">
-          <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-          <span className="text-xs text-muted-foreground">Highlight Risk Nodes</span>
-          <Switch checked={highlightRisk} onCheckedChange={setHighlightRisk} />
-          {riskNodeCount > 0 && (
-            <Badge variant="outline" className="text-[9px] border-destructive/30 text-destructive">
-              {riskNodeCount} flagged
-            </Badge>
-          )}
+          <button
+            onClick={() => setViewMode('portfolio')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              viewMode === 'portfolio' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Portfolio View
+          </button>
         </div>
-
-        {/* What-If */}
-        <Button variant="outline" size="sm" onClick={() => setShowSimPanel(!showSimPanel)}>
-          <Play className="w-3.5 h-3.5 mr-1.5" />
-          What-If
-        </Button>
       </div>
 
-      {/* Graph + Panels */}
-      <div className="pivt-card overflow-hidden flex" style={{ height: 520 }}>
-        {/* SVG Graph */}
-        <div className="flex-1 relative bg-background">
-          <svg width="100%" height="100%" viewBox="0 0 800 600" className="absolute inset-0">
-            <defs>
-              <radialGradient id="im-glow-accent" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
-              </radialGradient>
-              {/* Risk halos */}
-              <radialGradient id="halo-critical" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#EF4444" stopOpacity="0.5" />
-                <stop offset="70%" stopColor="#EF4444" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
-              </radialGradient>
-              <radialGradient id="halo-warning" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.5" />
-                <stop offset="70%" stopColor="#F59E0B" stopOpacity="0.15" />
-                <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
-              </radialGradient>
-              <radialGradient id="halo-info" cx="50%" cy="50%" r="50%">
-                <stop offset="0%" stopColor="#F97316" stopOpacity="0.4" />
-                <stop offset="70%" stopColor="#F97316" stopOpacity="0.1" />
-                <stop offset="100%" stopColor="#F97316" stopOpacity="0" />
-              </radialGradient>
-            </defs>
+      {/* ── Deal Context Header (Deal View only) ── */}
+      {viewMode === 'deal' && (
+        <div className="pivt-panel p-5">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3">
+                <h3 className="text-xl font-semibold" style={{ letterSpacing: '-0.03em' }}>{deal.codeName}</h3>
+                {deal.hasBlocker && (
+                  <Badge className="bg-blocking/10 text-blocking border-blocking/15 text-[9px]">
+                    <Ban className="w-3 h-3 mr-1" /> Blocked
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground/70 mt-0.5">{deal.buyerName} acquiring {deal.targetCompany}</p>
+            </div>
 
-            {/* Edges */}
-            {edges.map((e, i) => {
-              const from = nodes.find(n => n.id === e.from);
-              const to = nodes.find(n => n.id === e.to);
-              if (!from || !to) return null;
-              const visible = filteredIds.has(from.id) && filteredIds.has(to.id);
-              const highlighted = hoveredNode ? connectedIds.has(from.id) && connectedIds.has(to.id) : false;
-              return (
-                <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                  stroke={highlighted ? 'hsl(var(--accent))' : visible ? 'hsl(var(--border))' : 'hsl(var(--border) / 0.2)'}
-                  strokeWidth={highlighted ? 2 : e.strength ? Math.max(1, e.strength * 2) : 1}
-                  strokeDasharray={e.label === 'receives_payment' ? '4 2' : undefined}
-                  strokeOpacity={highlighted ? 0.7 : visible ? 0.4 : 0.1}
-                />
-              );
-            })}
-
-            {/* Nodes */}
-            {nodes.map((node) => {
-              const visible = filteredIds.has(node.id);
-              const isHovered = hoveredNode === node.id;
-              const isConnected = connectedIds.has(node.id);
-              const dimmed = hoveredNode && !isConnected;
-              const showHalo = highlightRisk && node.riskLevel && node.riskLevel !== 'none';
-              return (
-                <g key={node.id}
-                  onClick={() => setSelectedNode(node)}
-                  onMouseEnter={() => setHoveredNode(node.id)}
-                  onMouseLeave={() => setHoveredNode(null)}
-                  className="cursor-pointer"
-                  opacity={dimmed ? 0.15 : visible ? 1 : 0.15}
-                >
-                  {/* Risk halo */}
-                  {showHalo && (
-                    <circle cx={node.x} cy={node.y} r={node.size * 1.2}
-                      fill={`url(#halo-${node.riskLevel})`}
-                    >
-                      <animate attributeName="r" values={`${node.size * 1.1};${node.size * 1.4};${node.size * 1.1}`} dur="2.5s" repeatCount="indefinite" />
-                    </circle>
-                  )}
-                  {isHovered && (
-                    <circle cx={node.x} cy={node.y} r={node.size} fill="url(#im-glow-accent)" />
-                  )}
-                  <circle cx={node.x} cy={node.y} r={node.size / 2} fill={node.color} opacity={0.2} />
-                  <circle cx={node.x} cy={node.y} r={node.size / 3}
-                    fill={node.color}
-                    stroke={showHalo ? riskHaloColors[node.riskLevel!] : isHovered ? 'hsl(var(--foreground))' : 'transparent'}
-                    strokeWidth={showHalo ? 2.5 : 2}
-                  />
-                  {(node.size > 18 || isHovered) && (
-                    <text x={node.x} y={node.y + node.size / 2 + 14}
-                      textAnchor="middle"
-                      fill={isHovered ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'}
-                      fontSize={isHovered ? 11 : 10}
-                      fontWeight={isHovered ? 600 : 400}
-                    >
-                      {node.label}
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </svg>
-
-          {/* Entity counts */}
-          <div className="absolute bottom-3 left-3 flex gap-2">
-            {Object.entries(typeColors).map(([type, color]) => {
-              const count = nodes.filter(n => n.type === type).length;
-              if (count === 0) return null;
-              return (
-                <div key={type} className="flex items-center gap-1.5 bg-muted/60 rounded-full px-2.5 py-1 text-[10px]">
-                  <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                  <span className="text-muted-foreground capitalize">{type}</span>
-                  <span className="text-foreground font-medium">{count}</span>
+            <div className="flex items-center gap-4 shrink-0">
+              <div className="text-right">
+                <p className="pivt-metric-label">Deal Value</p>
+                <p className="font-mono text-sm font-medium mt-0.5">${(deal.consideration / 1e6).toFixed(0)}M</p>
+              </div>
+              <div className="h-7 w-px bg-border/30" />
+              <div className="text-right">
+                <p className="pivt-metric-label">Closing</p>
+                <p className="text-xs font-medium mt-0.5 flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-muted-foreground/50" />
+                  {deal.closingDate}
+                </p>
+              </div>
+              <div className="h-7 w-px bg-border/30" />
+              <div className="min-w-[100px]">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="pivt-metric-label">Readiness</p>
+                  <span className="font-mono text-[11px] font-medium">{deal.readyToPayPercent}%</span>
                 </div>
-              );
-            })}
-          </div>
+                <Progress value={deal.readyToPayPercent} className="h-1" />
+              </div>
+              <div className="h-7 w-px bg-border/30" />
 
-          {/* Read-only badge */}
+              <DealSelectorDropdown
+                deals={deals}
+                selectedDealId={deal.id}
+                onSelect={handleDealSwitch}
+              />
+
+              <button
+                onClick={handleGoToWorkspace}
+                className="pivt-btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                Open Deal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Toolbar (Deal View only) ── */}
+      {viewMode === 'deal' && (
+        <div className="pivt-card p-3 flex items-center gap-3 flex-wrap">
+          <div className="relative">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search entities..."
+              className="bg-muted/40 border border-border/50 rounded-lg pl-9 pr-4 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/40 w-56"
+            />
+          </div>
+          {FILTER_DEFS.map(f => (
+            <button
+              key={f.key}
+              onClick={() => toggleFilter(f.key)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border ${
+                filters[f.key]
+                  ? 'bg-accent/10 border-accent/20 text-foreground'
+                  : 'bg-muted/30 border-border/50 text-muted-foreground'
+              }`}
+            >
+              <f.icon className="w-3 h-3" />
+              {f.label}
+            </button>
+          ))}
+          <div className="flex-1" />
+          <div className="flex items-center gap-2">
+            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Risk Nodes</span>
+            <Switch checked={highlightRisk} onCheckedChange={setHighlightRisk} />
+            {riskNodeCount > 0 && (
+              <Badge variant="outline" className="text-[9px] border-blocking/30 text-blocking">
+                {riskNodeCount} flagged
+              </Badge>
+            )}
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setShowSimPanel(!showSimPanel)}>
+            <Play className="w-3.5 h-3.5 mr-1.5" />
+            What-If
+          </Button>
+        </div>
+      )}
+
+      {/* ── Graph ── */}
+      <div className="pivt-card overflow-hidden flex" style={{ height: 520 }}>
+        <div className="flex-1 relative bg-background/50">
+          {viewMode === 'portfolio' ? (
+            <PortfolioGraph deals={deals} onDealClick={handleDealSwitch} />
+          ) : (
+            <>
+              <svg width="100%" height="100%" viewBox="0 0 800 600" className="absolute inset-0">
+                <defs>
+                  <radialGradient id="im-glow-accent" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.3" />
+                    <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+                  </radialGradient>
+                  <radialGradient id="halo-critical" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#EF4444" stopOpacity="0.5" />
+                    <stop offset="70%" stopColor="#EF4444" stopOpacity="0.15" />
+                    <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
+                  </radialGradient>
+                  <radialGradient id="halo-warning" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.5" />
+                    <stop offset="70%" stopColor="#F59E0B" stopOpacity="0.15" />
+                    <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+                  </radialGradient>
+                  <radialGradient id="halo-info" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#F97316" stopOpacity="0.4" />
+                    <stop offset="70%" stopColor="#F97316" stopOpacity="0.1" />
+                    <stop offset="100%" stopColor="#F97316" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+
+                {/* Edges */}
+                {edges.map((e, i) => {
+                  const from = nodes.find(n => n.id === e.from);
+                  const to = nodes.find(n => n.id === e.to);
+                  if (!from || !to) return null;
+                  const visible = filteredIds.has(from.id) && filteredIds.has(to.id);
+                  const highlighted = hoveredNode ? connectedIds.has(from.id) && connectedIds.has(to.id) : false;
+                  return (
+                    <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+                      stroke={highlighted ? 'hsl(var(--accent))' : visible ? 'hsl(var(--border))' : 'hsl(var(--border) / 0.2)'}
+                      strokeWidth={highlighted ? 2 : e.strength ? Math.max(1, e.strength * 2) : 1}
+                      strokeDasharray={e.label === 'receives_payment' ? '4 2' : undefined}
+                      strokeOpacity={highlighted ? 0.7 : visible ? 0.4 : 0.1}
+                    />
+                  );
+                })}
+
+                {/* Nodes */}
+                {nodes.map((node) => {
+                  const visible = filteredIds.has(node.id);
+                  const isHovered = hoveredNode === node.id;
+                  const isConnected = connectedIds.has(node.id);
+                  const dimmed = hoveredNode && !isConnected;
+                  const showHalo = highlightRisk && node.riskLevel && node.riskLevel !== 'none';
+                  return (
+                    <g key={node.id}
+                      onClick={() => handleNodeClick(node)}
+                      onMouseEnter={() => setHoveredNode(node.id)}
+                      onMouseLeave={() => setHoveredNode(null)}
+                      className="cursor-pointer"
+                      opacity={dimmed ? 0.15 : visible ? 1 : 0.15}
+                    >
+                      {showHalo && (
+                        <circle cx={node.x} cy={node.y} r={node.size * 1.2}
+                          fill={`url(#halo-${node.riskLevel})`}
+                        >
+                          <animate attributeName="r" values={`${node.size * 1.1};${node.size * 1.4};${node.size * 1.1}`} dur="2.5s" repeatCount="indefinite" />
+                        </circle>
+                      )}
+                      {isHovered && (
+                        <circle cx={node.x} cy={node.y} r={node.size} fill="url(#im-glow-accent)" />
+                      )}
+                      <circle cx={node.x} cy={node.y} r={node.size / 2} fill={node.color} opacity={0.2} />
+                      <circle cx={node.x} cy={node.y} r={node.size / 3}
+                        fill={node.color}
+                        stroke={showHalo ? riskHaloColors[node.riskLevel!] : isHovered ? 'hsl(var(--foreground))' : 'transparent'}
+                        strokeWidth={showHalo ? 2.5 : 2}
+                      />
+                      {(node.size > 18 || isHovered) && (
+                        <text x={node.x} y={node.y + node.size / 2 + 14}
+                          textAnchor="middle"
+                          fill={isHovered ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'}
+                          fontSize={isHovered ? 11 : 10}
+                          fontWeight={isHovered ? 600 : 400}
+                        >
+                          {node.label}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </svg>
+            </>
+          )}
+
+          {/* Entity counts (Deal View only) */}
+          {viewMode === 'deal' && (
+            <div className="absolute bottom-3 left-3 flex gap-2">
+              {Object.entries(typeColors).map(([type, color]) => {
+                const count = nodes.filter(n => n.type === type).length;
+                if (count === 0) return null;
+                return (
+                  <div key={type} className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2.5 py-1 text-[10px]">
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+                    <span className="text-muted-foreground capitalize">{type}</span>
+                    <span className="text-foreground font-medium">{count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="absolute top-3 right-3">
-            <Badge variant="outline" className="text-[9px] border-border text-muted-foreground">
+            <Badge variant="outline" className="text-[9px] border-border/50 text-muted-foreground">
               Read-Only View
             </Badge>
           </div>
+
+          {/* Deal Detail Panel (appears when clicking central deal node) */}
+          <AnimatePresence>
+            {showDealDetail && viewMode === 'deal' && (
+              <DealDetailPanel
+                deal={deal}
+                onClose={() => setShowDealDetail(false)}
+                onGoToWorkspace={handleGoToWorkspace}
+                riskCount={riskNodeCount}
+              />
+            )}
+          </AnimatePresence>
         </div>
 
         {/* What-If Panel */}
         <AnimatePresence>
-          {showSimPanel && (
+          {showSimPanel && viewMode === 'deal' && (
             <motion.div
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: 300, opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={springConfig.standard}
-              className="border-l border-border overflow-hidden shrink-0 bg-muted/30"
+              className="border-l border-border/50 overflow-hidden shrink-0 bg-muted/20"
             >
               <div className="p-4 w-[300px]">
                 <div className="flex items-center justify-between mb-4">
@@ -392,8 +772,8 @@ export const IntelligenceMapCover: React.FC = () => {
                 <div className="space-y-2">
                   {SIMULATIONS.map(sim => (
                     <button key={sim.id} onClick={() => runSimulation(sim.id)}
-                      className={`w-full text-left p-3 rounded-lg border transition-colors text-xs ${
-                        activeSim === sim.id ? 'border-accent/50 bg-accent/5' : 'border-border bg-background hover:bg-muted/50'
+                      className={`w-full text-left p-3 rounded-lg border text-xs ${
+                        activeSim === sim.id ? 'border-accent/50 bg-accent/5' : 'border-border/50 bg-background hover:bg-muted/40'
                       }`}
                     >
                       <p className="font-medium">{sim.label}</p>
@@ -424,12 +804,12 @@ export const IntelligenceMapCover: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Selected Node Detail */}
+        {/* Selected Node Detail (non-deal nodes) */}
         <AnimatePresence>
-          {selectedNode && !showSimPanel && (
+          {selectedNode && !showSimPanel && !showDealDetail && viewMode === 'deal' && (
             <motion.div
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
-              className="absolute top-16 right-4 w-72 rounded-xl border border-border overflow-hidden bg-background shadow-lg"
+              className="absolute top-16 right-4 w-72 rounded-xl border border-border/50 overflow-hidden bg-background/95 backdrop-blur-xl shadow-xl"
             >
               <div className="p-4">
                 <div className="flex items-center gap-3 mb-3">
@@ -439,8 +819,8 @@ export const IntelligenceMapCover: React.FC = () => {
                   </Badge>
                   {selectedNode.riskLevel && selectedNode.riskLevel !== 'none' && (
                     <Badge className={`text-[9px] ${
-                      selectedNode.riskLevel === 'critical' ? 'bg-destructive/10 text-destructive' :
-                      selectedNode.riskLevel === 'warning' ? 'bg-yellow-500/10 text-yellow-600' :
+                      selectedNode.riskLevel === 'critical' ? 'bg-blocking/10 text-blocking' :
+                      selectedNode.riskLevel === 'warning' ? 'bg-discrepancy/10 text-discrepancy' :
                       'bg-orange-500/10 text-orange-600'
                     }`}>
                       {selectedNode.riskLevel}
@@ -461,7 +841,7 @@ export const IntelligenceMapCover: React.FC = () => {
                     ))}
                   </div>
                 )}
-                <div className="mt-3 pt-3 border-t border-border">
+                <div className="mt-3 pt-3 border-t border-border/50">
                   <p className="text-xs text-muted-foreground">
                     Connected to {edges.filter(e => e.from === selectedNode.id || e.to === selectedNode.id).length} entities
                   </p>
@@ -474,8 +854,8 @@ export const IntelligenceMapCover: React.FC = () => {
                         const other = nodes.find(n => n.id === otherId);
                         if (!other) return null;
                         return (
-                          <button key={i} onClick={() => setSelectedNode(other)}
-                            className="w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors py-0.5"
+                          <button key={i} onClick={() => handleNodeClick(other)}
+                            className="w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground py-0.5"
                           >
                             <div className="w-1.5 h-1.5 rounded-full" style={{ background: other.color }} />
                             <span className="truncate">{other.label}</span>
