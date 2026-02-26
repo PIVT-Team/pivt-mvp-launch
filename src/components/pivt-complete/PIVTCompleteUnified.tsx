@@ -222,16 +222,16 @@ export const PIVTCompleteUnified: React.FC = () => {
 
           <div className="h-5 w-px bg-border mx-1" />
 
-          {/* AI Tab */}
+          {/* V2 AI Tab — visual superiority */}
           <button
             onClick={() => setActiveSection('ai' as ActiveSection)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.03] relative group ${
+            className={`pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold relative group ${
               activeSection === 'ai'
-                ? 'text-accent'
+                ? 'text-accent pivt-ai-glow'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
-            <Brain className="w-4 h-4" />
+            <Brain className="w-4 h-4 pivt-spark" />
             <span>AI Deal Scan</span>
             {activeSection === 'ai' && (
               <motion.div
