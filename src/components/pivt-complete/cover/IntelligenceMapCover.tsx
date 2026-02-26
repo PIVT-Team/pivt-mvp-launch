@@ -608,44 +608,54 @@ export const IntelligenceMapCover: React.FC = () => {
         {/* LEFT: View mode controls */}
         <div className="flex items-center gap-1 shrink-0">
           {/* Deal / Portfolio toggle */}
-          <button
-            onClick={() => setViewMode('deal')}
-            className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
-              viewMode === 'deal'
-                ? 'text-foreground'
-                : 'text-muted-foreground/50 hover:text-muted-foreground'
-            }`}
-          >
-            <Eye className="w-3 h-3 shrink-0" />
-            Deal
-            {viewMode === 'deal' && (
-              <motion.div
-                layoutId="view-mode-underline"
-                className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
-            )}
-          </button>
-          <button
-            onClick={() => setViewMode('portfolio')}
-            className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
-              viewMode === 'portfolio'
-                ? 'text-foreground'
-                : 'text-muted-foreground/50 hover:text-muted-foreground'
-            }`}
-          >
-            <TrendingUp className="w-3 h-3 shrink-0" />
-            Portfolio
-            {viewMode === 'portfolio' && (
-              <motion.div
-                layoutId="view-mode-underline"
-                className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              />
-            )}
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setViewMode('deal')}
+                className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
+                  viewMode === 'deal'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+              >
+                <Eye className="w-3 h-3 shrink-0" />
+                Deal
+                {viewMode === 'deal' && (
+                  <motion.div
+                    layoutId="view-mode-underline"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                    style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>View this deal's individual relationship network</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setViewMode('portfolio')}
+                className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
+                  viewMode === 'portfolio'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+              >
+                <TrendingUp className="w-3 h-3 shrink-0" />
+                Portfolio
+                {viewMode === 'portfolio' && (
+                  <motion.div
+                    layoutId="view-mode-underline"
+                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                    style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>View cross-deal relationships and systemic exposure</TooltipContent>
+          </Tooltip>
 
           {/* Separator */}
           {viewMode === 'deal' && <div className="w-px h-5 bg-border/30 mx-1 shrink-0" />}
@@ -653,23 +663,34 @@ export const IntelligenceMapCover: React.FC = () => {
           {/* Filter segments (deal view only) */}
           {viewMode === 'deal' && FILTER_DEFS.map(f => {
             const active = filters[f.key];
+            const filterTooltips: Record<string, string> = {
+              stakeholder: 'Equity holders, management, and key participants',
+              waterfall: 'Funds, lenders, vehicles, and capital structures',
+              compliance: 'Regulatory risks and outstanding verification issues',
+              document: 'Executed and pending legal documents',
+              payment: 'Payments, transfers, and waterfall movements',
+            };
             return (
-              <button
-                key={f.key}
-                onClick={() => toggleFilter(f.key)}
-                className={`relative flex items-center gap-1 px-2.5 h-8 text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
-                  active ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'
-                }`}
-              >
-                <f.icon className="w-3 h-3 shrink-0" />
-                <span className="hidden xl:inline">{f.label}</span>
-                {active && (
-                  <div
-                    className="absolute bottom-0 left-1.5 right-1.5 h-[2px] rounded-full"
-                    style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
-                  />
-                )}
-              </button>
+              <Tooltip key={f.key}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => toggleFilter(f.key)}
+                    className={`relative flex items-center gap-1 px-2.5 h-8 text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
+                      active ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'
+                    }`}
+                  >
+                    <f.icon className="w-3 h-3 shrink-0" />
+                    <span className="hidden xl:inline">{f.label}</span>
+                    {active && (
+                      <div
+                        className="absolute bottom-0 left-1.5 right-1.5 h-[2px] rounded-full"
+                        style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
+                      />
+                    )}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>{filterTooltips[f.key]}</TooltipContent>
+              </Tooltip>
             );
           })}
         </div>
@@ -708,7 +729,7 @@ export const IntelligenceMapCover: React.FC = () => {
                     )}
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Highlight flagged risk nodes</TooltipContent>
+                <TooltipContent>{riskNodeCount > 0 ? `${riskNodeCount} flagged risks detected across this network` : 'Highlight flagged risk nodes'}</TooltipContent>
               </Tooltip>
 
               <Tooltip>
@@ -909,21 +930,39 @@ export const IntelligenceMapCover: React.FC = () => {
               {Object.entries(typeColors).map(([type, color]) => {
                 const count = nodes.filter(n => n.type === type).length;
                 if (count === 0) return null;
+                const legendTooltips: Record<string, string> = {
+                  deal: 'Central deal entity in this network',
+                  stakeholder: 'Individuals and entities with equity or governance rights',
+                  document: 'Legal and compliance documents tied to this deal',
+                  payment: 'Disbursement and transaction nodes',
+                  escrow: 'Escrow accounts and holdback structures',
+                  waterfall: 'Distribution tiers and payout allocations',
+                };
                 return (
-                  <div key={type} className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2.5 py-1 text-[10px]">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                    <span className="text-muted-foreground capitalize">{type}</span>
-                    <span className="text-foreground font-medium">{count}</span>
-                  </div>
+                  <Tooltip key={type}>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2.5 py-1 text-[10px] cursor-default">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+                        <span className="text-muted-foreground capitalize">{type}</span>
+                        <span className="text-foreground font-medium">{count}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>{legendTooltips[type] || `${type} nodes in this network`}</TooltipContent>
+                  </Tooltip>
                 );
               })}
             </div>
           )}
 
           <div className="absolute top-3 right-3">
-            <Badge variant="outline" className="text-[9px] border-border/50 text-muted-foreground">
-              Read-Only View
-            </Badge>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="outline" className="text-[9px] border-border/50 text-muted-foreground cursor-default">
+                  Read-Only View
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>You do not have edit permissions for this deal</TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Deal Detail Panel (appears when clicking central deal node) */}
