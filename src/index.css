@@ -7,8 +7,8 @@
 
 @layer base {
   :root {
-    /* ── Enterprise Mode (Light – Default) ── */
-    --background: 222 20% 97%;
+    /* ── DLS v1.0 — Enterprise Mode (Light) ── */
+    --background: 225 25% 98%;
     --foreground: 222 30% 12%;
     --card: 0 0% 100%;
     --card-foreground: 222 30% 12%;
@@ -16,35 +16,35 @@
     --popover-foreground: 222 30% 12%;
     --primary: 222 30% 12%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 16% 93%;
+    --secondary: 220 16% 94%;
     --secondary-foreground: 222 30% 12%;
-    --muted: 220 16% 93%;
+    --muted: 220 16% 94%;
     --muted-foreground: 220 10% 46%;
     --accent: 262 72% 55%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 50% 55%;
+    --destructive: 0 40% 52%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 14% 89%;
-    --input: 220 14% 89%;
+    --border: 220 14% 91%;
+    --input: 220 14% 91%;
     --ring: 262 72% 55%;
     --radius: 0.625rem;
 
-    /* PIVT semantic tokens */
+    /* DLS semantic tokens */
     --validated: 152 55% 42%;
     --validated-foreground: 0 0% 100%;
-    --discrepancy: 38 85% 50%;
+    --discrepancy: 38 75% 50%;
     --discrepancy-foreground: 0 0% 100%;
-    --blocking: 0 50% 52%;
+    --blocking: 0 40% 52%;
     --blocking-foreground: 0 0% 100%;
     --surface-elevated: 0 0% 100%;
-    --surface-subtle: 222 20% 96%;
+    --surface-subtle: 225 25% 97%;
 
-    /* Semantic icon color system */
+    /* DLS icon color system */
     --pivt-purple: 262 90% 55%;
     --pivt-blue: 217 100% 55%;
     --pivt-emerald: 152 60% 40%;
-    --pivt-amber: 38 88% 48%;
-    --pivt-red: 0 58% 52%;
+    --pivt-amber: 38 78% 48%;
+    --pivt-red: 0 45% 52%;
     --pivt-slate: 215 16% 48%;
 
     --icon-escrow: var(--pivt-purple);
@@ -54,29 +54,47 @@
     --icon-risk: var(--pivt-red);
     --icon-neutral: var(--pivt-slate);
 
-    --sidebar-background: 225 20% 95%;
+    --sidebar-background: 225 22% 96%;
     --sidebar-foreground: 220 10% 40%;
     --sidebar-primary: 262 72% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 262 72% 55%;
     --sidebar-accent-foreground: 262 72% 55%;
-    --sidebar-border: 220 14% 89%;
+    --sidebar-border: 220 14% 91%;
     --sidebar-ring: 262 72% 55%;
 
-    /* ── Gradient Tokens (Light mode) ── */
+    /* ── Gradient Tokens ── */
     --g1-from: 255 50% 24%;
     --g1-to: 231 100% 62%;
     --g2-from: 255 82% 58%;
     --g2-to: 231 100% 62%;
     --g3-from: 255 82% 58%;
     --g3-to: 262 100% 71%;
-    --g4-from: 222 20% 97%;
-    --g4-to: 220 16% 93%;
+    --g4-from: 225 25% 98%;
+    --g4-to: 220 20% 95%;
     --g5-from: 231 100% 62%;
     --g5-to: 186 100% 59%;
+
+    /* DLS Spacing base (8pt grid) */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 16px;
+    --space-lg: 24px;
+    --space-xl: 32px;
+    --space-2xl: 48px;
+    --space-3xl: 64px;
+
+    /* DLS Depth shadows */
+    --shadow-panel: 0 1px 2px hsl(220 30% 10% / 0.02), 0 4px 16px hsl(220 30% 10% / 0.04), 0 12px 40px hsl(220 30% 10% / 0.03);
+    --shadow-card: 0 1px 3px hsl(220 30% 10% / 0.02), 0 4px 12px hsl(220 30% 10% / 0.03), 0 8px 24px hsl(220 30% 10% / 0.04);
+    --shadow-card-hover: 0 4px 12px hsl(220 30% 10% / 0.04), 0 16px 40px hsl(220 30% 10% / 0.06);
+    --shadow-elevated: 0 8px 24px hsl(220 30% 10% / 0.06);
+
+    /* DLS border */
+    --border-subtle: hsl(220 20% 20% / 0.06);
   }
 
-  /* ── Glass Mode (Dark — Gradient-first) ── */
+  /* ── DLS Glass Mode (Dark) ── */
   .glass-mode {
     --background: 228 40% 5%;
     --foreground: 220 14% 90%;
@@ -92,23 +110,23 @@
     --muted-foreground: 220 10% 50%;
     --accent: 255 82% 58%;
     --accent-foreground: 0 0% 100%;
-    --destructive: 0 50% 55%;
+    --destructive: 0 40% 52%;
     --destructive-foreground: 0 0% 100%;
     --border: 224 16% 12%;
     --input: 224 16% 13%;
     --ring: 255 82% 58%;
 
     --validated: 152 55% 48%;
-    --discrepancy: 38 85% 55%;
-    --blocking: 0 50% 55%;
+    --discrepancy: 38 75% 55%;
+    --blocking: 0 40% 55%;
     --surface-elevated: 226 30% 9%;
     --surface-subtle: 228 40% 7%;
 
     --pivt-purple: 255 82% 62%;
     --pivt-blue: 231 100% 65%;
     --pivt-emerald: 152 60% 48%;
-    --pivt-amber: 38 88% 52%;
-    --pivt-red: 0 58% 56%;
+    --pivt-amber: 38 78% 52%;
+    --pivt-red: 0 45% 56%;
     --pivt-slate: 215 16% 52%;
 
     --sidebar-background: 228 40% 4%;
@@ -120,7 +138,6 @@
     --sidebar-border: 224 20% 10%;
     --sidebar-ring: 255 82% 58%;
 
-    /* ── Gradient Tokens (Glass mode — brighter) ── */
     --g1-from: 255 50% 24%;
     --g1-to: 231 100% 62%;
     --g2-from: 255 82% 58%;
@@ -131,6 +148,12 @@
     --g4-to: 226 30% 8%;
     --g5-from: 231 100% 62%;
     --g5-to: 186 100% 59%;
+
+    --shadow-panel: 0 1px 2px hsl(0 0% 0% / 0.16), 0 8px 32px hsl(0 0% 0% / 0.24);
+    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.14), 0 4px 16px hsl(0 0% 0% / 0.20);
+    --shadow-card-hover: 0 4px 12px hsl(0 0% 0% / 0.18), 0 16px 40px hsl(0 0% 0% / 0.30);
+    --shadow-elevated: 0 8px 32px hsl(0 0% 0% / 0.32);
+    --border-subtle: hsl(0 0% 100% / 0.06);
   }
 }
 
@@ -148,21 +171,23 @@
   .font-mono {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
   }
-  /* Editorial heading treatment — Satoshi scale */
-  h1 { letter-spacing: -0.035em; font-weight: 600; font-size: 1.75rem; line-height: 1.15; }
-  h2 { letter-spacing: -0.025em; font-weight: 600; font-size: 1.125rem; }
-  h3 { letter-spacing: -0.015em; font-weight: 600; font-size: 1rem; }
+  /* DLS Typography Hierarchy */
+  h1 { letter-spacing: -0.04em; font-weight: 600; font-size: 1.625rem; line-height: 1.15; }
+  h2 { letter-spacing: -0.025em; font-weight: 600; font-size: 1.125rem; line-height: 1.4; }
+  h3 { letter-spacing: -0.015em; font-weight: 550; font-size: 1rem; }
   h4 { letter-spacing: -0.01em; font-weight: 500; }
 }
 
 @layer components {
 
-  /* ── V2 Canvas: Radial gradient + noise ── */
+  /* ═══════════════════════════════════
+     DLS v1.0 — LAYER 1: CANVAS
+     ═══════════════════════════════════ */
   .pivt-ambient-bg {
     background:
       radial-gradient(circle at 20% 0%, hsl(262 72% 55% / 0.06), transparent 40%),
-      radial-gradient(circle at 80% 100%, hsl(231 100% 62% / 0.04), transparent 35%),
-      linear-gradient(to bottom, hsl(228 28% 98%), hsl(225 22% 96%));
+      radial-gradient(circle at 80% 100%, hsl(231 100% 62% / 0.03), transparent 35%),
+      linear-gradient(to bottom, hsl(225 25% 98%), hsl(225 22% 96%));
     transition: background 300ms ease, color 300ms ease;
   }
   .glass-mode .pivt-ambient-bg {
@@ -173,24 +198,26 @@
       linear-gradient(180deg, hsl(var(--g4-from)), hsl(var(--g4-to)));
   }
 
-  /* ── Noise Texture Overlay ── */
+  /* Noise Texture Overlay (2% opacity — premium texture) */
   .pivt-ambient-bg::before {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
     z-index: 0;
-    opacity: 0.025;
+    opacity: 0.02;
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 256px 256px;
   }
 
-  /* ── V2 Glass Navigation ── */
+  /* ═══════════════════════════════════
+     DLS v1.0 — GLASS NAVIGATION
+     ═══════════════════════════════════ */
   .pivt-glass-nav {
-    background: hsl(0 0% 100% / 0.72);
+    background: hsl(0 0% 100% / 0.75);
     backdrop-filter: blur(20px) saturate(1.3);
-    border-bottom: 1px solid hsl(var(--border) / 0.3);
+    border-bottom: 1px solid var(--border-subtle);
     transition: background 300ms ease, backdrop-filter 200ms ease;
   }
   .glass-mode .pivt-glass-nav {
@@ -198,52 +225,32 @@
     border-bottom-color: hsl(0 0% 100% / 0.04);
   }
 
-  /* ── V2 Panel Layer (Layer 2 — deal header, content containers) ── */
+  /* ═══════════════════════════════════
+     DLS v1.0 — LAYER 2: PANELS
+     ═══════════════════════════════════ */
   .pivt-panel {
-    background: hsl(0 0% 100% / 0.72);
+    background: hsl(0 0% 100% / 0.75);
     backdrop-filter: blur(12px) saturate(1.1);
-    border: 1px solid hsl(0 0% 100% / 0.35);
+    border: 1px solid var(--border-subtle);
     border-radius: 20px;
-    box-shadow:
-      0 1px 2px hsl(220 30% 10% / 0.03),
-      0 4px 16px hsl(220 30% 10% / 0.04),
-      0 12px 40px hsl(220 30% 10% / 0.03);
+    box-shadow: var(--shadow-panel);
     transition: all 250ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   .glass-mode .pivt-panel {
     background: hsl(var(--card) / 0.55);
     border-color: hsl(0 0% 100% / 0.06);
-    box-shadow:
-      0 1px 2px hsl(0 0% 0% / 0.16),
-      0 8px 32px hsl(0 0% 0% / 0.24);
+    box-shadow: var(--shadow-panel);
     backdrop-filter: blur(16px) saturate(1.2);
   }
 
-  /* ── AI Glow (V2 — intensified) ── */
-  .pivt-ai-glow {
-    box-shadow:
-      0 0 20px hsl(255 82% 58% / 0.14),
-      0 0 40px hsl(231 100% 62% / 0.07),
-      inset 0 0 12px hsl(255 82% 58% / 0.04);
-    transition: box-shadow 300ms ease, transform 250ms ease;
-  }
-  .pivt-ai-glow:hover {
-    box-shadow:
-      0 0 28px hsl(255 82% 58% / 0.22),
-      0 0 56px hsl(231 100% 62% / 0.12),
-      inset 0 0 16px hsl(255 82% 58% / 0.06);
-    transform: translateY(-1px);
-  }
-
-  /* ── V2 Card (Layer 3 — elevated) ── */
+  /* ═══════════════════════════════════
+     DLS v1.0 — LAYER 3: CARDS
+     ═══════════════════════════════════ */
   .pivt-card {
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow:
-      0 1px 2px hsl(220 30% 10% / 0.02),
-      0 2px 8px hsl(220 30% 10% / 0.03),
-      0 8px 24px hsl(220 30% 10% / 0.03);
-    border-radius: 18px;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+    border-radius: 16px;
     padding: 1px;
     transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
                 box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -252,28 +259,26 @@
   }
   .pivt-card:hover {
     transform: translateY(-3px);
-    border-color: hsl(var(--accent) / 0.10);
-    box-shadow:
-      0 4px 12px hsl(220 30% 10% / 0.05),
-      0 12px 32px hsl(220 30% 10% / 0.06);
+    border-color: hsl(var(--accent) / 0.08);
+    box-shadow: var(--shadow-card-hover);
   }
   .glass-mode .pivt-card {
     background: hsl(var(--card) / 0.65);
     border-color: hsl(0 0% 100% / 0.06);
-    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.16), 0 8px 24px hsl(0 0% 0% / 0.22);
+    box-shadow: var(--shadow-card);
     backdrop-filter: blur(16px);
   }
   .glass-mode .pivt-card:hover {
     border-color: hsl(255 82% 62% / 0.10);
-    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.16), 0 16px 40px hsl(0 0% 0% / 0.30);
+    box-shadow: var(--shadow-card-hover);
   }
 
-  /* Card with gradient accent bottom strip */
+  /* Card with gradient accent strip */
   .pivt-card-accent {
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.5);
-    box-shadow: 0 1px 3px hsl(220 30% 10% / 0.04);
-    border-radius: 18px;
+    border: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+    border-radius: 16px;
     position: relative;
     overflow: hidden;
     transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
@@ -290,143 +295,39 @@
   }
   .pivt-card-accent:hover {
     transform: translateY(-3px);
-    box-shadow: 0 4px 16px hsl(220 30% 10% / 0.07);
+    box-shadow: var(--shadow-card-hover);
   }
   .glass-mode .pivt-card-accent {
     background: hsl(var(--card) / 0.72);
     border-color: hsl(0 0% 100% / 0.06);
-    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.20), 0 8px 24px hsl(0 0% 0% / 0.28);
+    box-shadow: var(--shadow-card);
     backdrop-filter: blur(12px);
   }
   .glass-mode .pivt-card-accent:hover {
-    box-shadow: 0 1px 2px hsl(0 0% 0% / 0.20), 0 16px 40px hsl(0 0% 0% / 0.36);
+    box-shadow: var(--shadow-card-hover);
   }
 
-  /* ── Crisp Table ── */
-  .pivt-table {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border) / 0.5);
-    border-radius: 16px;
-    overflow: hidden;
+  /* ═══════════════════════════════════
+     DLS v1.0 — AI VISUAL PRIORITY
+     ═══════════════════════════════════ */
+  .pivt-ai-glow {
+    box-shadow:
+      0 0 20px hsl(255 82% 58% / 0.14),
+      0 0 40px hsl(231 100% 62% / 0.07),
+      inset 0 0 12px hsl(255 82% 58% / 0.04);
+    transition: box-shadow 300ms ease, transform 250ms ease;
   }
-  .glass-mode .pivt-table {
-    background: hsl(228 40% 6%);
-    border-color: hsl(0 0% 100% / 0.05);
-  }
-
-  /* ── Financial Stat Numbers (V2 — elegant spacing) ── */
-  .pivt-stat {
-    @apply font-mono text-2xl font-medium;
-    letter-spacing: -0.02em;
-    font-variant-numeric: tabular-nums;
-    color: hsl(var(--foreground));
-  }
-  .pivt-stat-lg {
-    @apply font-mono text-4xl font-semibold;
-    letter-spacing: -0.035em;
-    font-variant-numeric: tabular-nums;
-    color: hsl(var(--foreground));
-  }
-
-  /* ── V2 Metric Label ── */
-  .pivt-metric-label {
-    @apply text-[9px] font-semibold uppercase;
-    letter-spacing: 0.12em;
-    color: hsl(var(--muted-foreground) / 0.65);
-  }
-
-  /* ── Icon Chip System ── */
-  .pivt-icon-chip {
-    @apply inline-flex items-center justify-center shrink-0;
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    border: 1px solid hsl(var(--border) / 0.5);
-    background: hsl(var(--muted) / 0.4);
-    transition: transform 200ms ease, box-shadow 200ms ease;
-  }
-  .pivt-icon-chip:hover {
-    transform: scale(1.06);
-  }
-  .glass-mode .pivt-icon-chip {
-    border-color: hsl(0 0% 100% / 0.06);
-    background: hsl(0 0% 100% / 0.03);
-  }
-  .pivt-icon-purple { color: hsl(var(--pivt-purple)); background: hsl(255 82% 58% / 0.08); }
-  .pivt-icon-blue   { color: hsl(var(--pivt-blue));   background: hsl(231 100% 62% / 0.08); }
-  .pivt-icon-green  { color: hsl(var(--pivt-emerald)); background: hsl(152 60% 42% / 0.08); }
-  .pivt-icon-amber  { color: hsl(var(--pivt-amber));  background: hsl(38 88% 48% / 0.08); }
-  .pivt-icon-red    { color: hsl(var(--pivt-red));    background: hsl(0 58% 52% / 0.08); }
-  .pivt-icon-slate  { color: hsl(var(--pivt-slate));  background: hsl(215 16% 48% / 0.06); }
-  .glass-mode .pivt-icon-purple { background: hsl(255 82% 62% / 0.12); }
-  .glass-mode .pivt-icon-blue   { background: hsl(231 100% 65% / 0.12); }
-  .glass-mode .pivt-icon-green  { background: hsl(152 60% 48% / 0.10); }
-  .glass-mode .pivt-icon-amber  { background: hsl(38 88% 52% / 0.10); }
-  .glass-mode .pivt-icon-red    { background: hsl(0 58% 56% / 0.10); }
-  .glass-mode .pivt-icon-slate  { background: hsl(215 16% 52% / 0.08); }
-
-  /* ── Status Chips ── */
-  .pivt-chip {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold tracking-widest uppercase;
-    border: 1px solid transparent;
-  }
-  .pivt-chip-green {
-    color: hsl(var(--pivt-emerald));
-    background: hsl(152 60% 42% / 0.08);
-    border-color: hsl(152 60% 42% / 0.12);
-  }
-  .pivt-chip-purple {
-    color: hsl(var(--pivt-purple));
-    background: hsl(255 82% 58% / 0.08);
-    border-color: hsl(255 82% 58% / 0.12);
-  }
-  .pivt-chip-amber {
-    color: hsl(var(--pivt-amber));
-    background: hsl(38 88% 48% / 0.08);
-    border-color: hsl(38 88% 48% / 0.12);
-  }
-  .pivt-chip-red {
-    color: hsl(var(--pivt-red));
-    background: hsl(0 58% 52% / 0.08);
-    border-color: hsl(0 58% 52% / 0.12);
-  }
-  .pivt-chip-blue {
-    color: hsl(var(--pivt-blue));
-    background: hsl(231 100% 62% / 0.08);
-    border-color: hsl(231 100% 62% / 0.12);
-  }
-
-  /* ── Primary Button: G2 gradient + glow ── */
-  .pivt-btn-primary {
-    background: linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)));
-    box-shadow: 0 0 20px hsl(255 82% 58% / 0.18);
-    border: 1px solid hsl(0 0% 100% / 0.15);
-    transition: box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1),
-                transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
-                filter 250ms ease;
-  }
-  .pivt-btn-primary:hover {
-    box-shadow: 0 0 32px hsl(231 100% 62% / 0.28);
-    transform: translateY(-1px);
-    filter: brightness(1.08);
-  }
-
-  /* ── Secondary Button: gradient border ── */
-  .pivt-btn-secondary {
-    background: transparent;
-    border: 1px solid hsl(var(--g2-from) / 0.25);
-    transition: background 250ms ease, border-color 250ms ease, transform 250ms ease;
-  }
-  .pivt-btn-secondary:hover {
-    background: hsl(var(--g2-from) / 0.05);
-    border-color: hsl(var(--g2-from) / 0.4);
+  .pivt-ai-glow:hover {
+    box-shadow:
+      0 0 28px hsl(255 82% 58% / 0.22),
+      0 0 56px hsl(231 100% 62% / 0.12),
+      inset 0 0 16px hsl(255 82% 58% / 0.06);
     transform: translateY(-1px);
   }
 
-  /* ── V2 AI Button ── */
   .pivt-ai-btn {
-    background: linear-gradient(135deg, hsl(var(--g2-from) / 0.12), hsl(var(--g2-to) / 0.08));
-    border: 1px solid hsl(var(--accent) / 0.18);
+    background: linear-gradient(135deg, hsl(var(--g2-from) / 0.14), hsl(var(--g2-to) / 0.10));
+    border: 1px solid hsl(var(--accent) / 0.20);
     border-radius: 12px;
     position: relative;
     overflow: hidden;
@@ -436,32 +337,192 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 50% 50%, hsl(var(--accent) / 0.08), transparent 70%);
+    background: radial-gradient(circle at 50% 50%, hsl(var(--accent) / 0.10), transparent 70%);
     opacity: 0;
     transition: opacity 300ms ease;
   }
   .pivt-ai-btn:hover {
-    border-color: hsl(var(--accent) / 0.3);
-    box-shadow: 0 0 24px hsl(255 82% 58% / 0.15);
+    border-color: hsl(var(--accent) / 0.35);
+    box-shadow: 0 0 28px hsl(255 82% 58% / 0.18);
     transform: translateY(-1px);
   }
   .pivt-ai-btn:hover::before {
     opacity: 1;
   }
 
-  /* ── V2 Next Action Panel ── */
+  /* ═══════════════════════════════════
+     DLS v1.0 — TABLES
+     ═══════════════════════════════════ */
+  .pivt-table {
+    background: hsl(var(--card));
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .glass-mode .pivt-table {
+    background: hsl(228 40% 6%);
+    border-color: hsl(0 0% 100% / 0.05);
+  }
+
+  /* ═══════════════════════════════════
+     DLS v1.0 — TYPOGRAPHY TOKENS
+     ═══════════════════════════════════ */
+  .pivt-stat {
+    @apply font-mono text-2xl;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    color: hsl(var(--foreground));
+  }
+  .pivt-stat-lg {
+    @apply font-mono text-4xl;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    font-variant-numeric: tabular-nums;
+    color: hsl(var(--foreground));
+  }
+
+  /* DLS Metric Label — uppercase, spaced, muted */
+  .pivt-metric-label {
+    @apply uppercase;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: hsl(var(--muted-foreground) / 0.60);
+  }
+
+  /* DLS Section Label */
+  .pivt-section-label {
+    @apply uppercase;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: hsl(var(--muted-foreground) / 0.60);
+  }
+
+  /* ═══════════════════════════════════
+     DLS v1.0 — ICON CHIP SYSTEM
+     ═══════════════════════════════════ */
+  .pivt-icon-chip {
+    @apply inline-flex items-center justify-center shrink-0;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    background: hsl(var(--muted) / 0.35);
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+  .pivt-icon-chip:hover {
+    transform: scale(1.06);
+  }
+  .glass-mode .pivt-icon-chip {
+    border-color: hsl(0 0% 100% / 0.06);
+    background: hsl(0 0% 100% / 0.03);
+  }
+  .pivt-icon-purple { color: hsl(var(--pivt-purple)); background: hsl(255 82% 58% / 0.07); }
+  .pivt-icon-blue   { color: hsl(var(--pivt-blue));   background: hsl(231 100% 62% / 0.07); }
+  .pivt-icon-green  { color: hsl(var(--pivt-emerald)); background: hsl(152 60% 42% / 0.07); }
+  .pivt-icon-amber  { color: hsl(var(--pivt-amber));  background: hsl(38 78% 48% / 0.07); }
+  .pivt-icon-red    { color: hsl(var(--pivt-red));    background: hsl(0 45% 52% / 0.07); }
+  .pivt-icon-slate  { color: hsl(var(--pivt-slate));  background: hsl(215 16% 48% / 0.05); }
+  .glass-mode .pivt-icon-purple { background: hsl(255 82% 62% / 0.12); }
+  .glass-mode .pivt-icon-blue   { background: hsl(231 100% 65% / 0.12); }
+  .glass-mode .pivt-icon-green  { background: hsl(152 60% 48% / 0.10); }
+  .glass-mode .pivt-icon-amber  { background: hsl(38 78% 52% / 0.10); }
+  .glass-mode .pivt-icon-red    { background: hsl(0 45% 56% / 0.10); }
+  .glass-mode .pivt-icon-slate  { background: hsl(215 16% 52% / 0.08); }
+
+  /* ═══════════════════════════════════
+     DLS v1.0 — STATUS CHIPS
+     ═══════════════════════════════════ */
+  .pivt-chip {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-semibold tracking-widest uppercase;
+    border: 1px solid transparent;
+  }
+  .pivt-chip-green {
+    color: hsl(var(--pivt-emerald));
+    background: hsl(152 60% 42% / 0.07);
+    border-color: hsl(152 60% 42% / 0.10);
+  }
+  .pivt-chip-purple {
+    color: hsl(var(--pivt-purple));
+    background: hsl(255 82% 58% / 0.07);
+    border-color: hsl(255 82% 58% / 0.10);
+  }
+  .pivt-chip-amber {
+    color: hsl(var(--pivt-amber));
+    background: hsl(38 78% 48% / 0.07);
+    border-color: hsl(38 78% 48% / 0.10);
+  }
+  .pivt-chip-red {
+    color: hsl(var(--pivt-red));
+    background: hsl(0 45% 52% / 0.07);
+    border-color: hsl(0 45% 52% / 0.10);
+  }
+  .pivt-chip-blue {
+    color: hsl(var(--pivt-blue));
+    background: hsl(231 100% 62% / 0.07);
+    border-color: hsl(231 100% 62% / 0.10);
+  }
+
+  /* ═══════════════════════════════════
+     DLS v1.0 — BUTTONS
+     ═══════════════════════════════════ */
+  .pivt-btn-primary {
+    background: linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)));
+    box-shadow: 0 0 20px hsl(255 82% 58% / 0.16);
+    border: 1px solid hsl(0 0% 100% / 0.15);
+    transition: box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1),
+                transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
+                filter 250ms ease;
+  }
+  .pivt-btn-primary:hover {
+    box-shadow: 0 0 32px hsl(231 100% 62% / 0.26);
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+  }
+
+  .pivt-btn-secondary {
+    background: transparent;
+    border: 1px solid hsl(var(--g2-from) / 0.20);
+    transition: background 250ms ease, border-color 250ms ease, transform 250ms ease;
+  }
+  .pivt-btn-secondary:hover {
+    background: hsl(var(--g2-from) / 0.04);
+    border-color: hsl(var(--g2-from) / 0.35);
+    transform: translateY(-1px);
+  }
+
+  /* ═══════════════════════════════════
+     DLS v1.0 — NEXT ACTION PANEL
+     ═══════════════════════════════════ */
   .pivt-next-action {
     background: linear-gradient(135deg, hsl(var(--accent) / 0.04), hsl(var(--accent) / 0.02));
-    border: 1px solid hsl(var(--accent) / 0.12);
+    border: 1px solid hsl(var(--accent) / 0.10);
     border-radius: 16px;
-    box-shadow: inset 0 0 20px hsl(var(--accent) / 0.04);
+    box-shadow: inset 0 0 24px hsl(var(--accent) / 0.04);
     transition: box-shadow 300ms ease;
   }
   .pivt-next-action:hover {
-    box-shadow: inset 0 0 28px hsl(var(--accent) / 0.06);
+    box-shadow: inset 0 0 32px hsl(var(--accent) / 0.06);
   }
 
-  /* ── Gradient utilities ── */
+  /* ═══════════════════════════════════
+     DLS v1.0 — ALERT SYSTEM (Rebalanced)
+     ═══════════════════════════════════ */
+  .pivt-alert-soft {
+    background: hsl(0 40% 52% / 0.04);
+    border: 1px solid hsl(0 40% 52% / 0.10);
+    border-radius: 14px;
+  }
+  .glass-mode .pivt-alert-soft {
+    background: hsl(0 40% 55% / 0.06);
+    border-color: hsl(0 40% 55% / 0.12);
+  }
+
+  /* ═══════════════════════════════════
+     DLS v1.0 — GRADIENT UTILITIES
+     ═══════════════════════════════════ */
   .pivt-gradient-g1 {
     background: linear-gradient(90deg, hsl(var(--g1-from)), hsl(var(--g1-to)));
   }
@@ -478,47 +539,57 @@
     background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--muted)));
   }
   .pivt-glow {
-    box-shadow: 0 0 40px -10px hsl(255 82% 58% / 0.15);
+    box-shadow: 0 0 40px -10px hsl(255 82% 58% / 0.12);
   }
 
-  /* ── Processing pulse ── */
   .pivt-processing {
     animation: pivtPulse 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  /* ── Editorial section label ── */
-  .pivt-section-label {
-    @apply text-[10px] font-semibold uppercase;
-    letter-spacing: 0.14em;
-    color: hsl(var(--muted-foreground) / 0.65);
-  }
-
-  /* ── Sidebar nav item ── */
+  /* ═══════════════════════════════════
+     DLS v1.0 — NAVIGATION
+     ═══════════════════════════════════ */
   .pivt-nav-item {
     @apply w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium;
     transition: all 250ms cubic-bezier(0.23, 1, 0.32, 1);
   }
   .pivt-nav-item:hover {
-    background: hsl(var(--muted) / 0.6);
+    background: hsl(var(--muted) / 0.5);
     transform: translateX(2px);
   }
   .glass-mode .pivt-nav-item:hover {
     background: hsl(0 0% 100% / 0.04);
   }
   .pivt-nav-item-active {
-    background: linear-gradient(90deg, hsl(var(--g3-from) / 0.12), hsl(var(--g3-to) / 0.06));
+    background: linear-gradient(90deg, hsl(var(--g3-from) / 0.10), hsl(var(--g3-to) / 0.05));
     color: hsl(var(--accent));
     border-left: 3px solid transparent;
     border-image: linear-gradient(180deg, hsl(var(--g2-from)), hsl(var(--g2-to))) 1;
     padding-left: 10px;
-    box-shadow: inset 0 0 12px hsl(255 82% 58% / 0.05);
+    box-shadow: inset 0 0 12px hsl(255 82% 58% / 0.04);
   }
   .glass-mode .pivt-nav-item-active {
     background: linear-gradient(90deg, hsl(var(--g3-from) / 0.15), hsl(var(--g3-to) / 0.08));
     box-shadow: inset 0 0 16px hsl(255 82% 62% / 0.08);
   }
 
-  /* ── Glass Mode Toggle ── */
+  /* ═══════════════════════════════════
+     DLS v1.0 — WORKFLOW NAV
+     ═══════════════════════════════════ */
+  .pivt-workflow-nav {
+    background: hsl(0 0% 100% / 0.60);
+    backdrop-filter: blur(16px) saturate(1.2);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+  }
+  .glass-mode .pivt-workflow-nav {
+    background: hsl(var(--card) / 0.40);
+    border-color: hsl(0 0% 100% / 0.05);
+  }
+
+  /* ═══════════════════════════════════
+     DLS v1.0 — GLASS MODE TOGGLE
+     ═══════════════════════════════════ */
   .glass-toggle {
     @apply relative inline-flex items-center h-7 rounded-full px-0.5 cursor-pointer transition-colors duration-300;
     width: 52px;
@@ -537,37 +608,16 @@
     background: white;
   }
 
-  /* ── Hero header bar with G1 ── */
+  /* Hero header bar */
   .pivt-header-gradient {
     background: linear-gradient(90deg, hsl(var(--g1-from)), hsl(var(--g1-to)));
     color: white;
   }
-
-  /* ── V2 Workflow Nav ── */
-  .pivt-workflow-nav {
-    background: hsl(0 0% 100% / 0.6);
-    backdrop-filter: blur(16px) saturate(1.2);
-    border: 1px solid hsl(var(--border) / 0.25);
-    border-radius: 16px;
-  }
-  .glass-mode .pivt-workflow-nav {
-    background: hsl(var(--card) / 0.4);
-    border-color: hsl(0 0% 100% / 0.05);
-  }
-
-  /* ── V2 Blocking Alert (softer) ── */
-  .pivt-alert-soft {
-    background: hsl(0 50% 52% / 0.04);
-    border: 1px solid hsl(0 50% 52% / 0.12);
-    border-radius: 14px;
-  }
-  .glass-mode .pivt-alert-soft {
-    background: hsl(0 50% 55% / 0.06);
-    border-color: hsl(0 50% 55% / 0.15);
-  }
 }
 
-/* ── Logo Rotation ── */
+/* ═══════════════════════════════════
+   DLS v1.0 — ANIMATIONS & MOTION
+   ═══════════════════════════════════ */
 @keyframes pivtRotate {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -576,7 +626,7 @@
   animation: pivtRotate 22s linear infinite !important;
   transform-origin: center center;
   will-change: transform;
-  filter: drop-shadow(0 0 6px hsl(255 82% 58% / 0.35));
+  filter: drop-shadow(0 0 6px hsl(255 82% 58% / 0.30));
 }
 .pivt-logo-spin:hover {
   animation-play-state: paused !important;
@@ -587,7 +637,6 @@
   50% { opacity: 0.5; }
 }
 
-/* ── V2 Icon Pulse (for next action) ── */
 @keyframes pivtIconPulse {
   0%, 100% { transform: scale(1); opacity: 0.9; }
   50% { transform: scale(1.08); opacity: 1; }
@@ -596,7 +645,6 @@
   animation: pivtIconPulse 2.4s ease-in-out infinite;
 }
 
-/* ── V2 Spark animation for AI ── */
 @keyframes pivtSpark {
   0%, 100% { transform: rotate(0deg) scale(1); }
   25% { transform: rotate(8deg) scale(1.05); }
@@ -606,40 +654,28 @@
   animation: pivtSpark 3s ease-in-out infinite;
 }
 
+/* Progress bar fill animation */
+@keyframes pivtProgressFill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.pivt-progress-animated {
+  transform-origin: left;
+  animation: pivtProgressFill 1s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pivt-logo-spin { animation: none !important; }
   .pivt-processing { animation: none !important; }
   .pivt-icon-pulse { animation: none !important; }
   .pivt-spark { animation: none !important; }
+  .pivt-progress-animated { animation: none !important; }
   .pivt-card:hover, .pivt-card-accent:hover { transform: none; }
 }
 
-/* ── Custom scrollbar ── */
-::-webkit-scrollbar {
-  width: 5px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.15);
-  border-radius: 10px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.3);
-}
-
-/* Theme transition */
-*, *::before, *::after {
-  transition-property: background-color, border-color, color;
-  transition-duration: 0ms;
-}
-.theme-transitioning *, .theme-transitioning *::before, .theme-transitioning *::after {
-  transition-duration: 300ms !important;
-  transition-timing-function: ease !important;
-}
-
-/* ── AI Neural Mesh Background ── */
+/* ═══════════════════════════════════
+   DLS v1.0 — NEURAL MESH (AI pages)
+   ═══════════════════════════════════ */
 @keyframes neuralDrift {
   0% { transform: translate(0, 0) rotate(0deg); }
   33% { transform: translate(10px, -15px) rotate(1deg); }
@@ -669,7 +705,7 @@
   height: 600px;
   top: -200px;
   right: -100px;
-  background: radial-gradient(circle, hsl(255 82% 58% / 0.06), transparent 70%);
+  background: radial-gradient(circle, hsl(255 82% 58% / 0.05), transparent 70%);
 }
 .pivt-neural-mesh::after {
   width: 500px;
@@ -686,7 +722,34 @@
   background: radial-gradient(circle, hsl(231 100% 65% / 0.06), transparent 70%);
 }
 
-/* ── V2 Global micro-motion ── */
+/* ═══════════════════════════════════
+   DLS v1.0 — SCROLLBAR
+   ═══════════════════════════════════ */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.12);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.25);
+}
+
+/* Theme transition */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0ms;
+}
+.theme-transitioning *, .theme-transitioning *::before, .theme-transitioning *::after {
+  transition-duration: 300ms !important;
+  transition-timing-function: ease !important;
+}
+
+/* DLS v1.0 — Global micro-motion */
 button, a, [role="button"] {
   transition: all 250ms cubic-bezier(0.23, 1, 0.32, 1);
 }
