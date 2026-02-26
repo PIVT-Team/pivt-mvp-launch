@@ -212,10 +212,11 @@ export const SupportPanel: React.FC = () => {
                 animate={{ scale: 1 }}
                 exit={{ scale: 0 }}
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-24 z-50 w-11 h-11 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
+                className="fixed bottom-6 right-24 z-50 w-11 h-11 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center border"
                 style={{
-                  background: 'hsl(var(--foreground))',
-                  color: 'hsl(var(--background))',
+                  background: 'hsl(var(--card))',
+                  color: 'hsl(var(--foreground))',
+                  borderColor: 'hsl(var(--border))',
                 }}
               >
                 <HelpCircle className="w-5 h-5" />

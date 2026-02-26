@@ -195,10 +195,11 @@ export const NewtonDealIntelligence: React.FC = () => {
                 animate={{ scale: 1 }}
                 exit={{ scale: 0 }}
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center group"
+                className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center group pivt-gradient-interactive"
                 style={{
-                  background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8))',
-                  color: 'hsl(var(--accent-foreground))',
+                  background: 'var(--pivt-gradient-primary)',
+                  color: '#FFFFFF',
+                  boxShadow: 'var(--pivt-gradient-glow)',
                 }}
               >
                 <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />

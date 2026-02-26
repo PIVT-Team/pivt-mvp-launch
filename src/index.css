@@ -75,6 +75,16 @@
     --g5-from: 231 100% 62%;
     --g5-to: 186 100% 59%;
 
+    /* ── PIVT Brand Gradient System ── */
+    --pivt-gp-from: 255 68% 68%;
+    --pivt-gp-mid: 233 86% 65%;
+    --pivt-gp-to: 195 100% 62%;
+    --pivt-gradient-primary: linear-gradient(135deg, hsl(var(--pivt-gp-from)) 0%, hsl(var(--pivt-gp-mid)) 45%, hsl(var(--pivt-gp-to)) 100%);
+    --pivt-gradient-soft: linear-gradient(135deg, hsl(var(--pivt-gp-from) / 0.12) 0%, hsl(var(--pivt-gp-mid) / 0.08) 45%, hsl(var(--pivt-gp-to) / 0.06) 100%);
+    --pivt-gradient-accent: linear-gradient(90deg, hsl(var(--pivt-gp-from)), hsl(var(--pivt-gp-to)));
+    --pivt-gradient-glow: 0 0 20px hsl(var(--pivt-gp-from) / 0.20), 0 0 40px hsl(var(--pivt-gp-to) / 0.10);
+    --pivt-gradient-glow-hover: 0 0 28px hsl(var(--pivt-gp-from) / 0.30), 0 0 56px hsl(var(--pivt-gp-to) / 0.16);
+
     /* DLS Spacing base (8pt grid) */
     --space-xs: 4px;
     --space-sm: 8px;
@@ -148,6 +158,16 @@
     --g4-to: 226 30% 8%;
     --g5-from: 231 100% 62%;
     --g5-to: 186 100% 59%;
+
+    /* ── PIVT Brand Gradient System (Glass) ── */
+    --pivt-gp-from: 255 72% 72%;
+    --pivt-gp-mid: 233 90% 70%;
+    --pivt-gp-to: 195 100% 66%;
+    --pivt-gradient-primary: linear-gradient(135deg, hsl(var(--pivt-gp-from)) 0%, hsl(var(--pivt-gp-mid)) 45%, hsl(var(--pivt-gp-to)) 100%);
+    --pivt-gradient-soft: linear-gradient(135deg, hsl(var(--pivt-gp-from) / 0.15) 0%, hsl(var(--pivt-gp-mid) / 0.10) 45%, hsl(var(--pivt-gp-to) / 0.08) 100%);
+    --pivt-gradient-accent: linear-gradient(90deg, hsl(var(--pivt-gp-from)), hsl(var(--pivt-gp-to)));
+    --pivt-gradient-glow: 0 0 24px hsl(var(--pivt-gp-from) / 0.25), 0 0 48px hsl(var(--pivt-gp-to) / 0.14);
+    --pivt-gradient-glow-hover: 0 0 36px hsl(var(--pivt-gp-from) / 0.35), 0 0 64px hsl(var(--pivt-gp-to) / 0.20);
 
     --shadow-panel: 0 1px 2px hsl(0 0% 0% / 0.16), 0 8px 32px hsl(0 0% 0% / 0.24);
     --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.14), 0 4px 16px hsl(0 0% 0% / 0.20);
@@ -312,38 +332,38 @@
      ═══════════════════════════════════ */
   .pivt-ai-glow {
     box-shadow:
-      0 0 24px hsl(255 82% 58% / 0.18),
-      0 0 48px hsl(231 100% 62% / 0.08),
-      inset 0 0 16px hsl(255 82% 58% / 0.05);
-    transition: box-shadow 300ms ease, transform 250ms ease;
+      0 0 24px hsl(var(--pivt-gp-from) / 0.18),
+      0 0 48px hsl(var(--pivt-gp-to) / 0.08),
+      inset 0 0 16px hsl(var(--pivt-gp-from) / 0.05);
+    transition: box-shadow 180ms ease-in-out, transform 180ms ease-in-out;
   }
   .pivt-ai-glow:hover {
     box-shadow:
-      0 0 36px hsl(255 82% 58% / 0.28),
-      0 0 64px hsl(231 100% 62% / 0.14),
-      inset 0 0 20px hsl(255 82% 58% / 0.08);
+      0 0 36px hsl(var(--pivt-gp-from) / 0.28),
+      0 0 64px hsl(var(--pivt-gp-to) / 0.14),
+      inset 0 0 20px hsl(var(--pivt-gp-from) / 0.08);
     transform: translateY(-1px);
   }
 
   .pivt-ai-btn {
-    background: linear-gradient(135deg, hsl(var(--g2-from) / 0.12), hsl(var(--g2-to) / 0.08));
-    border: 1px solid hsl(var(--accent) / 0.15);
+    background: var(--pivt-gradient-soft);
+    border: 1px solid hsl(var(--pivt-gp-from) / 0.15);
     border-radius: 14px;
     position: relative;
     overflow: hidden;
-    transition: all 250ms cubic-bezier(0.23, 1, 0.32, 1);
+    transition: all 180ms ease-in-out;
   }
   .pivt-ai-btn::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 50% 50%, hsl(var(--accent) / 0.12), transparent 70%);
+    background: radial-gradient(circle at 50% 50%, hsl(var(--pivt-gp-mid) / 0.12), transparent 70%);
     opacity: 0;
-    transition: opacity 300ms ease;
+    transition: opacity 180ms ease-in-out;
   }
   .pivt-ai-btn:hover {
-    border-color: hsl(var(--accent) / 0.30);
-    box-shadow: 0 0 32px hsl(255 82% 58% / 0.20), 0 8px 24px hsl(255 82% 58% / 0.10);
+    border-color: hsl(var(--pivt-gp-from) / 0.30);
+    box-shadow: 0 0 32px hsl(var(--pivt-gp-from) / 0.20), 0 8px 24px hsl(var(--pivt-gp-mid) / 0.10);
     transform: translateY(-1px);
   }
   .pivt-ai-btn:hover::before {
@@ -469,27 +489,27 @@
      DLS v1.0 — BUTTONS
      ═══════════════════════════════════ */
   .pivt-btn-primary {
-    background: linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)));
-    box-shadow: 0 0 20px hsl(255 82% 58% / 0.16);
-    border: 1px solid hsl(0 0% 100% / 0.15);
-    transition: box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1),
-                transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
-                filter 250ms ease;
+    background: var(--pivt-gradient-primary);
+    box-shadow: var(--pivt-gradient-glow);
+    border: 1px solid hsl(0 0% 100% / 0.18);
+    transition: box-shadow 180ms ease-in-out,
+                transform 180ms ease-in-out,
+                filter 180ms ease-in-out;
   }
   .pivt-btn-primary:hover {
-    box-shadow: 0 0 32px hsl(231 100% 62% / 0.26);
+    box-shadow: var(--pivt-gradient-glow-hover);
     transform: translateY(-1px);
-    filter: brightness(1.06);
+    filter: brightness(1.08) saturate(1.1);
   }
 
   .pivt-btn-secondary {
     background: transparent;
-    border: 1px solid hsl(var(--g2-from) / 0.20);
-    transition: background 250ms ease, border-color 250ms ease, transform 250ms ease;
+    border: 1px solid hsl(var(--pivt-gp-from) / 0.20);
+    transition: background 180ms ease-in-out, border-color 180ms ease-in-out, transform 180ms ease-in-out;
   }
   .pivt-btn-secondary:hover {
-    background: hsl(var(--g2-from) / 0.04);
-    border-color: hsl(var(--g2-from) / 0.35);
+    background: hsl(var(--pivt-gp-from) / 0.05);
+    border-color: hsl(var(--pivt-gp-from) / 0.35);
     transform: translateY(-1px);
   }
 
@@ -536,10 +556,57 @@
     background: linear-gradient(90deg, hsl(var(--g5-from)), hsl(var(--g5-to)));
   }
   .pivt-gradient {
-    background: linear-gradient(135deg, hsl(var(--card)), hsl(var(--muted)));
+    background: var(--pivt-gradient-primary);
   }
   .pivt-glow {
-    box-shadow: 0 0 40px -10px hsl(255 82% 58% / 0.12);
+    box-shadow: var(--pivt-gradient-glow);
+  }
+
+  /* ── Brand Gradient Utilities ── */
+  .pivt-gradient-brand {
+    background: var(--pivt-gradient-primary);
+  }
+  .pivt-gradient-brand-soft {
+    background: var(--pivt-gradient-soft);
+  }
+  .pivt-gradient-underline {
+    height: 2px;
+    background: var(--pivt-gradient-accent);
+    border-radius: 1px;
+  }
+  .pivt-gradient-border {
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    position: relative;
+  }
+  .pivt-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--pivt-gradient-accent);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* ── Progress bar gradient fill ── */
+  .pivt-progress-gradient {
+    background: var(--pivt-gradient-primary);
+    background-size: 200% 100%;
+    animation: pivtProgressShimmer 2s ease-in-out infinite;
+  }
+
+  /* ── Interactive gradient hover ── */
+  .pivt-gradient-interactive {
+    transition: filter 180ms ease-in-out, box-shadow 180ms ease-in-out, transform 180ms ease-in-out;
+  }
+  .pivt-gradient-interactive:hover {
+    filter: brightness(1.08) saturate(1.1);
+    box-shadow: var(--pivt-gradient-glow-hover);
+    transform: translateY(-1px);
   }
 
   .pivt-processing {
@@ -596,7 +663,7 @@
     background: hsl(var(--muted));
   }
   .glass-toggle[data-active="true"] {
-    background: linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)));
+    background: var(--pivt-gradient-accent);
   }
   .glass-toggle-thumb {
     @apply block h-5 w-5 rounded-full shadow-sm transition-transform duration-300;
@@ -610,7 +677,7 @@
 
   /* Hero header bar */
   .pivt-header-gradient {
-    background: linear-gradient(90deg, hsl(var(--g1-from)), hsl(var(--g1-to)));
+    background: var(--pivt-gradient-primary);
     color: white;
   }
 }
@@ -630,6 +697,11 @@
 }
 .pivt-logo-spin:hover {
   animation-play-state: paused !important;
+}
+
+@keyframes pivtProgressShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 @keyframes pivtPulse {
