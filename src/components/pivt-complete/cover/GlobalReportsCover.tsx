@@ -12,10 +12,10 @@ import { ReportsHistoryTable } from './ReportsHistoryTable';
 
 const PORTFOLIO_REPORTS = [
   { id: 'portfolio-summary', name: 'Portfolio Deal Summary', desc: 'Aggregated status of all active deals, closing timelines, and risk indicators.', formats: ['PDF', 'CSV'] },
-  { id: 'compliance-summary', name: 'Stakeholder Compliance Summary', desc: 'Cross-deal KYC/KYB status for all stakeholders with verification gaps.', formats: ['PDF', 'XLSX'] },
+  { id: 'audit-export', name: 'Audit Trail Export', desc: 'Complete immutable audit trail across all deals and system events.', formats: ['CSV', 'PDF'] },
+  { id: 'compliance-summary', name: 'Stakeholder Compliance Summary', desc: 'Cross-deal KYC/KYB status for all stakeholders with verification gaps.', formats: ['PDF', 'CSV', 'XLSX'] },
   { id: 'payment-schedule', name: 'Payment Schedule Export', desc: 'Consolidated payment schedules across all active deals.', formats: ['CSV', 'XLSX'] },
   { id: 'kyc-weekly', name: 'Weekly KYC Status Report', desc: 'Rolling weekly summary of KYC completions, failures, and pending verifications.', formats: ['PDF'] },
-  { id: 'audit-export', name: 'Global Audit Export', desc: 'Complete immutable audit trail across all deals and system events.', formats: ['CSV', 'XLSX'] },
 ];
 
 export const GlobalReportsCover: React.FC = () => {

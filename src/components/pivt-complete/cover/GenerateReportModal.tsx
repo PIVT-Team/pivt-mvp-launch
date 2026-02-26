@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,16 +15,17 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectSeparator,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, CheckCircle2, AlertCircle, Download, FileText } from 'lucide-react';
 import { useReportStore, type ReportFormat, type ReportScope, type GeneratedReport } from '@/stores/reportStore';
-import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
+import { usePIVTStore, useSelectedDeal, type DemoDeal } from '@/stores/pivtStore';
 import { useAuditStore } from '@/stores/auditStore';
 import { generateReport, downloadBlob, type ReportDataContext } from '@/lib/reportGenerator';
 
-interface ReportDef {
+export interface ReportDef {
   id: string;
   name: string;
   desc: string;
@@ -38,13 +39,40 @@ interface Props {
   scope: ReportScope;
 }
 
-export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, report, scope }) => {
+export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, report: initialReport, scope: initialScope }) => {
   const deal = useSelectedDeal();
   const { deals, stakeholders, payments, waterfallTiers } = usePIVTStore();
   const auditStore = useAuditStore();
   const reportStore = useReportStore();
 
-  const [format, setFormat] = useState<ReportFormat>(report.formats[0] as ReportFormat);
+  // Report type selection
+  const REPORT_TYPES: ReportDef[] = useMemo(() => [
+    { id: 'portfolio-summary', name: 'Portfolio Deal Summary', desc: 'Aggregated status of all active deals, closing timelines, and risk indicators.', formats: ['PDF', 'CSV'] },
+    { id: 'audit-export', name: 'Audit Trail Export', desc: 'Complete immutable audit trail with actor, action, and timestamp data.', formats: ['CSV', 'PDF'] },
+    { id: 'compliance-summary', name: 'Stakeholder Compliance Summary', desc: 'Cross-deal KYC/KYB status for all stakeholders.', formats: ['PDF', 'CSV', 'XLSX'] },
+    { id: 'payment-schedule', name: 'Payment Schedule Export', desc: 'Consolidated payment schedules across deals.', formats: ['CSV', 'XLSX'] },
+  ], []);
+
+  const [selectedReportId, setSelectedReportId] = useState(initialReport.id);
+  const activeReport = REPORT_TYPES.find(r => r.id === selectedReportId) || initialReport;
+
+  // Scope: 'all' or a specific deal id
+  const [scopeValue, setScopeValue] = useState<string>(initialScope === 'deal' ? (deal?.id || 'all') : 'all');
+  const selectedDealForScope: DemoDeal | undefined = scopeValue === 'all' ? undefined : deals.find(d => d.id === scopeValue);
+  const effectiveScope: ReportScope = scopeValue === 'all' ? 'portfolio' : 'deal';
+
+  // Format
+  const [format, setFormat] = useState<ReportFormat>(activeReport.formats[0] as ReportFormat);
+
+  // Reset format when report type changes
+  const handleReportTypeChange = (id: string) => {
+    setSelectedReportId(id);
+    const r = REPORT_TYPES.find(rt => rt.id === id);
+    if (r && !r.formats.includes(format)) {
+      setFormat(r.formats[0] as ReportFormat);
+    }
+  };
+
   const [dateStart, setDateStart] = useState('');
   const [dateEnd, setDateEnd] = useState('');
   const [phase, setPhase] = useState<'config' | 'generating' | 'success' | 'error'>('config');
@@ -64,14 +92,16 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
     setProgressText('Compiling data…');
 
     const id = crypto.randomUUID();
-    const scopeLabel = scope === 'deal' ? deal.codeName : `All ${deals.length} deals`;
-    const fileName = `${report.name.replace(/\s+/g, '_')}.${format.toLowerCase()}`;
+    const scopeLabel = effectiveScope === 'deal' && selectedDealForScope
+      ? selectedDealForScope.codeName
+      : `All ${deals.length} deals`;
+    const fileName = `${activeReport.name.replace(/\s+/g, '_')}.${format.toLowerCase()}`;
 
     const entry: GeneratedReport = {
       id,
-      reportTypeId: report.id,
-      reportName: report.name,
-      scope,
+      reportTypeId: activeReport.id,
+      reportName: activeReport.name,
+      scope: effectiveScope,
       scopeLabel,
       format,
       status: 'generating',
@@ -81,9 +111,8 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
     };
     reportStore.addReport(entry);
 
-    // Audit: requested
     auditStore.addEvent({
-      deal_id: scope === 'deal' ? deal.id : null,
+      deal_id: effectiveScope === 'deal' && selectedDealForScope ? selectedDealForScope.id : null,
       actor_type: 'User',
       actor_id: 'u-001',
       actor_display_name: 'Alexandra Reed',
@@ -92,9 +121,9 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
       object_type: 'Report',
       object_id: id,
       severity: 'info',
-      summary: `Report generation requested: ${report.name} (${format})`,
+      summary: `Report generation requested: ${activeReport.name} (${format})`,
       before_state: null,
-      after_state: { reportType: report.id, format, scope: scopeLabel },
+      after_state: { reportType: activeReport.id, format, scope: scopeLabel },
       source: 'UI',
       ip_address: null,
       user_agent: null,
@@ -110,17 +139,16 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
         payments,
         waterfallTiers,
         auditEvents: auditStore.events,
-        selectedDeal: scope === 'deal' ? deal : undefined,
+        selectedDeal: selectedDealForScope,
       };
 
-      const result = await generateReport(report.id, format, ctx);
+      const result = await generateReport(activeReport.id, format, ctx);
       reportStore.updateReport(id, { status: 'ready', fileBlob: result.blob, fileName: result.fileName });
       setGeneratedId(id);
       setPhase('success');
 
-      // Audit: success
       auditStore.addEvent({
-        deal_id: scope === 'deal' ? deal.id : null,
+        deal_id: effectiveScope === 'deal' && selectedDealForScope ? selectedDealForScope.id : null,
         actor_type: 'System',
         actor_id: null,
         actor_display_name: 'Report Engine',
@@ -129,7 +157,7 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
         object_type: 'Report',
         object_id: id,
         severity: 'info',
-        summary: `${report.name} generated successfully (${format})`,
+        summary: `${activeReport.name} generated successfully (${format})`,
         before_state: null,
         after_state: { fileName: result.fileName, format },
         source: 'Automation',
@@ -144,7 +172,7 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
       setPhase('error');
 
       auditStore.addEvent({
-        deal_id: scope === 'deal' ? deal.id : null,
+        deal_id: effectiveScope === 'deal' && selectedDealForScope ? selectedDealForScope.id : null,
         actor_type: 'System',
         actor_id: null,
         actor_display_name: 'Report Engine',
@@ -153,7 +181,7 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
         object_type: 'Report',
         object_id: id,
         severity: 'error',
-        summary: `${report.name} generation failed: ${err?.message}`,
+        summary: `${activeReport.name} generation failed: ${err?.message}`,
         before_state: null,
         after_state: { error: err?.message },
         source: 'Automation',
@@ -170,9 +198,8 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
     const r = reportStore.history.find((h) => h.id === generatedId);
     if (r?.fileBlob) {
       downloadBlob(r.fileBlob, r.fileName);
-      // Audit: downloaded
       auditStore.addEvent({
-        deal_id: scope === 'deal' ? deal.id : null,
+        deal_id: effectiveScope === 'deal' && selectedDealForScope ? selectedDealForScope.id : null,
         actor_type: 'User',
         actor_id: 'u-001',
         actor_display_name: 'Alexandra Reed',
@@ -193,30 +220,81 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
     }
   };
 
+  const statusDot = (status: string) => {
+    const colors: Record<string, string> = {
+      drafting: 'bg-muted-foreground',
+      diligence: 'bg-accent',
+      signing: 'bg-chart-4',
+      closing: 'bg-chart-2',
+      completed: 'bg-validated',
+    };
+    return <span className={`inline-block w-2 h-2 rounded-full ${colors[status] || 'bg-muted-foreground'}`} />;
+  };
+
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5 text-accent" />
             Generate Report
           </DialogTitle>
-          <DialogDescription>{report.name}</DialogDescription>
+          <DialogDescription>Configure and export your report</DialogDescription>
         </DialogHeader>
 
         {phase === 'config' && (
           <div className="space-y-4">
+            {/* Report Type */}
             <div>
-              <Label className="text-xs text-muted-foreground">Report</Label>
-              <p className="text-sm font-medium">{report.name}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{report.desc}</p>
+              <Label className="text-xs text-muted-foreground">Report Type</Label>
+              <Select value={selectedReportId} onValueChange={handleReportTypeChange}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {REPORT_TYPES.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">{activeReport.desc}</p>
             </div>
+
+            {/* Scope */}
             <div>
               <Label className="text-xs text-muted-foreground">Scope</Label>
-              <p className="text-sm font-medium">
-                {scope === 'deal' ? `Deal: ${deal.codeName}` : `All active deals (${deals.length})`}
+              <Select value={scopeValue} onValueChange={setScopeValue}>
+                <SelectTrigger className="mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">
+                    All active deals ({deals.length})
+                  </SelectItem>
+                  <SelectSeparator />
+                  {deals.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      <span className="flex items-center gap-2">
+                        {statusDot(d.status)}
+                        <span>{d.codeName}</span>
+                        <span className="text-muted-foreground text-[10px] ml-1">
+                          ${(d.consideration / 1e6).toFixed(0)}M · {d.readyToPayPercent}%
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {scopeValue === 'all'
+                  ? 'All active deals generates a portfolio-level report.'
+                  : 'Generates a deal-specific report for the selected deal.'}
               </p>
             </div>
+
+            {/* Format */}
             <div>
               <Label className="text-xs text-muted-foreground">Format</Label>
               <Select value={format} onValueChange={(v) => setFormat(v as ReportFormat)}>
@@ -224,12 +302,14 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {report.formats.map((f) => (
+                  {activeReport.formats.map((f) => (
                     <SelectItem key={f} value={f}>{f}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Date Range */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-muted-foreground">Start Date (optional)</Label>

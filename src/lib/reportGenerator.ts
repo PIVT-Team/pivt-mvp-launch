@@ -113,13 +113,15 @@ type GeneratorFn = (ctx: ReportDataContext, format: ReportFormat) => { blob: Blo
 const generators: Record<string, GeneratorFn> = {
   // ── Portfolio reports ──
   'portfolio-summary': (ctx, fmt) => {
+    const targetDeals = ctx.selectedDeal ? [ctx.selectedDeal] : ctx.deals;
     const headers = ['Deal', 'Code', 'Value', 'Status', 'Closing Date', 'Ready %', 'Blockers', 'Pending Approvals'];
-    const rows = ctx.deals.map((d) => [d.name, d.codeName, fmtMoney(d.consideration), d.status, d.closingDate, `${d.readyToPayPercent}%`, String(d.discrepanciesFound), String(d.pendingApprovals)]);
+    const rows = targetDeals.map((d) => [d.name, d.codeName, fmtMoney(d.consideration), d.status, d.closingDate, `${d.readyToPayPercent}%`, String(d.discrepanciesFound), String(d.pendingApprovals)]);
+    const dealLabel = ctx.selectedDeal ? ctx.selectedDeal.codeName : 'Portfolio';
     const ext = fmt.toLowerCase();
-    const fileName = `Portfolio_Deal_Summary_${new Date().toISOString().slice(0, 10)}.${ext}`;
+    const fileName = `Deal_Summary_${dealLabel}_${new Date().toISOString().slice(0, 10)}.${ext}`;
     if (fmt === 'CSV') return { blob: csvToBlob(headers, rows), fileName };
     if (fmt === 'XLSX') return { blob: xlsxToBlob(headers, rows), fileName };
-    return { blob: pdfFromTable('Portfolio Deal Summary', headers, rows, `${ctx.deals.length} active deals · Total: ${fmtMoney(ctx.deals.reduce((s, d) => s + d.consideration, 0))}`), fileName };
+    return { blob: pdfFromTable(`Portfolio Deal Summary — ${dealLabel}`, headers, rows, `${targetDeals.length} deal(s) · Total: ${fmtMoney(targetDeals.reduce((s, d) => s + d.consideration, 0))}`), fileName };
   },
 
   'compliance-summary': (ctx, fmt) => {
@@ -155,13 +157,26 @@ const generators: Record<string, GeneratorFn> = {
   },
 
   'audit-export': (ctx, fmt) => {
-    const headers = ['Timestamp', 'Actor', 'Role', 'Action', 'Object Type', 'Summary', 'Severity'];
-    const rows = ctx.auditEvents.map((e) => [new Date(e.timestamp).toLocaleString(), e.actor_display_name, e.actor_role, e.action, e.object_type, e.summary, e.severity]);
+    const events = ctx.selectedDeal
+      ? ctx.auditEvents.filter((e) => e.deal_id === ctx.selectedDeal!.id)
+      : ctx.auditEvents;
+    const dealLabel = ctx.selectedDeal ? ctx.selectedDeal.codeName : 'Global';
+    const headers = ['Timestamp', 'Deal', 'Actor', 'Role', 'Action', 'Object Type', 'Summary', 'Severity'];
+    const rows = events.map((e) => [
+      new Date(e.timestamp).toLocaleString(),
+      ctx.deals.find(d => d.id === e.deal_id)?.codeName || 'N/A',
+      e.actor_display_name,
+      e.actor_role,
+      e.action,
+      e.object_type,
+      e.summary,
+      e.severity,
+    ]);
     const ext = fmt.toLowerCase();
-    const fileName = `Global_Audit_Export_${new Date().toISOString().slice(0, 10)}.${ext}`;
+    const fileName = `Audit_Trail_${dealLabel}_${new Date().toISOString().slice(0, 10)}.${ext}`;
     if (fmt === 'CSV') return { blob: csvToBlob(headers, rows), fileName };
     if (fmt === 'XLSX') return { blob: xlsxToBlob(headers, rows), fileName };
-    return { blob: pdfFromTable('Global Audit Trail Export', headers, rows, `${ctx.auditEvents.length} events`), fileName };
+    return { blob: pdfFromTable(`Audit Trail Export — ${dealLabel}`, headers, rows, `${events.length} events`), fileName };
   },
 
   // ── Deal-scoped reports ──
