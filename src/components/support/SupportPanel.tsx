@@ -29,6 +29,13 @@ const TICKET_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submit-sup
 export const SupportPanel: React.FC = () => {
   const { activeSection, selectedDealId } = usePIVTStore();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Listen for sidebar open event
+  useEffect(() => {
+    const handler = () => setIsOpen(true);
+    window.addEventListener('pivt:open-support', handler);
+    return () => window.removeEventListener('pivt:open-support', handler);
+  }, []);
   const [layer, setLayer] = useState<Layer>('qa');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<HelpArticle | null>(null);
