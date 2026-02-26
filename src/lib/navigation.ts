@@ -36,7 +36,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
       items: [
         { label: 'Intelligence Map', icon: Network, path: 'intelligence-map', iconColor: '#8B5CF6' },
         { label: 'AI Deal Scan', icon: Brain, path: 'ai', iconColor: '#5E3BEE' },
-        { label: 'Newton AI', icon: Brain, path: 'newton', iconColor: '#3EC7FF' },
+        { label: 'Newton Chatbot', icon: Brain, path: 'newton', iconColor: '#3EC7FF' },
         { label: 'Support', icon: HelpCircle, path: 'support', iconColor: '#22C55E' },
       ],
     },
