@@ -103,8 +103,8 @@ export const NewtonDealIntelligence: React.FC = () => {
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent).detail;
+      setIsOpen(true);
       if (detail?.query) {
-        setIsOpen(true);
         setTimeout(() => send(detail.query), 300);
       }
     };
