@@ -101,7 +101,7 @@ const OverviewSection: React.FC = () => {
   const nextAction = getNextAction(deal.workflowState, deal.discrepanciesFound, deal.pendingApprovals);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* V2 Next Action Panel */}
       <motion.div {...fadeInUp} className="pivt-next-action p-5">
         <div className="flex items-center gap-3">
@@ -115,16 +115,16 @@ const OverviewSection: React.FC = () => {
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-5">
         {[
           { label: 'Recipients', value: deal.totalRecipients },
           { label: 'Documents', value: deal.documentsUploaded },
           { label: 'Discrepancies', value: deal.discrepanciesFound, color: deal.discrepanciesFound > 0 ? 'text-discrepancy' : 'text-validated' },
           { label: 'Pending Approvals', value: deal.pendingApprovals, color: deal.pendingApprovals > 0 ? 'text-discrepancy' : 'text-validated' },
         ].map(stat => (
-          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-5">
+          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-6">
             <p className="pivt-metric-label">{stat.label}</p>
-            <p className={`pivt-stat text-xl mt-2 ${stat.color || ''}`}>{stat.value}</p>
+            <p className={`pivt-stat text-2xl mt-3 ${stat.color || ''}`}>{stat.value}</p>
           </motion.div>
         ))}
       </div>
@@ -323,7 +323,7 @@ export const DealWorkspaceCover: React.FC = () => {
   const currentStatus = currentStep ? deriveStatus(currentStep) : 'not_started';
 
   return (
-    <motion.div {...staggerChildren} className="space-y-5">
+    <motion.div {...staggerChildren} className="space-y-8">
       {/* Back */}
       <button
         onClick={() => setActiveSection('deals')}
@@ -333,46 +333,46 @@ export const DealWorkspaceCover: React.FC = () => {
         Back to Deals
       </button>
 
-      {/* ── V2 Deal Header (Panel Layer) ── */}
-      <div className="pivt-panel p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+      {/* ── V2 Deal Header — Hero Command Module ── */}
+      <div className="pivt-panel p-8 lg:p-10">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold text-foreground truncate" style={{ letterSpacing: '-0.04em' }}>{deal.codeName}</h1>
+              <h1 className="text-[28px] font-semibold text-foreground truncate" style={{ letterSpacing: '-0.04em' }}>{deal.codeName}</h1>
               {deal.hasBlocker && (
                 <Badge className="bg-blocking/10 text-blocking border-blocking/15 shrink-0">
                   <Ban className="w-3 h-3 mr-1" /> Blocked
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground/70 mt-1 text-sm truncate font-normal">
+            <p className="text-muted-foreground/60 mt-1.5 text-sm truncate font-normal">
               {deal.buyerName} acquiring {deal.targetCompany}
             </p>
           </div>
 
-          <div className="flex items-center gap-5 flex-wrap lg:ml-auto shrink-0">
+          <div className="flex items-center gap-8 flex-wrap lg:ml-auto shrink-0">
             <div className="text-left lg:text-right">
               <p className="pivt-metric-label">Deal Value</p>
-              <p className="font-mono text-base font-medium mt-1">${(deal.consideration / 1e6).toFixed(1)}M</p>
+              <p className="font-mono text-lg font-medium mt-1.5">${(deal.consideration / 1e6).toFixed(1)}M</p>
             </div>
-            <div className="h-8 w-px bg-border/30 hidden lg:block" />
+            <div className="h-10 w-px bg-border/20 hidden lg:block" />
             <div className="text-left lg:text-right">
               <p className="pivt-metric-label">Closing</p>
-              <p className="text-sm font-medium flex items-center gap-1 mt-1">
-                <Calendar className="w-3 h-3 text-muted-foreground/50" />
+              <p className="text-sm font-medium flex items-center gap-1.5 mt-1.5">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground/40" />
                 {deal.closingDate}
               </p>
             </div>
-            <div className="h-8 w-px bg-border/30 hidden lg:block" />
-            <div className="min-w-[120px]">
-              <div className="flex items-center justify-between mb-1.5">
+            <div className="h-10 w-px bg-border/20 hidden lg:block" />
+            <div className="min-w-[140px]">
+              <div className="flex items-center justify-between mb-2">
                 <p className="pivt-metric-label">Readiness</p>
                 <span className="font-mono text-xs font-medium">{deal.readyToPayPercent}%</span>
               </div>
               <Progress value={deal.readyToPayPercent} className="h-1.5" />
             </div>
-            <div className="h-8 w-px bg-border/30 hidden lg:block" />
-            <button className="pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium text-accent whitespace-nowrap">
+            <div className="h-10 w-px bg-border/20 hidden lg:block" />
+            <button className="pivt-ai-btn flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-accent whitespace-nowrap">
               <Sparkles className="w-3.5 h-3.5 pivt-spark" />
               What's blocking close?
             </button>
@@ -380,15 +380,19 @@ export const DealWorkspaceCover: React.FC = () => {
         </div>
       </div>
 
-      {/* ── V2 Blocking Issues Alert (softer) ── */}
+      {/* ── V2 Blocking Issues — Slim inline notification ── */}
       {totalBlockers > 0 && (
         <motion.div
           {...fadeInUp}
-          className="pivt-alert-soft flex items-center gap-3 px-4 py-2.5"
+          className="flex items-center gap-3 px-5 py-3 rounded-2xl"
+          style={{
+            background: 'hsl(0 35% 50% / 0.04)',
+            borderLeft: '3px solid hsl(0 35% 50% / 0.30)',
+          }}
         >
-          <AlertTriangle className="w-4 h-4 text-blocking/80 shrink-0" />
-          <span className="text-sm text-foreground">
-            <span className="font-semibold text-blocking/80">{totalBlockers} items</span>
+          <AlertTriangle className="w-4 h-4 text-blocking/60 shrink-0" />
+          <span className="text-sm text-foreground/80">
+            <span className="font-semibold text-blocking/70">{totalBlockers} items</span>
             {' '}need attention across{' '}
             <span className="font-semibold">{sectionsWithBlockers} sections</span>
           </span>
