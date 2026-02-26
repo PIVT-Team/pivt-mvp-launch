@@ -141,7 +141,7 @@ export const PIVTCompleteUnified: React.FC = () => {
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="text-[18px] text-sidebar-foreground/50 italic text-center whitespace-nowrap"
+              className="text-[13px] text-sidebar-foreground/50 italic text-center whitespace-nowrap"
             >
               The intelligence layer behind every close.
             </motion.p>
