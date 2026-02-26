@@ -8,7 +8,7 @@ import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Search, ChevronLeft, ChevronRight, Bell, Upload, User } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, Upload, User, Brain } from 'lucide-react';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
 import { ImportDataModal } from './ImportDataModal';
@@ -24,6 +24,7 @@ import { GlobalReportsCover } from './cover/GlobalReportsCover';
 import { IntegrationsCover } from './cover/IntegrationsCover';
 import { IntelligenceMapCover } from './cover/IntelligenceMapCover';
 import { TimelineCover } from './cover/TimelineCover';
+import { AIDashboardCover } from './cover/AIDashboardCover';
 
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
@@ -43,6 +44,7 @@ const coverSections: Record<string, React.FC> = {
   integrations: IntegrationsCover,
   'intelligence-map': IntelligenceMapCover,
   timeline: TimelineCover,
+  ai: AIDashboardCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
@@ -223,6 +225,26 @@ export const PIVTCompleteUnified: React.FC = () => {
           </div>
 
           <div className="h-5 w-px bg-border mx-1" />
+
+          {/* AI Tab */}
+          <button
+            onClick={() => setActiveSection('ai' as ActiveSection)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200 hover:scale-[1.03] relative group ${
+              activeSection === 'ai'
+                ? 'text-accent'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Brain className="w-4 h-4" />
+            <span>AI</span>
+            {activeSection === 'ai' && (
+              <motion.div
+                layoutId="ai-toolbar-underline"
+                className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
+                style={{ background: 'linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)))' }}
+              />
+            )}
+          </button>
 
           {/* Import */}
           <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-sm" title="Import Data">
