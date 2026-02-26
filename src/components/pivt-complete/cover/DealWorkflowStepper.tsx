@@ -49,7 +49,7 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
   return (
     <div className="relative">
       <div
-        className="pivt-workflow-nav relative flex items-center h-14 px-3 overflow-hidden"
+        className="pivt-workflow-nav relative flex items-center h-14 px-3 overflow-x-auto scrollbar-hide"
       >
         {/* Gradient progress line at bottom */}
         <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-muted/20 rounded-full">
