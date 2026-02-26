@@ -6,7 +6,7 @@ import { create } from 'zustand';
 export type ViewMode = 'cover' | 'glass';
 
 export type ActiveSection =
-  | 'deals' | 'audit' | 'settings' | 'workspace'
+  | 'home' | 'deals' | 'audit' | 'settings' | 'workspace'
   | 'waterfall' | 'stakeholders' | 'documents'
   | 'escrow' | 'approvals' | 'payments' | 'reports'
   | 'ingestion' | 'closing' | 'verification' | 'admin-verification'
@@ -198,7 +198,7 @@ interface PIVTStore {
 
 export const usePIVTStore = create<PIVTStore>((set, get) => ({
   viewMode: 'cover',
-  activeSection: 'deals',
+  activeSection: 'home',
   setViewMode: (mode) => set({ viewMode: mode }),
   setActiveSection: (section) => set({ activeSection: section }),
   toggleMode: () => set((s) => ({ viewMode: s.viewMode === 'cover' ? 'glass' : 'cover' })),
