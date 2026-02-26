@@ -377,22 +377,22 @@ export const IntelligenceMapCover: React.FC = () => {
   const { nodes, edges } = useMemo(() => {
     const ns: GraphNode[] = [];
     const es: GraphEdge[] = [];
-    const cx = 400, cy = 300;
+    const cx = 500, cy = 375;
 
     ns.push({
       id: deal.id, label: deal.codeName, type: 'deal', x: cx, y: cy,
-      color: typeColors.deal, size: 48, riskLevel: deal.hasBlocker ? 'critical' : 'none',
+      color: typeColors.deal, size: 56, riskLevel: deal.hasBlocker ? 'critical' : 'none',
       metadata: { value: `$${(deal.consideration / 1e6).toFixed(0)}M`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
     });
 
     if (filters.stakeholder) {
       stakeholders.forEach((s, i) => {
-        const angle = (-Math.PI / 2) + (i - stakeholders.length / 2) * 0.3;
+        const angle = (-Math.PI / 2) + (i - stakeholders.length / 2) * 0.4;
         const risk: GraphNode['riskLevel'] = s.kycStatus === 'failed' ? 'critical' : s.kycStatus === 'pending' ? 'warning' : 'none';
         ns.push({
           id: s.id, label: s.name, type: 'stakeholder',
-          x: cx + Math.cos(angle) * 220, y: cy + Math.sin(angle) * 180,
-          color: typeColors.stakeholder, size: 26, riskLevel: risk,
+          x: cx + Math.cos(angle) * 300, y: cy + Math.sin(angle) * 250,
+          color: typeColors.stakeholder, size: 28, riskLevel: risk,
           metadata: { role: s.role, kyc: s.kycStatus, payout: `$${(s.payoutAmount / 1e6).toFixed(0)}M`, ownership: `${s.ownershipPct}%` },
         });
         es.push({ from: deal.id, to: s.id, label: 'has_stakeholder', strength: s.ownershipPct / 30 });
@@ -401,12 +401,12 @@ export const IntelligenceMapCover: React.FC = () => {
 
     if (filters.document) {
       documents.slice(0, 6).forEach((d, i) => {
-        const angle = 0 + (i - 3) * 0.35;
+        const angle = 0 + (i - 3) * 0.45;
         const risk: GraphNode['riskLevel'] = d.status === 'rejected' ? 'critical' : d.status === 'pending' ? 'warning' : 'none';
         ns.push({
           id: d.id, label: d.name.slice(0, 20), type: 'document',
-          x: cx + Math.cos(angle) * 260, y: cy + Math.sin(angle) * 200,
-          color: typeColors.document, size: 20, riskLevel: risk,
+          x: cx + Math.cos(angle) * 340, y: cy + Math.sin(angle) * 270,
+          color: typeColors.document, size: 22, riskLevel: risk,
           metadata: { docType: d.type, status: d.status, uploaded: d.uploadedAt },
         });
         es.push({ from: deal.id, to: d.id, label: 'references' });
@@ -415,12 +415,12 @@ export const IntelligenceMapCover: React.FC = () => {
 
     if (filters.payment) {
       payments.forEach((p, i) => {
-        const angle = (Math.PI / 2) + (i - payments.length / 2) * 0.35;
+        const angle = (Math.PI / 2) + (i - payments.length / 2) * 0.45;
         const risk: GraphNode['riskLevel'] = p.status === 'failed' ? 'critical' : p.status === 'pending' ? 'info' : 'none';
         ns.push({
           id: p.id, label: p.recipientName.split(' ')[0], type: 'payment',
-          x: cx + Math.cos(angle) * 230, y: cy + Math.sin(angle) * 190,
-          color: typeColors.payment, size: 22, riskLevel: risk,
+          x: cx + Math.cos(angle) * 310, y: cy + Math.sin(angle) * 260,
+          color: typeColors.payment, size: 24, riskLevel: risk,
           metadata: { amount: `$${(p.amount / 1e6).toFixed(0)}M`, status: p.status, method: p.method },
         });
         es.push({ from: deal.id, to: p.id, label: 'pays' });
@@ -429,11 +429,11 @@ export const IntelligenceMapCover: React.FC = () => {
 
     if (filters.waterfall) {
       waterfallTiers.forEach((t, i) => {
-        const angle = Math.PI + (i - waterfallTiers.length / 2) * 0.35;
+        const angle = Math.PI + (i - waterfallTiers.length / 2) * 0.45;
         ns.push({
           id: t.id, label: t.name.slice(0, 15), type: 'waterfall',
-          x: cx + Math.cos(angle) * 240, y: cy + Math.sin(angle) * 180,
-          color: typeColors.waterfall, size: 20, riskLevel: 'none',
+          x: cx + Math.cos(angle) * 320, y: cy + Math.sin(angle) * 250,
+          color: typeColors.waterfall, size: 22, riskLevel: 'none',
           metadata: { amount: `$${(t.amount / 1e6).toFixed(0)}M`, percentage: `${t.percentage}%`, recipients: t.recipients },
         });
         es.push({ from: deal.id, to: t.id, label: 'distributes' });
@@ -495,12 +495,12 @@ export const IntelligenceMapCover: React.FC = () => {
         style={{ minHeight: 40 }}
       >
         {/* Left: Deal context */}
-        <div className="flex items-baseline gap-3 min-w-0 overflow-hidden">
+      <div className="flex-1 flex items-baseline gap-3 min-w-0">
           {viewMode === 'deal' ? (
             <>
               <h2
-                className="text-[22px] font-semibold truncate whitespace-nowrap"
-                style={{ letterSpacing: '-0.04em' }}
+                className="text-[22px] font-semibold"
+                style={{ letterSpacing: '-0.04em', whiteSpace: 'normal', overflow: 'visible' }}
               >
                 {deal.codeName}
               </h2>
@@ -532,7 +532,7 @@ export const IntelligenceMapCover: React.FC = () => {
         </div>
 
         {/* Right: Deal selector (always visible) */}
-        <div className="shrink-0">
+        <div className="shrink-0 flex-shrink-0">
           <DealSelectorDropdown
             deals={deals}
             selectedDealId={deal.id}
@@ -679,13 +679,13 @@ export const IntelligenceMapCover: React.FC = () => {
       </div>
 
       {/* ── Graph ── */}
-      <div className="pivt-card overflow-hidden flex" style={{ height: 520 }}>
-        <div className="flex-1 relative bg-background/50">
+      <div className="pivt-card overflow-hidden flex" style={{ minHeight: '72vh' }}>
+        <div className="flex-1 relative" style={{ background: 'hsl(var(--background) / 0.6)' }}>
           {viewMode === 'portfolio' ? (
             <PortfolioGraph deals={deals} onDealClick={handleDealSwitch} />
           ) : (
             <>
-              <svg width="100%" height="100%" viewBox="0 0 800 600" className="absolute inset-0">
+              <svg width="100%" height="100%" viewBox="0 0 1000 750" className="absolute inset-0" preserveAspectRatio="xMidYMid meet">
                 <defs>
                   <radialGradient id="im-glow-accent" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.3" />
@@ -708,19 +708,28 @@ export const IntelligenceMapCover: React.FC = () => {
                   </radialGradient>
                 </defs>
 
-                {/* Edges */}
+                {/* Edges — curved paths */}
                 {edges.map((e, i) => {
                   const from = nodes.find(n => n.id === e.from);
                   const to = nodes.find(n => n.id === e.to);
                   if (!from || !to) return null;
                   const visible = filteredIds.has(from.id) && filteredIds.has(to.id);
                   const highlighted = hoveredNode ? connectedIds.has(from.id) && connectedIds.has(to.id) : false;
+                  // Slight curve via quadratic bezier
+                  const mx = (from.x + to.x) / 2;
+                  const my = (from.y + to.y) / 2;
+                  const dx = to.x - from.x;
+                  const dy = to.y - from.y;
+                  const cx2 = mx - dy * 0.08;
+                  const cy2 = my + dx * 0.08;
                   return (
-                    <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-                      stroke={highlighted ? 'hsl(var(--accent))' : visible ? 'hsl(var(--border))' : 'hsl(var(--border) / 0.2)'}
-                      strokeWidth={highlighted ? 2 : e.strength ? Math.max(1, e.strength * 2) : 1}
-                      strokeDasharray={e.label === 'receives_payment' ? '4 2' : undefined}
-                      strokeOpacity={highlighted ? 0.7 : visible ? 0.4 : 0.1}
+                    <path key={i}
+                      d={`M${from.x},${from.y} Q${cx2},${cy2} ${to.x},${to.y}`}
+                      fill="none"
+                      stroke={highlighted ? 'hsl(var(--accent))' : visible ? 'hsl(var(--border))' : 'hsl(var(--border) / 0.15)'}
+                      strokeWidth={highlighted ? 2 : e.strength ? Math.max(0.8, e.strength * 1.5) : 0.8}
+                      strokeDasharray={e.label === 'receives_payment' ? '4 3' : undefined}
+                      strokeOpacity={highlighted ? 0.7 : visible ? 0.3 : 0.08}
                     />
                   );
                 })}
@@ -729,16 +738,20 @@ export const IntelligenceMapCover: React.FC = () => {
                 {nodes.map((node) => {
                   const visible = filteredIds.has(node.id);
                   const isHovered = hoveredNode === node.id;
+                  const isSelected = selectedNode?.id === node.id;
                   const isConnected = connectedIds.has(node.id);
                   const dimmed = hoveredNode && !isConnected;
                   const showHalo = highlightRisk && node.riskLevel && node.riskLevel !== 'none';
+                  const isDealNode = node.type === 'deal';
+                  // Tiered label visibility: always show for deal node, hovered, or selected
+                  const showLabel = isDealNode || isHovered || isSelected;
                   return (
                     <g key={node.id}
                       onClick={() => handleNodeClick(node)}
                       onMouseEnter={() => setHoveredNode(node.id)}
                       onMouseLeave={() => setHoveredNode(null)}
                       className="cursor-pointer"
-                      opacity={dimmed ? 0.15 : visible ? 1 : 0.15}
+                      opacity={dimmed ? 0.12 : visible ? 1 : 0.12}
                     >
                       {showHalo && (
                         <circle cx={node.x} cy={node.y} r={node.size * 1.2}
@@ -750,21 +763,43 @@ export const IntelligenceMapCover: React.FC = () => {
                       {isHovered && (
                         <circle cx={node.x} cy={node.y} r={node.size} fill="url(#im-glow-accent)" />
                       )}
-                      <circle cx={node.x} cy={node.y} r={node.size / 2} fill={node.color} opacity={0.2} />
-                      <circle cx={node.x} cy={node.y} r={node.size / 3}
+                      {/* Outer ring */}
+                      <circle cx={node.x} cy={node.y} r={node.size / 2} fill={node.color} opacity={isDealNode ? 0.12 : 0.15} />
+                      {/* Deal node gets gradient ring */}
+                      {isDealNode && (
+                        <circle cx={node.x} cy={node.y} r={node.size / 2 + 3}
+                          fill="none" stroke={node.color} strokeWidth="1.5" strokeOpacity="0.3"
+                        />
+                      )}
+                      {/* Inner circle */}
+                      <circle cx={node.x} cy={node.y} r={isDealNode ? node.size / 2.5 : node.size / 3}
                         fill={node.color}
                         stroke={showHalo ? riskHaloColors[node.riskLevel!] : isHovered ? 'hsl(var(--foreground))' : 'transparent'}
                         strokeWidth={showHalo ? 2.5 : 2}
                       />
-                      {(node.size > 18 || isHovered) && (
-                        <text x={node.x} y={node.y + node.size / 2 + 14}
-                          textAnchor="middle"
-                          fill={isHovered ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'}
-                          fontSize={isHovered ? 11 : 10}
-                          fontWeight={isHovered ? 600 : 400}
-                        >
-                          {node.label}
-                        </text>
+                      {/* Label with text shadow for readability */}
+                      {showLabel && (
+                        <>
+                          <text x={node.x} y={node.y + node.size / 2 + 18}
+                            textAnchor="middle"
+                            fill="hsl(var(--background))"
+                            fontSize={isDealNode ? 13 : 12}
+                            fontWeight={isDealNode || isHovered ? 600 : 500}
+                            stroke="hsl(var(--background))"
+                            strokeWidth="3"
+                            strokeLinejoin="round"
+                          >
+                            {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
+                          </text>
+                          <text x={node.x} y={node.y + node.size / 2 + 18}
+                            textAnchor="middle"
+                            fill={isHovered ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'}
+                            fontSize={isDealNode ? 13 : 12}
+                            fontWeight={isDealNode || isHovered ? 600 : 500}
+                          >
+                            {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
+                          </text>
+                        </>
                       )}
                     </g>
                   );
