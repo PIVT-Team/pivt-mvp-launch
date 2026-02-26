@@ -2,9 +2,10 @@
  * HomeCover — Product dashboard landing page
  * Shows deal metrics, recent activity, and AI portfolio summary
  */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Briefcase, AlertTriangle, CheckCircle2, Clock, FileText, Brain, ArrowRight, TrendingUp,
 } from 'lucide-react';
@@ -22,6 +23,15 @@ const statusColor: Record<string, string> = {
 
 export const HomeCover: React.FC = () => {
   const { deals, pendingApprovals, documents, setActiveSection, setSelectedDealId } = usePIVTStore();
+  const { user } = useAuth();
+
+  const greeting = useMemo(() => {
+    const fullName = user?.user_metadata?.full_name as string | undefined;
+    const firstName = fullName?.split(' ')?.[0];
+    const demoFallback = 'Joanna';
+    const name = firstName || (user ? null : demoFallback);
+    return name ? `Welcome back, ${name}` : 'Welcome back';
+  }, [user]);
 
   const activeDeals = deals.filter(d => d.status !== 'completed');
   const closingThisMonth = deals.filter(d => {
@@ -57,7 +67,7 @@ export const HomeCover: React.FC = () => {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Welcome back</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{greeting}</h1>
         <p className="text-sm text-muted-foreground mt-1">Here's your portfolio at a glance.</p>
       </div>
 
