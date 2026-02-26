@@ -73,7 +73,7 @@ export const AuditCover: React.FC = () => {
         </div>
         <button
           onClick={() => setExportOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors"
+          className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white"
         >
           <Download className="w-4 h-4" /> Export Log
         </button>
