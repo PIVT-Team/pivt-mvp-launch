@@ -1,12 +1,21 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
   Brain, Shield, AlertTriangle, Activity, Sparkles, X,
-  CheckCircle2, Clock, Zap, BarChart3, Search, FileWarning,
+  CheckCircle2, Clock, Zap, BarChart3, Search, FileWarning, ChevronDown,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  SelectSeparator,
+} from '@/components/ui/select';
+import { usePIVTStore, type DemoDeal } from '@/stores/pivtStore';
 
 // ── Neural mesh animated background ──
 const NeuralMeshBackground: React.FC = () => {
@@ -173,25 +182,50 @@ const AI_MODULES: AIModule[] = [
   },
 ];
 
-// ── Scan Result Panel ──
-interface ScanResult {
-  category: string;
-  score: number;
-  findings: string[];
+interface DealScanResult {
+  dealName: string;
+  dealCode: string;
+  readiness: number;
+  sections: { name: string; score: number; findings: string[] }[];
 }
 
-const MOCK_SCAN_RESULTS: ScanResult[] = [
-  { category: 'Identity Verification', score: 92, findings: ['GIC entity TIN mismatch needs resolution', 'All other entities verified'] },
-  { category: 'Compliance', score: 78, findings: ['BEACON KYC below threshold', 'ATLAS compliance complete', 'CIPHER pending final review'] },
-  { category: 'Banking & Wire', score: 85, findings: ['Missing bank details for 1 entity', 'Duplicate wire instructions detected'] },
-  { category: 'Fund Integrity', score: 96, findings: ['Escrow balances confirmed', 'Waterfall calculations within tolerance'] },
-];
+function generateDealScanResults(deal: DemoDeal): DealScanResult {
+  return {
+    dealName: deal.name,
+    dealCode: deal.codeName,
+    readiness: deal.readyToPayPercent,
+    sections: [
+      { name: 'Stakeholders', score: deal.discrepanciesFound > 2 ? 72 : 94, findings: deal.discrepanciesFound > 0 ? [`${deal.discrepanciesFound} unresolved discrepancies in stakeholder data`] : ['All stakeholder records verified'] },
+      { name: 'Verification', score: deal.readyToPayPercent > 80 ? 91 : 78, findings: deal.readyToPayPercent < 80 ? ['KYC below threshold for some entities'] : ['All verifications passed'] },
+      { name: 'Structuring', score: 96, findings: ['Waterfall calculations within tolerance'] },
+      { name: 'Execution', score: deal.pendingApprovals > 0 ? 82 : 97, findings: deal.pendingApprovals > 0 ? [`${deal.pendingApprovals} pending approval(s) blocking execution`] : ['All approvals complete'] },
+      { name: 'Compliance', score: deal.hasBlocker ? 68 : 93, findings: deal.hasBlocker ? ['Compliance blocker detected — manual review required'] : ['Compliance checks passed'] },
+    ],
+  };
+}
 
 // ── Main Component ──
 export const AIDashboardCover: React.FC = () => {
+  const { deals } = usePIVTStore();
   const [scanning, setScanning] = useState(false);
   const [scanComplete, setScanComplete] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState<string | null>(null);
+  const [scopeValue, setScopeValue] = useState<string>('all');
+
+  const selectedDealForScope = scopeValue === 'all' ? undefined : deals.find(d => d.id === scopeValue);
+  const isPortfolioScope = scopeValue === 'all';
+  const activeDeals = deals.filter(d => d.status !== 'completed');
+
+  const dealScanResults = useMemo<DealScanResult[]>(() => {
+    const targetDeals = selectedDealForScope ? [selectedDealForScope] : activeDeals;
+    return targetDeals.map(generateDealScanResults);
+  }, [selectedDealForScope, activeDeals]);
+
+  const portfolioSummary = useMemo(() => {
+    const totalIssues = dealScanResults.reduce((sum, d) => sum + d.sections.filter(s => s.score < 90).length, 0);
+    const dealsNeedingAttention = dealScanResults.filter(d => d.sections.some(s => s.score < 80)).length;
+    return { totalIssues, dealsNeedingAttention };
+  }, [dealScanResults]);
 
   const runScan = useCallback(() => {
     setScanning(true);
@@ -201,6 +235,13 @@ export const AIDashboardCover: React.FC = () => {
       setScanComplete(true);
     }, 3000);
   }, []);
+
+  const statusDot = (status: string) => {
+    const colors: Record<string, string> = {
+      drafting: 'bg-muted-foreground', diligence: 'bg-accent', signing: 'bg-chart-4', closing: 'bg-chart-2', completed: 'bg-validated',
+    };
+    return <span className={`inline-block w-2 h-2 rounded-full ${colors[status] || 'bg-muted-foreground'}`} />;
+  };
 
   const selectedModule = AI_MODULES.find(m => m.id === drawerOpen);
 
@@ -233,31 +274,61 @@ export const AIDashboardCover: React.FC = () => {
               </div>
             </div>
           </div>
-          <button
-            onClick={runScan}
-            disabled={scanning}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
-            style={{
-              background: 'linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)))',
-              boxShadow: '0 4px 16px hsl(var(--g2-from) / 0.3)',
-            }}
-          >
-            {scanning ? (
-              <>
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white"
-                />
-                Scanning...
-              </>
-            ) : (
-              <>
-                <Zap className="w-4 h-4" />
-                Run AI Scan
-              </>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Scope Dropdown */}
+            <div className="min-w-[220px]">
+              <Select value={scopeValue} onValueChange={setScopeValue}>
+                <SelectTrigger className="h-10">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All active deals ({activeDeals.length})</SelectItem>
+                  <SelectSeparator />
+                  {deals.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      <span className="flex items-center gap-2">
+                        {statusDot(d.status)}
+                        <span>{d.codeName}</span>
+                        <span className="text-muted-foreground text-[10px] ml-1">
+                          ${(d.consideration / 1e6).toFixed(0)}M · {d.readyToPayPercent}%
+                        </span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {isPortfolioScope
+                  ? `Scanning ${activeDeals.length} active deals`
+                  : `Scanning 1 deal: ${selectedDealForScope?.codeName}`}
+              </p>
+            </div>
+            <button
+              onClick={runScan}
+              disabled={scanning}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all duration-200 hover:brightness-110 hover:scale-[1.02] disabled:opacity-70 disabled:cursor-not-allowed"
+              style={{
+                background: 'linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)))',
+                boxShadow: '0 4px 16px hsl(var(--g2-from) / 0.3)',
+              }}
+            >
+              {scanning ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white"
+                  />
+                  Scanning...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  {isPortfolioScope ? 'Run Portfolio Scan' : 'Run Deal Scan'}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </motion.div>
 
@@ -274,27 +345,53 @@ export const AIDashboardCover: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-validated" />
-                  <h3 className="font-semibold text-sm">Scan Complete — 4 Pillars Assessed</h3>
+                  <h3 className="font-semibold text-sm">
+                    {isPortfolioScope
+                      ? `Scan Complete — ${dealScanResults.length} deals · ${portfolioSummary.totalIssues} issues found`
+                      : `Scan Complete — ${selectedDealForScope?.codeName} · 5 Sections Assessed`}
+                  </h3>
                 </div>
                 <button onClick={() => setScanComplete(false)} className="text-muted-foreground hover:text-foreground">
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {MOCK_SCAN_RESULTS.map(result => (
-                  <div key={result.category} className="pivt-card p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium">{result.category}</span>
-                      <span className={`text-xs font-bold ${result.score >= 90 ? 'text-validated' : result.score >= 80 ? 'text-accent' : 'text-discrepancy'}`}>
-                        {result.score}%
-                      </span>
-                    </div>
-                    <Progress value={result.score} className="h-1" />
-                    <ul className="space-y-0.5">
-                      {result.findings.map((f, i) => (
-                        <li key={i} className="text-[11px] text-muted-foreground">• {f}</li>
+
+              {isPortfolioScope && portfolioSummary.dealsNeedingAttention > 0 && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-discrepancy/10 border border-discrepancy/20">
+                  <AlertTriangle className="w-3.5 h-3.5 text-discrepancy" />
+                  <span className="text-xs text-discrepancy font-medium">
+                    {portfolioSummary.dealsNeedingAttention} deal(s) need attention
+                  </span>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                {dealScanResults.map(dealResult => (
+                  <div key={dealResult.dealCode} className="space-y-2">
+                    {isPortfolioScope && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold">{dealResult.dealCode}</span>
+                        <Badge variant="outline" className="text-[9px]">{dealResult.readiness}% ready</Badge>
+                      </div>
+                    )}
+                    <div className={isPortfolioScope ? 'grid grid-cols-5 gap-2' : 'grid grid-cols-5 gap-3'}>
+                      {dealResult.sections.map(section => (
+                        <div key={section.name} className="pivt-card p-3 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[11px] font-medium">{section.name}</span>
+                            <span className={`text-[11px] font-bold ${section.score >= 90 ? 'text-validated' : section.score >= 80 ? 'text-accent' : 'text-discrepancy'}`}>
+                              {section.score}%
+                            </span>
+                          </div>
+                          <Progress value={section.score} className="h-1" />
+                          <ul className="space-y-0.5">
+                            {section.findings.map((f, i) => (
+                              <li key={i} className="text-[10px] text-muted-foreground leading-tight">• {f}</li>
+                            ))}
+                          </ul>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 ))}
               </div>
