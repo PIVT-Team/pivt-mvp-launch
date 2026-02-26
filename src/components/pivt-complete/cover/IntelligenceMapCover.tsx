@@ -489,182 +489,192 @@ export const IntelligenceMapCover: React.FC = () => {
 
   return (
     <motion.div {...fadeInUp} className="space-y-3">
-      {/* ── 3-Zone Command Bar ── */}
-      <div className="bg-white/60 backdrop-blur-md border-b border-border/10" style={{ minHeight: 64 }}>
-        <div className="flex items-center h-16 px-5 gap-6">
-
-          {/* ═══ ZONE 1 — Deal Context (Left) ═══ */}
-          <div className="flex-1 min-w-0">
-            {viewMode === 'deal' ? (
-              <div className="flex items-baseline gap-3">
-                <h2 className="text-[22px] font-semibold tracking-tight truncate" style={{ letterSpacing: '-0.04em' }}>
-                  {deal.codeName}
-                </h2>
-                {deal.hasBlocker && (
-                  <span className="text-[10px] font-medium text-blocking/80 uppercase tracking-wider">Blocked</span>
-                )}
-                <span className="text-sm text-muted-foreground/70 font-normal truncate hidden md:inline">
-                  {deal.buyerName} acquiring {deal.targetCompany}
+      {/* ══ ROW 1: Deal Context + Deal Selector ══ */}
+      <div
+        className="flex items-center justify-between gap-4 px-1"
+        style={{ minHeight: 40 }}
+      >
+        {/* Left: Deal context */}
+        <div className="flex items-baseline gap-3 min-w-0 overflow-hidden">
+          {viewMode === 'deal' ? (
+            <>
+              <h2
+                className="text-[22px] font-semibold truncate whitespace-nowrap"
+                style={{ letterSpacing: '-0.04em' }}
+              >
+                {deal.codeName}
+              </h2>
+              {deal.hasBlocker && (
+                <span className="text-[10px] font-medium text-blocking/80 uppercase tracking-wider whitespace-nowrap shrink-0">
+                  Blocked
                 </span>
-                <span className="text-[13px] text-muted-foreground/50 font-normal hidden lg:inline ml-1">
-                  ${(deal.consideration / 1e6).toFixed(0)}M · {deal.closingDate} · {deal.readyToPayPercent}% Ready
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-baseline gap-2">
-                <h2 className="text-[22px] font-semibold tracking-tight" style={{ letterSpacing: '-0.04em' }}>
-                  Portfolio
-                </h2>
-                <span className="text-[13px] text-muted-foreground/50">
-                  {deals.length} Deals · ${(deals.reduce((s, d) => s + d.consideration, 0) / 1e6).toFixed(0)}M Total
-                </span>
-              </div>
-            )}
-          </div>
+              )}
+              <span className="text-sm text-muted-foreground/70 truncate whitespace-nowrap hidden md:inline">
+                {deal.buyerName} acquiring {deal.targetCompany}
+              </span>
+              <span className="text-[13px] text-muted-foreground/50 whitespace-nowrap hidden lg:inline">
+                ${(deal.consideration / 1e6).toFixed(0)}M · {deal.closingDate} · {deal.readyToPayPercent}% Ready
+              </span>
+            </>
+          ) : (
+            <>
+              <h2
+                className="text-[22px] font-semibold whitespace-nowrap"
+                style={{ letterSpacing: '-0.04em' }}
+              >
+                Portfolio
+              </h2>
+              <span className="text-[13px] text-muted-foreground/50 whitespace-nowrap">
+                {deals.length} Deals · ${(deals.reduce((s, d) => s + d.consideration, 0) / 1e6).toFixed(0)}M Total
+              </span>
+            </>
+          )}
+        </div>
 
-          {/* ═══ ZONE 2 — View Mode Control (Center) ═══ */}
-          <div className="shrink-0">
-            {viewMode === 'deal' ? (
-              /* Segmented filter control */
-              <div className="flex items-center rounded-xl bg-muted/20 overflow-hidden">
-                {FILTER_DEFS.map(f => {
-                  const active = filters[f.key];
-                  return (
-                    <button
-                      key={f.key}
-                      onClick={() => toggleFilter(f.key)}
-                      className="relative px-3 py-2 text-[11px] font-medium transition-colors duration-200 group"
-                    >
-                      <span className={`flex items-center gap-1.5 relative z-10 ${
-                        active ? 'text-foreground' : 'text-muted-foreground/60 hover:text-muted-foreground'
-                      }`}>
-                        <f.icon className="w-3 h-3" />
-                        <span className="hidden xl:inline">{f.label}</span>
-                      </span>
-                      {/* Gradient underline for active state */}
-                      {active && (
-                        <motion.div
-                          layoutId="filter-underline"
-                          className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full"
-                          style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
-                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                        />
-                      )}
-                      {/* Subtle hover tint */}
-                      <span className="absolute inset-0 bg-muted/0 group-hover:bg-muted/30 transition-colors duration-200 rounded-lg" />
-                    </button>
-                  );
-                })}
-                {/* Mode toggle divider */}
-                <div className="w-px h-5 bg-border/20 mx-1" />
-                <button
-                  onClick={() => setViewMode('deal')}
-                  className="relative px-3 py-2 text-[11px] font-medium text-foreground"
-                >
-                  <Eye className="w-3 h-3 inline mr-1" />
-                  <span className="hidden xl:inline">Deal</span>
-                  <motion.div
-                    layoutId="mode-underline"
-                    className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-foreground/30"
-                  />
-                </button>
-                <button
-                  onClick={() => setViewMode('portfolio')}
-                  className="px-3 py-2 text-[11px] font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                >
-                  <TrendingUp className="w-3 h-3 inline mr-1" />
-                  <span className="hidden xl:inline">Portfolio</span>
-                </button>
-              </div>
-            ) : (
-              /* Portfolio mode: simple mode switch */
-              <div className="flex items-center rounded-xl bg-muted/20 overflow-hidden">
-                <button
-                  onClick={() => setViewMode('deal')}
-                  className="px-3 py-2 text-[11px] font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors"
-                >
-                  <Eye className="w-3 h-3 inline mr-1" />
-                  Deal
-                </button>
-                <button
-                  onClick={() => setViewMode('portfolio')}
-                  className="relative px-3 py-2 text-[11px] font-medium text-foreground"
-                >
-                  <TrendingUp className="w-3 h-3 inline mr-1" />
-                  Portfolio
-                  <motion.div
-                    layoutId="mode-underline-p"
-                    className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-foreground/30"
-                  />
-                </button>
-              </div>
-            )}
-          </div>
+        {/* Right: Deal selector (always visible) */}
+        <div className="shrink-0">
+          <DealSelectorDropdown
+            deals={deals}
+            selectedDealId={deal.id}
+            onSelect={handleDealSwitch}
+          />
+        </div>
+      </div>
 
-          {/* ═══ ZONE 3 — Intelligence Actions (Right) ═══ */}
-          <div className="flex items-center gap-2 shrink-0">
-            {/* Compact search */}
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search..."
-                className="bg-transparent border-none rounded-lg pl-8 pr-3 py-1.5 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:bg-muted/20 w-32 transition-all duration-200 focus:w-44"
-              />
-            </div>
-
+      {/* ══ ROW 2: Toolbar — strict flex, no wrap, fixed 48px height ══ */}
+      <div
+        className="flex items-center justify-between gap-6 rounded-xl px-4"
+        style={{
+          minHeight: 48,
+          maxHeight: 48,
+          background: 'hsl(var(--muted) / 0.25)',
+          border: '1px solid hsl(var(--border) / 0.5)',
+          flexWrap: 'nowrap',
+          overflow: 'hidden',
+        }}
+      >
+        {/* LEFT: View mode controls */}
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Deal / Portfolio toggle */}
+          <button
+            onClick={() => setViewMode('deal')}
+            className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
+              viewMode === 'deal'
+                ? 'text-foreground'
+                : 'text-muted-foreground/50 hover:text-muted-foreground'
+            }`}
+          >
+            <Eye className="w-3 h-3 shrink-0" />
+            Deal
             {viewMode === 'deal' && (
-              <>
-                {/* Risk toggle — inline, no badge */}
-                <button
-                  onClick={() => setHighlightRisk(!highlightRisk)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-[11px] font-medium transition-all duration-200 ${
-                    highlightRisk
-                      ? 'text-foreground bg-muted/30'
-                      : 'text-muted-foreground/50 hover:text-muted-foreground'
-                  }`}
-                >
-                  <AlertTriangle className="w-3 h-3" />
-                  Risk
-                  {riskNodeCount > 0 && (
-                    <span className={`text-[10px] ${highlightRisk ? 'text-blocking/70' : 'text-muted-foreground/40'}`}>
-                      · {riskNodeCount} flagged
-                    </span>
-                  )}
-                </button>
-
-                {/* What-If */}
-                <button
-                  onClick={() => setShowSimPanel(!showSimPanel)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-[11px] font-medium transition-all duration-200 ${
-                    showSimPanel
-                      ? 'text-foreground bg-muted/30'
-                      : 'text-muted-foreground/50 hover:text-muted-foreground'
-                  }`}
-                >
-                  <Play className="w-3 h-3" />
-                  What-If
-                </button>
-
-                {/* Deal selector */}
-                <DealSelectorDropdown
-                  deals={deals}
-                  selectedDealId={deal.id}
-                  onSelect={handleDealSwitch}
-                />
-
-                {/* Open Deal */}
-                <button
-                  onClick={handleGoToWorkspace}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-[11px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-muted/20 transition-all duration-200"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  Open Deal
-                </button>
-              </>
+              <motion.div
+                layoutId="view-mode-underline"
+                className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
             )}
-          </div>
+          </button>
+          <button
+            onClick={() => setViewMode('portfolio')}
+            className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
+              viewMode === 'portfolio'
+                ? 'text-foreground'
+                : 'text-muted-foreground/50 hover:text-muted-foreground'
+            }`}
+          >
+            <TrendingUp className="w-3 h-3 shrink-0" />
+            Portfolio
+            {viewMode === 'portfolio' && (
+              <motion.div
+                layoutId="view-mode-underline"
+                className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
+                style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+          </button>
+
+          {/* Separator */}
+          {viewMode === 'deal' && <div className="w-px h-5 bg-border/30 mx-1 shrink-0" />}
+
+          {/* Filter segments (deal view only) */}
+          {viewMode === 'deal' && FILTER_DEFS.map(f => {
+            const active = filters[f.key];
+            return (
+              <button
+                key={f.key}
+                onClick={() => toggleFilter(f.key)}
+                className={`relative flex items-center gap-1 px-2.5 h-8 text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
+                  active ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+              >
+                <f.icon className="w-3 h-3 shrink-0" />
+                <span className="hidden xl:inline">{f.label}</span>
+                {active && (
+                  <div
+                    className="absolute bottom-0 left-1.5 right-1.5 h-[2px] rounded-full"
+                    style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* CENTER: Search */}
+        <div className="relative shrink-0">
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search entities..."
+            className="bg-transparent rounded-lg pl-8 pr-3 h-8 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:bg-muted/20 w-36 transition-all duration-200 focus:w-48 border-none"
+          />
+        </div>
+
+        {/* RIGHT: Risk + What-If + Open Deal */}
+        <div className="flex items-center gap-2 shrink-0">
+          {viewMode === 'deal' && (
+            <>
+              <button
+                onClick={() => setHighlightRisk(!highlightRisk)}
+                className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all duration-200 ${
+                  highlightRisk
+                    ? 'text-foreground bg-muted/40'
+                    : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+              >
+                <AlertTriangle className="w-3 h-3 shrink-0" />
+                <span className="hidden lg:inline">Risk</span>
+                {riskNodeCount > 0 && (
+                  <span className={`text-[10px] whitespace-nowrap ${highlightRisk ? 'text-blocking/70' : 'text-muted-foreground/40'}`}>
+                    · {riskNodeCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setShowSimPanel(!showSimPanel)}
+                className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all duration-200 ${
+                  showSimPanel
+                    ? 'text-foreground bg-muted/40'
+                    : 'text-muted-foreground/50 hover:text-muted-foreground'
+                }`}
+              >
+                <Play className="w-3 h-3 shrink-0" />
+                <span className="hidden lg:inline">What-If</span>
+              </button>
+
+              <button
+                onClick={handleGoToWorkspace}
+                className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-muted/20 whitespace-nowrap transition-all duration-200"
+              >
+                <ExternalLink className="w-3 h-3 shrink-0" />
+                <span className="hidden lg:inline">Open Deal</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
