@@ -1,6 +1,6 @@
 /**
  * HomeCover — Product dashboard landing page
- * Shows deal metrics, recent activity, and AI portfolio summary
+ * Elevated: spatial cards, gradient accents, staggered motion, depth hierarchy
  */
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
@@ -19,6 +19,15 @@ const statusColor: Record<string, string> = {
   signing: 'bg-blue-500',
   closing: 'bg-accent',
   completed: 'bg-emerald-500',
+};
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+const fadeUp = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] as [number, number, number, number] } },
 };
 
 export const HomeCover: React.FC = () => {
@@ -64,34 +73,35 @@ export const HomeCover: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-8">
       {/* Header */}
-      <div>
+      <motion.div variants={fadeUp}>
         <h1 className="text-2xl font-bold tracking-tight text-foreground">{greeting}</h1>
         <p className="text-sm text-muted-foreground mt-1">Here's your portfolio at a glance.</p>
-      </div>
+      </motion.div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Metrics — elevated metric cards */}
+      <motion.div variants={stagger} className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {metrics.map(m => (
           <motion.div
             key={m.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border bg-card p-5 flex flex-col gap-2"
+            variants={fadeUp}
+            className="pivt-metric-card flex flex-col gap-3"
           >
             <div className="flex items-center gap-2">
-              <m.icon className={`w-4 h-4 ${m.accent}`} />
-              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{m.label}</span>
+              <div className="pivt-icon-chip w-8 h-8">
+                <m.icon className={`w-4 h-4 ${m.accent}`} />
+              </div>
+              <span className="pivt-metric-label">{m.label}</span>
             </div>
-            <span className="text-3xl font-bold text-foreground">{m.value}</span>
+            <span className="pivt-stat-lg text-3xl">{m.value}</span>
           </motion.div>
         ))}
-      </div>
+      </motion.div>
 
-      {/* Deal Grid */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
+      {/* Deal Grid — spatial cards with stagger */}
+      <motion.section variants={fadeUp}>
+        <div className="flex items-center justify-between mb-4 pivt-section-bar">
           <h2 className="text-lg font-semibold text-foreground">Deal Overview</h2>
           <button
             onClick={() => setActiveSection('deals' as ActiveSection)}
@@ -100,15 +110,13 @@ export const HomeCover: React.FC = () => {
             View all <ArrowRight className="w-3 h-3" />
           </button>
         </div>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {deals.map((deal, i) => (
+        <motion.div variants={stagger} className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {deals.map((deal) => (
             <motion.button
               key={deal.id}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+              variants={fadeUp}
               onClick={() => openDeal(deal.id)}
-              className="rounded-xl border bg-card p-5 text-left hover:border-accent/40 hover:shadow-md transition-all group"
+              className="pivt-card p-5 text-left group"
             >
               <div className="flex items-center gap-2 mb-3">
                 <span className={`w-2 h-2 rounded-full ${statusColor[deal.status] || 'bg-muted'}`} />
@@ -131,63 +139,81 @@ export const HomeCover: React.FC = () => {
                   )}
                 </div>
               </div>
+              {/* Gradient progress bar */}
+              <div className="mt-3 w-full h-1 rounded-full bg-muted overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full pivt-progress-gradient"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${deal.readyToPayPercent}%` }}
+                  transition={{ duration: 0.8, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                />
+              </div>
             </motion.button>
           ))}
-        </div>
-      </section>
+        </motion.div>
+      </motion.section>
 
       {/* Bottom row: Activity + AI Summary */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <motion.div variants={stagger} className="grid lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <section className="rounded-xl border bg-card p-5">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Recent Activity</h3>
+        <motion.section variants={fadeUp} className="pivt-card p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4 pivt-section-bar">Recent Activity</h3>
           <div className="space-y-3">
             {recentActivity.length === 0 && (
               <p className="text-xs text-muted-foreground">No recent activity.</p>
             )}
             {recentActivity.map((item, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <item.icon className={`w-4 h-4 mt-0.5 shrink-0 ${item.color}`} />
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08, duration: 0.3 }}
+                className="flex items-start gap-3"
+              >
+                <div className="pivt-icon-chip w-7 h-7 mt-0.5">
+                  <item.icon className={`w-3.5 h-3.5 ${item.color}`} />
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-foreground truncate">{item.text}</p>
                   <p className="text-xs text-muted-foreground">{item.sub} · {item.time}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </section>
+        </motion.section>
 
-        {/* AI Summary */}
-        <section className="rounded-xl border bg-card p-5 relative overflow-hidden">
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-            style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), transparent)' }}
-          />
-          <div className="flex items-center gap-2 mb-4">
-            <Brain className="w-4 h-4 text-accent" />
-            <h3 className="text-sm font-semibold text-foreground">Portfolio Intelligence Snapshot</h3>
+        {/* AI Summary — elevated with glow */}
+        <motion.section variants={fadeUp} className="pivt-card-ai p-6 relative">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-4 pivt-section-bar">
+              <div className="pivt-icon-chip w-7 h-7 pivt-icon-purple">
+                <Brain className="w-3.5 h-3.5" />
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">Portfolio Intelligence Snapshot</h3>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-start gap-2.5">
+                <AlertTriangle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
+                <span className="text-foreground">
+                  <strong>{deals.filter(d => d.discrepanciesFound > 2).length} deals</strong> have elevated risk flags requiring attention
+                </span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
+                <span className="text-foreground">
+                  <strong>{totalApprovals} approvals</strong> pending across your portfolio
+                </span>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <Clock className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
+                <span className="text-foreground">
+                  <strong>{closingThisMonth.length} deal{closingThisMonth.length !== 1 ? 's' : ''}</strong> closing this month
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="space-y-2.5 text-sm">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />
-              <span className="text-foreground">
-                <strong>{deals.filter(d => d.discrepanciesFound > 2).length} deals</strong> have elevated risk flags requiring attention
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />
-              <span className="text-foreground">
-                <strong>{totalApprovals} approvals</strong> pending across your portfolio
-              </span>
-            </div>
-            <div className="flex items-start gap-2">
-              <Clock className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />
-              <span className="text-foreground">
-                <strong>{closingThisMonth.length} deal{closingThisMonth.length !== 1 ? 's' : ''}</strong> closing this month
-              </span>
-            </div>
-          </div>
-        </section>
-      </div>
-    </div>
+        </motion.section>
+      </motion.div>
+    </motion.div>
   );
 };

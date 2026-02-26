@@ -94,14 +94,23 @@
     --space-2xl: 48px;
     --space-3xl: 64px;
 
-    /* DLS Depth shadows — softer, more diffused */
-    --shadow-panel: 0 1px 2px hsl(220 30% 10% / 0.02), 0 8px 32px hsl(220 30% 10% / 0.04);
-    --shadow-card: 0 2px 8px hsl(220 30% 10% / 0.03), 0 12px 40px hsl(220 30% 10% / 0.05);
-    --shadow-card-hover: 0 8px 24px hsl(220 30% 10% / 0.06), 0 20px 48px hsl(220 30% 10% / 0.08);
-    --shadow-elevated: 0 12px 40px hsl(220 30% 10% / 0.08);
+    /* DLS Depth shadows — 4-tier elevation system */
+    --shadow-level-0: none;
+    --shadow-level-1: 0 1px 3px hsl(220 30% 10% / 0.02), 0 4px 16px hsl(220 30% 10% / 0.03);
+    --shadow-level-2: 0 2px 8px hsl(220 30% 10% / 0.03), 0 12px 40px hsl(220 30% 10% / 0.06);
+    --shadow-level-3: 0 8px 24px hsl(220 30% 10% / 0.06), 0 24px 56px hsl(220 30% 10% / 0.10);
+    --shadow-panel: var(--shadow-level-1);
+    --shadow-card: var(--shadow-level-2);
+    --shadow-card-hover: var(--shadow-level-3);
+    --shadow-elevated: var(--shadow-level-3);
+
+    /* AI glow — soft intelligence indicator */
+    --shadow-ai-glow: 0 0 16px hsl(var(--pivt-gp-from) / 0.10), 0 0 32px hsl(var(--pivt-gp-to) / 0.06);
+    --shadow-ai-glow-hover: 0 0 24px hsl(var(--pivt-gp-from) / 0.18), 0 0 48px hsl(var(--pivt-gp-to) / 0.10);
 
     /* DLS border */
     --border-subtle: hsl(220 20% 20% / 0.05);
+    --border-card: hsl(220 20% 20% / 0.04);
   }
 
   /* ── DLS Glass Mode (Dark) ── */
@@ -169,11 +178,18 @@
     --pivt-gradient-glow: 0 0 24px hsl(var(--pivt-gp-from) / 0.25), 0 0 48px hsl(var(--pivt-gp-to) / 0.14);
     --pivt-gradient-glow-hover: 0 0 36px hsl(var(--pivt-gp-from) / 0.35), 0 0 64px hsl(var(--pivt-gp-to) / 0.20);
 
-    --shadow-panel: 0 1px 2px hsl(0 0% 0% / 0.16), 0 8px 32px hsl(0 0% 0% / 0.24);
-    --shadow-card: 0 1px 2px hsl(0 0% 0% / 0.14), 0 4px 16px hsl(0 0% 0% / 0.20);
-    --shadow-card-hover: 0 4px 12px hsl(0 0% 0% / 0.18), 0 16px 40px hsl(0 0% 0% / 0.30);
-    --shadow-elevated: 0 8px 32px hsl(0 0% 0% / 0.32);
+    --shadow-level-0: none;
+    --shadow-level-1: 0 1px 2px hsl(0 0% 0% / 0.12), 0 4px 16px hsl(0 0% 0% / 0.16);
+    --shadow-level-2: 0 2px 6px hsl(0 0% 0% / 0.14), 0 8px 32px hsl(0 0% 0% / 0.22);
+    --shadow-level-3: 0 8px 20px hsl(0 0% 0% / 0.18), 0 24px 48px hsl(0 0% 0% / 0.30);
+    --shadow-panel: var(--shadow-level-1);
+    --shadow-card: var(--shadow-level-2);
+    --shadow-card-hover: var(--shadow-level-3);
+    --shadow-elevated: var(--shadow-level-3);
+    --shadow-ai-glow: 0 0 20px hsl(var(--pivt-gp-from) / 0.15), 0 0 40px hsl(var(--pivt-gp-to) / 0.08);
+    --shadow-ai-glow-hover: 0 0 32px hsl(var(--pivt-gp-from) / 0.25), 0 0 56px hsl(var(--pivt-gp-to) / 0.14);
     --border-subtle: hsl(0 0% 100% / 0.06);
+    --border-card: hsl(0 0% 100% / 0.04);
   }
 }
 
@@ -263,34 +279,121 @@
   }
 
   /* ═══════════════════════════════════
+     DLS v2.0 — ELEVATION UTILITY CLASSES
+     ═══════════════════════════════════ */
+  .pivt-elevation-0 { box-shadow: var(--shadow-level-0); }
+  .pivt-elevation-1 { box-shadow: var(--shadow-level-1); }
+  .pivt-elevation-2 { box-shadow: var(--shadow-level-2); }
+  .pivt-elevation-3 { box-shadow: var(--shadow-level-3); }
+
+  /* ═══════════════════════════════════
      DLS v2.0 — LAYER 3: CARDS
      Floating modules with gradient surface
      ═══════════════════════════════════ */
   .pivt-card {
-    background: linear-gradient(to bottom, hsl(0 0% 100%), hsl(240 20% 99%));
-    border: 1px solid var(--border-subtle);
-    box-shadow: var(--shadow-card);
-    border-radius: 20px;
-    padding: 1px;
-    transition: transform 250ms cubic-bezier(0.23, 1, 0.32, 1),
-                box-shadow 250ms cubic-bezier(0.23, 1, 0.32, 1),
-                border-color 250ms ease,
-                background 300ms ease;
+    background: linear-gradient(180deg, hsl(0 0% 100%), hsl(240 14% 99%));
+    border: 1px solid var(--border-card);
+    box-shadow: var(--shadow-level-1);
+    border-radius: 16px;
+    transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1),
+                border-color 180ms ease;
   }
   .pivt-card:hover {
-    transform: translateY(-3px);
-    border-color: hsl(var(--accent) / 0.06);
-    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+    border-color: hsl(var(--accent) / 0.08);
+    box-shadow: var(--shadow-level-2);
   }
   .glass-mode .pivt-card {
-    background: hsl(var(--card) / 0.65);
-    border-color: hsl(0 0% 100% / 0.06);
-    box-shadow: var(--shadow-card);
+    background: hsl(var(--card) / 0.55);
+    border-color: var(--border-card);
+    box-shadow: var(--shadow-level-1);
     backdrop-filter: blur(16px);
   }
   .glass-mode .pivt-card:hover {
     border-color: hsl(255 82% 62% / 0.10);
-    box-shadow: var(--shadow-card-hover);
+    box-shadow: var(--shadow-level-2);
+  }
+
+  /* AI-elevated card — Level 2 with subtle glow */
+  .pivt-card-ai {
+    background: linear-gradient(180deg, hsl(0 0% 100%), hsl(240 14% 99%));
+    border: 1px solid hsl(var(--pivt-gp-from) / 0.08);
+    box-shadow: var(--shadow-level-1), var(--shadow-ai-glow);
+    border-radius: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .pivt-card-ai::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--pivt-gradient-soft);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .pivt-card-ai:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-level-2), var(--shadow-ai-glow-hover);
+  }
+  .glass-mode .pivt-card-ai {
+    background: hsl(var(--card) / 0.55);
+    border-color: hsl(var(--pivt-gp-from) / 0.12);
+    backdrop-filter: blur(16px);
+  }
+
+  /* Metric card — large stat display */
+  .pivt-metric-card {
+    background: linear-gradient(180deg, hsl(0 0% 100%), hsl(240 14% 99%));
+    border: 1px solid var(--border-card);
+    box-shadow: var(--shadow-level-1);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .pivt-metric-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--pivt-gradient-accent);
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+  .pivt-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-level-2);
+  }
+  .pivt-metric-card:hover::after {
+    opacity: 1;
+  }
+  .glass-mode .pivt-metric-card {
+    background: hsl(var(--card) / 0.55);
+    border-color: var(--border-card);
+    backdrop-filter: blur(16px);
+  }
+
+  /* Section header gradient accent bar */
+  .pivt-section-bar {
+    position: relative;
+    padding-bottom: 0.75rem;
+  }
+  .pivt-section-bar::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 48px;
+    height: 2px;
+    background: var(--pivt-gradient-accent);
+    border-radius: 1px;
   }
 
   /* Card with gradient accent strip */
