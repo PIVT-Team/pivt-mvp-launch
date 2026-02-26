@@ -335,22 +335,22 @@ export const DealWorkspaceCover: React.FC = () => {
 
       {/* ── V2 Deal Header — Hero Command Module ── */}
       <div className="pivt-panel p-8 lg:p-10">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-          <div className="min-w-0">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-8" style={{ justifyContent: 'space-between' }}>
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <h1 className="text-[28px] font-semibold text-foreground truncate" style={{ letterSpacing: '-0.04em' }}>{deal.codeName}</h1>
+              <h1 className="text-[28px] font-semibold text-foreground" style={{ letterSpacing: '-0.04em', whiteSpace: 'normal', overflow: 'visible' }}>{deal.codeName}</h1>
               {deal.hasBlocker && (
                 <Badge className="bg-blocking/10 text-blocking border-blocking/15 shrink-0">
                   <Ban className="w-3 h-3 mr-1" /> Blocked
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground/60 mt-1.5 text-sm truncate font-normal">
+            <p className="text-muted-foreground/60 mt-1.5 text-sm font-normal truncate">
               {deal.buyerName} acquiring {deal.targetCompany}
             </p>
           </div>
 
-          <div className="flex items-center gap-8 flex-wrap lg:ml-auto shrink-0">
+          <div className="flex items-center gap-8 flex-wrap lg:ml-auto" style={{ flexShrink: 0 }}>
             <div className="text-left lg:text-right">
               <p className="pivt-metric-label">Deal Value</p>
               <p className="font-mono text-lg font-medium mt-1.5">${(deal.consideration / 1e6).toFixed(1)}M</p>
