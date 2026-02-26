@@ -3,9 +3,8 @@ import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal, DealWorkflowState } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
-  ArrowLeft, CheckCircle2, Clock, AlertTriangle, Ban,
-  FileText, Users, Upload, Shield, CreditCard,
-  Landmark, Search, Lock, Sparkles, Calendar, DollarSign,
+  ArrowLeft, AlertTriangle, Ban,
+  FileText, Users, Search, Sparkles, Calendar,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -96,42 +95,10 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
 const OverviewSection: React.FC = () => {
   const deal = useSelectedDeal();
   const { stakeholders } = usePIVTStore();
-  const currentIdx = stepIndex(deal.workflowState);
   const nextAction = getNextAction(deal.workflowState, deal.discrepanciesFound, deal.pendingApprovals);
 
   return (
     <div className="space-y-6">
-      <motion.div {...fadeInUp} className="pivt-card p-5">
-        <div className="flex items-center justify-between">
-          {WORKFLOW_STEPS_META.map((step, i) => {
-            const isCurrent = i === currentIdx;
-            const isComplete = i < currentIdx;
-            const isBlocked = isCurrent && deal.hasBlocker;
-            let bg = 'bg-muted';
-            let text = 'text-muted-foreground';
-            if (isComplete) { bg = 'bg-validated'; text = 'text-validated'; }
-            else if (isBlocked) { bg = 'bg-blocking'; text = 'text-blocking'; }
-            else if (isCurrent) { bg = 'bg-accent'; text = 'text-accent'; }
-            return (
-              <React.Fragment key={step.key}>
-                <div className="flex flex-col items-center gap-1.5 flex-1">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${bg} ${isComplete || isCurrent ? 'text-white' : ''}`}>
-                    {isComplete ? <CheckCircle2 className="w-4 h-4" /> :
-                     isBlocked ? <Ban className="w-4 h-4" /> :
-                     isCurrent ? <Clock className="w-4 h-4 animate-pulse" /> :
-                     <span className="text-xs font-mono">{i + 1}</span>}
-                  </div>
-                  <span className={`text-[10px] font-medium text-center leading-tight ${text}`}>{step.label}</span>
-                </div>
-                {i < WORKFLOW_STEPS_META.length - 1 && (
-                  <div className={`h-0.5 flex-1 mx-1 rounded ${i < currentIdx ? 'bg-validated' : 'bg-muted'}`} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </motion.div>
-
       <motion.div {...fadeInUp} className="pivt-card p-4 border-l-4 border-accent bg-accent/5">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center">
@@ -301,6 +268,9 @@ export const DealWorkspaceCover: React.FC = () => {
     { id: 'audit-reports', number: 8, label: 'Audit & Reports', completionPct: 100, blockers: 0 },
   ], [deal]);
 
+  const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
+  const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
+
   const subNavItems = STEP_SUB_NAV[activeStepId];
   const ContentComponent = getContentComponent(activeStepId, activeSubNav);
 
@@ -361,6 +331,31 @@ export const DealWorkspaceCover: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Blocking Issues Alert Strip ── */}
+      {totalBlockers > 0 && (
+        <motion.div
+          {...fadeInUp}
+          className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-blocking/20 bg-blocking/5"
+        >
+          <AlertTriangle className="w-4 h-4 text-blocking shrink-0" />
+          <span className="text-sm text-foreground">
+            <span className="font-semibold text-blocking">{totalBlockers} items</span>
+            {' '}need attention across{' '}
+            <span className="font-semibold">{sectionsWithBlockers} sections</span>
+          </span>
+          <button
+            onClick={() => {
+              // Find first section with blockers
+              const firstBlocked = workflowSteps.find(s => s.blockers > 0);
+              if (firstBlocked) handleStepClick(firstBlocked.id);
+            }}
+            className="ml-auto text-xs font-medium text-blocking hover:text-blocking/80 transition-colors whitespace-nowrap"
+          >
+            View all →
+          </button>
+        </motion.div>
+      )}
 
       {/* ── Workflow Stepper ── */}
       <DealWorkflowStepper
