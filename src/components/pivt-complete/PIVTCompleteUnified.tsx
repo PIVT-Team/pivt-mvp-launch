@@ -25,7 +25,7 @@ import { IntegrationsCover } from './cover/IntegrationsCover';
 import { IntelligenceMapCover } from './cover/IntelligenceMapCover';
 import { TimelineCover } from './cover/TimelineCover';
 import { AIDashboardCover } from './cover/AIDashboardCover';
-
+import { HomeCover } from './cover/HomeCover';
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 
@@ -36,6 +36,7 @@ const DEAL_SCOPED_SECTIONS = new Set([
 ]);
 
 const coverSections: Record<string, React.FC> = {
+  home: HomeCover,
   deals: DealsCover,
   workspace: DealWorkspaceCover,
   reports: GlobalReportsCover,
@@ -88,11 +89,12 @@ export const PIVTCompleteUnified: React.FC = () => {
   useEffect(() => {
     const section = searchParams.get('section');
     if (section) setActiveSection(section as ActiveSection);
+    else setActiveSection('home' as ActiveSection);
   }, []);
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (activeSection !== 'deals') params.set('section', activeSection);
+    if (activeSection !== 'home') params.set('section', activeSection);
     setSearchParams(params, { replace: true });
   }, [activeSection]);
 
@@ -113,7 +115,7 @@ export const PIVTCompleteUnified: React.FC = () => {
     return () => window.removeEventListener('keydown', handler);
   }, [toggleGlassMode]);
 
-  const ActiveCoverSection = coverSections[activeSection] || DealsCover;
+  const ActiveCoverSection = coverSections[activeSection] || HomeCover;
 
   return (
     <div className="flex h-screen overflow-hidden pivt-ambient-bg" style={{ color: 'hsl(var(--foreground))' }}>
@@ -128,7 +130,10 @@ export const PIVTCompleteUnified: React.FC = () => {
         }}
       >
         {/* Logo */}
-        <div className="px-5 pt-5 pb-3 flex flex-col items-center gap-1.5">
+        <button
+          onClick={() => setActiveSection('home' as ActiveSection)}
+          className="px-5 pt-5 pb-3 flex flex-col items-center gap-1.5 w-full cursor-pointer"
+        >
           <motion.img
             src={pivtLogo}
             alt="PIVT"
@@ -146,7 +151,7 @@ export const PIVTCompleteUnified: React.FC = () => {
               The intelligence layer behind every close.
             </motion.p>
           )}
-        </div>
+        </button>
 
         <div className="mx-5 mb-2 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }} />
 
