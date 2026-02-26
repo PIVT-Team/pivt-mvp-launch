@@ -192,11 +192,7 @@ export const PIVTCompleteUnified: React.FC = () => {
       <main className="flex-1 overflow-y-auto flex flex-col">
         {/* Top bar */}
         <div
-          className="shrink-0 px-6 py-3 flex items-center gap-4 border-b"
-          style={{
-            background: 'hsl(var(--card))',
-            borderColor: 'hsl(var(--border))',
-          }}
+          className="shrink-0 px-6 py-3 flex items-center gap-4 pivt-glass-nav"
         >
           {/* Search */}
           <button

@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@300,400,500,600,700,800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -139,7 +140,7 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-size: 15px;
@@ -147,11 +148,11 @@
   .font-mono {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
   }
-  /* Editorial heading treatment — larger scale */
-  h1 { letter-spacing: -0.035em; font-weight: 700; font-size: 1.625rem; }
-  h2 { letter-spacing: -0.03em; font-weight: 600; font-size: 1.125rem; }
-  h3 { letter-spacing: -0.02em; font-weight: 600; font-size: 1rem; }
-  h4 { letter-spacing: -0.015em; font-weight: 500; }
+  /* Editorial heading treatment — Satoshi scale */
+  h1 { letter-spacing: -0.03em; font-weight: 600; font-size: 1.625rem; }
+  h2 { letter-spacing: -0.025em; font-weight: 600; font-size: 1.125rem; }
+  h3 { letter-spacing: -0.015em; font-weight: 600; font-size: 1rem; }
+  h4 { letter-spacing: -0.01em; font-weight: 500; }
 }
 
 @layer components {
@@ -169,31 +170,53 @@
       linear-gradient(180deg, hsl(var(--g4-from)), hsl(var(--g4-to)));
   }
 
+  /* ── Glass Navigation ── */
+  .pivt-glass-nav {
+    background: hsl(var(--background) / 0.85);
+    backdrop-filter: blur(16px) saturate(1.2);
+    border-bottom: 1px solid hsl(var(--border) / 0.4);
+    transition: background 300ms ease, backdrop-filter 200ms ease;
+  }
+  .glass-mode .pivt-glass-nav {
+    background: hsl(var(--background) / 0.6);
+    border-bottom-color: hsl(0 0% 100% / 0.04);
+  }
+
+  /* ── AI Glow ── */
+  .pivt-ai-glow {
+    box-shadow: 0 0 24px hsl(255 82% 58% / 0.12), 0 0 48px hsl(231 100% 62% / 0.06);
+    transition: box-shadow 300ms ease;
+  }
+  .pivt-ai-glow:hover {
+    box-shadow: 0 0 32px hsl(255 82% 58% / 0.20), 0 0 64px hsl(231 100% 62% / 0.10);
+  }
+
   /* ── Card ── */
   .pivt-card {
     background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(0, 0, 0, 0.04);
     border-radius: 16px;
-    transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1),
-                box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1),
-                border-color 150ms ease,
+    padding: 1px;
+    transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1),
+                box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1),
+                border-color 200ms ease,
                 background 300ms ease;
   }
   .pivt-card:hover {
     transform: translateY(-2px);
-    border-color: hsl(var(--accent) / 0.18);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.06);
+    border-color: hsl(var(--accent) / 0.12);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
   }
   .glass-mode .pivt-card {
-    background: hsl(var(--card) / 0.82);
+    background: hsl(var(--card) / 0.72);
     border-color: hsl(0 0% 100% / 0.06);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20), 0 8px 24px rgba(0, 0, 0, 0.28);
-    backdrop-filter: blur(12px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 8px 24px rgba(0, 0, 0, 0.22);
+    backdrop-filter: blur(16px);
   }
   .glass-mode .pivt-card:hover {
-    border-color: hsl(255 82% 62% / 0.14);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.20), 0 16px 40px rgba(0, 0, 0, 0.36);
+    border-color: hsl(255 82% 62% / 0.12);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.16), 0 16px 40px rgba(0, 0, 0, 0.30);
   }
 
   /* Card with gradient accent bottom strip */
@@ -244,13 +267,13 @@
 
   /* ── Financial Stat Numbers ── */
   .pivt-stat {
-    @apply font-mono text-2xl font-bold;
+    @apply font-mono text-2xl font-semibold;
     letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
     color: hsl(var(--foreground));
   }
   .pivt-stat-lg {
-    @apply font-mono text-4xl font-extrabold;
+    @apply font-mono text-4xl font-bold;
     letter-spacing: -0.035em;
     font-variant-numeric: tabular-nums;
     color: hsl(var(--foreground));
@@ -367,8 +390,8 @@
   /* ── Editorial section label ── */
   .pivt-section-label {
     @apply text-[10px] font-semibold uppercase;
-    letter-spacing: 0.12em;
-    color: hsl(var(--muted-foreground));
+    letter-spacing: 0.14em;
+    color: hsl(var(--muted-foreground) / 0.7);
   }
 
   /* ── Sidebar nav item ── */
@@ -469,4 +492,59 @@
 .theme-transitioning *, .theme-transitioning *::before, .theme-transitioning *::after {
   transition-duration: 300ms !important;
   transition-timing-function: ease !important;
+}
+
+/* ── AI Neural Mesh Background ── */
+@keyframes neuralDrift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  33% { transform: translate(10px, -15px) rotate(1deg); }
+  66% { transform: translate(-8px, 8px) rotate(-0.5deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+@keyframes neuralPulse {
+  0%, 100% { opacity: 0.03; }
+  50% { opacity: 0.06; }
+}
+.pivt-neural-mesh {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.pivt-neural-mesh::before,
+.pivt-neural-mesh::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  animation: neuralDrift 20s ease-in-out infinite, neuralPulse 8s ease-in-out infinite;
+}
+.pivt-neural-mesh::before {
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  right: -100px;
+  background: radial-gradient(circle, hsl(255 82% 58% / 0.06), transparent 70%);
+}
+.pivt-neural-mesh::after {
+  width: 500px;
+  height: 500px;
+  bottom: -150px;
+  left: -80px;
+  background: radial-gradient(circle, hsl(231 100% 62% / 0.04), transparent 70%);
+  animation-delay: -10s;
+}
+.glass-mode .pivt-neural-mesh::before {
+  background: radial-gradient(circle, hsl(255 82% 62% / 0.08), transparent 70%);
+}
+.glass-mode .pivt-neural-mesh::after {
+  background: radial-gradient(circle, hsl(231 100% 65% / 0.06), transparent 70%);
+}
+
+/* ── Softer destructive/alert tones ── */
+:root {
+  --destructive-soft: 0 55% 55%;
+}
+.glass-mode {
+  --destructive-soft: 0 55% 58%;
 }
