@@ -236,7 +236,7 @@ export const PIVTCompleteUnified: React.FC = () => {
             }`}
           >
             <Brain className="w-4 h-4" />
-            <span>AI</span>
+            <span>AI Deal Scan</span>
             {activeSection === 'ai' && (
               <motion.div
                 layoutId="ai-toolbar-underline"
