@@ -309,7 +309,9 @@ export const NewtonCover: React.FC = () => {
   ].slice(0, 4);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-8rem)]">
+    <div className="relative flex flex-col h-[calc(100vh-8rem)]">
+      {/* Neural mesh background — AI page only */}
+      <div className="pivt-neural-mesh" />
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-border">
         <div className="flex items-center gap-3">
