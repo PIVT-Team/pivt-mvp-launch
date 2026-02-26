@@ -488,135 +488,185 @@ export const IntelligenceMapCover: React.FC = () => {
   }, []);
 
   return (
-    <motion.div {...fadeInUp} className="space-y-4">
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground">Intelligence Map</h2>
-          <p className="text-sm text-muted-foreground">Relationship and risk visualization across deals.</p>
-        </div>
+    <motion.div {...fadeInUp} className="space-y-3">
+      {/* ── 3-Zone Command Bar ── */}
+      <div className="bg-white/60 backdrop-blur-md border-b border-border/10" style={{ minHeight: 64 }}>
+        <div className="flex items-center h-16 px-5 gap-6">
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 p-1 rounded-xl bg-muted/40 border border-border/30">
-          <button
-            onClick={() => setViewMode('deal')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              viewMode === 'deal' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Deal View
-          </button>
-          <button
-            onClick={() => setViewMode('portfolio')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              viewMode === 'portfolio' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Portfolio View
-          </button>
-        </div>
-      </div>
-
-      {/* ── Deal Context Header (Deal View only) ── */}
-      {viewMode === 'deal' && (
-        <div className="pivt-panel p-5">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3">
-                <h3 className="text-xl font-semibold" style={{ letterSpacing: '-0.03em' }}>{deal.codeName}</h3>
+          {/* ═══ ZONE 1 — Deal Context (Left) ═══ */}
+          <div className="flex-1 min-w-0">
+            {viewMode === 'deal' ? (
+              <div className="flex items-baseline gap-3">
+                <h2 className="text-[22px] font-semibold tracking-tight truncate" style={{ letterSpacing: '-0.04em' }}>
+                  {deal.codeName}
+                </h2>
                 {deal.hasBlocker && (
-                  <Badge className="bg-blocking/10 text-blocking border-blocking/15 text-[9px]">
-                    <Ban className="w-3 h-3 mr-1" /> Blocked
-                  </Badge>
+                  <span className="text-[10px] font-medium text-blocking/80 uppercase tracking-wider">Blocked</span>
                 )}
+                <span className="text-sm text-muted-foreground/70 font-normal truncate hidden md:inline">
+                  {deal.buyerName} acquiring {deal.targetCompany}
+                </span>
+                <span className="text-[13px] text-muted-foreground/50 font-normal hidden lg:inline ml-1">
+                  ${(deal.consideration / 1e6).toFixed(0)}M · {deal.closingDate} · {deal.readyToPayPercent}% Ready
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground/70 mt-0.5">{deal.buyerName} acquiring {deal.targetCompany}</p>
-            </div>
-
-            <div className="flex items-center gap-4 shrink-0">
-              <div className="text-right">
-                <p className="pivt-metric-label">Deal Value</p>
-                <p className="font-mono text-sm font-medium mt-0.5">${(deal.consideration / 1e6).toFixed(0)}M</p>
+            ) : (
+              <div className="flex items-baseline gap-2">
+                <h2 className="text-[22px] font-semibold tracking-tight" style={{ letterSpacing: '-0.04em' }}>
+                  Portfolio
+                </h2>
+                <span className="text-[13px] text-muted-foreground/50">
+                  {deals.length} Deals · ${(deals.reduce((s, d) => s + d.consideration, 0) / 1e6).toFixed(0)}M Total
+                </span>
               </div>
-              <div className="h-7 w-px bg-border/30" />
-              <div className="text-right">
-                <p className="pivt-metric-label">Closing</p>
-                <p className="text-xs font-medium mt-0.5 flex items-center gap-1">
-                  <Calendar className="w-3 h-3 text-muted-foreground/50" />
-                  {deal.closingDate}
-                </p>
-              </div>
-              <div className="h-7 w-px bg-border/30" />
-              <div className="min-w-[100px]">
-                <div className="flex items-center justify-between mb-1">
-                  <p className="pivt-metric-label">Readiness</p>
-                  <span className="font-mono text-[11px] font-medium">{deal.readyToPayPercent}%</span>
-                </div>
-                <Progress value={deal.readyToPayPercent} className="h-1" />
-              </div>
-              <div className="h-7 w-px bg-border/30" />
-
-              <DealSelectorDropdown
-                deals={deals}
-                selectedDealId={deal.id}
-                onSelect={handleDealSwitch}
-              />
-
-              <button
-                onClick={handleGoToWorkspace}
-                className="pivt-btn-secondary flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Open Deal
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Toolbar (Deal View only) ── */}
-      {viewMode === 'deal' && (
-        <div className="pivt-card p-3 flex items-center gap-3 flex-wrap">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search entities..."
-              className="bg-muted/40 border border-border/50 rounded-lg pl-9 pr-4 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/40 w-56"
-            />
-          </div>
-          {FILTER_DEFS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => toggleFilter(f.key)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs border ${
-                filters[f.key]
-                  ? 'bg-accent/10 border-accent/20 text-foreground'
-                  : 'bg-muted/30 border-border/50 text-muted-foreground'
-              }`}
-            >
-              <f.icon className="w-3 h-3" />
-              {f.label}
-            </button>
-          ))}
-          <div className="flex-1" />
-          <div className="flex items-center gap-2">
-            <Eye className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Risk Nodes</span>
-            <Switch checked={highlightRisk} onCheckedChange={setHighlightRisk} />
-            {riskNodeCount > 0 && (
-              <Badge variant="outline" className="text-[9px] border-blocking/30 text-blocking">
-                {riskNodeCount} flagged
-              </Badge>
             )}
           </div>
-          <Button variant="outline" size="sm" onClick={() => setShowSimPanel(!showSimPanel)}>
-            <Play className="w-3.5 h-3.5 mr-1.5" />
-            What-If
-          </Button>
+
+          {/* ═══ ZONE 2 — View Mode Control (Center) ═══ */}
+          <div className="shrink-0">
+            {viewMode === 'deal' ? (
+              /* Segmented filter control */
+              <div className="flex items-center rounded-xl bg-muted/20 overflow-hidden">
+                {FILTER_DEFS.map(f => {
+                  const active = filters[f.key];
+                  return (
+                    <button
+                      key={f.key}
+                      onClick={() => toggleFilter(f.key)}
+                      className="relative px-3 py-2 text-[11px] font-medium transition-colors duration-200 group"
+                    >
+                      <span className={`flex items-center gap-1.5 relative z-10 ${
+                        active ? 'text-foreground' : 'text-muted-foreground/60 hover:text-muted-foreground'
+                      }`}>
+                        <f.icon className="w-3 h-3" />
+                        <span className="hidden xl:inline">{f.label}</span>
+                      </span>
+                      {/* Gradient underline for active state */}
+                      {active && (
+                        <motion.div
+                          layoutId="filter-underline"
+                          className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full"
+                          style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        />
+                      )}
+                      {/* Subtle hover tint */}
+                      <span className="absolute inset-0 bg-muted/0 group-hover:bg-muted/30 transition-colors duration-200 rounded-lg" />
+                    </button>
+                  );
+                })}
+                {/* Mode toggle divider */}
+                <div className="w-px h-5 bg-border/20 mx-1" />
+                <button
+                  onClick={() => setViewMode('deal')}
+                  className="relative px-3 py-2 text-[11px] font-medium text-foreground"
+                >
+                  <Eye className="w-3 h-3 inline mr-1" />
+                  <span className="hidden xl:inline">Deal</span>
+                  <motion.div
+                    layoutId="mode-underline"
+                    className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-foreground/30"
+                  />
+                </button>
+                <button
+                  onClick={() => setViewMode('portfolio')}
+                  className="px-3 py-2 text-[11px] font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
+                  <TrendingUp className="w-3 h-3 inline mr-1" />
+                  <span className="hidden xl:inline">Portfolio</span>
+                </button>
+              </div>
+            ) : (
+              /* Portfolio mode: simple mode switch */
+              <div className="flex items-center rounded-xl bg-muted/20 overflow-hidden">
+                <button
+                  onClick={() => setViewMode('deal')}
+                  className="px-3 py-2 text-[11px] font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
+                  <Eye className="w-3 h-3 inline mr-1" />
+                  Deal
+                </button>
+                <button
+                  onClick={() => setViewMode('portfolio')}
+                  className="relative px-3 py-2 text-[11px] font-medium text-foreground"
+                >
+                  <TrendingUp className="w-3 h-3 inline mr-1" />
+                  Portfolio
+                  <motion.div
+                    layoutId="mode-underline-p"
+                    className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-foreground/30"
+                  />
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* ═══ ZONE 3 — Intelligence Actions (Right) ═══ */}
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Compact search */}
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search..."
+                className="bg-transparent border-none rounded-lg pl-8 pr-3 py-1.5 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:bg-muted/20 w-32 transition-all duration-200 focus:w-44"
+              />
+            </div>
+
+            {viewMode === 'deal' && (
+              <>
+                {/* Risk toggle — inline, no badge */}
+                <button
+                  onClick={() => setHighlightRisk(!highlightRisk)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-[11px] font-medium transition-all duration-200 ${
+                    highlightRisk
+                      ? 'text-foreground bg-muted/30'
+                      : 'text-muted-foreground/50 hover:text-muted-foreground'
+                  }`}
+                >
+                  <AlertTriangle className="w-3 h-3" />
+                  Risk
+                  {riskNodeCount > 0 && (
+                    <span className={`text-[10px] ${highlightRisk ? 'text-blocking/70' : 'text-muted-foreground/40'}`}>
+                      · {riskNodeCount} flagged
+                    </span>
+                  )}
+                </button>
+
+                {/* What-If */}
+                <button
+                  onClick={() => setShowSimPanel(!showSimPanel)}
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-[11px] font-medium transition-all duration-200 ${
+                    showSimPanel
+                      ? 'text-foreground bg-muted/30'
+                      : 'text-muted-foreground/50 hover:text-muted-foreground'
+                  }`}
+                >
+                  <Play className="w-3 h-3" />
+                  What-If
+                </button>
+
+                {/* Deal selector */}
+                <DealSelectorDropdown
+                  deals={deals}
+                  selectedDealId={deal.id}
+                  onSelect={handleDealSwitch}
+                />
+
+                {/* Open Deal */}
+                <button
+                  onClick={handleGoToWorkspace}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[10px] text-[11px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-muted/20 transition-all duration-200"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Open Deal
+                </button>
+              </>
+            )}
+          </div>
         </div>
-      )}
+      </div>
 
       {/* ── Graph ── */}
       <div className="pivt-card overflow-hidden flex" style={{ height: 520 }}>
