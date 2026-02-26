@@ -29,6 +29,7 @@ import { AIDashboardCover } from './cover/AIDashboardCover';
 import { HomeCover } from './cover/HomeCover';
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
+import { SupportPanel } from '../support/SupportPanel';
 
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
@@ -309,6 +310,7 @@ export const PIVTCompleteUnified: React.FC = () => {
 
       <DealWizard />
       <NewtonDealIntelligence />
+      <SupportPanel />
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />
       <NotificationsDrawer open={notifOpen} onOpenChange={setNotifOpen} />
