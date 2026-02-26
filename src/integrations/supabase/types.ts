@@ -93,6 +93,35 @@ export type Database = {
           },
         ]
       }
+      comment_mentions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          mentioned_user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          mentioned_user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          mentioned_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "comment_mentions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "deal_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_approvals: {
         Row: {
           approval_side: string
@@ -130,6 +159,57 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_comments: {
+        Row: {
+          author_user_id: string
+          body: string
+          created_at: string
+          deal_id: string
+          id: string
+          parent_id: string | null
+          section_context: string | null
+          updated_at: string
+          visibility: string
+        }
+        Insert: {
+          author_user_id: string
+          body: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          parent_id?: string | null
+          section_context?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Update: {
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          parent_id?: string | null
+          section_context?: string | null
+          updated_at?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_comments_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "deal_comments"
             referencedColumns: ["id"]
           },
         ]
