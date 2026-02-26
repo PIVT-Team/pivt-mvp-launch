@@ -123,7 +123,7 @@ export const PIVTCompleteUnified: React.FC = () => {
         transition={springConfig.standard}
         className="h-full flex flex-col shrink-0 overflow-hidden"
         style={{
-          background: 'linear-gradient(180deg, hsl(var(--g4-from)), hsl(var(--g4-to)))',
+          background: 'hsl(var(--sidebar-background))',
           borderRight: '1px solid hsl(var(--sidebar-border))',
         }}
       >
@@ -279,7 +279,7 @@ export const PIVTCompleteUnified: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={springConfig.standard}
-            className="p-8 lg:p-10 max-w-6xl mx-auto w-full"
+            className="p-10 lg:p-14 max-w-6xl mx-auto w-full"
           >
             <ActiveCoverSection />
           </motion.div>
