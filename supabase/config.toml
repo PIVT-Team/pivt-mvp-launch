@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.global-search]
 verify_jwt = false
+
+[functions.submit-support-ticket]
+verify_jwt = false
