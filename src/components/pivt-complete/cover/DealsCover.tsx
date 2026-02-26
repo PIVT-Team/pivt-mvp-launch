@@ -79,7 +79,7 @@ export const DealsCover: React.FC = () => {
 
           <button
             onClick={handleNewDeal}
-            className="flex items-center gap-2 px-4 py-2 bg-accent text-accent-foreground rounded-lg text-sm font-semibold hover:bg-accent/90 transition-all"
+            className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
           >
             <Plus className="w-4 h-4" />
             New Deal
@@ -126,7 +126,7 @@ export const DealsCover: React.FC = () => {
                 <div className="flex-1" />
                 <div className="flex items-center gap-2">
                   <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent rounded-full" style={{ width: `${deal.readyToPayPercent}%` }} />
+                    <div className="h-full rounded-full pivt-progress-gradient" style={{ width: `${deal.readyToPayPercent}%` }} />
                   </div>
                   <span className="font-mono">{deal.readyToPayPercent}%</span>
                 </div>
@@ -160,7 +160,7 @@ export const DealsCover: React.FC = () => {
                 </Badge>
                 <div className="flex flex-col items-center gap-1">
                   <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-accent rounded-full" style={{ width: `${deal.readyToPayPercent}%` }} />
+                    <div className="h-full rounded-full pivt-progress-gradient" style={{ width: `${deal.readyToPayPercent}%` }} />
                   </div>
                   <span className="text-[11px] font-mono">{deal.readyToPayPercent}%</span>
                 </div>

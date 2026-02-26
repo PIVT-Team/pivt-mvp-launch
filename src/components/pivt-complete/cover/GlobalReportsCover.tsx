@@ -37,16 +37,16 @@ export const GlobalReportsCover: React.FC = () => {
           <p className="text-muted-foreground mt-1">Portfolio-level reports across {deals.length} active deals</p>
         </div>
 
-        {/* Summary stats */}
+        {/* Summary stats — metric cards */}
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: 'Active Deals', value: deals.length },
             { label: 'Total Value', value: `$${(deals.reduce((s, d) => s + d.consideration, 0) / 1e6).toFixed(0)}M` },
             { label: 'Reports Available', value: PORTFOLIO_REPORTS.length },
           ].map(s => (
-            <motion.div key={s.label} {...fadeInUp} className="pivt-card p-4">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
-              <p className="pivt-stat text-xl mt-1">{s.value}</p>
+            <motion.div key={s.label} {...fadeInUp} className="pivt-metric-card">
+              <p className="pivt-metric-label">{s.label}</p>
+              <p className="pivt-stat text-xl mt-2">{s.value}</p>
             </motion.div>
           ))}
         </div>
@@ -58,8 +58,8 @@ export const GlobalReportsCover: React.FC = () => {
             const latest = getLatestReady(report.id);
             return (
               <motion.div key={report.id} {...fadeInUp} className="pivt-card p-5 flex items-center gap-4">
-                <div className="p-2.5 rounded-lg bg-muted/50">
-                  <FileBarChart className="w-5 h-5 text-accent" />
+                <div className="pivt-icon-chip pivt-icon-purple">
+                  <FileBarChart className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
