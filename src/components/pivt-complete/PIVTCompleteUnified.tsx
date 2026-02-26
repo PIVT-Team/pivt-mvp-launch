@@ -9,6 +9,7 @@ import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
 import { Search, ChevronLeft, ChevronRight, Bell, Upload, User, Brain } from 'lucide-react';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
 import { ImportDataModal } from './ImportDataModal';
@@ -118,6 +119,7 @@ export const PIVTCompleteUnified: React.FC = () => {
   const ActiveCoverSection = coverSections[activeSection] || HomeCover;
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="flex h-screen overflow-hidden pivt-ambient-bg" style={{ color: 'hsl(var(--foreground))' }}>
       {/* Sidebar — wider, workflow-driven */}
       <motion.aside
@@ -213,55 +215,69 @@ export const PIVTCompleteUnified: React.FC = () => {
           <div className="flex-1" />
 
           {/* Glass Mode Toggle */}
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-muted-foreground font-medium">Glass Mode</span>
-            <button
-              onClick={toggleGlassMode}
-              className="glass-toggle"
-              data-active={glassMode}
-              title="Toggle Glass Mode (⌘G)"
-            >
-              <span className="glass-toggle-thumb" />
-            </button>
-          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground font-medium">Glass Mode</span>
+                <button
+                  onClick={toggleGlassMode}
+                  className="glass-toggle"
+                  data-active={glassMode}
+                >
+                  <span className="glass-toggle-thumb" />
+                </button>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Simplified view for presentations</TooltipContent>
+          </Tooltip>
 
           <div className="h-5 w-px bg-border mx-1" />
 
           {/* V2 AI Tab — visual superiority */}
-          <button
-            onClick={() => setActiveSection('ai' as ActiveSection)}
-            className={`pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold relative group ${
-              activeSection === 'ai'
-                ? 'text-accent pivt-ai-glow'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Brain className="w-4 h-4 pivt-spark" />
-            <span>AI Deal Scan</span>
-            {activeSection === 'ai' && (
-              <motion.div
-                layoutId="ai-toolbar-underline"
-                className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
-                style={{ background: 'linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)))' }}
-              />
-            )}
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setActiveSection('ai' as ActiveSection)}
+                className={`pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold relative group ${
+                  activeSection === 'ai'
+                    ? 'text-accent pivt-ai-glow'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Brain className="w-4 h-4 pivt-spark" />
+                <span>AI Deal Scan</span>
+                {activeSection === 'ai' && (
+                  <motion.div
+                    layoutId="ai-toolbar-underline"
+                    className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
+                    style={{ background: 'linear-gradient(90deg, hsl(var(--g2-from)), hsl(var(--g2-to)))' }}
+                  />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Run AI scan to detect risks, missing items, and bottlenecks</TooltipContent>
+          </Tooltip>
 
           {/* Import */}
-          <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-sm" title="Import Data">
+          <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-sm">
             <Upload className="w-4 h-4" />
             <span>Import Data</span>
           </button>
 
           {/* Notifications */}
-          <button onClick={() => setNotifOpen(true)} className="relative p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground" title="Notifications">
-            <Bell className="w-4 h-4" />
-            {unreadCount() > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
-                {unreadCount()}
-              </span>
-            )}
-          </button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={() => setNotifOpen(true)} className="relative p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground">
+                <Bell className="w-4 h-4" />
+                {unreadCount() > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                    {unreadCount()}
+                  </span>
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Notifications</TooltipContent>
+          </Tooltip>
 
           {/* Profile */}
           <div
@@ -297,5 +313,6 @@ export const PIVTCompleteUnified: React.FC = () => {
       <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />
       <NotificationsDrawer open={notifOpen} onOpenChange={setNotifOpen} />
     </div>
+    </TooltipProvider>
   );
 };

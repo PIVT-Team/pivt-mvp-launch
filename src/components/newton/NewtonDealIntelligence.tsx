@@ -11,6 +11,7 @@ import {
   ShieldAlert, CheckCircle2, AlertTriangle, Clock, Zap,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -187,20 +188,24 @@ export const NewtonDealIntelligence: React.FC = () => {
       {/* Floating button */}
       <AnimatePresence>
         {!isOpen && (
-          <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            onClick={() => setIsOpen(true)}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center group"
-            style={{
-              background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8))',
-              color: 'hsl(var(--accent-foreground))',
-            }}
-            title="Newton – Deal Intelligence (⌘J)"
-          >
-            <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
-          </motion.button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <motion.button
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                onClick={() => setIsOpen(true)}
+                className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center group"
+                style={{
+                  background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.8))',
+                  color: 'hsl(var(--accent-foreground))',
+                }}
+              >
+                <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+              </motion.button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Ask PIVT AI</TooltipContent>
+          </Tooltip>
         )}
       </AnimatePresence>
 
