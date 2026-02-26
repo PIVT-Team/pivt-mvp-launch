@@ -31,8 +31,8 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/auth" element={<AuthPage />} />
-              <Route path="/" element={<Navigate to="/pivt" replace />} />
-              <Route path="/pivt" element={<PIVTCompletePage />} />
+              <Route path="/" element={<PIVTCompletePage />} />
+              <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<PIVTCompletePage />} />
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
