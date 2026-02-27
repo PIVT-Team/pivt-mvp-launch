@@ -27,6 +27,7 @@ import { IntelligenceMapCover } from './cover/IntelligenceMapCover';
 import { TimelineCover } from './cover/TimelineCover';
 import { AIDashboardCover } from './cover/AIDashboardCover';
 import { HomeCover } from './cover/HomeCover';
+import { CommunicationsHub } from './cover/CommunicationsHub';
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 import { SupportPanel } from '../support/SupportPanel';
@@ -48,6 +49,7 @@ const coverSections: Record<string, React.FC> = {
   'intelligence-map': IntelligenceMapCover,
   timeline: TimelineCover,
   ai: AIDashboardCover,
+  communications: CommunicationsHub,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
