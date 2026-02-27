@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { DemoAuthProvider, useDemoAuth } from "@/contexts/DemoAuthContext";
 import AuthPage from "@/pages/AuthPage";
 import Dashboard from "@/pages/Dashboard";
 import DealDetail from "@/pages/DealDetail";
@@ -12,6 +13,7 @@ import AppLayout from "@/components/AppLayout";
 import NotFound from "./pages/NotFound";
 
 const PIVTCompletePage = lazy(() => import("./pages/PIVTCompletePage"));
+const LoginPage = lazy(() => import("./pages/LoginPage"));
 
 const queryClient = new QueryClient();
 
@@ -21,28 +23,37 @@ const PageLoader = () => (
   </div>
 );
 
+const DemoGuard = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated } = useDemoAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/" element={<PIVTCompletePage />} />
-              <Route path="/pivt" element={<Navigate to="/" replace />} />
-              <Route path="/pivt/:section" element={<PIVTCompletePage />} />
-              <Route element={<AppLayout />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/deals/:id" element={<DealDetail />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </Suspense>
-        </BrowserRouter>
-      </AuthProvider>
+      <DemoAuthProvider>
+        <AuthProvider>
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/" element={<DemoGuard><PIVTCompletePage /></DemoGuard>} />
+                <Route path="/pivt" element={<Navigate to="/" replace />} />
+                <Route path="/pivt/:section" element={<DemoGuard><PIVTCompletePage /></DemoGuard>} />
+                <Route element={<DemoGuard><AppLayout /></DemoGuard>}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/deals/:id" element={<DealDetail />} />
+                </Route>
+                <Route path="*" element={<DemoGuard><NotFound /></DemoGuard>} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </AuthProvider>
+      </DemoAuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

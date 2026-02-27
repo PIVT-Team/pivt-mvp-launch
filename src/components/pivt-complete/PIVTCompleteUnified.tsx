@@ -8,7 +8,8 @@ import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Search, ChevronLeft, ChevronRight, Bell, Upload, User, Brain } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, Upload, User, Brain, LogOut } from 'lucide-react';
+import { useDemoAuth } from '@/contexts/DemoAuthContext';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
@@ -61,6 +62,7 @@ export const PIVTCompleteUnified: React.FC = () => {
   const [importOpen, setImportOpen] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const { unreadCount, seedDemoNotifications } = useNotificationStore();
+  const { logout } = useDemoAuth();
 
   // Seed demo notifications on first load
   useEffect(() => { seedDemoNotifications(); }, [seedDemoNotifications]);
@@ -299,6 +301,19 @@ export const PIVTCompleteUnified: React.FC = () => {
           >
             JW
           </div>
+
+          {/* Logout */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={logout}
+                className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Logout</TooltipContent>
+          </Tooltip>
         </div>
 
         <AnimatePresence mode="wait">
