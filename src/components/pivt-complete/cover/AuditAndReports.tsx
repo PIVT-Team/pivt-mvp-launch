@@ -69,7 +69,7 @@ export const AuditCover: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">Audit Trail</h1>
-          <p className="text-muted-foreground mt-1">Complete immutable log of all deal actions and system events</p>
+          <p className="text-base text-muted-foreground mt-1">Complete immutable log of all deal actions and system events</p>
         </div>
         <button
           onClick={() => setExportOpen(true)}
@@ -80,8 +80,8 @@ export const AuditCover: React.FC = () => {
       </div>
 
       {/* Immutability banner */}
-      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent/5 border border-accent/20 text-xs text-accent">
-        <Lock className="w-3.5 h-3.5 shrink-0" />
+      <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-accent/5 border border-accent/20 text-sm text-accent">
+        <Lock className="w-4 h-4 shrink-0" />
         <span>Append-only audit log. Events cannot be modified or deleted.</span>
       </div>
 
@@ -93,7 +93,7 @@ export const AuditCover: React.FC = () => {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search audit log..."
-            className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-accent/50"
+            className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-4 py-2 text-base focus:outline-none focus:border-accent/50"
           />
         </div>
         <div className="flex gap-1 flex-wrap">
@@ -101,7 +101,7 @@ export const AuditCover: React.FC = () => {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${filter === f.id ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground hover:bg-muted/50'}`}
+              className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${filter === f.id ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground hover:bg-muted/50'}`}
             >
               {f.label}
             </button>
@@ -110,7 +110,7 @@ export const AuditCover: React.FC = () => {
       </div>
 
       {/* Event count */}
-      <p className="text-xs text-muted-foreground">{filtered.length} events</p>
+      <p className="text-sm text-muted-foreground">{filtered.length} events</p>
 
       {/* Event List */}
       <div className="pivt-card divide-y divide-border">
@@ -121,22 +121,22 @@ export const AuditCover: React.FC = () => {
               key={evt.event_id}
               {...fadeInUp}
               onClick={() => setDetailEvent(evt)}
-              className="w-full text-left p-4 flex items-start gap-4 hover:bg-muted/20 transition-colors"
+              className="w-full text-left p-5 flex items-start gap-4 hover:bg-muted/20 transition-colors"
             >
-              <div className={`p-1.5 rounded-lg shrink-0 ${severityColors[evt.severity]}`}>
+              <div className={`p-2 rounded-lg shrink-0 ${severityColors[evt.severity]}`}>
                 <Icon className="w-4 h-4" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm">{evt.summary}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-xs text-muted-foreground font-medium">{evt.actor_display_name}</span>
-                  <span className="text-[10px] text-muted-foreground/60">({evt.actor_role})</span>
-                  <span className="text-[10px] font-mono text-muted-foreground/50">{evt.action}</span>
+                <p className="text-base">{evt.summary}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm text-muted-foreground font-medium">{evt.actor_display_name}</span>
+                  <span className="text-xs text-muted-foreground/60">({evt.actor_role})</span>
+                  <span className="text-xs font-mono text-muted-foreground/50">{evt.action}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <Badge variant="outline" className={`text-[9px] ${severityColors[evt.severity]}`}>{evt.severity}</Badge>
-                <span className="text-xs text-muted-foreground font-mono whitespace-nowrap">{timeAgo(evt.timestamp)}</span>
+                <Badge variant="outline" className={`text-xs ${severityColors[evt.severity]}`}>{evt.severity}</Badge>
+                <span className="text-sm text-muted-foreground font-mono whitespace-nowrap">{timeAgo(evt.timestamp)}</span>
               </div>
             </motion.button>
           );
@@ -171,29 +171,29 @@ export const AuditCover: React.FC = () => {
                     ['Correlation ID', detailEvent.correlation_id || '—'],
                   ] as [string, string][]).map(([label, value]) => (
                     <div key={label}>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</p>
-                      <p className="text-sm font-mono break-all">{value}</p>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider">{label}</p>
+                      <p className="text-base font-mono break-all">{value}</p>
                     </div>
                   ))}
                 </div>
 
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Summary</p>
-                  <p className="text-sm">{detailEvent.summary}</p>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Summary</p>
+                  <p className="text-base">{detailEvent.summary}</p>
                 </div>
 
                 {/* Before/After Diff */}
                 {(detailEvent.before_state || detailEvent.after_state) && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Before State</p>
-                      <pre className="text-[11px] font-mono bg-muted/50 rounded-lg p-3 overflow-auto max-h-40 border border-border">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Before State</p>
+                      <pre className="text-xs font-mono bg-muted/50 rounded-lg p-3 overflow-auto max-h-40 border border-border">
                         {detailEvent.before_state ? JSON.stringify(detailEvent.before_state, null, 2) : 'null'}
                       </pre>
                     </div>
                     <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">After State</p>
-                      <pre className="text-[11px] font-mono bg-muted/50 rounded-lg p-3 overflow-auto max-h-40 border border-border">
+                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">After State</p>
+                      <pre className="text-xs font-mono bg-muted/50 rounded-lg p-3 overflow-auto max-h-40 border border-border">
                         {detailEvent.after_state ? JSON.stringify(detailEvent.after_state, null, 2) : 'null'}
                       </pre>
                     </div>
@@ -201,8 +201,8 @@ export const AuditCover: React.FC = () => {
                 )}
 
                 <div>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Event Hash</p>
-                  <code className="text-[10px] font-mono bg-muted/50 px-2 py-1 rounded break-all">{detailEvent.event_hash}</code>
+                  <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Event Hash</p>
+                  <code className="text-xs font-mono bg-muted/50 px-2 py-1 rounded break-all">{detailEvent.event_hash}</code>
                 </div>
               </div>
             </>
