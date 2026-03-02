@@ -63,16 +63,16 @@ export const DealsCover: React.FC = () => {
           <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-border/50">
             <button
               onClick={() => setView('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              <List className="w-3.5 h-3.5" />
+              <List className="w-4 h-4" />
               List View
             </button>
             <button
               onClick={() => setView('portfolio')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all ${view === 'portfolio' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'portfolio' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
             >
-              <LayoutGrid className="w-3.5 h-3.5" />
+              <LayoutGrid className="w-4 h-4" />
               Portfolio View
             </button>
           </div>
@@ -100,27 +100,27 @@ export const DealsCover: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h3 className="font-semibold text-lg">{deal.codeName}</h3>
-                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium ${workflowColor(deal.workflowState)}`}>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${workflowColor(deal.workflowState)}`}>
                       {WORKFLOW_LABELS[deal.workflowState]}
                     </span>
                     {deal.hasBlocker && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blocking/10 text-blocking">
-                        <Ban className="w-3 h-3" /> Blocked
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blocking/10 text-blocking">
+                        <Ban className="w-3.5 h-3.5" /> Blocked
                       </span>
                     )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="font-mono text-[10px] text-accent/70 bg-muted px-1.5 py-0.5 rounded">{deal.dealNumber}</span>
-                    <span className="text-sm text-muted-foreground">{deal.buyerName} → {deal.targetCompany}</span>
+                    <span className="font-mono text-xs text-accent/70 bg-muted px-1.5 py-0.5 rounded">{deal.dealNumber}</span>
+                    <span className="text-base text-muted-foreground">{deal.buyerName} → {deal.targetCompany}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">{deal.sector} · Closing {deal.closingDate}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{deal.sector} · Closing {deal.closingDate}</p>
                 </div>
                 <div className="text-right">
                   <p className="font-mono text-lg font-semibold">${(deal.consideration / 1e6).toFixed(1)}M</p>
-                  <p className="text-xs text-muted-foreground mt-1">{deal.totalRecipients} recipients</p>
+                  <p className="text-sm text-muted-foreground mt-1">{deal.totalRecipients} recipients</p>
                 </div>
               </div>
-              <div className="mt-4 flex items-center gap-6 text-xs text-muted-foreground">
+              <div className="mt-4 flex items-center gap-6 text-sm text-muted-foreground">
                 <span>{deal.documentsUploaded} docs</span>
                 <span className={deal.discrepanciesFound > 0 ? 'text-discrepancy font-medium' : 'text-validated'}>
                   {deal.discrepanciesFound} discrepancies
@@ -141,7 +141,7 @@ export const DealsCover: React.FC = () => {
         /* Portfolio View */
         <div className="space-y-4">
           <div className="pivt-card overflow-hidden">
-            <div className="p-4 border-b border-border bg-muted/30 grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+             <div className="p-4 border-b border-border bg-muted/30 grid grid-cols-6 text-sm font-medium text-muted-foreground uppercase tracking-wide">
               <span className="col-span-2">Deal</span>
               <span>State</span>
               <span className="text-center">% Complete</span>
@@ -155,38 +155,38 @@ export const DealsCover: React.FC = () => {
                 className="p-4 border-b border-border last:border-0 grid grid-cols-6 items-center hover:bg-muted/20 transition-colors cursor-pointer"
               >
                 <div className="col-span-2">
-                  <p className="text-sm font-semibold">{deal.codeName}</p>
-                  <span className="font-mono text-[10px] text-accent/70">{deal.dealNumber}</span>
-                  <p className="text-[11px] text-muted-foreground">{deal.buyerName} → {deal.targetCompany}</p>
+                  <p className="text-base font-semibold">{deal.codeName}</p>
+                  <span className="font-mono text-xs text-accent/70">{deal.dealNumber}</span>
+                  <p className="text-sm text-muted-foreground">{deal.buyerName} → {deal.targetCompany}</p>
                 </div>
-                <Badge className={`text-[10px] w-fit ${workflowColor(deal.workflowState)}`}>
+                <Badge className={`text-xs w-fit ${workflowColor(deal.workflowState)}`}>
                   {WORKFLOW_LABELS[deal.workflowState]}
                 </Badge>
                 <div className="flex flex-col items-center gap-1">
                   <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div className="h-full rounded-full pivt-progress-gradient" style={{ width: `${deal.readyToPayPercent}%` }} />
                   </div>
-                  <span className="text-[11px] font-mono">{deal.readyToPayPercent}%</span>
+                  <span className="text-sm font-mono">{deal.readyToPayPercent}%</span>
                 </div>
                 <div className="flex justify-center">
-                  <span className={`text-sm font-mono font-medium ${deal.discrepanciesFound > 0 ? 'text-discrepancy' : 'text-validated'}`}>
+                  <span className={`text-base font-mono font-medium ${deal.discrepanciesFound > 0 ? 'text-discrepancy' : 'text-validated'}`}>
                     {deal.discrepanciesFound}
                   </span>
                 </div>
                 <div className="flex justify-center gap-2">
                   {deal.pendingApprovals > 0 && (
-                    <span className="text-[10px] text-discrepancy flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> {deal.pendingApprovals} approvals
+                    <span className="text-sm text-discrepancy flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" /> {deal.pendingApprovals} approvals
                     </span>
                   )}
                   {deal.hasBlocker && (
-                    <span className="text-[10px] text-blocking flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3" /> Blocker
+                    <span className="text-sm text-blocking flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Blocker
                     </span>
                   )}
                   {!deal.hasBlocker && deal.pendingApprovals === 0 && (
-                    <span className="text-[10px] text-validated flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> On track
+                    <span className="text-sm text-validated flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> On track
                     </span>
                   )}
                 </div>
