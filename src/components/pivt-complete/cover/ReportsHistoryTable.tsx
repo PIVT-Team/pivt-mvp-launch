@@ -31,9 +31,9 @@ export const ReportsHistoryTable: React.FC = () => {
 
   return (
     <motion.div {...fadeInUp} className="space-y-3">
-      <h3 className="text-sm font-semibold text-foreground">Generated Reports</h3>
+      <h3 className="text-base font-semibold text-foreground">Generated Reports</h3>
       <div className="pivt-card overflow-hidden">
-        <table className="w-full text-xs">
+        <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30">
               <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Report</th>
@@ -50,7 +50,7 @@ export const ReportsHistoryTable: React.FC = () => {
                 <td className="px-4 py-2.5 font-medium">{r.reportName}</td>
                 <td className="px-4 py-2.5 text-muted-foreground">{r.scopeLabel}</td>
                 <td className="px-4 py-2.5">
-                  <Badge variant="outline" className="text-[9px]">{r.format}</Badge>
+                  <Badge variant="outline" className="text-xs">{r.format}</Badge>
                 </td>
                 <td className="px-4 py-2.5">
                   {r.status === 'generating' && (

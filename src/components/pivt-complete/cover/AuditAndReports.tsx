@@ -290,12 +290,12 @@ export const ReportsCover: React.FC = () => {
             <div className="flex items-start gap-4">
               <div className="p-2 rounded-lg bg-muted/50"><FileText className="w-5 h-5 text-accent" /></div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <h4 className="font-medium text-sm group-hover:text-accent transition-colors">{report.name}</h4>
-                  <Badge variant="outline" className="text-[9px] border-muted-foreground/50 text-muted-foreground">{report.type}</Badge>
+                 <div className="flex items-center gap-2 mb-1">
+                  <h4 className="font-medium text-base group-hover:text-accent transition-colors">{report.name}</h4>
+                  <Badge variant="outline" className="text-xs border-muted-foreground/50 text-muted-foreground">{report.type}</Badge>
                 </div>
-                <p className="text-xs text-muted-foreground">{report.desc}</p>
-                <p className="text-[10px] text-muted-foreground mt-1">Updated: {report.updated}</p>
+                <p className="text-sm text-muted-foreground">{report.desc}</p>
+                <p className="text-xs text-muted-foreground mt-1">Updated: {report.updated}</p>
               </div>
               <Download className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
