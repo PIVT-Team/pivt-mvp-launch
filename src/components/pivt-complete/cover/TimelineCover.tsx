@@ -162,7 +162,7 @@ export const TimelineCover: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight">
             {selectedDeal ? `${selectedDeal.name} Timeline` : 'My Timeline'}
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-base text-muted-foreground mt-1">
             {selectedDeal
               ? `${selectedDeal.targetCompany} · $${(selectedDeal.consideration / 1e6).toFixed(0)}M · Closing ${selectedDeal.closingDate} · ${selectedDeal.readyToPayPercent}% ready`
               : 'Activity across all your deals'}
@@ -183,7 +183,7 @@ export const TimelineCover: React.FC = () => {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         <Select value={dealFilter} onValueChange={setDealFilter}>
-          <SelectTrigger className="w-48 h-9 text-xs">
+          <SelectTrigger className="w-48 h-9 text-sm">
             <SelectValue placeholder="All Deals" />
           </SelectTrigger>
           <SelectContent>
@@ -200,7 +200,7 @@ export const TimelineCover: React.FC = () => {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search events..."
-            className="pl-8 h-9 text-xs"
+            className="pl-8 h-9 text-sm"
           />
         </div>
       </div>
@@ -269,7 +269,7 @@ export const TimelineCover: React.FC = () => {
       </div>
 
       {/* Event count */}
-      <p className="text-xs text-muted-foreground">{filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}</p>
+      <p className="text-sm text-muted-foreground">{filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''}</p>
 
       {/* Timeline */}
       <div className="relative">
@@ -342,27 +342,27 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, showDealName, onDea
       </div>
 
       {/* Content */}
-      <div className="flex-1 min-w-0 bg-card border border-border rounded-lg px-4 py-3 hover:border-accent/20 transition-colors">
+      <div className="flex-1 min-w-0 bg-card border border-border rounded-lg px-5 py-4 hover:border-accent/20 transition-colors">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold">{event.title}</span>
+              <span className="text-base font-semibold">{event.title}</span>
               {event.severity !== 'info' && (
-                <Badge variant={event.severity === 'error' ? 'destructive' : 'outline'} className="text-[10px] h-4">
+                <Badge variant={event.severity === 'error' ? 'destructive' : 'outline'} className="text-xs h-5">
                   {event.severity}
                 </Badge>
               )}
               {event.visibility === 'external' && (
-                <Badge variant="outline" className="text-[10px] h-4 border-accent/30 text-accent">
+                <Badge variant="outline" className="text-xs h-5 border-accent/30 text-accent">
                   External
                 </Badge>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5">{event.description}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{event.description}</p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap" title={format(ts, 'PPpp')}>
+            <span className="text-xs text-muted-foreground whitespace-nowrap" title={format(ts, 'PPpp')}>
               {formatDistanceToNow(ts, { addSuffix: true })}
             </span>
             <DropdownMenu>
@@ -372,11 +372,11 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, showDealName, onDea
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem className="text-xs">
-                  <ExternalLink className="w-3 h-3 mr-2" />View details
+                <DropdownMenuItem className="text-sm">
+                  <ExternalLink className="w-3.5 h-3.5 mr-2" />View details
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-xs" onClick={() => navigator.clipboard.writeText(`${event.title}: ${event.description}`)}>
-                  <Copy className="w-3 h-3 mr-2" />Copy link
+                <DropdownMenuItem className="text-sm" onClick={() => navigator.clipboard.writeText(`${event.title}: ${event.description}`)}>
+                  <Copy className="w-3.5 h-3.5 mr-2" />Copy link
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -387,17 +387,17 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, showDealName, onDea
         <div className="flex items-center gap-3 mt-2 flex-wrap">
           {/* Actor */}
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center text-[9px] font-bold text-accent">
+            <div className="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center text-[11px] font-bold text-accent">
               {event.actorName.split(' ').map(w => w[0]).join('').slice(0, 2)}
             </div>
-            <span className="text-[11px] text-muted-foreground">{event.actorName}</span>
+            <span className="text-sm text-muted-foreground">{event.actorName}</span>
           </div>
 
           {/* Deal name (global view) */}
           {showDealName && (
             <button
               onClick={() => onDealClick(event.dealId)}
-              className="text-[11px] text-accent hover:underline"
+              className="text-sm text-accent hover:underline"
             >
               {event.dealName}
             </button>
@@ -408,7 +408,7 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, showDealName, onDea
             <button
               key={i}
               onClick={() => onRelatedClick(obj)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted/50 border border-border text-[10px] text-foreground hover:border-accent/30 hover:text-accent transition-colors"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-muted/50 border border-border text-sm text-foreground hover:border-accent/30 hover:text-accent transition-colors"
             >
               {obj.label}
             </button>
@@ -416,8 +416,8 @@ const EventCard: React.FC<EventCardProps> = ({ event, index, showDealName, onDea
 
           {/* Attachments */}
           {event.attachments.map((att, i) => (
-            <span key={i} className="inline-flex items-center gap-1 text-[10px] text-accent">
-              <Paperclip className="w-3 h-3" />
+            <span key={i} className="inline-flex items-center gap-1 text-sm text-accent">
+              <Paperclip className="w-3.5 h-3.5" />
               {att.name}
             </span>
           ))}
