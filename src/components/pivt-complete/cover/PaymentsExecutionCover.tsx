@@ -517,7 +517,7 @@ export const PaymentsExecutionCover: React.FC = () => {
         {/* Premium Gradient Pill Navigation */}
         <div className="mt-6 mb-2">
           <div
-            className="inline-flex flex-wrap items-center gap-3 p-3 rounded-2xl"
+            className="flex flex-nowrap items-center gap-2 p-2.5 rounded-2xl overflow-x-auto scrollbar-hide w-full"
             style={{
               background: 'rgba(20, 15, 45, 0.4)',
               backdropFilter: 'blur(10px)',
@@ -525,23 +525,23 @@ export const PaymentsExecutionCover: React.FC = () => {
             }}
           >
             {[
-              { value: 'dashboard', label: 'Disbursement Intents', icon: <Banknote className="w-4 h-4" /> },
-              { value: 'waterfall', label: 'Waterfall Designer', icon: <Layers className="w-4 h-4" /> },
-              { value: 'fx', label: 'FX Monitor', icon: <TrendingUp className="w-4 h-4" /> },
-              { value: 'consideration', label: 'Consideration Types', icon: <BarChart3 className="w-4 h-4" /> },
-              { value: 'compliance', label: 'Compliance', icon: <Shield className="w-4 h-4" /> },
-              { value: 'esign', label: 'eSignature', icon: <FileSignature className="w-4 h-4" /> },
-              { value: 'reconciliation', label: 'Reconciliation', icon: <FileText className="w-4 h-4" /> },
+              { value: 'dashboard', label: 'Disbursements', icon: <Banknote className="w-3.5 h-3.5" /> },
+              { value: 'waterfall', label: 'Waterfall', icon: <Layers className="w-3.5 h-3.5" /> },
+              { value: 'fx', label: 'FX Monitor', icon: <TrendingUp className="w-3.5 h-3.5" /> },
+              { value: 'consideration', label: 'Consideration', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+              { value: 'compliance', label: 'Compliance', icon: <Shield className="w-3.5 h-3.5" /> },
+              { value: 'esign', label: 'eSignature', icon: <FileSignature className="w-3.5 h-3.5" /> },
+              { value: 'reconciliation', label: 'Reconciliation', icon: <FileText className="w-3.5 h-3.5" /> },
             ].map((tab) => {
               const isActive = activeTab === tab.value;
               return (
                 <motion.button
                   key={tab.value}
                   onClick={() => setActiveTab(tab.value)}
-                  className="relative flex items-center gap-2 rounded-full font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="relative flex items-center gap-1.5 rounded-full font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary/50 whitespace-nowrap flex-shrink-0"
                   style={{
-                    padding: '12px 22px',
-                    fontSize: '14px',
+                    padding: '10px 16px',
+                    fontSize: '13px',
                     fontWeight: isActive ? 600 : 500,
                     color: isActive ? '#FFFFFF' : '#B8B5D6',
                     background: isActive
