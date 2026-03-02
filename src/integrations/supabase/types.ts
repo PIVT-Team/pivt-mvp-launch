@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_events: {
+        Row: {
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          deal_id: string | null
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          deal_id?: string | null
+          entity_id: string
+          entity_type: string
+          event_type: string
+          id?: string
+        }
+        Update: {
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          deal_id?: string | null
+          entity_id?: string
+          entity_type?: string
+          event_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_log: {
         Row: {
           action: string
@@ -150,6 +194,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "conditions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consideration_records: {
+        Row: {
+          created_at: string
+          deal_id: string
+          evidence_ref: string | null
+          id: string
+          recipient_id: string
+          status: Database["public"]["Enums"]["consideration_status"]
+          terms: Json
+          type: Database["public"]["Enums"]["consideration_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          evidence_ref?: string | null
+          id?: string
+          recipient_id: string
+          status?: Database["public"]["Enums"]["consideration_status"]
+          terms?: Json
+          type: Database["public"]["Enums"]["consideration_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          evidence_ref?: string | null
+          id?: string
+          recipient_id?: string
+          status?: Database["public"]["Enums"]["consideration_status"]
+          terms?: Json
+          type?: Database["public"]["Enums"]["consideration_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consideration_records_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
@@ -448,6 +536,91 @@ export type Database = {
         }
         Relationships: []
       }
+      disbursement_intents: {
+        Row: {
+          amount_original: number
+          bank_account_ref: string | null
+          consideration_type: Database["public"]["Enums"]["consideration_type"]
+          created_at: string
+          currency_original: string
+          deal_id: string
+          execution_provider: string
+          fx_quote_id: string | null
+          id: string
+          provider_ref: string | null
+          rail: string
+          recipient_id: string
+          required_approvals: Json
+          required_conditions: Json
+          settlement_currency: string
+          status: Database["public"]["Enums"]["disbursement_status"]
+          updated_at: string
+          waterfall_allocation_id: string | null
+        }
+        Insert: {
+          amount_original?: number
+          bank_account_ref?: string | null
+          consideration_type?: Database["public"]["Enums"]["consideration_type"]
+          created_at?: string
+          currency_original?: string
+          deal_id: string
+          execution_provider?: string
+          fx_quote_id?: string | null
+          id?: string
+          provider_ref?: string | null
+          rail?: string
+          recipient_id: string
+          required_approvals?: Json
+          required_conditions?: Json
+          settlement_currency?: string
+          status?: Database["public"]["Enums"]["disbursement_status"]
+          updated_at?: string
+          waterfall_allocation_id?: string | null
+        }
+        Update: {
+          amount_original?: number
+          bank_account_ref?: string | null
+          consideration_type?: Database["public"]["Enums"]["consideration_type"]
+          created_at?: string
+          currency_original?: string
+          deal_id?: string
+          execution_provider?: string
+          fx_quote_id?: string | null
+          id?: string
+          provider_ref?: string | null
+          rail?: string
+          recipient_id?: string
+          required_approvals?: Json
+          required_conditions?: Json
+          settlement_currency?: string
+          status?: Database["public"]["Enums"]["disbursement_status"]
+          updated_at?: string
+          waterfall_allocation_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disbursement_intents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disbursement_intents_fx_quote_id_fkey"
+            columns: ["fx_quote_id"]
+            isOneToOne: false
+            referencedRelation: "fx_quotes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disbursement_intents_waterfall_allocation_id_fkey"
+            columns: ["waterfall_allocation_id"]
+            isOneToOne: false
+            referencedRelation: "waterfall_allocations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       escrow_accounts: {
         Row: {
           account_type: string
@@ -535,6 +708,74 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "escrow_transactions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fx_quotes: {
+        Row: {
+          base_currency: string
+          created_at: string
+          deal_id: string
+          expires_at: string | null
+          hedge_provider: string | null
+          hedge_reference_id: string | null
+          hedge_type: string | null
+          id: string
+          locked: boolean
+          locked_at: string | null
+          quote_currency: string
+          quoted_at: string
+          rate: number
+          risk_bearer: Database["public"]["Enums"]["fx_risk_bearer"] | null
+          source: string
+          spread_bps: number | null
+          updated_at: string
+        }
+        Insert: {
+          base_currency: string
+          created_at?: string
+          deal_id: string
+          expires_at?: string | null
+          hedge_provider?: string | null
+          hedge_reference_id?: string | null
+          hedge_type?: string | null
+          id?: string
+          locked?: boolean
+          locked_at?: string | null
+          quote_currency: string
+          quoted_at?: string
+          rate: number
+          risk_bearer?: Database["public"]["Enums"]["fx_risk_bearer"] | null
+          source?: string
+          spread_bps?: number | null
+          updated_at?: string
+        }
+        Update: {
+          base_currency?: string
+          created_at?: string
+          deal_id?: string
+          expires_at?: string | null
+          hedge_provider?: string | null
+          hedge_reference_id?: string | null
+          hedge_type?: string | null
+          id?: string
+          locked?: boolean
+          locked_at?: string | null
+          quote_currency?: string
+          quoted_at?: string
+          rate?: number
+          risk_bearer?: Database["public"]["Enums"]["fx_risk_bearer"] | null
+          source?: string
+          spread_bps?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fx_quotes_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
@@ -971,6 +1212,135 @@ export type Database = {
           },
         ]
       }
+      waterfall_allocation_lines: {
+        Row: {
+          amount_original: number
+          consideration_type: Database["public"]["Enums"]["consideration_type"]
+          created_at: string
+          currency_original: string
+          id: string
+          priority_rank: number
+          recipient_id: string
+          settlement_currency: string
+          updated_at: string
+          waterfall_allocation_id: string
+        }
+        Insert: {
+          amount_original?: number
+          consideration_type?: Database["public"]["Enums"]["consideration_type"]
+          created_at?: string
+          currency_original?: string
+          id?: string
+          priority_rank?: number
+          recipient_id: string
+          settlement_currency?: string
+          updated_at?: string
+          waterfall_allocation_id: string
+        }
+        Update: {
+          amount_original?: number
+          consideration_type?: Database["public"]["Enums"]["consideration_type"]
+          created_at?: string
+          currency_original?: string
+          id?: string
+          priority_rank?: number
+          recipient_id?: string
+          settlement_currency?: string
+          updated_at?: string
+          waterfall_allocation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waterfall_allocation_lines_waterfall_allocation_id_fkey"
+            columns: ["waterfall_allocation_id"]
+            isOneToOne: false
+            referencedRelation: "waterfall_allocations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waterfall_allocations: {
+        Row: {
+          calculation_version_hash: string
+          created_at: string
+          deal_id: string
+          id: string
+          input_totals: Json
+          output_summary: Json
+          snapshot_at: string
+          updated_at: string
+        }
+        Insert: {
+          calculation_version_hash: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          input_totals?: Json
+          output_summary?: Json
+          snapshot_at?: string
+          updated_at?: string
+        }
+        Update: {
+          calculation_version_hash?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          input_totals?: Json
+          output_summary?: Json
+          snapshot_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waterfall_allocations_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      waterfall_tiers: {
+        Row: {
+          allocation_logic_type: Database["public"]["Enums"]["allocation_logic_type"]
+          created_at: string
+          deal_id: string
+          id: string
+          name: string
+          params: Json
+          tier_rank: number
+          updated_at: string
+        }
+        Insert: {
+          allocation_logic_type?: Database["public"]["Enums"]["allocation_logic_type"]
+          created_at?: string
+          deal_id: string
+          id?: string
+          name: string
+          params?: Json
+          tier_rank: number
+          updated_at?: string
+        }
+        Update: {
+          allocation_logic_type?: Database["public"]["Enums"]["allocation_logic_type"]
+          created_at?: string
+          deal_id?: string
+          id?: string
+          name?: string
+          params?: Json
+          tier_rank?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "waterfall_tiers_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -985,6 +1355,7 @@ export type Database = {
       }
     }
     Enums: {
+      allocation_logic_type: "fixed" | "percentage" | "pro_rata" | "threshold"
       app_role: "admin" | "participant"
       condition_status:
         | "NOT_STARTED"
@@ -992,6 +1363,16 @@ export type Database = {
         | "SATISFIED"
         | "WAIVED"
         | "BLOCKED"
+      consideration_status: "draft" | "pending" | "executed" | "confirmed"
+      consideration_type:
+        | "cash"
+        | "shares"
+        | "seller_note"
+        | "earnout"
+        | "rollover_equity"
+        | "debt_assumption"
+        | "escrow_holdback"
+        | "contingent"
       deal_member_role:
         | "BUYER_COUNSEL"
         | "SELLER_COUNSEL"
@@ -999,6 +1380,17 @@ export type Database = {
         | "FINANCE_APPROVER"
         | "OPERATIONS"
         | "VIEWER"
+      disbursement_status:
+        | "draft"
+        | "pending_conditions"
+        | "pending_approvals"
+        | "eligible"
+        | "executing"
+        | "executed"
+        | "settled"
+        | "reconciled"
+        | "failed"
+      fx_risk_bearer: "buyer" | "seller" | "shared"
       kyc_status:
         | "not_started"
         | "draft"
@@ -1146,6 +1538,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      allocation_logic_type: ["fixed", "percentage", "pro_rata", "threshold"],
       app_role: ["admin", "participant"],
       condition_status: [
         "NOT_STARTED",
@@ -1153,6 +1546,17 @@ export const Constants = {
         "SATISFIED",
         "WAIVED",
         "BLOCKED",
+      ],
+      consideration_status: ["draft", "pending", "executed", "confirmed"],
+      consideration_type: [
+        "cash",
+        "shares",
+        "seller_note",
+        "earnout",
+        "rollover_equity",
+        "debt_assumption",
+        "escrow_holdback",
+        "contingent",
       ],
       deal_member_role: [
         "BUYER_COUNSEL",
@@ -1162,6 +1566,18 @@ export const Constants = {
         "OPERATIONS",
         "VIEWER",
       ],
+      disbursement_status: [
+        "draft",
+        "pending_conditions",
+        "pending_approvals",
+        "eligible",
+        "executing",
+        "executed",
+        "settled",
+        "reconciled",
+        "failed",
+      ],
+      fx_risk_bearer: ["buyer", "seller", "shared"],
       kyc_status: [
         "not_started",
         "draft",
