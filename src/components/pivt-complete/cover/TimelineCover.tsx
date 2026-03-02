@@ -206,20 +206,66 @@ export const TimelineCover: React.FC = () => {
       </div>
 
       {/* Category filter chips */}
-      <div className="flex flex-wrap gap-1.5">
-        {FILTER_CHIPS.map(chip => (
-          <button
-            key={chip.value}
-            onClick={() => setCategoryFilter(chip.value)}
-            className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition-colors ${
-              categoryFilter === chip.value
-                ? 'bg-accent/10 border-accent/30 text-accent'
-                : 'border-border text-muted-foreground hover:border-accent/20 hover:text-foreground'
-            }`}
-          >
-            {chip.label}
-          </button>
-        ))}
+      <div
+        className="flex flex-nowrap gap-3 p-3 rounded-2xl w-full overflow-x-auto"
+        style={{
+          background: 'rgba(20, 15, 45, 0.4)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        {FILTER_CHIPS.map(chip => {
+          const isActive = categoryFilter === chip.value;
+          return (
+            <motion.button
+              key={chip.value}
+              onClick={() => setCategoryFilter(chip.value)}
+              className="relative flex items-center gap-1.5 rounded-full font-medium transition-all duration-200 outline-none whitespace-nowrap flex-shrink-0"
+              style={{
+                padding: '10px 18px',
+                fontSize: '13px',
+                fontWeight: isActive ? 600 : 500,
+                color: isActive ? '#FFFFFF' : '#E3DBFF',
+                background: isActive
+                  ? 'linear-gradient(135deg, #5B3DF5 0%, #7C3AED 40%, #9333EA 100%)'
+                  : 'linear-gradient(135deg, rgba(124,58,237,0.10), rgba(168,85,247,0.05))',
+                border: isActive
+                  ? '1px solid rgba(168, 85, 247, 0.6)'
+                  : '1px solid rgba(124, 58, 237, 0.25)',
+                boxShadow: isActive
+                  ? '0 6px 18px rgba(124, 58, 237, 0.35)'
+                  : 'inset 0 1px 0 rgba(255,255,255,0.08)',
+                transform: isActive ? 'scale(1.04)' : 'scale(1)',
+              }}
+              whileHover={!isActive ? {
+                background: 'rgba(124, 58, 237, 0.16)',
+                color: '#FFFFFF',
+                y: -1,
+                scale: 1.02,
+              } : {}}
+              whileTap={{ scale: 0.98 }}
+              layout
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+            >
+              {isActive && (
+                <motion.div
+                  className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
+                  style={{ opacity: 0.15 }}
+                >
+                  <motion.div
+                    className="absolute inset-0"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                      width: '200%',
+                    }}
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
+                  />
+                </motion.div>
+              )}
+              <span className="relative z-10">{chip.label}</span>
+            </motion.button>
+          );
+        })}
       </div>
 
       {/* Event count */}
