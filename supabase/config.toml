@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.disbursement-engine]
 verify_jwt = false
+
+[functions.esignature-webhook]
+verify_jwt = false
