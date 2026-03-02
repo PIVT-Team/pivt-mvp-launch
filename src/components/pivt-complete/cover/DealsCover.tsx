@@ -109,7 +109,10 @@ export const DealsCover: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{deal.buyerName} → {deal.targetCompany}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="font-mono text-[10px] text-accent/70 bg-muted px-1.5 py-0.5 rounded">{deal.dealNumber}</span>
+                    <span className="text-sm text-muted-foreground">{deal.buyerName} → {deal.targetCompany}</span>
+                  </div>
                   <p className="text-xs text-muted-foreground mt-1">{deal.sector} · Closing {deal.closingDate}</p>
                 </div>
                 <div className="text-right">
@@ -153,6 +156,7 @@ export const DealsCover: React.FC = () => {
               >
                 <div className="col-span-2">
                   <p className="text-sm font-semibold">{deal.codeName}</p>
+                  <span className="font-mono text-[10px] text-accent/70">{deal.dealNumber}</span>
                   <p className="text-[11px] text-muted-foreground">{deal.buyerName} → {deal.targetCompany}</p>
                 </div>
                 <Badge className={`text-[10px] w-fit ${workflowColor(deal.workflowState)}`}>

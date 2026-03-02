@@ -290,6 +290,7 @@ export const ImportDataModal: React.FC<{ open: boolean; onClose: () => void }> =
         id: preview.deal.id || `imp-${Date.now()}`,
         name: preview.deal.name || 'Imported Deal',
         codeName: preview.deal.codeName || 'IMPORT',
+        dealNumber: `PIVT-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`,
         consideration: preview.deal.consideration || 0,
         status: 'drafting',
         workflowState: 'draft',

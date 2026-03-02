@@ -348,9 +348,20 @@ export const DealWorkspaceCover: React.FC = () => {
                 </Badge>
               )}
             </div>
-            <p className="text-muted-foreground/60 mt-1.5 text-sm font-normal truncate">
-              {deal.buyerName} acquiring {deal.targetCompany}
-            </p>
+            <div className="flex items-center gap-3 mt-1.5">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(deal.dealNumber);
+                }}
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted text-[11px] font-mono text-muted-foreground hover:bg-accent/10 hover:text-accent transition-colors cursor-pointer"
+                title="Click to copy Deal ID"
+              >
+                {deal.dealNumber}
+              </button>
+              <span className="text-muted-foreground/60 text-sm font-normal truncate">
+                {deal.buyerName} acquiring {deal.targetCompany}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-8 flex-wrap lg:ml-auto" style={{ flexShrink: 0 }}>
