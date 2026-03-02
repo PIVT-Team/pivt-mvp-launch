@@ -597,14 +597,14 @@ export const PaymentsExecutionCover: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent bg-muted/30">
-                  <TableHead className="text-xs font-medium">Deal #</TableHead>
-                  <TableHead className="text-xs font-medium">Recipient</TableHead>
-                  <TableHead className="text-xs font-medium text-right">Amount</TableHead>
-                  <TableHead className="text-xs font-medium">Currency</TableHead>
-                  <TableHead className="text-xs font-medium text-center">FX</TableHead>
-                  <TableHead className="text-xs font-medium">Rail</TableHead>
-                  <TableHead className="text-xs font-medium">Status</TableHead>
-                  <TableHead className="text-xs font-medium w-32">Action</TableHead>
+                  <TableHead className="text-sm font-medium">Deal #</TableHead>
+                  <TableHead className="text-sm font-medium">Recipient</TableHead>
+                  <TableHead className="text-sm font-medium text-right">Amount</TableHead>
+                  <TableHead className="text-sm font-medium">Currency</TableHead>
+                  <TableHead className="text-sm font-medium text-center">FX</TableHead>
+                  <TableHead className="text-sm font-medium">Rail</TableHead>
+                  <TableHead className="text-sm font-medium">Status</TableHead>
+                  <TableHead className="text-sm font-medium w-32">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -613,39 +613,39 @@ export const PaymentsExecutionCover: React.FC = () => {
                   const needsFx = intent.currencyOriginal !== intent.settlementCurrency;
                   return (
                     <TableRow key={intent.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setSelectedIntent(intent)}>
-                      <TableCell className="font-mono text-xs text-accent/70">{intent.dealNumber}</TableCell>
-                      <TableCell className="text-sm font-medium">{intent.recipient}</TableCell>
-                      <TableCell className="text-sm font-mono text-right tabular-nums">{fmt(intent.amountOriginal)}</TableCell>
-                      <TableCell className="text-xs">
+                      <TableCell className="font-mono text-sm text-accent/70">{intent.dealNumber}</TableCell>
+                      <TableCell className="text-base font-medium">{intent.recipient}</TableCell>
+                      <TableCell className="text-base font-mono text-right tabular-nums">{fmt(intent.amountOriginal)}</TableCell>
+                      <TableCell className="text-sm">
                         {intent.currencyOriginal}
                         {needsFx && <span className="text-muted-foreground"> → {intent.settlementCurrency}</span>}
                       </TableCell>
                       <TableCell className="text-center">
                         {needsFx ? (
                           intent.fxLocked
-                            ? <Lock className="w-3.5 h-3.5 text-validated mx-auto" />
-                            : <Unlock className="w-3.5 h-3.5 text-discrepancy mx-auto" />
-                        ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                            ? <Lock className="w-4 h-4 text-validated mx-auto" />
+                            : <Unlock className="w-4 h-4 text-discrepancy mx-auto" />
+                        ) : <span className="text-sm text-muted-foreground">—</span>}
                       </TableCell>
-                      <TableCell><Badge variant="outline" className="text-[10px]">{intent.rail.toUpperCase()}</Badge></TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs">{intent.rail.toUpperCase()}</Badge></TableCell>
                       <TableCell>
-                        <span className={`flex items-center gap-1.5 text-xs font-medium ${sc.color}`}>
+                        <span className={`flex items-center gap-1.5 text-sm font-medium ${sc.color}`}>
                           {sc.icon} {sc.label}
                         </span>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           {intent.status === 'eligible' ? (
-                            <Button size="sm" className="h-6 text-[10px] bg-validated text-white hover:bg-validated/90" onClick={(e) => { e.stopPropagation(); handleStatusChange(intent.id, 'executing'); toast.success(`Executing ${intent.recipient}...`); }}>
+                            <Button size="sm" className="h-7 text-xs bg-validated text-white hover:bg-validated/90" onClick={(e) => { e.stopPropagation(); handleStatusChange(intent.id, 'executing'); toast.success(`Executing ${intent.recipient}...`); }}>
                               Execute
                             </Button>
                           ) : intent.status === 'executing' ? (
-                            <Button size="sm" variant="outline" className="h-6 text-[10px] border-validated/50 text-validated" onClick={(e) => { e.stopPropagation(); handleStatusChange(intent.id, 'settled'); toast.success('Settled via webhook'); }}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs border-validated/50 text-validated" onClick={(e) => { e.stopPropagation(); handleStatusChange(intent.id, 'settled'); toast.success('Settled via webhook'); }}>
                               Settle
                             </Button>
                           ) : (
-                            <Button variant="ghost" size="sm" className="h-6 text-[10px]" onClick={(e) => { e.stopPropagation(); setSelectedIntent(intent); }}>
-                              <Eye className="w-3 h-3 mr-1" /> View
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={(e) => { e.stopPropagation(); setSelectedIntent(intent); }}>
+                              <Eye className="w-3.5 h-3.5 mr-1" /> View
                             </Button>
                           )}
                         </div>
@@ -662,54 +662,54 @@ export const PaymentsExecutionCover: React.FC = () => {
         <TabsContent value="waterfall" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">Waterfall Tiers</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Priority-ordered allocation rules · Total: {fmt(185_000_000)}</p>
+              <h3 className="text-lg font-semibold">Waterfall Tiers</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">Priority-ordered allocation rules · Total: {fmt(185_000_000)}</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => downloadCSV(MOCK_TIERS.map(t => ({
                 rank: t.rank, name: t.name, logic_type: t.logicType, amount: t.amount, percentage: t.percentage, recipients: t.recipients, allocated: t.allocated,
               })), 'waterfall-tiers')}>
-                <Download className="w-3.5 h-3.5 mr-1.5" /> Export
+                <Download className="w-4 h-4 mr-1.5" /> Export
               </Button>
               <Button variant="outline" size="sm" onClick={() => toast.info('Recalculating waterfall...')}>
-                <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Recalculate
+                <RefreshCw className="w-4 h-4 mr-1.5" /> Recalculate
               </Button>
               <Button size="sm" onClick={() => toast.success('Waterfall snapshot locked — version hash generated')}>
-                <Lock className="w-3.5 h-3.5 mr-1.5" /> Lock Snapshot
+                <Lock className="w-4 h-4 mr-1.5" /> Lock Snapshot
               </Button>
             </div>
           </div>
 
           <div className="space-y-2">
             {MOCK_TIERS.map((tier) => (
-              <motion.div key={tier.id} {...fadeInUp} className="pivt-card p-4">
+              <motion.div key={tier.id} {...fadeInUp} className="pivt-card p-5">
                 <div className="flex items-center gap-4">
-                  <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-sm font-bold text-accent">{tier.rank}</div>
+                  <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center text-base font-bold text-accent">{tier.rank}</div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium">{tier.name}</p>
-                      <Badge variant="outline" className="text-[9px]">{tier.logicType.toUpperCase()}</Badge>
+                      <p className="text-base font-medium">{tier.name}</p>
+                      <Badge variant="outline" className="text-xs">{tier.logicType.toUpperCase()}</Badge>
                     </div>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{tier.recipients} recipients · {tier.percentage}% of total</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{tier.recipients} recipients · {tier.percentage}% of total</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-mono tabular-nums">{fmt(tier.amount)}</p>
-                    <p className="text-[10px] text-validated">{fmt(tier.allocated)} allocated</p>
+                    <p className="text-base font-mono tabular-nums">{fmt(tier.amount)}</p>
+                    <p className="text-sm text-validated">{fmt(tier.allocated)} allocated</p>
                   </div>
-                  <div className="w-32"><Progress value={tier.percentage} className="h-1.5" /></div>
+                  <div className="w-32"><Progress value={tier.percentage} className="h-2" /></div>
                 </div>
               </motion.div>
             ))}
           </div>
 
-          <div className="pivt-card p-4 bg-muted/20">
+          <div className="pivt-card p-5 bg-muted/20">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">Total Allocated</span>
-              <span className="text-sm font-mono tabular-nums font-semibold">{fmt(MOCK_TIERS.reduce((s, t) => s + t.allocated, 0))}</span>
+              <span className="text-base font-medium">Total Allocated</span>
+              <span className="text-base font-mono tabular-nums font-semibold">{fmt(MOCK_TIERS.reduce((s, t) => s + t.allocated, 0))}</span>
             </div>
             <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-muted-foreground">Remaining Unallocated</span>
-              <span className="text-xs font-mono text-muted-foreground">{fmt(185_000_000 - MOCK_TIERS.reduce((s, t) => s + t.allocated, 0))}</span>
+              <span className="text-sm text-muted-foreground">Remaining Unallocated</span>
+              <span className="text-sm font-mono text-muted-foreground">{fmt(185_000_000 - MOCK_TIERS.reduce((s, t) => s + t.allocated, 0))}</span>
             </div>
           </div>
         </TabsContent>
@@ -718,18 +718,18 @@ export const PaymentsExecutionCover: React.FC = () => {
         <TabsContent value="fx" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">FX Quotes</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Cross-currency settlement rates · Lock required before execution</p>
+              <h3 className="text-lg font-semibold">FX Quotes</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">Cross-currency settlement rates · Lock required before execution</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => downloadCSV(fxQuotes.map(fx => ({
                 pair: fx.pair, rate: fx.rate, source: fx.source, quoted_at: fx.quotedAt,
                 expires_at: fx.expiresAt, locked: fx.locked, spread_bps: fx.spreadBps, risk_bearer: fx.riskBearer,
               })), 'fx-quotes')}>
-                <Download className="w-3.5 h-3.5 mr-1.5" /> Export
+                <Download className="w-4 h-4 mr-1.5" /> Export
               </Button>
               <Button variant="outline" size="sm" onClick={() => toast.info('Requesting new FX quote...')}>
-                <TrendingUp className="w-3.5 h-3.5 mr-1.5" /> New Quote
+                <TrendingUp className="w-4 h-4 mr-1.5" /> New Quote
               </Button>
             </div>
           </div>
@@ -738,35 +738,35 @@ export const PaymentsExecutionCover: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent bg-muted/30">
-                  <TableHead className="text-xs font-medium">Pair</TableHead>
-                  <TableHead className="text-xs font-medium">Rate</TableHead>
-                  <TableHead className="text-xs font-medium">Spread (bps)</TableHead>
-                  <TableHead className="text-xs font-medium">Source</TableHead>
-                  <TableHead className="text-xs font-medium">Quoted At</TableHead>
-                  <TableHead className="text-xs font-medium">Expires</TableHead>
-                  <TableHead className="text-xs font-medium">Risk Bearer</TableHead>
-                  <TableHead className="text-xs font-medium text-center">Status</TableHead>
-                  <TableHead className="text-xs font-medium w-24">Action</TableHead>
+                  <TableHead className="text-sm font-medium">Pair</TableHead>
+                  <TableHead className="text-sm font-medium">Rate</TableHead>
+                  <TableHead className="text-sm font-medium">Spread (bps)</TableHead>
+                  <TableHead className="text-sm font-medium">Source</TableHead>
+                  <TableHead className="text-sm font-medium">Quoted At</TableHead>
+                  <TableHead className="text-sm font-medium">Expires</TableHead>
+                  <TableHead className="text-sm font-medium">Risk Bearer</TableHead>
+                  <TableHead className="text-sm font-medium text-center">Status</TableHead>
+                  <TableHead className="text-sm font-medium w-24">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {fxQuotes.map((fx) => (
                   <TableRow key={fx.id}>
-                    <TableCell className="font-mono text-sm font-medium">{fx.pair}</TableCell>
-                    <TableCell className="font-mono text-sm tabular-nums">{fx.rate.toFixed(4)}</TableCell>
-                    <TableCell className="text-xs">{fx.spreadBps}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-[9px]">{fx.source}</Badge></TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{fx.quotedAt}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">{fx.expiresAt}</TableCell>
-                    <TableCell className="text-xs capitalize">{fx.riskBearer}</TableCell>
+                    <TableCell className="font-mono text-base font-medium">{fx.pair}</TableCell>
+                    <TableCell className="font-mono text-base tabular-nums">{fx.rate.toFixed(4)}</TableCell>
+                    <TableCell className="text-sm">{fx.spreadBps}</TableCell>
+                    <TableCell><Badge variant="outline" className="text-xs">{fx.source}</Badge></TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{fx.quotedAt}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{fx.expiresAt}</TableCell>
+                    <TableCell className="text-sm capitalize">{fx.riskBearer}</TableCell>
                     <TableCell className="text-center">
                       {fx.locked
-                        ? <span className="flex items-center justify-center gap-1 text-validated text-xs"><Lock className="w-3 h-3" /> Locked</span>
-                        : <span className="flex items-center justify-center gap-1 text-discrepancy text-xs"><Unlock className="w-3 h-3" /> Open</span>}
+                        ? <span className="flex items-center justify-center gap-1 text-validated text-sm"><Lock className="w-3.5 h-3.5" /> Locked</span>
+                        : <span className="flex items-center justify-center gap-1 text-discrepancy text-sm"><Unlock className="w-3.5 h-3.5" /> Open</span>}
                     </TableCell>
                     <TableCell>
-                      <Button variant={fx.locked ? 'ghost' : 'default'} size="sm" className="h-6 text-[10px]" onClick={() => handleFxLock(fx.id)}>
-                        {fx.locked ? <><Unlock className="w-3 h-3 mr-1" /> Unlock</> : <><Lock className="w-3 h-3 mr-1" /> Lock</>}
+                      <Button variant={fx.locked ? 'ghost' : 'default'} size="sm" className="h-7 text-xs" onClick={() => handleFxLock(fx.id)}>
+                        {fx.locked ? <><Unlock className="w-3.5 h-3.5 mr-1" /> Unlock</> : <><Lock className="w-3.5 h-3.5 mr-1" /> Lock</>}
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -780,13 +780,13 @@ export const PaymentsExecutionCover: React.FC = () => {
         <TabsContent value="consideration" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">Non-Cash Consideration</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Shares, earnouts, seller notes, and other structured instruments</p>
+              <h3 className="text-lg font-semibold">Non-Cash Consideration</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">Shares, earnouts, seller notes, and other structured instruments</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => downloadCSV(consideration.map(cr => ({
               deal: cr.deal, recipient: cr.recipient, type: cr.type, status: cr.status, terms: cr.terms, evidence: cr.evidenceRef || '',
             })), 'consideration-records')}>
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
+              <Download className="w-4 h-4 mr-1.5" /> Export CSV
             </Button>
           </div>
 
@@ -794,13 +794,13 @@ export const PaymentsExecutionCover: React.FC = () => {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent bg-muted/30">
-                  <TableHead className="text-xs font-medium">Deal</TableHead>
-                  <TableHead className="text-xs font-medium">Recipient</TableHead>
-                  <TableHead className="text-xs font-medium">Type</TableHead>
-                  <TableHead className="text-xs font-medium">Status</TableHead>
-                  <TableHead className="text-xs font-medium">Terms</TableHead>
-                  <TableHead className="text-xs font-medium">Evidence</TableHead>
-                  <TableHead className="text-xs font-medium w-32">Action</TableHead>
+                  <TableHead className="text-sm font-medium">Deal</TableHead>
+                  <TableHead className="text-sm font-medium">Recipient</TableHead>
+                  <TableHead className="text-sm font-medium">Type</TableHead>
+                  <TableHead className="text-sm font-medium">Status</TableHead>
+                  <TableHead className="text-sm font-medium">Terms</TableHead>
+                  <TableHead className="text-sm font-medium">Evidence</TableHead>
+                  <TableHead className="text-sm font-medium w-32">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -808,16 +808,16 @@ export const PaymentsExecutionCover: React.FC = () => {
                   const sc = statusConfig[cr.status] || statusConfig.draft;
                   return (
                     <TableRow key={cr.id}>
-                      <TableCell className="text-sm">{cr.deal}</TableCell>
-                      <TableCell className="text-sm font-medium">{cr.recipient}</TableCell>
-                      <TableCell><Badge variant="outline" className="text-[10px] capitalize">{cr.type.replace(/_/g, ' ')}</Badge></TableCell>
-                      <TableCell><span className={`flex items-center gap-1.5 text-xs font-medium ${sc.color}`}>{sc.icon} {sc.label}</span></TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-xs truncate">{cr.terms}</TableCell>
-                      <TableCell>{cr.evidenceRef ? <Badge variant="outline" className="text-[9px] text-validated"><FileText className="w-2.5 h-2.5 mr-1" />{cr.evidenceRef}</Badge> : <span className="text-[10px] text-muted-foreground">—</span>}</TableCell>
+                      <TableCell className="text-base">{cr.deal}</TableCell>
+                      <TableCell className="text-base font-medium">{cr.recipient}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-xs capitalize">{cr.type.replace(/_/g, ' ')}</Badge></TableCell>
+                      <TableCell><span className={`flex items-center gap-1.5 text-sm font-medium ${sc.color}`}>{sc.icon} {sc.label}</span></TableCell>
+                      <TableCell className="text-sm text-muted-foreground max-w-xs truncate">{cr.terms}</TableCell>
+                      <TableCell>{cr.evidenceRef ? <Badge variant="outline" className="text-xs text-validated"><FileText className="w-3 h-3 mr-1" />{cr.evidenceRef}</Badge> : <span className="text-sm text-muted-foreground">—</span>}</TableCell>
                       <TableCell>
                         {cr.status !== 'executed' && cr.status !== 'confirmed' && (
-                          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => handleConsiderationExecute(cr.id)}>
-                            <CheckCircle2 className="w-3 h-3 mr-1" /> Mark Executed
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleConsiderationExecute(cr.id)}>
+                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Mark Executed
                           </Button>
                         )}
                       </TableCell>
@@ -833,14 +833,14 @@ export const PaymentsExecutionCover: React.FC = () => {
         <TabsContent value="compliance" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">Compliance Status</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">KYC · KYB · Sanctions · PEP · Source of Funds · Bank Verification</p>
+              <h3 className="text-lg font-semibold">Compliance Status</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">KYC · KYB · Sanctions · PEP · Source of Funds · Bank Verification</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => downloadCSV(compliance.map(cc => ({
               party: cc.partyName, check_type: cc.checkType, status: cc.status,
               checked_at: cc.checkedAt || '', expires_at: cc.expiresAt || '', evidence: cc.evidenceRef || '',
             })), 'compliance-checks')}>
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
+              <Download className="w-4 h-4 mr-1.5" /> Export CSV
             </Button>
           </div>
 
@@ -851,32 +851,32 @@ export const PaymentsExecutionCover: React.FC = () => {
           }, {} as Record<string, ComplianceCheck[]>)).map(([party, checks]) => {
             const allPassed = checks.every(c => c.status === 'passed' || c.status === 'waived');
             return (
-              <motion.div key={party} {...fadeInUp} className="pivt-card p-4 space-y-3">
+              <motion.div key={party} {...fadeInUp} className="pivt-card p-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {allPassed ? <ShieldCheck className="w-4 h-4 text-validated" /> : <ShieldAlert className="w-4 h-4 text-discrepancy" />}
-                    <h4 className="text-sm font-semibold">{party}</h4>
+                    {allPassed ? <ShieldCheck className="w-5 h-5 text-validated" /> : <ShieldAlert className="w-5 h-5 text-discrepancy" />}
+                    <h4 className="text-base font-semibold">{party}</h4>
                   </div>
-                  <Badge variant="outline" className={`text-[9px] ${allPassed ? 'border-validated/50 text-validated' : 'border-discrepancy/50 text-discrepancy'}`}>
+                  <Badge variant="outline" className={`text-xs ${allPassed ? 'border-validated/50 text-validated' : 'border-discrepancy/50 text-discrepancy'}`}>
                     {allPassed ? 'COMPLIANT' : 'INCOMPLETE'}
                   </Badge>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   {checks.map(cc => {
                     const sc = statusConfig[cc.status] || statusConfig.not_started;
                     return (
-                      <div key={cc.id} className="flex items-center gap-3 text-sm">
+                      <div key={cc.id} className="flex items-center gap-3 text-base">
                         {sc.icon}
-                        <span className="w-36 text-xs font-medium">{complianceTypeLabels[cc.checkType] || cc.checkType}</span>
-                        <Badge variant="outline" className={`text-[9px] ${sc.color}`}>{sc.label}</Badge>
-                        {cc.checkedAt && <span className="text-[10px] text-muted-foreground ml-auto">{cc.checkedAt}</span>}
-                        {cc.evidenceRef && <Badge variant="outline" className="text-[8px] text-validated ml-1"><FileText className="w-2 h-2 mr-0.5" />evidence</Badge>}
+                        <span className="w-40 text-sm font-medium">{complianceTypeLabels[cc.checkType] || cc.checkType}</span>
+                        <Badge variant="outline" className={`text-xs ${sc.color}`}>{sc.label}</Badge>
+                        {cc.checkedAt && <span className="text-sm text-muted-foreground ml-auto">{cc.checkedAt}</span>}
+                        {cc.evidenceRef && <Badge variant="outline" className="text-xs text-validated ml-1"><FileText className="w-3 h-3 mr-0.5" />evidence</Badge>}
                         {(cc.status === 'not_started' || cc.status === 'pending') && (
                           <div className="ml-auto flex gap-1">
-                            <Button size="sm" variant="outline" className="h-5 text-[9px]" onClick={() => handleComplianceUpdate(cc.id, 'passed')}>
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => handleComplianceUpdate(cc.id, 'passed')}>
                               Pass
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-5 text-[9px] text-destructive" onClick={() => handleComplianceUpdate(cc.id, 'failed')}>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => handleComplianceUpdate(cc.id, 'failed')}>
                               Fail
                             </Button>
                           </div>
@@ -894,11 +894,11 @@ export const PaymentsExecutionCover: React.FC = () => {
         <TabsContent value="esign" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">eSignature Envelopes</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">DocuSign integration · Auto-flips "docs_executed" condition when completed</p>
+              <h3 className="text-lg font-semibold">eSignature Envelopes</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">DocuSign integration · Auto-flips "docs_executed" condition when completed</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => toast.info('Create/Link Envelope — enter DocuSign envelope ID')}>
-              <FileSignature className="w-3.5 h-3.5 mr-1.5" /> Link Envelope
+              <FileSignature className="w-4 h-4 mr-1.5" /> Link Envelope
             </Button>
           </div>
 
@@ -907,29 +907,29 @@ export const PaymentsExecutionCover: React.FC = () => {
               const sc = statusConfig[env.status] || statusConfig.created;
               const signedCount = env.signers.filter(s => s.signed).length;
               return (
-                <motion.div key={env.id} {...fadeInUp} className="pivt-card p-4 space-y-3">
+                <motion.div key={env.id} {...fadeInUp} className="pivt-card p-5 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="flex items-center gap-2">
-                        <FileSignature className="w-4 h-4 text-accent" />
-                        <h4 className="text-sm font-semibold">{env.documentTitle}</h4>
-                        <Badge variant="outline" className={`text-[9px] ${sc.color}`}>{sc.label}</Badge>
+                        <FileSignature className="w-5 h-5 text-accent" />
+                        <h4 className="text-base font-semibold">{env.documentTitle}</h4>
+                        <Badge variant="outline" className={`text-xs ${sc.color}`}>{sc.label}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{env.dealName} · {env.provider.toUpperCase()}</p>
+                      <p className="text-sm text-muted-foreground mt-0.5">{env.dealName} · {env.provider.toUpperCase()}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-mono text-muted-foreground">{env.envelopeId}</p>
-                      {env.completedAt && <p className="text-[10px] text-validated mt-0.5">Completed {env.completedAt}</p>}
+                      <p className="text-sm font-mono text-muted-foreground">{env.envelopeId}</p>
+                      {env.completedAt && <p className="text-sm text-validated mt-0.5">Completed {env.completedAt}</p>}
                     </div>
                   </div>
 
                   {/* Signers */}
                   <div>
-                    <p className="text-[10px] font-medium text-muted-foreground mb-1">SIGNERS ({signedCount}/{env.signers.length})</p>
-                    <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground mb-1.5">SIGNERS ({signedCount}/{env.signers.length})</p>
+                    <div className="space-y-1.5">
                       {env.signers.map((s, i) => (
-                        <div key={i} className="flex items-center gap-2 text-xs">
-                          {s.signed ? <CheckCircle2 className="w-3 h-3 text-validated" /> : <Clock className="w-3 h-3 text-discrepancy" />}
+                        <div key={i} className="flex items-center gap-2 text-sm">
+                          {s.signed ? <CheckCircle2 className="w-4 h-4 text-validated" /> : <Clock className="w-4 h-4 text-discrepancy" />}
                           <span className="font-medium">{s.name}</span>
                           <span className="text-muted-foreground">{s.email}</span>
                         </div>
@@ -940,11 +940,11 @@ export const PaymentsExecutionCover: React.FC = () => {
                   {/* Simulate actions */}
                   {env.status !== 'completed' && env.status !== 'declined' && (
                     <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="h-6 text-[10px] border-validated/50 text-validated" onClick={() => handleEsignSimulate(env.id, 'completed')}>
-                        <CheckCircle2 className="w-3 h-3 mr-1" /> Simulate Completed
+                      <Button size="sm" variant="outline" className="h-7 text-xs border-validated/50 text-validated" onClick={() => handleEsignSimulate(env.id, 'completed')}>
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Simulate Completed
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-6 text-[10px] text-destructive" onClick={() => handleEsignSimulate(env.id, 'declined')}>
-                        <Ban className="w-3 h-3 mr-1" /> Simulate Declined
+                      <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => handleEsignSimulate(env.id, 'declined')}>
+                        <Ban className="w-3.5 h-3.5 mr-1" /> Simulate Declined
                       </Button>
                     </div>
                   )}
@@ -958,35 +958,35 @@ export const PaymentsExecutionCover: React.FC = () => {
         <TabsContent value="reconciliation" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold">Reconciliation Feed</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Provider events, settlements, and audit trail</p>
+              <h3 className="text-lg font-semibold">Reconciliation Feed</h3>
+              <p className="text-sm text-muted-foreground mt-0.5">Provider events, settlements, and audit trail</p>
             </div>
             <Button variant="outline" size="sm" onClick={() => downloadCSV(MOCK_RECON.map(e => ({
               timestamp: e.timestamp, event_type: e.eventType, entity_type: e.entityType, detail: e.detail, status: e.status,
             })), 'audit-events')}>
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Export CSV
+              <Download className="w-4 h-4 mr-1.5" /> Export CSV
             </Button>
           </div>
 
           <div className="space-y-2">
             {MOCK_RECON.map((event) => (
-              <motion.div key={event.id} {...fadeInUp} className="pivt-card p-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-muted/50 flex items-center justify-center shrink-0 mt-0.5">
-                  {event.eventType === 'webhook_received' && <Zap className="w-3.5 h-3.5 text-validated" />}
-                  {event.eventType === 'execution_initiated' && <Send className="w-3.5 h-3.5 text-blue-500" />}
-                  {event.eventType === 'condition_auto_flipped' && <FileSignature className="w-3.5 h-3.5 text-accent" />}
-                  {event.eventType === 'status_changed' && <RefreshCw className="w-3.5 h-3.5 text-accent" />}
-                  {event.eventType === 'locked' && <Lock className="w-3.5 h-3.5 text-validated" />}
-                  {event.eventType === 'approved' && <Shield className="w-3.5 h-3.5 text-validated" />}
-                  {event.eventType === 'calculated' && <BarChart3 className="w-3.5 h-3.5 text-accent" />}
-                  {event.eventType === 'execution_blocked' && <ShieldAlert className="w-3.5 h-3.5 text-destructive" />}
+              <motion.div key={event.id} {...fadeInUp} className="pivt-card p-5 flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0 mt-0.5">
+                  {event.eventType === 'webhook_received' && <Zap className="w-4 h-4 text-validated" />}
+                  {event.eventType === 'execution_initiated' && <Send className="w-4 h-4 text-blue-500" />}
+                  {event.eventType === 'condition_auto_flipped' && <FileSignature className="w-4 h-4 text-accent" />}
+                  {event.eventType === 'status_changed' && <RefreshCw className="w-4 h-4 text-accent" />}
+                  {event.eventType === 'locked' && <Lock className="w-4 h-4 text-validated" />}
+                  {event.eventType === 'approved' && <Shield className="w-4 h-4 text-validated" />}
+                  {event.eventType === 'calculated' && <BarChart3 className="w-4 h-4 text-accent" />}
+                  {event.eventType === 'execution_blocked' && <ShieldAlert className="w-4 h-4 text-destructive" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm">{event.detail}</p>
-                  <div className="flex items-center gap-3 mt-1">
-                    <span className="text-[10px] font-mono text-muted-foreground">{event.timestamp}</span>
-                    <Badge variant="outline" className="text-[9px]">{event.entityType}</Badge>
-                    <Badge variant="outline" className="text-[9px]">{event.eventType.replace(/_/g, ' ')}</Badge>
+                  <p className="text-base">{event.detail}</p>
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <span className="text-sm font-mono text-muted-foreground">{event.timestamp}</span>
+                    <Badge variant="outline" className="text-xs">{event.entityType}</Badge>
+                    <Badge variant="outline" className="text-xs">{event.eventType.replace(/_/g, ' ')}</Badge>
                   </div>
                 </div>
               </motion.div>
