@@ -122,6 +122,41 @@ export type Database = {
           },
         ]
       }
+      conditions: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          status: Database["public"]["Enums"]["condition_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["condition_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["condition_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conditions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_approvals: {
         Row: {
           approval_side: string
@@ -271,6 +306,38 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_members: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          role: Database["public"]["Enums"]["deal_member_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          role: Database["public"]["Enums"]["deal_member_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["deal_member_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_members_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_participants: {
         Row: {
           created_at: string
@@ -303,12 +370,52 @@ export type Database = {
           },
         ]
       }
+      deal_parties: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          organization_id: string
+          party_type: Database["public"]["Enums"]["party_type"]
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          organization_id: string
+          party_type: Database["public"]["Enums"]["party_type"]
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          organization_id?: string
+          party_type?: Database["public"]["Enums"]["party_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_parties_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_parties_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           closing_date: string | null
           created_at: string
           created_by: string | null
           deal_name: string
+          deal_number: string
           deal_value: number
           escrow_amount: number | null
           id: string
@@ -320,6 +427,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_name: string
+          deal_number: string
           deal_value?: number
           escrow_amount?: number | null
           id?: string
@@ -331,6 +439,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           deal_name?: string
+          deal_number?: string
           deal_value?: number
           escrow_amount?: number | null
           id?: string
@@ -463,6 +572,83 @@ export type Database = {
         }
         Relationships: []
       }
+      ontology_approvals: {
+        Row: {
+          approval_type: Database["public"]["Enums"]["ontology_approval_type"]
+          condition_id: string | null
+          created_at: string
+          deal_id: string
+          id: string
+          status: Database["public"]["Enums"]["ontology_approval_status"]
+        }
+        Insert: {
+          approval_type: Database["public"]["Enums"]["ontology_approval_type"]
+          condition_id?: string | null
+          created_at?: string
+          deal_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["ontology_approval_status"]
+        }
+        Update: {
+          approval_type?: Database["public"]["Enums"]["ontology_approval_type"]
+          condition_id?: string | null
+          created_at?: string
+          deal_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["ontology_approval_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ontology_approvals_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ontology_approvals_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ontology_documents: {
+        Row: {
+          created_at: string
+          deal_id: string
+          doc_type: Database["public"]["Enums"]["ontology_doc_type"]
+          id: string
+          title: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          doc_type?: Database["public"]["Enums"]["ontology_doc_type"]
+          id?: string
+          title: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          doc_type?: Database["public"]["Enums"]["ontology_doc_type"]
+          id?: string
+          title?: string
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ontology_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_kyb: {
         Row: {
           admin_notes: string | null
@@ -510,6 +696,62 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      payment_instructions: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          deal_id: string
+          id: string
+          status: Database["public"]["Enums"]["payment_status"]
+          title: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          deal_id: string
+          id?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          title: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          deal_id?: string
+          id?: string
+          status?: Database["public"]["Enums"]["payment_status"]
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_instructions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -744,6 +986,19 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "participant"
+      condition_status:
+        | "NOT_STARTED"
+        | "IN_PROGRESS"
+        | "SATISFIED"
+        | "WAIVED"
+        | "BLOCKED"
+      deal_member_role:
+        | "BUYER_COUNSEL"
+        | "SELLER_COUNSEL"
+        | "DEAL_LEAD"
+        | "FINANCE_APPROVER"
+        | "OPERATIONS"
+        | "VIEWER"
       kyc_status:
         | "not_started"
         | "draft"
@@ -751,6 +1006,19 @@ export type Database = {
         | "in_review"
         | "approved"
         | "rejected"
+      ontology_approval_status: "PENDING" | "APPROVED" | "REJECTED"
+      ontology_approval_type:
+        | "LEGAL_SIGNOFF"
+        | "FINANCE_SIGNOFF"
+        | "KYC_APPROVAL"
+        | "KYB_APPROVAL"
+      ontology_doc_type:
+        | "SPA"
+        | "ESCROW_AGREEMENT"
+        | "PAYMENT_INSTRUCTIONS"
+        | "OTHER"
+      party_type: "BUYER" | "SELLER" | "ESCROW_AGENT" | "LENDER" | "OTHER"
+      payment_status: "DRAFT" | "READY" | "SENT" | "CONFIRMED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -879,6 +1147,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "participant"],
+      condition_status: [
+        "NOT_STARTED",
+        "IN_PROGRESS",
+        "SATISFIED",
+        "WAIVED",
+        "BLOCKED",
+      ],
+      deal_member_role: [
+        "BUYER_COUNSEL",
+        "SELLER_COUNSEL",
+        "DEAL_LEAD",
+        "FINANCE_APPROVER",
+        "OPERATIONS",
+        "VIEWER",
+      ],
       kyc_status: [
         "not_started",
         "draft",
@@ -887,6 +1170,21 @@ export const Constants = {
         "approved",
         "rejected",
       ],
+      ontology_approval_status: ["PENDING", "APPROVED", "REJECTED"],
+      ontology_approval_type: [
+        "LEGAL_SIGNOFF",
+        "FINANCE_SIGNOFF",
+        "KYC_APPROVAL",
+        "KYB_APPROVAL",
+      ],
+      ontology_doc_type: [
+        "SPA",
+        "ESCROW_AGREEMENT",
+        "PAYMENT_INSTRUCTIONS",
+        "OTHER",
+      ],
+      party_type: ["BUYER", "SELLER", "ESCROW_AGENT", "LENDER", "OTHER"],
+      payment_status: ["DRAFT", "READY", "SENT", "CONFIRMED"],
     },
   },
 } as const

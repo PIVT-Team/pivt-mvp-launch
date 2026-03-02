@@ -96,7 +96,8 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate">{deal.deal_name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {cfg.label} • Closing {deal.closing_date || "TBD"}
+                    <span className="font-mono text-accent/80">{(deal as any).deal_number}</span>
+                    {" • "}{cfg.label} • Closing {deal.closing_date || "TBD"}
                   </p>
                 </div>
                 <p className="font-mono text-sm font-medium">{formatCurrency(Number(deal.deal_value))}</p>

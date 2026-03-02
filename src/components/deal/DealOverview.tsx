@@ -57,7 +57,16 @@ export default function DealOverview({ deal, onUpdate }: { deal: Deal; onUpdate:
               <h1 className="text-xl font-bold">{deal.deal_name}</h1>
               <Badge variant={cfg.variant}>{cfg.label}</Badge>
             </div>
-            <p className="text-xs text-muted-foreground mt-1 font-mono">ID: {deal.id.slice(0, 8).toUpperCase()}</p>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText((deal as any).deal_number || deal.id.slice(0, 8).toUpperCase());
+                toast({ title: "Deal ID copied" });
+              }}
+              className="mt-1 inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted text-[11px] font-mono text-muted-foreground hover:bg-accent/10 hover:text-accent transition-colors cursor-pointer"
+              title="Click to copy"
+            >
+              {(deal as any).deal_number || `ID: ${deal.id.slice(0, 8).toUpperCase()}`}
+            </button>
           </div>
           {isAdmin && deal.status !== "closed" && (
             <Button size="sm" onClick={advanceStatus} className="bg-accent text-accent-foreground hover:bg-accent/90">

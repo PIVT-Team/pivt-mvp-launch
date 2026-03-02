@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.submit-support-ticket]
 verify_jwt = false
+
+[functions.get-deal-context]
+verify_jwt = false
