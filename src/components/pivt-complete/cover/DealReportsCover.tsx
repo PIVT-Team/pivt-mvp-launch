@@ -43,7 +43,7 @@ export const DealReportsCover: React.FC = () => {
         </div>
 
         {/* Report metadata header */}
-        <motion.div {...fadeInUp} className="pivt-card p-4 flex items-center gap-6 text-xs text-muted-foreground">
+        <motion.div {...fadeInUp} className="pivt-card p-4 flex items-center gap-6 text-sm text-muted-foreground">
           <span><span className="font-medium text-foreground">Deal:</span> {deal.codeName}</span>
           <span><span className="font-medium text-foreground">State:</span> {deal.workflowState.replace(/_/g, ' ')}</span>
           <span><span className="font-medium text-foreground">Blockers:</span> {deal.discrepanciesFound}</span>
@@ -64,24 +64,24 @@ export const DealReportsCover: React.FC = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-medium text-sm">{report.name}</h4>
+                      <h4 className="font-medium text-base">{report.name}</h4>
                       {latest && (
-                        <Badge className="text-[9px] bg-validated/10 text-validated border-validated/20">
-                          <CheckCircle2 className="w-3 h-3 mr-1" /> Ready
+                        <Badge className="text-xs bg-validated/10 text-validated border-validated/20">
+                          <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Ready
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{report.desc}</p>
+                    <p className="text-sm text-muted-foreground mt-0.5">{report.desc}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {report.formats.map(fmt => (
-                      <Badge key={fmt} variant="outline" className="text-[9px]">{fmt}</Badge>
+                      <Badge key={fmt} variant="outline" className="text-xs">{fmt}</Badge>
                     ))}
                   </div>
                   <div className="flex items-center gap-3 border-l border-border pl-3">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-[10px] text-muted-foreground">Schedule</span>
+                      <span className="text-xs text-muted-foreground">Schedule</span>
                       <Switch
                         checked={scheduleEnabled[report.id] || false}
                         onCheckedChange={(v) => setScheduleEnabled(prev => ({ ...prev, [report.id]: v }))}
@@ -120,7 +120,7 @@ export const DealReportsCover: React.FC = () => {
 
         {/* Standardization note */}
         <motion.div {...fadeInUp} className="pivt-card p-4 bg-muted/20 border-dashed">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             All reports include: Deal ID, timestamp, version, state at generation, outstanding blockers, financial reconciliation status, and approval status.
           </p>
         </motion.div>

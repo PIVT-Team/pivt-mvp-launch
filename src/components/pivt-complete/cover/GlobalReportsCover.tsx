@@ -63,35 +63,35 @@ export const GlobalReportsCover: React.FC = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h4 className="font-medium text-sm">{report.name}</h4>
+                    <h4 className="font-medium text-base">{report.name}</h4>
                     {latest && (
-                      <Badge className="text-[9px] bg-validated/10 text-validated border-validated/20">
-                        <CheckCircle2 className="w-3 h-3 mr-1" /> Ready
+                      <Badge className="text-xs bg-validated/10 text-validated border-validated/20">
+                        <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Ready
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{report.desc}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{report.desc}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   {report.formats.map(fmt => (
-                    <Badge key={fmt} variant="outline" className="text-[9px]">{fmt}</Badge>
+                    <Badge key={fmt} variant="outline" className="text-xs">{fmt}</Badge>
                   ))}
                 </div>
                 <div className="flex items-center gap-2">
                   {latest && (
                     <Button variant="ghost" size="sm" onClick={() => downloadBlob(latest.fileBlob!, latest.fileName)}>
-                      <Download className="w-3.5 h-3.5 mr-1.5" /> Download
+                      <Download className="w-4 h-4 mr-1.5" /> Download
                     </Button>
                   )}
                   <button
                     onClick={() => setModalReport(report)}
                     disabled={generating}
-                    className="pivt-btn-primary flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-white disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none"
+                    className="pivt-btn-primary flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium text-white disabled:opacity-50 disabled:pointer-events-none disabled:shadow-none"
                   >
                     {generating ? (
-                      <><Clock className="w-3.5 h-3.5 animate-spin" /> Generating…</>
+                      <><Clock className="w-4 h-4 animate-spin" /> Generating…</>
                     ) : (
-                      <><Download className="w-3.5 h-3.5" /> Generate</>
+                      <><Download className="w-4 h-4" /> Generate</>
                     )}
                   </button>
                 </div>
