@@ -543,13 +543,13 @@ export const PaymentsExecutionCover: React.FC = () => {
                     padding: '10px 16px',
                     fontSize: '13px',
                     fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#FFFFFF' : '#B8B5D6',
+                    color: isActive ? '#FFFFFF' : '#6B6894',
                     background: isActive
                       ? 'linear-gradient(135deg, #5B3DF5 0%, #7C3AED 40%, #9333EA 100%)'
-                      : 'rgba(255, 255, 255, 0.06)',
+                      : 'rgba(124, 58, 237, 0.08)',
                     border: isActive
                       ? '1px solid rgba(168, 85, 247, 0.6)'
-                      : '1px solid rgba(255, 255, 255, 0.1)',
+                      : '1px solid rgba(124, 58, 237, 0.15)',
                     boxShadow: isActive
                       ? '0 6px 18px rgba(124, 58, 237, 0.35)'
                       : 'none',
