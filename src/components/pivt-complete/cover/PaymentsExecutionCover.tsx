@@ -483,31 +483,31 @@ export const PaymentsExecutionCover: React.FC = () => {
       {/* KPIs */}
       <motion.div {...fadeInUp} className="grid grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground font-normal">Total Pipeline</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground font-normal">Total Pipeline</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-2xl font-light tabular-nums">{fmt(totalValue)}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">{intents.length} disbursement intents</p>
+            <p className="text-2xl font-bold tabular-nums">{fmt(totalValue)}</p>
+            <p className="text-sm text-muted-foreground mt-1">{intents.length} disbursement intents</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground font-normal">Eligible to Execute</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground font-normal">Eligible to Execute</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-2xl font-light tabular-nums text-validated">{fmt(eligible.reduce((s, i) => s + i.amountOriginal, 0))}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">{eligible.length} intents ready</p>
+            <p className="text-2xl font-bold tabular-nums text-validated">{fmt(eligible.reduce((s, i) => s + i.amountOriginal, 0))}</p>
+            <p className="text-sm text-muted-foreground mt-1">{eligible.length} intents ready</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground font-normal">Settled</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground font-normal">Settled</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-2xl font-light tabular-nums">{fmt(settled.reduce((s, i) => s + i.amountOriginal, 0))}</p>
-            <p className="text-[10px] text-validated mt-1">{settled.length} confirmed</p>
+            <p className="text-2xl font-bold tabular-nums">{fmt(settled.reduce((s, i) => s + i.amountOriginal, 0))}</p>
+            <p className="text-sm text-validated mt-1">{settled.length} confirmed</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-xs text-muted-foreground font-normal">Blocked / Pending</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground font-normal">Blocked / Pending</CardTitle></CardHeader>
           <CardContent>
-            <p className="text-2xl font-light tabular-nums text-discrepancy">{fmt(pending.reduce((s, i) => s + i.amountOriginal, 0))}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">{pending.length} require action</p>
+            <p className="text-2xl font-bold tabular-nums text-discrepancy">{fmt(pending.reduce((s, i) => s + i.amountOriginal, 0))}</p>
+            <p className="text-sm text-muted-foreground mt-1">{pending.length} require action</p>
           </CardContent>
         </Card>
       </motion.div>
