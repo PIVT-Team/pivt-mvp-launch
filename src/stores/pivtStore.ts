@@ -31,6 +31,7 @@ export interface DemoDeal {
   id: string;
   name: string;
   codeName: string;
+  dealNumber: string;
   consideration: number;
   status: 'drafting' | 'diligence' | 'signing' | 'closing' | 'completed';
   workflowState: DealWorkflowState;
@@ -93,7 +94,7 @@ export interface PendingApproval {
 // --- Demo Data ---
 const DEMO_DEALS: DemoDeal[] = [
   {
-    id: 'atlas', name: 'Project ATLAS', codeName: 'ATLAS',
+    id: 'atlas', name: 'Project ATLAS', codeName: 'ATLAS', dealNumber: 'PIVT-2026-000142',
     consideration: 185_000_000, status: 'closing',
     workflowState: 'awaiting_approval',
     buyerName: 'Apex Capital Partners', targetCompany: 'Northbridge Software',
@@ -102,7 +103,7 @@ const DEMO_DEALS: DemoDeal[] = [
     closingDate: '2026-03-15', pendingApprovals: 2, hasBlocker: false,
   },
   {
-    id: 'beacon', name: 'Project BEACON', codeName: 'BEACON',
+    id: 'beacon', name: 'Project BEACON', codeName: 'BEACON', dealNumber: 'PIVT-2026-000143',
     consideration: 92_000_000, status: 'diligence',
     workflowState: 'data_uploaded',
     buyerName: 'Meridian Holdings', targetCompany: 'CloudVault Security',
@@ -111,7 +112,7 @@ const DEMO_DEALS: DemoDeal[] = [
     closingDate: '2026-04-30', pendingApprovals: 5, hasBlocker: true,
   },
   {
-    id: 'cipher', name: 'Project CIPHER', codeName: 'CIPHER',
+    id: 'cipher', name: 'Project CIPHER', codeName: 'CIPHER', dealNumber: 'PIVT-2026-000144',
     consideration: 340_000_000, status: 'signing',
     workflowState: 'reconciliation',
     buyerName: 'Titan Strategic Group', targetCompany: 'NeuralPath AI',
