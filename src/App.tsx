@@ -12,8 +12,22 @@ import DealDetail from "@/pages/DealDetail";
 import AppLayout from "@/components/AppLayout";
 import NotFound from "./pages/NotFound";
 
-const PIVTCompletePage = lazy(() => import("./pages/PIVTCompletePage"));
-const LoginPage = lazy(() => import("./pages/LoginPage"));
+const PIVTCompletePage = lazy(() =>
+  import("./pages/PIVTCompletePage").catch(() => {
+    // Retry once on dynamic import failure (stale HMR cache)
+    return new Promise<typeof import("./pages/PIVTCompletePage")>(resolve => {
+      setTimeout(() => resolve(import("./pages/PIVTCompletePage")), 1000);
+    });
+  })
+);
+const LoginPageLazy = lazy(() =>
+  import("./pages/LoginPage").catch(() => {
+    return new Promise<typeof import("./pages/LoginPage")>(resolve => {
+      setTimeout(() => resolve(import("./pages/LoginPage")), 1000);
+    });
+  })
+);
+
 
 const queryClient = new QueryClient();
 
@@ -39,7 +53,7 @@ const App = () => (
           <BrowserRouter>
             <Suspense fallback={<PageLoader />}>
               <Routes>
-                <Route path="/login" element={<LoginPage />} />
+                <Route path="/login" element={<LoginPageLazy />} />
                 <Route path="/auth" element={<AuthPage />} />
                 <Route path="/" element={<DemoGuard><PIVTCompletePage /></DemoGuard>} />
                 <Route path="/pivt" element={<Navigate to="/" replace />} />
