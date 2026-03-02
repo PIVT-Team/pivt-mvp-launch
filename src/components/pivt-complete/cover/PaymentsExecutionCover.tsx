@@ -514,15 +514,82 @@ export const PaymentsExecutionCover: React.FC = () => {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-muted/50">
-          <TabsTrigger value="dashboard" className="text-xs">Disbursement Intents</TabsTrigger>
-          <TabsTrigger value="waterfall" className="text-xs">Waterfall Designer</TabsTrigger>
-          <TabsTrigger value="fx" className="text-xs">FX Monitor</TabsTrigger>
-          <TabsTrigger value="consideration" className="text-xs">Consideration Types</TabsTrigger>
-          <TabsTrigger value="compliance" className="text-xs">Compliance</TabsTrigger>
-          <TabsTrigger value="esign" className="text-xs">eSignature</TabsTrigger>
-          <TabsTrigger value="reconciliation" className="text-xs">Reconciliation</TabsTrigger>
-        </TabsList>
+        {/* Premium Gradient Pill Navigation */}
+        <div className="mt-6 mb-2">
+          <div
+            className="inline-flex flex-wrap items-center gap-3 p-3 rounded-2xl"
+            style={{
+              background: 'rgba(20, 15, 45, 0.4)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+            }}
+          >
+            {[
+              { value: 'dashboard', label: 'Disbursement Intents', icon: <Banknote className="w-4 h-4" /> },
+              { value: 'waterfall', label: 'Waterfall Designer', icon: <Layers className="w-4 h-4" /> },
+              { value: 'fx', label: 'FX Monitor', icon: <TrendingUp className="w-4 h-4" /> },
+              { value: 'consideration', label: 'Consideration Types', icon: <BarChart3 className="w-4 h-4" /> },
+              { value: 'compliance', label: 'Compliance', icon: <Shield className="w-4 h-4" /> },
+              { value: 'esign', label: 'eSignature', icon: <FileSignature className="w-4 h-4" /> },
+              { value: 'reconciliation', label: 'Reconciliation', icon: <FileText className="w-4 h-4" /> },
+            ].map((tab) => {
+              const isActive = activeTab === tab.value;
+              return (
+                <motion.button
+                  key={tab.value}
+                  onClick={() => setActiveTab(tab.value)}
+                  className="relative flex items-center gap-2 rounded-full font-medium transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  style={{
+                    padding: '12px 22px',
+                    fontSize: '14px',
+                    fontWeight: isActive ? 600 : 500,
+                    color: isActive ? '#FFFFFF' : '#B8B5D6',
+                    background: isActive
+                      ? 'linear-gradient(135deg, #5B3DF5 0%, #7C3AED 40%, #9333EA 100%)'
+                      : 'rgba(255, 255, 255, 0.06)',
+                    border: isActive
+                      ? '1px solid rgba(168, 85, 247, 0.6)'
+                      : '1px solid rgba(255, 255, 255, 0.1)',
+                    boxShadow: isActive
+                      ? '0 6px 18px rgba(124, 58, 237, 0.35)'
+                      : 'none',
+                    transform: isActive ? 'scale(1.04)' : 'scale(1)',
+                  }}
+                  whileHover={!isActive ? {
+                    background: 'rgba(124, 58, 237, 0.12)',
+                    color: '#D6CCFF',
+                    scale: 1.02,
+                  } : {}}
+                  whileTap={{ scale: 0.98 }}
+                  layout
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                >
+                  {/* Shimmer on active */}
+                  {isActive && (
+                    <motion.div
+                      className="absolute inset-0 rounded-full overflow-hidden pointer-events-none"
+                      style={{ opacity: 0.15 }}
+                    >
+                      <motion.div
+                        className="absolute inset-0"
+                        style={{
+                          background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%)',
+                          width: '200%',
+                        }}
+                        animate={{ x: ['-100%', '100%'] }}
+                        transition={{ duration: 7, repeat: Infinity, ease: 'linear' }}
+                      />
+                    </motion.div>
+                  )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {tab.icon}
+                    {tab.label}
+                  </span>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
 
         {/* ── Dashboard ── */}
         <TabsContent value="dashboard" className="mt-4">
