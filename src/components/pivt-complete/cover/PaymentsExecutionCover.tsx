@@ -543,21 +543,22 @@ export const PaymentsExecutionCover: React.FC = () => {
                     padding: '10px 16px',
                     fontSize: '13px',
                     fontWeight: isActive ? 600 : 500,
-                    color: isActive ? '#FFFFFF' : '#8B7FC7',
+                    color: isActive ? '#FFFFFF' : '#E3DBFF',
                     background: isActive
                       ? 'linear-gradient(135deg, #5B3DF5 0%, #7C3AED 40%, #9333EA 100%)'
-                      : 'rgba(139, 92, 246, 0.15)',
+                      : 'linear-gradient(135deg, rgba(124,58,237,0.10), rgba(168,85,247,0.05))',
                     border: isActive
                       ? '1px solid rgba(168, 85, 247, 0.6)'
-                      : '1px solid rgba(139, 92, 246, 0.25)',
+                      : '1px solid rgba(124, 58, 237, 0.25)',
                     boxShadow: isActive
                       ? '0 6px 18px rgba(124, 58, 237, 0.35)'
-                      : 'none',
+                      : 'inset 0 1px 0 rgba(255,255,255,0.08)',
                     transform: isActive ? 'scale(1.04)' : 'scale(1)',
                   }}
                   whileHover={!isActive ? {
-                    background: 'rgba(139, 92, 246, 0.25)',
-                    color: '#B8A4F0',
+                    background: 'rgba(124, 58, 237, 0.16)',
+                    color: '#FFFFFF',
+                    y: -1,
                     scale: 1.02,
                   } : {}}
                   whileTap={{ scale: 0.98 }}
