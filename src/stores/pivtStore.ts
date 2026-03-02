@@ -12,7 +12,8 @@ export type ActiveSection =
   | 'ingestion' | 'closing' | 'verification' | 'admin-verification'
   | 'messages' | 'notifications' | 'timeline' | 'communications'
   | 'cap-table' | 'recipient' | 'lp-portal' | 'onboarding'
-  | 'integrations' | 'intelligence-map' | 'ai' | 'newton' | 'support';
+  | 'integrations' | 'intelligence-map' | 'ai' | 'newton' | 'support'
+  | 'payments-execution';
 
 export type EntityType = 'deal' | 'stakeholder' | 'document' | 'payment' | 'escrow' | 'approval';
 

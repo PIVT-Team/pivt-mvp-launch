@@ -32,6 +32,7 @@ import { CommunicationsHub } from './cover/CommunicationsHub';
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 import { SupportPanel } from '../support/SupportPanel';
+import { PaymentsExecutionCover } from './cover/PaymentsExecutionCover';
 
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
@@ -51,6 +52,7 @@ const coverSections: Record<string, React.FC> = {
   timeline: TimelineCover,
   ai: AIDashboardCover,
   communications: CommunicationsHub,
+  'payments-execution': PaymentsExecutionCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
