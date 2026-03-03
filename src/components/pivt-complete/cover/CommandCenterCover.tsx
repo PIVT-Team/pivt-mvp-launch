@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
-import { useKycStore } from '@/stores/kycStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
-import { Shield, FileCheck, Users, AlertTriangle, TrendingUp, Clock, Plus } from 'lucide-react';
+import { Shield, FileCheck, TrendingUp, Clock, Plus } from 'lucide-react';
 import { NewtonInsights } from './NewtonInsights';
 import { ActivityFeed } from './ActivityFeed';
-import { KycGateModal } from '@/components/deal-wizard/KycGateModal';
-import { useDealOperations, RealDeal } from '@/hooks/useDealOperations';
+import type { RealDeal } from '@/hooks/useDealOperations';
 import { supabase } from '@/integrations/supabase/client';
 
 const formatCurrency = (n: number) =>
@@ -15,14 +13,9 @@ const formatCurrency = (n: number) =>
 
 export const CommandCenterCover: React.FC = () => {
   const { setActiveSection, setSelectedDealId } = usePIVTStore();
-  const { userKyc, orgKyb, fetchKycData } = useKycStore();
-  const { createDealFromTemplate } = useDealOperations();
-  const [showGate, setShowGate] = useState(false);
   const [deals, setDeals] = useState<RealDeal[]>([]);
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    fetchKycData();
     supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(5)
       .then(({ data }) => setDeals((data as RealDeal[]) || []));
   }, []);
@@ -32,24 +25,8 @@ export const CommandCenterCover: React.FC = () => {
   const draftCount = deals.filter(d => d.status === 'draft').length;
 
   const handleNewDeal = () => {
-    const kycApproved = userKyc?.status === 'approved';
-    const kybApproved = orgKyb?.status === 'approved';
-    if (!kycApproved || !kybApproved) {
-      setShowGate(true);
-    } else {
-      setActiveSection('deals');
-    }
-  };
-
-  const handleCreateFromTemplate = async () => {
-    setCreating(true);
-    const deal = await createDealFromTemplate();
-    if (deal) {
-      setShowGate(false);
-      setSelectedDealId(deal.id);
-      setActiveSection('workspace');
-    }
-    setCreating(false);
+    // Navigate to Deals page where the Create Deal dialog lives
+    setActiveSection('deals');
   };
 
   const stats = [
@@ -68,11 +45,10 @@ export const CommandCenterCover: React.FC = () => {
         </div>
         <button
           onClick={handleNewDeal}
-          disabled={creating}
           className="pivt-btn-primary flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold"
         >
           <Plus className="w-4 h-4" />
-          {creating ? 'Creating...' : 'New Deal'}
+          New Deal
         </button>
       </div>
 
@@ -146,12 +122,6 @@ export const CommandCenterCover: React.FC = () => {
         </motion.div>
       </div>
 
-      <KycGateModal
-        open={showGate}
-        onClose={() => setShowGate(false)}
-        onGoToVerification={() => { setShowGate(false); setActiveSection('verification'); }}
-        onCreateDemo={handleCreateFromTemplate}
-      />
     </motion.div>
   );
 };
