@@ -1,10 +1,10 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal, DemoDeal } from '@/stores/pivtStore';
 import {
   Search, Play, RotateCcw, X, ArrowRight, Sparkles, ChevronDown, Check,
   Eye, Users, CreditCard, FileText, Shield, Activity, ExternalLink,
-  Calendar, AlertTriangle, Ban, TrendingUp,
+  Calendar, AlertTriangle, Ban, TrendingUp, Maximize2, Minimize2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -358,9 +358,19 @@ export const IntelligenceMapCover: React.FC = () => {
   const [showDealDetail, setShowDealDetail] = useState(false);
   const [viewMode, setViewMode] = useState<'deal' | 'portfolio'>('deal');
   const [labelMode, setLabelMode] = useState<'off' | 'smart' | 'all'>('smart');
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [filters, setFilters] = useState<Record<string, boolean>>({
     stakeholder: true, waterfall: true, compliance: true, document: true, payment: true,
   });
+
+  // Escape key exits fullscreen
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isFullscreen]);
 
   const toggleFilter = (key: string) => setFilters(f => ({ ...f, [key]: !f[key] }));
 
@@ -379,11 +389,11 @@ export const IntelligenceMapCover: React.FC = () => {
   const { nodes, edges } = useMemo(() => {
     const ns: GraphNode[] = [];
     const es: GraphEdge[] = [];
-    const cx = 500, cy = 375;
+    const cx = 600, cy = 450;
 
     ns.push({
       id: deal.id, label: deal.codeName, type: 'deal', x: cx, y: cy,
-      color: typeColors.deal, size: 56, riskLevel: deal.hasBlocker ? 'critical' : 'none',
+      color: typeColors.deal, size: 90, riskLevel: deal.hasBlocker ? 'critical' : 'none',
       metadata: { value: `$${(deal.consideration / 1e6).toFixed(0)}M`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
     });
 
@@ -393,8 +403,8 @@ export const IntelligenceMapCover: React.FC = () => {
         const risk: GraphNode['riskLevel'] = s.kycStatus === 'failed' ? 'critical' : s.kycStatus === 'pending' ? 'warning' : 'none';
         ns.push({
           id: s.id, label: s.name, type: 'stakeholder',
-          x: cx + Math.cos(angle) * 300, y: cy + Math.sin(angle) * 250,
-          color: typeColors.stakeholder, size: 28, riskLevel: risk,
+          x: cx + Math.cos(angle) * 360, y: cy + Math.sin(angle) * 300,
+          color: typeColors.stakeholder, size: 40, riskLevel: risk,
           metadata: { role: s.role, kyc: s.kycStatus, payout: `$${(s.payoutAmount / 1e6).toFixed(0)}M`, ownership: `${s.ownershipPct}%` },
         });
         es.push({ from: deal.id, to: s.id, label: 'has_stakeholder', strength: s.ownershipPct / 30 });
@@ -407,8 +417,8 @@ export const IntelligenceMapCover: React.FC = () => {
         const risk: GraphNode['riskLevel'] = d.status === 'rejected' ? 'critical' : d.status === 'pending' ? 'warning' : 'none';
         ns.push({
           id: d.id, label: d.name.slice(0, 20), type: 'document',
-          x: cx + Math.cos(angle) * 340, y: cy + Math.sin(angle) * 270,
-          color: typeColors.document, size: 22, riskLevel: risk,
+          x: cx + Math.cos(angle) * 400, y: cy + Math.sin(angle) * 320,
+          color: typeColors.document, size: 32, riskLevel: risk,
           metadata: { docType: d.type, status: d.status, uploaded: d.uploadedAt },
         });
         es.push({ from: deal.id, to: d.id, label: 'references' });
@@ -421,8 +431,8 @@ export const IntelligenceMapCover: React.FC = () => {
         const risk: GraphNode['riskLevel'] = p.status === 'failed' ? 'critical' : p.status === 'pending' ? 'info' : 'none';
         ns.push({
           id: p.id, label: p.recipientName.split(' ')[0], type: 'payment',
-          x: cx + Math.cos(angle) * 310, y: cy + Math.sin(angle) * 260,
-          color: typeColors.payment, size: 24, riskLevel: risk,
+          x: cx + Math.cos(angle) * 370, y: cy + Math.sin(angle) * 310,
+          color: typeColors.payment, size: 34, riskLevel: risk,
           metadata: { amount: `$${(p.amount / 1e6).toFixed(0)}M`, status: p.status, method: p.method },
         });
         es.push({ from: deal.id, to: p.id, label: 'pays' });
@@ -434,8 +444,8 @@ export const IntelligenceMapCover: React.FC = () => {
         const angle = Math.PI + (i - waterfallTiers.length / 2) * 0.45;
         ns.push({
           id: t.id, label: t.name.slice(0, 15), type: 'waterfall',
-          x: cx + Math.cos(angle) * 320, y: cy + Math.sin(angle) * 250,
-          color: typeColors.waterfall, size: 22, riskLevel: 'none',
+          x: cx + Math.cos(angle) * 380, y: cy + Math.sin(angle) * 300,
+          color: typeColors.waterfall, size: 32, riskLevel: 'none',
           metadata: { amount: `$${(t.amount / 1e6).toFixed(0)}M`, percentage: `${t.percentage}%`, recipients: t.recipients },
         });
         es.push({ from: deal.id, to: t.id, label: 'distributes' });
@@ -540,11 +550,11 @@ export const IntelligenceMapCover: React.FC = () => {
   }, []);
 
   return (
-    <motion.div {...fadeInUp} className="space-y-3">
+    <motion.div {...fadeInUp} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`} style={{ height: isFullscreen ? '100vh' : '85vh' }}>
       {/* ══ ROW 1: Deal Context + Deal Selector ══ */}
       <div
-        className="flex items-center justify-between gap-4 px-1"
-        style={{ minHeight: 40 }}
+        className="flex items-center justify-between gap-4 px-4 shrink-0"
+        style={{ minHeight: 40, background: isFullscreen ? 'hsl(var(--background))' : undefined }}
       >
         {/* Left: Deal context */}
       <div className="flex-1 flex items-baseline gap-3 min-w-0">
@@ -780,17 +790,22 @@ export const IntelligenceMapCover: React.FC = () => {
       </div>
 
       {/* ── Graph ── */}
-      <div className="pivt-card overflow-hidden flex" style={{ minHeight: '72vh' }}>
-        <div className="flex-1 relative" style={{ background: 'hsl(var(--background) / 0.6)' }}>
+      <div className="flex-1 overflow-hidden flex rounded-xl border border-border/30">
+        <div className="flex-1 relative" style={{ background: 'linear-gradient(135deg, #0F0F1A 0%, #14142B 50%, #0F0F1A 100%)' }}>
           {viewMode === 'portfolio' ? (
             <PortfolioGraph deals={deals} onDealClick={handleDealSwitch} />
           ) : (
             <>
-              <svg width="100%" height="100%" viewBox="0 0 1000 750" className="absolute inset-0" preserveAspectRatio="xMidYMid meet">
+              <svg width="100%" height="100%" viewBox="0 0 1200 900" className="absolute inset-0" preserveAspectRatio="xMidYMid meet">
                 <defs>
                   <radialGradient id="im-glow-accent" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.3" />
-                    <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
+                    <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
+                  </radialGradient>
+                  <radialGradient id="im-center-glow" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.15" />
+                    <stop offset="60%" stopColor="#7C3AED" stopOpacity="0.05" />
+                    <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
                   </radialGradient>
                   <radialGradient id="halo-critical" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stopColor="#EF4444" stopOpacity="0.5" />
@@ -809,6 +824,9 @@ export const IntelligenceMapCover: React.FC = () => {
                   </radialGradient>
                 </defs>
 
+                {/* Ambient center glow */}
+                <circle cx="600" cy="450" r="250" fill="url(#im-center-glow)" />
+
                 {/* Edges — curved paths, always visible */}
                 {edges.map((e, i) => {
                   const from = nodes.find(n => n.id === e.from);
@@ -824,16 +842,16 @@ export const IntelligenceMapCover: React.FC = () => {
                   const cx2 = mx - dy * 0.08;
                   const cy2 = my + dx * 0.08;
 
-                  let strokeColor = 'hsl(var(--muted-foreground))';
-                  let strokeOp = visible ? 0.22 : 0.06;
-                  let strokeW = e.strength ? Math.max(1, e.strength * 1.5) : 1;
+                  let strokeColor = 'rgba(168,162,200,0.7)';
+                  let strokeOp = visible ? 0.3 : 0.08;
+                  let strokeW = e.strength ? Math.max(1.8, e.strength * 2) : 1.8;
 
                   if (highlighted) {
-                    strokeColor = 'hsl(var(--accent))';
-                    strokeOp = 0.6;
-                    strokeW = 2;
+                    strokeColor = '#A78BFA';
+                    strokeOp = 0.7;
+                    strokeW = 2.5;
                   } else if (dimmedEdge) {
-                    strokeOp = 0.06;
+                    strokeOp = 0.08;
                   }
 
                   return (
@@ -859,7 +877,6 @@ export const IntelligenceMapCover: React.FC = () => {
                   const dimmed = hoveredNode && !isConnected;
                   const showHalo = highlightRisk && node.riskLevel && node.riskLevel !== 'none';
                   const isDealNode = node.type === 'deal';
-                  // Smart label: show if deal/hovered/selected/connected-to-hovered, or in smartVisibleIds
                   const showLabel = isDealNode || isHovered || isSelected || (isConnected && hoveredNode !== null) || smartVisibleIds.has(node.id);
                   return (
                     <g key={node.id}
@@ -869,6 +886,13 @@ export const IntelligenceMapCover: React.FC = () => {
                       className="cursor-pointer"
                       opacity={dimmed ? 0.12 : visible ? 1 : 0.12}
                     >
+                      {/* Deal node slow radial pulse */}
+                      {isDealNode && (
+                        <circle cx={node.x} cy={node.y} r={node.size * 0.8} fill={node.color} opacity={0.06}>
+                          <animate attributeName="r" values={`${node.size * 0.7};${node.size * 1.0};${node.size * 0.7}`} dur="3s" repeatCount="indefinite" />
+                          <animate attributeName="opacity" values="0.08;0.03;0.08" dur="3s" repeatCount="indefinite" />
+                        </circle>
+                      )}
                       {showHalo && (
                         <circle cx={node.x} cy={node.y} r={node.size * 1.2}
                           fill={`url(#halo-${node.riskLevel})`}
@@ -877,41 +901,41 @@ export const IntelligenceMapCover: React.FC = () => {
                         </circle>
                       )}
                       {isHovered && (
-                        <circle cx={node.x} cy={node.y} r={node.size} fill="url(#im-glow-accent)" />
+                        <circle cx={node.x} cy={node.y} r={node.size * 1.1} fill="url(#im-glow-accent)" />
                       )}
                       {/* Outer ring */}
-                      <circle cx={node.x} cy={node.y} r={node.size / 2} fill={node.color} opacity={isDealNode ? 0.12 : 0.15} />
+                      <circle cx={node.x} cy={node.y} r={node.size / 2} fill={node.color} opacity={isDealNode ? 0.15 : 0.2} />
                       {/* Deal node gets gradient ring */}
                       {isDealNode && (
-                        <circle cx={node.x} cy={node.y} r={node.size / 2 + 3}
-                          fill="none" stroke={node.color} strokeWidth="1.5" strokeOpacity="0.3"
+                        <circle cx={node.x} cy={node.y} r={node.size / 2 + 4}
+                          fill="none" stroke={node.color} strokeWidth="2" strokeOpacity="0.35"
                         />
                       )}
                       {/* Inner circle */}
                       <circle cx={node.x} cy={node.y} r={isDealNode ? node.size / 2.5 : node.size / 3}
                         fill={node.color}
-                        stroke={showHalo ? riskHaloColors[node.riskLevel!] : isHovered ? 'hsl(var(--foreground))' : 'transparent'}
+                        stroke={showHalo ? riskHaloColors[node.riskLevel!] : isHovered ? '#fff' : 'transparent'}
                         strokeWidth={showHalo ? 2.5 : 2}
                       />
-                      {/* Label with text shadow for readability */}
+                      {/* Label — high contrast for dark bg */}
                       {showLabel && (
                         <>
-                          <text x={node.x} y={node.y + node.size / 2 + 18}
+                          <text x={node.x} y={node.y + node.size / 2 + 20}
                             textAnchor="middle"
-                            fill="hsl(var(--background))"
-                            fontSize={isDealNode ? 13 : 12}
-                            fontWeight={isDealNode || isHovered ? 600 : 500}
-                            stroke="hsl(var(--background))"
-                            strokeWidth="3"
+                            fill="#0F0F1A"
+                            fontSize={isDealNode ? 15 : 13}
+                            fontWeight={isDealNode || isHovered ? 700 : 500}
+                            stroke="#0F0F1A"
+                            strokeWidth="4"
                             strokeLinejoin="round"
                           >
                             {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
                           </text>
-                          <text x={node.x} y={node.y + node.size / 2 + 18}
+                          <text x={node.x} y={node.y + node.size / 2 + 20}
                             textAnchor="middle"
-                            fill={isHovered ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'}
-                            fontSize={isDealNode ? 13 : 12}
-                            fontWeight={isDealNode || isHovered ? 600 : 500}
+                            fill={isHovered ? '#fff' : 'rgba(255,255,255,0.85)'}
+                            fontSize={isDealNode ? 15 : 13}
+                            fontWeight={isDealNode || isHovered ? 700 : 500}
                           >
                             {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
                           </text>
@@ -926,42 +950,38 @@ export const IntelligenceMapCover: React.FC = () => {
 
           {/* Entity counts (Deal View only) */}
           {viewMode === 'deal' && (
-            <div className="absolute bottom-3 left-3 flex gap-2">
+            <div className="absolute bottom-4 left-4 flex gap-2">
               {Object.entries(typeColors).map(([type, color]) => {
                 const count = nodes.filter(n => n.type === type).length;
                 if (count === 0) return null;
-                const legendTooltips: Record<string, string> = {
-                  deal: 'Central deal entity in this network',
-                  stakeholder: 'Individuals and entities with equity or governance rights',
-                  document: 'Legal and compliance documents tied to this deal',
-                  payment: 'Disbursement and transaction nodes',
-                  escrow: 'Escrow accounts and holdback structures',
-                  waterfall: 'Distribution tiers and payout allocations',
-                };
                 return (
-                  <Tooltip key={type}>
-                    <TooltipTrigger asChild>
-                      <div className="flex items-center gap-1.5 bg-muted/50 rounded-full px-2.5 py-1 text-[10px] cursor-default">
-                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-                        <span className="text-muted-foreground capitalize">{type}</span>
-                        <span className="text-foreground font-medium">{count}</span>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>{legendTooltips[type] || `${type} nodes in this network`}</TooltipContent>
-                  </Tooltip>
+                  <div key={type} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] cursor-default" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}>
+                    <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+                    <span className="text-white/60 capitalize">{type}</span>
+                    <span className="text-white font-semibold">{count}</span>
+                  </div>
                 );
               })}
             </div>
           )}
 
-          <div className="absolute top-3 right-3">
+          {/* Top-right controls */}
+          <div className="absolute top-3 right-3 flex items-center gap-2">
+            <Badge variant="outline" className="text-[9px] border-white/20 text-white/50 cursor-default bg-transparent">
+              Read-Only View
+            </Badge>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="outline" className="text-[9px] border-border/50 text-muted-foreground cursor-default">
-                  Read-Only View
-                </Badge>
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/70 hover:text-white transition-colors"
+                  style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}
+                >
+                  {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  {isFullscreen ? 'Exit Fullscreen' : 'Expand'}
+                </button>
               </TooltipTrigger>
-              <TooltipContent>You do not have edit permissions for this deal</TooltipContent>
+              <TooltipContent>{isFullscreen ? 'Exit fullscreen (Esc)' : 'Expand Intelligence Map to fullscreen'}</TooltipContent>
             </Tooltip>
           </div>
 
