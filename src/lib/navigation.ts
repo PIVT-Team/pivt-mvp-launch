@@ -1,6 +1,6 @@
 import {
   Briefcase, History, Settings, FileBarChart, Plug, Users, Network, Clock, Brain, Home,
-  HelpCircle, MessageSquareText, Banknote,
+  HelpCircle, MessageSquareText, Banknote, BookOpen, ShieldAlert,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -47,6 +47,8 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
       items: [
         { label: 'Team & Roles', icon: Users, path: 'settings', iconColor: '#94A3B8' },
         { label: 'Integrations', icon: Plug, path: 'integrations', iconColor: '#F59E0B' },
+        { label: 'Ontology', icon: BookOpen, path: 'ontology', iconColor: '#8B5CF6' },
+        { label: 'Discrepancy Engine', icon: ShieldAlert, path: 'discrepancy-engine', iconColor: '#EF4444' },
       ],
     },
   ],
