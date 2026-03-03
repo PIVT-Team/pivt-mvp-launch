@@ -95,13 +95,106 @@ const formatCurrency = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
 // ── Section Components ──
-const OverviewSection: React.FC<{ realDeal?: RealDeal | null }> = ({ realDeal }) => {
-  const demoDeal = useSelectedDeal();
+interface DealSummary {
+  conditionsTotal: number;
+  conditionsSatisfied: number;
+  approvalsTotal: number;
+  approvalsApproved: number;
+  approvalsPending: number;
+  documentsCount: number;
+  paymentsTotal: number;
+  paymentsConfirmed: number;
+  escrowStatus: string | null;
+  nextAction: string;
+  blockerCount: number;
+}
 
-  // Use real deal data if available
-  const dealName = realDeal?.deal_name || demoDeal.codeName;
+function computeNextAction(s: DealSummary, status: string): string {
+  if (s.conditionsTotal === 0 && s.approvalsTotal === 0 && s.documentsCount === 0) {
+    return 'Begin deal setup — add stakeholders and upload documents';
+  }
+  if (s.approvalsPending > 0) {
+    return `${s.approvalsPending} approval${s.approvalsPending > 1 ? 's' : ''} pending sign-off`;
+  }
+  const unsatisfied = s.conditionsTotal - s.conditionsSatisfied;
+  if (unsatisfied > 0) {
+    return `${unsatisfied} condition${unsatisfied > 1 ? 's' : ''} outstanding — resolve to advance`;
+  }
+  if (s.paymentsTotal > 0 && s.paymentsConfirmed < s.paymentsTotal) {
+    return `Confirm ${s.paymentsTotal - s.paymentsConfirmed} draft payment instruction${s.paymentsTotal - s.paymentsConfirmed > 1 ? 's' : ''}`;
+  }
+  if (s.escrowStatus === 'pending') {
+    return 'Escrow account activation pending';
+  }
+  if (status === 'draft') {
+    return 'Upload Seller Cap Table to begin structuring';
+  }
+  if (status === 'closing' || status === 'active') {
+    return 'All gates clear — ready for execution';
+  }
+  return 'Review deal workspace';
+}
+
+const useDealSummary = (dealId: string | undefined) => {
+  const [summary, setSummary] = useState<DealSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!dealId) { setLoading(false); return; }
+
+    const fetchSummary = async () => {
+      setLoading(true);
+      const [conditions, approvals, documents, payments, escrow] = await Promise.all([
+        supabase.from('conditions').select('id, status').eq('deal_id', dealId),
+        supabase.from('ontology_approvals').select('id, status').eq('deal_id', dealId),
+        supabase.from('ontology_documents').select('id').eq('deal_id', dealId),
+        supabase.from('payment_instructions').select('id, status').eq('deal_id', dealId),
+        supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
+      ]);
+
+      const condData = conditions.data || [];
+      const appData = approvals.data || [];
+      const payData = payments.data || [];
+      const satisfied = condData.filter(c => c.status === 'SATISFIED' || c.status === 'WAIVED').length;
+      const approved = appData.filter(a => a.status === 'APPROVED').length;
+      const pending = appData.filter(a => a.status === 'PENDING').length;
+      const confirmed = payData.filter(p => p.status === 'CONFIRMED').length;
+
+      const s: DealSummary = {
+        conditionsTotal: condData.length,
+        conditionsSatisfied: satisfied,
+        approvalsTotal: appData.length,
+        approvalsApproved: approved,
+        approvalsPending: pending,
+        documentsCount: (documents.data || []).length,
+        paymentsTotal: payData.length,
+        paymentsConfirmed: confirmed,
+        escrowStatus: escrow.data?.status || null,
+        nextAction: '',
+        blockerCount: pending + (condData.length - satisfied),
+      };
+      s.nextAction = computeNextAction(s, 'draft');
+      setSummary(s);
+      setLoading(false);
+    };
+    fetchSummary();
+  }, [dealId]);
+
+  return { summary, loading };
+};
+
+const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string }> = ({ realDeal, dealId }) => {
+  const demoDeal = useSelectedDeal();
+  const { selectedDealId } = usePIVTStore();
+  const effectiveDealId = dealId || selectedDealId;
+  const { summary, loading: summaryLoading } = useDealSummary(effectiveDealId);
+
   const dealValue = realDeal ? realDeal.deal_value : demoDeal.consideration;
   const status = realDeal?.status || demoDeal.status;
+
+  const nextAction = summary
+    ? computeNextAction(summary, status)
+    : (status === 'draft' ? 'Upload Seller Cap Table' : 'Loading...');
 
   return (
     <div className="space-y-8">
@@ -112,14 +205,12 @@ const OverviewSection: React.FC<{ realDeal?: RealDeal | null }> = ({ realDeal })
           </div>
           <div>
             <p className="pivt-metric-label">Next Required Action</p>
-            <p className="text-sm font-semibold mt-0.5">
-              {status === 'draft' ? 'Upload Seller Cap Table' : 'Continue deal setup'}
-            </p>
+            <p className="text-sm font-semibold mt-0.5">{nextAction}</p>
           </div>
         </div>
       </motion.div>
 
-      <div className="grid grid-cols-4 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {[
           { label: 'Deal Value', value: formatCurrency(dealValue) },
           { label: 'Status', value: status.charAt(0).toUpperCase() + status.slice(1) },
@@ -132,6 +223,36 @@ const OverviewSection: React.FC<{ realDeal?: RealDeal | null }> = ({ realDeal })
           </motion.div>
         ))}
       </div>
+
+      {/* Deal-specific summary stats */}
+      {summary && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="pivt-card p-4">
+            <p className="pivt-metric-label">Conditions</p>
+            <p className="font-mono text-lg font-medium mt-1">{summary.conditionsSatisfied}/{summary.conditionsTotal}</p>
+            <p className="text-[10px] text-muted-foreground">satisfied</p>
+          </div>
+          <div className="pivt-card p-4">
+            <p className="pivt-metric-label">Approvals</p>
+            <p className="font-mono text-lg font-medium mt-1">{summary.approvalsApproved}/{summary.approvalsTotal}</p>
+            <p className="text-[10px] text-muted-foreground">{summary.approvalsPending} pending</p>
+          </div>
+          <div className="pivt-card p-4">
+            <p className="pivt-metric-label">Documents</p>
+            <p className="font-mono text-lg font-medium mt-1">{summary.documentsCount}</p>
+            <p className="text-[10px] text-muted-foreground">uploaded</p>
+          </div>
+          <div className="pivt-card p-4">
+            <p className="pivt-metric-label">Payments</p>
+            <p className="font-mono text-lg font-medium mt-1">{summary.paymentsConfirmed}/{summary.paymentsTotal}</p>
+            <p className="text-[10px] text-muted-foreground">confirmed</p>
+          </div>
+          <div className="pivt-card p-4">
+            <p className="pivt-metric-label">Escrow</p>
+            <p className="font-mono text-lg font-medium mt-1 capitalize">{summary.escrowStatus || 'N/A'}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -273,6 +394,7 @@ export const DealWorkspaceCover: React.FC = () => {
   const [activeSubNav, setActiveSubNav] = useState<string | undefined>();
   const [realDeal, setRealDeal] = useState<RealDeal | null>(null);
   const [loadingDeal, setLoadingDeal] = useState(false);
+  const { summary: dealSummary } = useDealSummary(selectedDealId);
 
   // Check if selectedDealId looks like a UUID (real deal) vs demo id
   const isRealDeal = selectedDealId && selectedDealId.includes('-') && selectedDealId.length > 10;
@@ -310,19 +432,35 @@ export const DealWorkspaceCover: React.FC = () => {
   const closingDate = realDeal?.closing_date || demoDeal.closingDate;
   const dealStatus = realDeal?.status || demoDeal.status;
   const hasBlocker = !isRealDeal && demoDeal.hasBlocker;
-  const readyPct = isRealDeal ? (dealStatus === 'closed' ? 100 : dealStatus === 'active' ? 50 : 10) : demoDeal.readyToPayPercent;
+  // Compute readiness from deal summary
+  const readyPct = useMemo(() => {
+    if (!dealSummary) return demoDeal.readyToPayPercent;
+    const total = dealSummary.conditionsTotal + dealSummary.approvalsTotal + dealSummary.paymentsTotal;
+    if (total === 0) return 0;
+    const done = dealSummary.conditionsSatisfied + dealSummary.approvalsApproved + dealSummary.paymentsConfirmed;
+    return Math.round((done / total) * 100);
+  }, [dealSummary, demoDeal.readyToPayPercent]);
 
-  const workflowSteps: WorkflowStep[] = useMemo(() => [
-    { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-    { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: isRealDeal ? 0 : 85, blockers: 0 },
-    { id: 'verification', number: 3, label: 'Verification', completionPct: isRealDeal ? 0 : 72, blockers: 0 },
-    { id: 'structuring', number: 4, label: 'Structuring', completionPct: isRealDeal ? 0 : 64, blockers: 0 },
-    { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: isRealDeal ? 0 : 45, blockers: 0 },
-    { id: 'execution', number: 6, label: 'Execution', completionPct: isRealDeal ? 0 : 50, blockers: 0 },
-    { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
-    { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-    { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
-  ], [isRealDeal]);
+  const workflowSteps: WorkflowStep[] = useMemo(() => {
+    const s = dealSummary;
+    const condPct = s ? (s.conditionsTotal > 0 ? Math.round((s.conditionsSatisfied / s.conditionsTotal) * 100) : 0) : 0;
+    const appPct = s ? (s.approvalsTotal > 0 ? Math.round((s.approvalsApproved / s.approvalsTotal) * 100) : 0) : 0;
+    const docPct = s ? (s.documentsCount > 0 ? 100 : 0) : 0;
+    const payPct = s ? (s.paymentsTotal > 0 ? Math.round((s.paymentsConfirmed / s.paymentsTotal) * 100) : 0) : 0;
+    const escPct = s ? (s.escrowStatus === 'active' ? 100 : s.escrowStatus === 'pending' ? 30 : 0) : 0;
+
+    return [
+      { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
+      { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: docPct > 0 ? 85 : 0, blockers: 0 },
+      { id: 'verification', number: 3, label: 'Verification', completionPct: appPct, blockers: s?.approvalsPending || 0 },
+      { id: 'structuring', number: 4, label: 'Structuring', completionPct: condPct > 0 ? 64 : 0, blockers: 0 },
+      { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: docPct, blockers: 0 },
+      { id: 'execution', number: 6, label: 'Execution', completionPct: payPct, blockers: s ? (s.paymentsTotal - s.paymentsConfirmed) : 0 },
+      { id: 'compliance', number: 7, label: 'Compliance', completionPct: condPct, blockers: s ? (s.conditionsTotal - s.conditionsSatisfied) : 0 },
+      { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+      { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+    ];
+  }, [dealSummary]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
@@ -466,10 +604,10 @@ export const DealWorkspaceCover: React.FC = () => {
             stepLabel={currentStep?.label || ''}
             stepStatus={currentStatus}
           >
-            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} /> : <ContentComponent />}
+            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} /> : <ContentComponent />}
           </SectionWithSideTabs>
         ) : (
-          activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} /> : <ContentComponent />
+          activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} /> : <ContentComponent />
         )}
       </motion.div>
     </motion.div>
