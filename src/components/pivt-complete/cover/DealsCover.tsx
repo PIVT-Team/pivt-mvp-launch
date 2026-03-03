@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, List, LayoutGrid, AlertTriangle, CheckCircle2, Clock, Ban } from 'lucide-react';
-import { usePIVTStore } from '@/stores/pivtStore';
-import { useKycStore } from '@/stores/kycStore';
+import { Plus, List, LayoutGrid } from 'lucide-react';
+import { usePIVTStore, DemoDeal } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
-import { KycGateModal } from '@/components/deal-wizard/KycGateModal';
 import { Badge } from '@/components/ui/badge';
 import { useDealOperations, RealDeal } from '@/hooks/useDealOperations';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,26 +13,69 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 
 type DealsView = 'list' | 'portfolio';
 
+// Unified type for display
+interface DisplayDeal {
+  id: string;
+  name: string;
+  dealNumber: string;
+  value: number;
+  closingDate: string;
+  status: string;
+  escrow?: number;
+  isDemo: boolean;
+  sector?: string;
+  readiness?: number;
+}
+
 const STATUS_COLOR: Record<string, string> = {
   draft: 'bg-muted text-muted-foreground',
   active: 'bg-accent text-accent-foreground',
   closing: 'bg-discrepancy text-white',
   closed: 'bg-validated text-white',
   settled: 'bg-validated text-white',
+  drafting: 'bg-muted text-muted-foreground',
+  diligence: 'bg-amber-500/10 text-amber-600',
+  signing: 'bg-accent/10 text-accent',
+  completed: 'bg-validated text-white',
 };
 
 const formatCurrency = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
+function demoToDisplay(d: DemoDeal): DisplayDeal {
+  return {
+    id: d.id,
+    name: d.name,
+    dealNumber: d.dealNumber,
+    value: d.consideration,
+    closingDate: d.closingDate,
+    status: d.status,
+    isDemo: true,
+    sector: d.sector,
+    readiness: d.readyToPayPercent,
+  };
+}
+
+function realToDisplay(d: RealDeal): DisplayDeal {
+  return {
+    id: d.id,
+    name: d.deal_name,
+    dealNumber: d.deal_number,
+    value: d.deal_value,
+    closingDate: d.closing_date || 'TBD',
+    status: d.status,
+    escrow: d.escrow_amount || undefined,
+    isDemo: false,
+  };
+}
+
 export const DealsCover: React.FC = () => {
-  const { setSelectedDealId, setActiveSection } = usePIVTStore();
-  const { userKyc, orgKyb, fetchKycData } = useKycStore();
-  const { createDeal, createDealFromTemplate, fetchDeals } = useDealOperations();
+  const { setSelectedDealId, setActiveSection, deals: demoDeals } = usePIVTStore();
+  const { createDeal, fetchDeals } = useDealOperations();
   const { user } = useAuth();
 
-  const [deals, setDeals] = useState<RealDeal[]>([]);
+  const [realDeals, setRealDeals] = useState<RealDeal[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showGate, setShowGate] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [view, setView] = useState<DealsView>('list');
@@ -43,20 +84,22 @@ export const DealsCover: React.FC = () => {
   const loadDeals = useCallback(async () => {
     setLoading(true);
     const data = await fetchDeals();
-    setDeals(data);
+    // Filter out seeded demo deals from DB results (they're shown from pivtStore)
+    const userDeals = data.filter(d => !d.seed_key);
+    setRealDeals(userDeals);
     setLoading(false);
   }, []);
 
-  useEffect(() => { fetchKycData(); loadDeals(); }, []);
+  useEffect(() => { loadDeals(); }, []);
+
+  // Merge demo + real deals
+  const allDeals: DisplayDeal[] = [
+    ...demoDeals.map(demoToDisplay),
+    ...realDeals.map(realToDisplay),
+  ];
 
   const handleNewDeal = () => {
-    const kycApproved = userKyc?.status === 'approved';
-    const kybApproved = orgKyb?.status === 'approved';
-    if (!kycApproved || !kybApproved) {
-      setShowGate(true);
-    } else {
-      setShowCreate(true);
-    }
+    setShowCreate(true);
   };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
@@ -77,18 +120,7 @@ export const DealsCover: React.FC = () => {
     setCreating(false);
   };
 
-  const handleCreateFromTemplate = async () => {
-    setCreating(true);
-    const deal = await createDealFromTemplate();
-    if (deal) {
-      setShowGate(false);
-      setSelectedDealId(deal.id);
-      setActiveSection('workspace');
-    }
-    setCreating(false);
-  };
-
-  const openDeal = (deal: RealDeal) => {
+  const openDeal = (deal: DisplayDeal) => {
     setSelectedDealId(deal.id);
     setActiveSection('workspace');
   };
@@ -99,7 +131,7 @@ export const DealsCover: React.FC = () => {
         <div>
           <h2 className="text-xl font-semibold">Deals</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {deals.length} deal{deals.length !== 1 ? 's' : ''}
+            {allDeals.length} deal{allDeals.length !== 1 ? 's' : ''}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -134,22 +166,9 @@ export const DealsCover: React.FC = () => {
         <div className="flex justify-center py-20">
           <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : deals.length === 0 ? (
-        <div className="pivt-card p-12 text-center">
-          <p className="text-muted-foreground mb-2">No deals yet.</p>
-          <p className="text-sm text-muted-foreground mb-4">Create your first deal to get started.</p>
-          <div className="flex items-center justify-center gap-3">
-            <button
-              onClick={handleNewDeal}
-              className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-            >
-              <Plus className="w-4 h-4" /> New Deal
-            </button>
-          </div>
-        </div>
       ) : view === 'list' ? (
         <div className="grid gap-4">
-          {deals.map((deal) => (
+          {allDeals.map((deal) => (
             <motion.div
               key={deal.id}
               {...fadeInUp}
@@ -159,28 +178,37 @@ export const DealsCover: React.FC = () => {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-semibold text-lg">{deal.deal_name}</h3>
+                    <h3 className="font-semibold text-lg">{deal.name}</h3>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[deal.status] || STATUS_COLOR.draft}`}>
                       {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
                     </span>
+                    {deal.isDemo && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/8 text-accent font-medium">DEMO</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
                     <button
-                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(deal.deal_number); }}
+                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(deal.dealNumber); }}
                       className="font-mono text-xs text-accent/70 bg-muted px-1.5 py-0.5 rounded hover:bg-accent/10 transition-colors"
                       title="Click to copy"
                     >
-                      {deal.deal_number}
+                      {deal.dealNumber}
                     </button>
+                    {deal.sector && (
+                      <span className="text-xs text-muted-foreground">· {deal.sector}</span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Closing {deal.closing_date || 'TBD'}
+                    Closing {deal.closingDate}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="font-mono text-lg font-semibold">{formatCurrency(deal.deal_value)}</p>
-                  {deal.escrow_amount ? (
-                    <p className="text-xs text-muted-foreground mt-1">Escrow: {formatCurrency(deal.escrow_amount)}</p>
+                  <p className="font-mono text-lg font-semibold">{formatCurrency(deal.value)}</p>
+                  {deal.readiness !== undefined && (
+                    <p className="text-xs text-muted-foreground mt-1">Readiness: {deal.readiness}%</p>
+                  )}
+                  {deal.escrow ? (
+                    <p className="text-xs text-muted-foreground mt-1">Escrow: {formatCurrency(deal.escrow)}</p>
                   ) : null}
                 </div>
               </div>
@@ -196,21 +224,26 @@ export const DealsCover: React.FC = () => {
               <span className="text-right">Value</span>
               <span className="text-right">Closing</span>
             </div>
-            {deals.map(deal => (
+            {allDeals.map(deal => (
               <div
                 key={deal.id}
                 onClick={() => openDeal(deal)}
                 className="p-4 border-b border-border last:border-0 grid grid-cols-5 items-center hover:bg-muted/20 transition-colors cursor-pointer"
               >
                 <div className="col-span-2">
-                  <p className="text-base font-semibold">{deal.deal_name}</p>
-                  <span className="font-mono text-xs text-accent/70">{deal.deal_number}</span>
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-semibold">{deal.name}</p>
+                    {deal.isDemo && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/8 text-accent font-medium">DEMO</span>
+                    )}
+                  </div>
+                  <span className="font-mono text-xs text-accent/70">{deal.dealNumber}</span>
                 </div>
                 <Badge className={`text-xs w-fit ${STATUS_COLOR[deal.status] || STATUS_COLOR.draft}`}>
                   {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
                 </Badge>
-                <p className="font-mono text-sm text-right">{formatCurrency(deal.deal_value)}</p>
-                <p className="text-sm text-muted-foreground text-right">{deal.closing_date || 'TBD'}</p>
+                <p className="font-mono text-sm text-right">{formatCurrency(deal.value)}</p>
+                <p className="text-sm text-muted-foreground text-right">{deal.closingDate}</p>
               </div>
             ))}
           </div>
@@ -270,13 +303,6 @@ export const DealsCover: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
-
-      <KycGateModal
-        open={showGate}
-        onClose={() => setShowGate(false)}
-        onGoToVerification={() => { setShowGate(false); setActiveSection('verification'); }}
-        onCreateDemo={handleCreateFromTemplate}
-      />
     </div>
   );
 };

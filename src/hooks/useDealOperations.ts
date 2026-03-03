@@ -13,6 +13,7 @@ export interface RealDeal {
   created_by: string | null;
   created_at: string;
   updated_at: string;
+  seed_key: string | null;
 }
 
 const TEMPLATE_CONDITIONS = [
