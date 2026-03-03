@@ -627,6 +627,7 @@ export type Database = {
           deal_value: number
           escrow_amount: number | null
           id: string
+          seed_key: string | null
           status: string
           updated_at: string
         }
@@ -639,6 +640,7 @@ export type Database = {
           deal_value?: number
           escrow_amount?: number | null
           id?: string
+          seed_key?: string | null
           status?: string
           updated_at?: string
         }
@@ -651,6 +653,7 @@ export type Database = {
           deal_value?: number
           escrow_amount?: number | null
           id?: string
+          seed_key?: string | null
           status?: string
           updated_at?: string
         }
