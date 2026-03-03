@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.esignature-webhook]
 verify_jwt = false
+
+[functions.obligation-extractor]
+verify_jwt = false
+
+[functions.discrepancy-engine]
+verify_jwt = false
