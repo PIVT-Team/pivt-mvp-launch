@@ -547,6 +547,76 @@ export type Database = {
           },
         ]
       }
+      deal_settings: {
+        Row: {
+          created_at: string
+          deal_id: string
+          enforce_separation_of_duties: boolean
+          id: string
+          require_dual_execution: boolean
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          enforce_separation_of_duties?: boolean
+          id?: string
+          require_dual_execution?: boolean
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          enforce_separation_of_duties?: boolean
+          id?: string
+          require_dual_execution?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_settings_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_user_roles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          id: string
+          role: Database["public"]["Enums"]["deal_execution_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          id?: string
+          role: Database["public"]["Enums"]["deal_execution_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["deal_execution_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_user_roles_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deals: {
         Row: {
           closing_date: string | null
@@ -856,6 +926,57 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      execution_events: {
+        Row: {
+          action_type: string
+          created_at: string
+          deal_id: string
+          id: string
+          intent_id: string
+          metadata: Json | null
+          new_status: string | null
+          performed_by_user_id: string
+          previous_status: string | null
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          intent_id: string
+          metadata?: Json | null
+          new_status?: string | null
+          performed_by_user_id: string
+          previous_status?: string | null
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          intent_id?: string
+          metadata?: Json | null
+          new_status?: string | null
+          performed_by_user_id?: string
+          previous_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "execution_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "execution_events_intent_id_fkey"
+            columns: ["intent_id"]
+            isOneToOne: false
+            referencedRelation: "disbursement_intents"
             referencedColumns: ["id"]
           },
         ]
@@ -1689,6 +1810,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_deal_role: {
+        Args: {
+          _deal_id: string
+          _role: Database["public"]["Enums"]["deal_execution_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1728,6 +1857,7 @@ export type Database = {
         | "PAYOFF_LETTER"
         | "FEE_LETTER"
         | "OTHER"
+      deal_execution_role: "VIEWER" | "EDITOR" | "APPROVER" | "EXECUTOR"
       deal_member_role:
         | "BUYER_COUNSEL"
         | "SELLER_COUNSEL"
@@ -1968,6 +2098,7 @@ export const Constants = {
         "FEE_LETTER",
         "OTHER",
       ],
+      deal_execution_role: ["VIEWER", "EDITOR", "APPROVER", "EXECUTOR"],
       deal_member_role: [
         "BUYER_COUNSEL",
         "SELLER_COUNSEL",

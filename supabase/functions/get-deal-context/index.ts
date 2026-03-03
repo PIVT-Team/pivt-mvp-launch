@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const [deal, parties, members, conditions, approvals, documents, payments, obligations, contractDocs, discrepancies, intents] =
+    const [deal, parties, members, conditions, approvals, documents, payments, obligations, contractDocs, discrepancies, intents, dealUserRoles, dealSettings] =
       await Promise.all([
         supabase.from("deals").select("*").eq("id", deal_id).single(),
         supabase.from("deal_parties").select("*, organizations(name)").eq("deal_id", deal_id),
@@ -38,6 +38,8 @@ Deno.serve(async (req) => {
         supabase.from("contract_documents").select("id, deal_id, doc_type, filename, status").eq("deal_id", deal_id),
         supabase.from("discrepancies").select("*").eq("deal_id", deal_id).in("status", ["open", "acknowledged"]),
         supabase.from("disbursement_intents").select("*").eq("deal_id", deal_id),
+        supabase.from("deal_user_roles").select("*").eq("deal_id", deal_id),
+        supabase.from("deal_settings").select("*").eq("deal_id", deal_id).maybeSingle(),
       ]);
 
     if (deal.error) {
@@ -129,6 +131,15 @@ Deno.serve(async (req) => {
           conditions_satisfied: unsatisfiedConditions.length === 0,
           approvals_complete: pendingApprovals.length === 0,
         },
+      },
+      execution_authority: {
+        executors: (dealUserRoles.data || []).filter((r: any) => r.role === 'EXECUTOR').map((r: any) => r.user_id),
+        approvers: (dealUserRoles.data || []).filter((r: any) => r.role === 'APPROVER').map((r: any) => r.user_id),
+        settings: {
+          enforce_separation_of_duties: dealSettings.data?.enforce_separation_of_duties ?? true,
+          require_dual_execution: dealSettings.data?.require_dual_execution ?? false,
+        },
+        all_roles: (dealUserRoles.data || []).map((r: any) => ({ user_id: r.user_id, role: r.role })),
       },
     };
 

@@ -25,6 +25,7 @@ import { AIDashboardCover } from './AIDashboardCover';
 import { CommentsCover } from './CommentsCover';
 import { DealInputsCover } from './DealInputsCover';
 import { DiscrepancyPanelCover } from './DiscrepancyPanelCover';
+import { ExecutionAuthorityPanel } from './ExecutionAuthorityPanel';
 
 // ── Workflow helpers ──
 function getNextAction(state: DealWorkflowState, discrepancies: number, pendingApprovals: number): string {
@@ -89,6 +90,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'discrepancies', label: 'Discrepancies' },
     { id: 'escrow', label: 'Escrow' },
     { id: 'approvals', label: 'Approvals' },
+    { id: 'authority', label: 'Execution Authority' },
   ],
   compliance: [
     { id: 'audit', label: 'Audit Log' },
@@ -248,6 +250,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC {
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
       if (subNavId === 'approvals') return ApprovalsCover;
+      if (subNavId === 'authority') return () => <ExecutionAuthorityPanel userIsExecutor={true} />;
       return PaymentsCover;
     case 'compliance':
       if (subNavId === 'reports') return DealReportsCover;
