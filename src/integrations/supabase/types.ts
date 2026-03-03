@@ -245,6 +245,56 @@ export type Database = {
           },
         ]
       }
+      contract_documents: {
+        Row: {
+          created_at: string
+          deal_id: string
+          doc_type: Database["public"]["Enums"]["contract_doc_type"]
+          file_url: string | null
+          filename: string
+          id: string
+          status: Database["public"]["Enums"]["contract_doc_status"]
+          text_content: string | null
+          updated_at: string
+          uploaded_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          doc_type?: Database["public"]["Enums"]["contract_doc_type"]
+          file_url?: string | null
+          filename: string
+          id?: string
+          status?: Database["public"]["Enums"]["contract_doc_status"]
+          text_content?: string | null
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          doc_type?: Database["public"]["Enums"]["contract_doc_type"]
+          file_url?: string | null
+          filename?: string
+          id?: string
+          status?: Database["public"]["Enums"]["contract_doc_status"]
+          text_content?: string | null
+          updated_at?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_approvals: {
         Row: {
           approval_side: string
@@ -908,6 +958,159 @@ export type Database = {
         }
         Relationships: []
       }
+      obligation_intent_map: {
+        Row: {
+          allocation_value_minor: number | null
+          created_at: string
+          id: string
+          intent_id: string
+          obligation_id: string
+        }
+        Insert: {
+          allocation_value_minor?: number | null
+          created_at?: string
+          id?: string
+          intent_id: string
+          obligation_id: string
+        }
+        Update: {
+          allocation_value_minor?: number | null
+          created_at?: string
+          id?: string
+          intent_id?: string
+          obligation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obligation_intent_map_intent_id_fkey"
+            columns: ["intent_id"]
+            isOneToOne: false
+            referencedRelation: "disbursement_intents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obligation_intent_map_obligation_id_fkey"
+            columns: ["obligation_id"]
+            isOneToOne: false
+            referencedRelation: "obligations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      obligations: {
+        Row: {
+          amount_currency: string | null
+          amount_type: Database["public"]["Enums"]["obligation_amount_type"]
+          amount_value_minor: number | null
+          confidence_score: number | null
+          confirmed_at: string | null
+          confirmed_by_user_id: string | null
+          created_at: string
+          deal_id: string
+          extracted_by: string | null
+          formula_text: string | null
+          id: string
+          instructions_confirmed: boolean | null
+          mapped_intent_ids: Json | null
+          mapping_notes: string | null
+          mapping_status: Database["public"]["Enums"]["obligation_mapping_status"]
+          obligation_type: Database["public"]["Enums"]["obligation_type"]
+          payee_label: string | null
+          payment_instructions_source: string | null
+          payment_instructions_text: string | null
+          payor_label: string | null
+          percent_base_reference: string | null
+          percent_basis_points: number | null
+          scheduled_date: string | null
+          source_document_id: string | null
+          source_text_snippet: string | null
+          status: Database["public"]["Enums"]["obligation_status"]
+          structured_json: Json | null
+          timing_type: Database["public"]["Enums"]["obligation_timing"]
+          tolerance_minor: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount_currency?: string | null
+          amount_type?: Database["public"]["Enums"]["obligation_amount_type"]
+          amount_value_minor?: number | null
+          confidence_score?: number | null
+          confirmed_at?: string | null
+          confirmed_by_user_id?: string | null
+          created_at?: string
+          deal_id: string
+          extracted_by?: string | null
+          formula_text?: string | null
+          id?: string
+          instructions_confirmed?: boolean | null
+          mapped_intent_ids?: Json | null
+          mapping_notes?: string | null
+          mapping_status?: Database["public"]["Enums"]["obligation_mapping_status"]
+          obligation_type?: Database["public"]["Enums"]["obligation_type"]
+          payee_label?: string | null
+          payment_instructions_source?: string | null
+          payment_instructions_text?: string | null
+          payor_label?: string | null
+          percent_base_reference?: string | null
+          percent_basis_points?: number | null
+          scheduled_date?: string | null
+          source_document_id?: string | null
+          source_text_snippet?: string | null
+          status?: Database["public"]["Enums"]["obligation_status"]
+          structured_json?: Json | null
+          timing_type?: Database["public"]["Enums"]["obligation_timing"]
+          tolerance_minor?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount_currency?: string | null
+          amount_type?: Database["public"]["Enums"]["obligation_amount_type"]
+          amount_value_minor?: number | null
+          confidence_score?: number | null
+          confirmed_at?: string | null
+          confirmed_by_user_id?: string | null
+          created_at?: string
+          deal_id?: string
+          extracted_by?: string | null
+          formula_text?: string | null
+          id?: string
+          instructions_confirmed?: boolean | null
+          mapped_intent_ids?: Json | null
+          mapping_notes?: string | null
+          mapping_status?: Database["public"]["Enums"]["obligation_mapping_status"]
+          obligation_type?: Database["public"]["Enums"]["obligation_type"]
+          payee_label?: string | null
+          payment_instructions_source?: string | null
+          payment_instructions_text?: string | null
+          payor_label?: string | null
+          percent_base_reference?: string | null
+          percent_basis_points?: number | null
+          scheduled_date?: string | null
+          source_document_id?: string | null
+          source_text_snippet?: string | null
+          status?: Database["public"]["Enums"]["obligation_status"]
+          structured_json?: Json | null
+          timing_type?: Database["public"]["Enums"]["obligation_timing"]
+          tolerance_minor?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "obligations_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obligations_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ontology_approvals: {
         Row: {
           approval_type: Database["public"]["Enums"]["ontology_approval_type"]
@@ -1513,6 +1716,18 @@ export type Database = {
         | "debt_assumption"
         | "escrow_holdback"
         | "contingent"
+      contract_doc_status:
+        | "UPLOADED"
+        | "TEXT_EXTRACTED"
+        | "EXTRACTION_COMPLETE"
+        | "ERROR"
+      contract_doc_type:
+        | "SPA"
+        | "FUNDS_FLOW"
+        | "ESCROW_AGREEMENT"
+        | "PAYOFF_LETTER"
+        | "FEE_LETTER"
+        | "OTHER"
       deal_member_role:
         | "BUYER_COUNSEL"
         | "SELLER_COUNSEL"
@@ -1541,6 +1756,38 @@ export type Database = {
         | "in_review"
         | "approved"
         | "rejected"
+      obligation_amount_type:
+        | "FIXED"
+        | "PERCENT_OF_BASE"
+        | "FORMULA"
+        | "UNKNOWN"
+      obligation_mapping_status: "UNMAPPED" | "PARTIALLY_MAPPED" | "MAPPED"
+      obligation_status:
+        | "DRAFT_EXTRACTED"
+        | "NEEDS_REVIEW"
+        | "CONFIRMED"
+        | "REJECTED"
+        | "SUPERSEDED"
+      obligation_timing:
+        | "AT_CLOSING"
+        | "PRE_CLOSING"
+        | "POST_CLOSING"
+        | "ON_CONDITION"
+        | "ON_DATE"
+      obligation_type:
+        | "PURCHASE_PRICE_BASE"
+        | "PURCHASE_PRICE_ADJUSTMENT"
+        | "ESCROW_HOLD_BACK"
+        | "DEBT_PAYOFF"
+        | "SELLER_PROCEEDS"
+        | "BROKER_FEE"
+        | "LEGAL_FEE"
+        | "ADVISORY_FEE"
+        | "TAX_WITHHOLDING"
+        | "EARNOUT_RESERVE"
+        | "WORKING_CAPITAL_TRUE_UP"
+        | "INDEMNITY_RESERVE"
+        | "OTHER"
       ontology_approval_status: "PENDING" | "APPROVED" | "REJECTED"
       ontology_approval_type:
         | "LEGAL_SIGNOFF"
@@ -1707,6 +1954,20 @@ export const Constants = {
         "escrow_holdback",
         "contingent",
       ],
+      contract_doc_status: [
+        "UPLOADED",
+        "TEXT_EXTRACTED",
+        "EXTRACTION_COMPLETE",
+        "ERROR",
+      ],
+      contract_doc_type: [
+        "SPA",
+        "FUNDS_FLOW",
+        "ESCROW_AGREEMENT",
+        "PAYOFF_LETTER",
+        "FEE_LETTER",
+        "OTHER",
+      ],
       deal_member_role: [
         "BUYER_COUNSEL",
         "SELLER_COUNSEL",
@@ -1737,6 +1998,42 @@ export const Constants = {
         "in_review",
         "approved",
         "rejected",
+      ],
+      obligation_amount_type: [
+        "FIXED",
+        "PERCENT_OF_BASE",
+        "FORMULA",
+        "UNKNOWN",
+      ],
+      obligation_mapping_status: ["UNMAPPED", "PARTIALLY_MAPPED", "MAPPED"],
+      obligation_status: [
+        "DRAFT_EXTRACTED",
+        "NEEDS_REVIEW",
+        "CONFIRMED",
+        "REJECTED",
+        "SUPERSEDED",
+      ],
+      obligation_timing: [
+        "AT_CLOSING",
+        "PRE_CLOSING",
+        "POST_CLOSING",
+        "ON_CONDITION",
+        "ON_DATE",
+      ],
+      obligation_type: [
+        "PURCHASE_PRICE_BASE",
+        "PURCHASE_PRICE_ADJUSTMENT",
+        "ESCROW_HOLD_BACK",
+        "DEBT_PAYOFF",
+        "SELLER_PROCEEDS",
+        "BROKER_FEE",
+        "LEGAL_FEE",
+        "ADVISORY_FEE",
+        "TAX_WITHHOLDING",
+        "EARNOUT_RESERVE",
+        "WORKING_CAPITAL_TRUE_UP",
+        "INDEMNITY_RESERVE",
+        "OTHER",
       ],
       ontology_approval_status: ["PENDING", "APPROVED", "REJECTED"],
       ontology_approval_type: [

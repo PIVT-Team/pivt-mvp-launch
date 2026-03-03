@@ -37,12 +37,13 @@ Deno.serve(async (req) => {
     }
 
     // Fetch deal context
-    const [dealRes, approvalsRes, docsRes, intentsRes, conditionsRes] = await Promise.all([
+    const [dealRes, approvalsRes, docsRes, intentsRes, conditionsRes, obligationsRes] = await Promise.all([
       supabase.from("deals").select("*").eq("id", deal_id).single(),
       supabase.from("ontology_approvals").select("*").eq("deal_id", deal_id),
       supabase.from("ontology_documents").select("*").eq("deal_id", deal_id),
       supabase.from("disbursement_intents").select("*").eq("deal_id", deal_id),
       supabase.from("conditions").select("*").eq("deal_id", deal_id),
+      supabase.from("obligations").select("*").eq("deal_id", deal_id).eq("status", "CONFIRMED"),
     ]);
 
     if (dealRes.error) {
@@ -57,6 +58,7 @@ Deno.serve(async (req) => {
     const docs = docsRes.data || [];
     const intents = intentsRes.data || [];
     const conditions = conditionsRes.data || [];
+    const confirmedObligations = obligationsRes.data || [];
 
     const newDiscrepancies: Array<{
       deal_id: string;
@@ -213,6 +215,82 @@ Deno.serve(async (req) => {
             });
           }
           break;
+        }
+      }
+    }
+
+    // ── Obligation-based validation (against CONFIRMED obligations) ──
+    if (confirmedObligations.length > 0) {
+      for (const intent of intents) {
+        if (intent.status === "draft") continue;
+
+        // Find matching obligation by payee label fuzzy match
+        const matchingOb = confirmedObligations.find((ob: any) => {
+          if (!ob.payee_label || !intent.recipient_id) return false;
+          const payeeNorm = ob.payee_label.toLowerCase();
+          return payeeNorm.includes(intent.recipient_id.toLowerCase().slice(0, 8));
+        });
+
+        if (!matchingOb) {
+          newDiscrepancies.push({
+            deal_id,
+            object_type: "intent",
+            object_id: intent.id,
+            rule_key: "no_matching_obligation",
+            severity: "warn",
+            message: "No confirmed obligation found for this disbursement intent.",
+            details: { recipient_id: intent.recipient_id },
+          });
+          continue;
+        }
+
+        // Amount mismatch check
+        if (matchingOb.amount_type === "FIXED" && matchingOb.amount_value_minor != null) {
+          const intentAmountMinor = Math.round(Number(intent.amount_original) * 100);
+          const tolerance = Number(matchingOb.tolerance_minor) || 5000; // $50 default
+          const variance = Math.abs(intentAmountMinor - Number(matchingOb.amount_value_minor));
+          if (variance > tolerance) {
+            newDiscrepancies.push({
+              deal_id,
+              object_type: "intent",
+              object_id: intent.id,
+              rule_key: "obligation_amount_mismatch",
+              severity: "blocker",
+              message: `Amount mismatch: intent $${(intentAmountMinor / 100).toLocaleString()} vs obligation $${(Number(matchingOb.amount_value_minor) / 100).toLocaleString()}.`,
+              details: {
+                obligation_id: matchingOb.id,
+                expected_minor: matchingOb.amount_value_minor,
+                observed_minor: intentAmountMinor,
+                variance_minor: variance,
+              },
+            });
+          }
+        }
+
+        // Currency mismatch
+        if (matchingOb.amount_currency && intent.currency_original !== matchingOb.amount_currency) {
+          newDiscrepancies.push({
+            deal_id,
+            object_type: "intent",
+            object_id: intent.id,
+            rule_key: "obligation_currency_mismatch",
+            severity: "blocker",
+            message: `Currency mismatch: intent ${intent.currency_original} vs obligation ${matchingOb.amount_currency}.`,
+            details: { obligation_id: matchingOb.id },
+          });
+        }
+
+        // Wire confirmation gating
+        if (!matchingOb.instructions_confirmed && ["eligible", "executing"].includes(intent.status)) {
+          newDiscrepancies.push({
+            deal_id,
+            object_type: "intent",
+            object_id: intent.id,
+            rule_key: "obligation_instructions_unconfirmed",
+            severity: "blocker",
+            message: "Payment instructions not confirmed on matched obligation.",
+            details: { obligation_id: matchingOb.id },
+          });
         }
       }
     }
