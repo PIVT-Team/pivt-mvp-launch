@@ -32,14 +32,14 @@ import { CommunicationsHub } from './cover/CommunicationsHub';
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 import { SupportPanel } from '../support/SupportPanel';
-import { PaymentsExecutionCover } from './cover/PaymentsExecutionCover';
 import { OntologyCover } from './cover/OntologyCover';
-import { DiscrepancyPanelCover } from './cover/DiscrepancyPanelCover';
+import { PortfolioPaymentsCover } from './cover/PortfolioPaymentsCover';
+import { RiskMonitorCover } from './cover/RiskMonitorCover';
 
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
   'payments', 'ingestion', 'closing', 'verification', 'cap-table',
-  'waterfall', 'kyc', 'deal-inputs',
+  'waterfall', 'kyc', 'deal-inputs', 'execution',
 ]);
 
 const coverSections: Record<string, React.FC> = {
@@ -54,9 +54,9 @@ const coverSections: Record<string, React.FC> = {
   timeline: TimelineCover,
   ai: AIDashboardCover,
   communications: CommunicationsHub,
-  'payments-execution': PaymentsExecutionCover,
+  'portfolio-payments': PortfolioPaymentsCover,
+  'risk-monitor': RiskMonitorCover,
   'ontology': OntologyCover,
-  'discrepancy-engine': DiscrepancyPanelCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {

@@ -30,7 +30,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
         { label: 'Communications', icon: MessageSquareText, path: 'communications', iconColor: '#2F6BFF' },
         { label: 'Reports', icon: FileBarChart, path: 'reports', iconColor: '#22C55E' },
         { label: 'Audit Log', icon: History, path: 'audit', iconColor: '#94A3B8' },
-        { label: 'Payments', icon: Banknote, path: 'payments-execution', iconColor: '#10B981' },
+        { label: 'Portfolio Payments', icon: Banknote, path: 'portfolio-payments', iconColor: '#10B981' },
       ],
     },
     {
@@ -41,7 +41,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
         { label: 'Newton Chatbot', icon: Brain, path: 'newton', iconColor: '#3EC7FF' },
         { label: 'Support', icon: HelpCircle, path: 'support', iconColor: '#22C55E' },
         { label: 'Ontology', icon: BookOpen, path: 'ontology', iconColor: '#8B5CF6' },
-        { label: 'Discrepancy Engine', icon: ShieldAlert, path: 'discrepancy-engine', iconColor: '#EF4444' },
+        { label: 'Risk Monitor', icon: ShieldAlert, path: 'risk-monitor', iconColor: '#EF4444' },
       ],
     },
     {
