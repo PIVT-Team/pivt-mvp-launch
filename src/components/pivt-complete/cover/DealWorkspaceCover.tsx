@@ -24,6 +24,7 @@ import { DealActivityCover } from './DealActivityCover';
 import { AIDashboardCover } from './AIDashboardCover';
 import { CommentsCover } from './CommentsCover';
 import { DealInputsCover } from './DealInputsCover';
+import { DiscrepancyPanelCover } from './DiscrepancyPanelCover';
 
 // ── Workflow helpers ──
 function getNextAction(state: DealWorkflowState, discrepancies: number, pendingApprovals: number): string {
@@ -56,7 +57,7 @@ const AUDIT_ENTRIES = [
 ];
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'verification' | 'structuring' | 'obligations' | 'execution' | 'compliance' | 'comments' | 'ai';
+type StepId = 'overview' | 'stakeholders' | 'verification' | 'structuring' | 'deal-inputs' | 'execution' | 'compliance' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -76,15 +77,18 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'waterfall', label: 'Waterfall' },
     { id: 'deal-inputs', label: 'Deal Inputs' },
   ],
-  obligations: [
-    { id: 'documents', label: 'Documents' },
-    { id: 'extracted', label: 'Obligations' },
+  'deal-inputs': [
+    { id: 'financial', label: 'Financial Inputs' },
+    { id: 'contracts', label: 'Contract Inputs' },
+    { id: 'obligations', label: 'Obligations' },
     { id: 'readiness', label: 'Readiness' },
   ],
   execution: [
-    { id: 'approvals', label: 'Approvals' },
+    { id: 'intents', label: 'Disbursement Intents' },
     { id: 'payments', label: 'Payments' },
+    { id: 'discrepancies', label: 'Discrepancies' },
     { id: 'escrow', label: 'Escrow' },
+    { id: 'approvals', label: 'Approvals' },
   ],
   compliance: [
     { id: 'audit', label: 'Audit Log' },
@@ -236,12 +240,15 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC {
       if (subNavId === 'waterfall') return WaterfallCover;
       if (subNavId === 'deal-inputs') return DealInputsCover;
       return CapTableCover;
-    case 'obligations':
+    case 'deal-inputs':
       return DealInputsCover;
     case 'execution':
+      if (subNavId === 'intents') return PaymentsCover;
       if (subNavId === 'payments') return PaymentsCover;
+      if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
-      return ApprovalsCover;
+      if (subNavId === 'approvals') return ApprovalsCover;
+      return PaymentsCover;
     case 'compliance':
       if (subNavId === 'reports') return DealReportsCover;
       if (subNavId === 'activity') return DealActivityCover;
@@ -317,7 +324,7 @@ export const DealWorkspaceCover: React.FC = () => {
     { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 85, blockers: deal.hasBlocker ? 1 : 0 },
     { id: 'verification', number: 3, label: 'Verification', completionPct: 72, blockers: 1 },
     { id: 'structuring', number: 4, label: 'Structuring', completionPct: 64, blockers: deal.discrepanciesFound },
-    { id: 'obligations', number: 5, label: 'Obligations', completionPct: 45, blockers: 2 },
+    { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: 45, blockers: 2 },
     { id: 'execution', number: 6, label: 'Execution', completionPct: deal.pendingApprovals > 0 ? 50 : 100, blockers: deal.pendingApprovals },
     { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
     { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
