@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
   Users, Plug, CheckCircle2,
-  Plus, Edit, Globe, Key, Bell, Lock, TrendingUp, Shield,
+  Plus, TrendingUp,
   RotateCw, Copy, Trash2, MoreHorizontal,
+  Zap, Clock, Rocket, Link2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useTeamStore, TeamRole, ROLE_PERMISSIONS } from '@/stores/teamStore';
@@ -13,25 +14,9 @@ import { toast } from 'sonner';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { INTEGRATIONS, STATUS_CONFIG, type IntegrationStatus } from '@/config/integrations';
 
 type SettingsTab = 'team' | 'integrations' | 'escrow-defaults';
-
-interface Integration {
-  id: string; name: string; description: string;
-  status: 'connected' | 'available' | 'coming-soon';
-  icon: React.ElementType; category: string;
-}
-
-const INTEGRATIONS: Integration[] = [
-  { id: 'docusign', name: 'DocuSign', description: 'E-signature for deal documents', status: 'connected', icon: Edit, category: 'Legal' },
-  { id: 'plaid', name: 'Plaid', description: 'Bank account verification', status: 'connected', icon: Shield, category: 'Banking' },
-  { id: 'stripe', name: 'Stripe', description: 'Payment processing', status: 'available', icon: Key, category: 'Payments' },
-  { id: 'slack', name: 'Slack', description: 'Team notifications', status: 'connected', icon: Bell, category: 'Communication' },
-  { id: 'bloomberg', name: 'Bloomberg Terminal', description: 'Market data and analytics', status: 'available', icon: Globe, category: 'Data' },
-  { id: 'carta', name: 'Carta', description: 'Cap table management sync', status: 'coming-soon', icon: Users, category: 'Cap Table' },
-  { id: 'salesforce', name: 'Salesforce', description: 'CRM integration', status: 'available', icon: Globe, category: 'CRM' },
-  { id: 'aws', name: 'AWS S3', description: 'Document storage', status: 'connected', icon: Lock, category: 'Storage' },
-];
 
 const roleColors: Record<TeamRole, string> = {
   'Admin': 'border-accent/50 text-accent',
@@ -56,6 +41,76 @@ function timeAgo(dateStr?: string): string {
 
 const PERMISSION_LABELS = ['Create Deals', 'Edit Waterfall', 'Approve Payouts', 'View Documents', 'Manage Team', 'Configure Settings', 'KYC/KYB', 'Payments/Escrow', 'Reports'];
 const PERMISSION_ROLES: TeamRole[] = ['Admin', 'Deal Manager', 'Finance Ops', 'Compliance', 'Viewer'];
+
+const SECTION_ORDER: { status: IntegrationStatus; title: string; icon: React.ElementType }[] = [
+  { status: 'connected', title: 'Active Connections', icon: Zap },
+  { status: 'pending', title: 'Pending Setup', icon: Clock },
+  { status: 'available', title: 'Available to Connect', icon: Link2 },
+  { status: 'coming-soon', title: 'Coming Soon', icon: Rocket },
+];
+
+const IntegrationsPanel: React.FC = () => {
+  const grouped = useMemo(() => {
+    const map: Record<IntegrationStatus, typeof INTEGRATIONS> = { connected: [], available: [], pending: [], 'coming-soon': [] };
+    INTEGRATIONS.forEach(i => map[i.status].push(i));
+    return map;
+  }, []);
+
+  return (
+    <motion.div key="integrations" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {SECTION_ORDER.map(s => (
+          <div key={s.status} className="pivt-card p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-muted/50"><s.icon className="w-4 h-4 text-accent" /></div>
+            <div>
+              <p className="text-xl font-semibold">{grouped[s.status].length}</p>
+              <p className="text-xs text-muted-foreground">{s.title}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      {SECTION_ORDER.map(s => {
+        const items = grouped[s.status];
+        if (!items.length) return null;
+        return (
+          <div key={s.status} className="space-y-3">
+            <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wider">{s.title}</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {items.map(integ => {
+                const cfg = STATUS_CONFIG[integ.status];
+                return (
+                  <motion.div key={integ.id} {...fadeInUp} className="pivt-card p-5">
+                    <div className="flex items-start gap-4">
+                      <div className="p-2 rounded-lg bg-muted/50">
+                        <integ.icon className="w-5 h-5 text-accent" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-medium text-sm">{integ.name}</h4>
+                          <Badge variant="outline" className={`text-[9px] ${cfg.className}`}>{cfg.label}</Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{integ.description}</p>
+                      </div>
+                      {integ.status === 'available' && (
+                        <button className="text-xs px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors font-medium shrink-0">Connect</button>
+                      )}
+                      {integ.status === 'connected' && (
+                        <button className="text-xs px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors shrink-0">Configure</button>
+                      )}
+                      {integ.status === 'pending' && (
+                        <button className="text-xs px-3 py-1.5 rounded-lg bg-amber-400/10 text-amber-400 hover:bg-amber-400/20 transition-colors font-medium shrink-0">Setup</button>
+                      )}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </motion.div>
+  );
+};
 
 export const SettingsCover: React.FC = () => {
   const [activeTab, setActiveTab] = useState<SettingsTab>('team');
@@ -246,34 +301,7 @@ export const SettingsCover: React.FC = () => {
 
         {/* Integrations */}
         {activeTab === 'integrations' && (
-          <motion.div key="integrations" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {INTEGRATIONS.map(integ => (
-                <motion.div key={integ.id} {...fadeInUp} className="pivt-card p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="p-2 rounded-lg bg-muted/50">
-                      <integ.icon className="w-5 h-5 text-accent" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-medium text-sm">{integ.name}</h4>
-                        <Badge variant="outline" className={`text-[9px] ${integ.status === 'connected' ? 'border-validated/50 text-validated' : integ.status === 'coming-soon' ? 'border-muted-foreground/50 text-muted-foreground' : 'border-accent/50 text-accent'}`}>
-                          {integ.status === 'coming-soon' ? 'Coming Soon' : integ.status}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{integ.description}</p>
-                    </div>
-                    {integ.status === 'available' && (
-                      <button className="text-xs px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors font-medium shrink-0">Connect</button>
-                    )}
-                    {integ.status === 'connected' && (
-                      <button className="text-xs px-3 py-1.5 rounded-lg bg-muted text-muted-foreground hover:bg-muted/80 transition-colors shrink-0">Configure</button>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+          <IntegrationsPanel />
         )}
 
         {/* Escrow Defaults */}
