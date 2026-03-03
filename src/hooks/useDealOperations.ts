@@ -16,22 +16,6 @@ export interface RealDeal {
   seed_key: string | null;
 }
 
-const TEMPLATE_CONDITIONS = [
-  "Regulatory Approval Received",
-  "Board Resolution Approved",
-  "All KYC/KYB Verified",
-  "Docs Executed",
-  "Escrow Funded",
-];
-
-const TEMPLATE_CAP_TABLE = [
-  { shareholder_name: "Founder A", ownership_pct: 30, payout_amount: 0 },
-  { shareholder_name: "Founder B", ownership_pct: 20, payout_amount: 0 },
-  { shareholder_name: "Series A Investor", ownership_pct: 15, payout_amount: 0 },
-  { shareholder_name: "Series B Investor", ownership_pct: 10, payout_amount: 0 },
-  { shareholder_name: "Employee Option Pool", ownership_pct: 7, payout_amount: 0 },
-  { shareholder_name: "Other Investors", ownership_pct: 18, payout_amount: 0 },
-];
 
 export function useDealOperations() {
   const { user } = useAuth();
@@ -79,46 +63,6 @@ export function useDealOperations() {
     return data as RealDeal;
   };
 
-  const createDealFromTemplate = async (): Promise<RealDeal | null> => {
-    const deal = await createDeal({
-      deal_name: "New Template Deal",
-      deal_value: 50_000_000,
-      closing_date: new Date(Date.now() + 90 * 86400000).toISOString().split("T")[0],
-      escrow_amount: 5_000_000,
-    });
-
-    if (!deal) return null;
-
-    // Seed conditions
-    const conditionRows = TEMPLATE_CONDITIONS.map((title) => ({
-      deal_id: deal.id,
-      title,
-      status: "NOT_STARTED" as const,
-    }));
-    await supabase.from("conditions").insert(conditionRows);
-
-    // Seed cap table
-    const capRows = TEMPLATE_CAP_TABLE.map((entry) => ({
-      deal_id: deal.id,
-      shareholder_name: entry.shareholder_name,
-      ownership_pct: entry.ownership_pct,
-      payout_amount: Math.round(deal.deal_value * entry.ownership_pct / 100),
-    }));
-    await supabase.from("cap_table_entries").insert(capRows);
-
-    // Audit log (only if authenticated)
-    if (user) {
-      await supabase.from("audit_log").insert({
-        deal_id: deal.id,
-        user_id: user.id,
-        action: "DEAL_CREATED_FROM_TEMPLATE",
-        details: { template: "default", deal_name: deal.deal_name },
-      });
-    }
-
-    toast({ title: "Deal created from template" });
-    return deal;
-  };
 
   const fetchDeals = async (): Promise<RealDeal[]> => {
     const { data } = await supabase
@@ -137,5 +81,5 @@ export function useDealOperations() {
     return data as RealDeal | null;
   };
 
-  return { createDeal, createDealFromTemplate, fetchDeals, fetchDeal };
+  return { createDeal, fetchDeals, fetchDeal };
 }
