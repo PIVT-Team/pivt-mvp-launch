@@ -328,7 +328,7 @@ export const PIVTCompleteUnified: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={springConfig.standard}
-            className="p-10 lg:p-14 max-w-6xl mx-auto w-full"
+            className={activeSection === 'intelligence-map' ? 'p-4 w-full flex-1' : 'p-10 lg:p-14 max-w-6xl mx-auto w-full'}
           >
             <ActiveCoverSection />
           </motion.div>
