@@ -96,13 +96,13 @@ const DEMO_CARDS: DemoCardData[] = [
 ];
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; text: string }> = {
-  active: { label: 'active', bg: 'bg-amber-100', text: 'text-amber-700' },
-  ready: { label: 'ready', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  active: { label: 'active', bg: 'bg-accent/10', text: 'text-accent' },
+  ready: { label: 'ready', bg: 'bg-validated/10', text: 'text-validated' },
   setup: { label: 'setup', bg: 'bg-muted', text: 'text-muted-foreground' },
   draft: { label: 'draft', bg: 'bg-muted', text: 'text-muted-foreground' },
-  closing: { label: 'closing', bg: 'bg-orange-100', text: 'text-orange-700' },
-  closed: { label: 'closed', bg: 'bg-emerald-100', text: 'text-emerald-700' },
-  settled: { label: 'settled', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  closing: { label: 'closing', bg: 'bg-discrepancy/10', text: 'text-discrepancy' },
+  closed: { label: 'closed', bg: 'bg-validated/10', text: 'text-validated' },
+  settled: { label: 'settled', bg: 'bg-validated/10', text: 'text-validated' },
 };
 
 const fmt = (n: number) => {
@@ -112,12 +112,8 @@ const fmt = (n: number) => {
   return `$${n.toLocaleString()}`;
 };
 
-// ── Progress bar color logic ──
-function progressColor(pct: number): string {
-  if (pct >= 90) return 'bg-emerald-500';
-  if (pct >= 50) return 'bg-amber-500';
-  return 'bg-orange-500';
-}
+// ── Progress bar uses PIVT purple gradient ──
+const PROGRESS_BAR_STYLE = 'bg-gradient-to-r from-accent to-[hsl(217,100%,55%)]';
 
 // ── Demo Deal Card ──
 const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ deal, onClick }) => {
@@ -160,14 +156,14 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
       {/* Readiness bar */}
       <div className="px-5 pb-1">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-orange-600 font-medium">Ready to disburse</span>
+          <span className="text-[11px] text-accent font-medium">Ready to disburse</span>
           <span className="text-[11px] font-mono font-semibold text-right">
             {fmt(deal.executedAmount)} ({deal.executedPercent}%)
           </span>
         </div>
         <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all ${progressColor(deal.executedPercent)}`}
+            className={`h-full rounded-full transition-all ${PROGRESS_BAR_STYLE}`}
             style={{ width: `${Math.max(deal.executedPercent, 1)}%` }}
           />
         </div>
@@ -176,15 +172,15 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
       {/* Body: 2 columns */}
       <div className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Buyer/Borrower</p>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
           <p className="font-medium text-foreground text-sm">{deal.buyerBorrower}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Sector</p>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Sector</p>
           <p className="font-medium text-foreground text-sm">{deal.sector}</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Waterfall Tiers</p>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Waterfall Tiers</p>
           <p className="font-medium text-foreground text-sm">{deal.waterfallTiers} tiers</p>
         </div>
       </div>
@@ -192,6 +188,10 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
       {/* Footer */}
       <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Hash className="w-3.5 h-3.5" />
+            {deal.dealNumber}
+          </span>
           <span className="flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5" />
             {deal.closingDate}
@@ -250,22 +250,22 @@ const RealDealCard: React.FC<{ deal: RealDeal; letter: string; onClick: () => vo
       {/* Progress bar placeholder */}
       <div className="px-5 pb-1">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-orange-600 font-medium">Ready to disburse</span>
+          <span className="text-[11px] text-accent font-medium">Ready to disburse</span>
           <span className="text-[11px] font-mono font-semibold text-right">$0 (0%)</span>
         </div>
         <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div className="h-full rounded-full bg-orange-500" style={{ width: '1%' }} />
+          <div className={`h-full rounded-full ${PROGRESS_BAR_STYLE}`} style={{ width: '1%' }} />
         </div>
       </div>
 
       {/* Body */}
       <div className="px-5 py-3 grid grid-cols-2 gap-x-8 text-sm">
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Buyer/Borrower</p>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
           <p className="font-medium text-foreground text-sm">—</p>
         </div>
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Sector</p>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Sector</p>
           <p className="font-medium text-foreground text-sm">—</p>
         </div>
       </div>
