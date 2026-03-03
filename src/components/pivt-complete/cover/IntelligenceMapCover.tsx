@@ -427,30 +427,35 @@ export const IntelligenceMapCover: React.FC = () => {
       });
     }
 
-    // Obligation nodes — between documents and payments
+    // Obligation nodes — positioned between documents and payments with doc→obligation edges
     if (filters.obligation !== false) {
       const obligationDemos = [
-        { id: 'ob-1', label: 'Base Purchase Price', status: 'CONFIRMED' },
-        { id: 'ob-2', label: 'Escrow Holdback', status: 'NEEDS_REVIEW' },
-        { id: 'ob-3', label: 'Debt Payoff', status: 'CONFIRMED' },
-        { id: 'ob-4', label: 'Legal Fees', status: 'DRAFT_EXTRACTED' },
+        { id: 'ob-1', label: 'Base Purchase Price', status: 'CONFIRMED', sourceDoc: documents[0]?.id },
+        { id: 'ob-2', label: 'Escrow Holdback', status: 'NEEDS_REVIEW', sourceDoc: documents[0]?.id },
+        { id: 'ob-3', label: 'Debt Payoff', status: 'CONFIRMED', sourceDoc: documents[1]?.id },
+        { id: 'ob-4', label: 'Legal Fees', status: 'DRAFT_EXTRACTED', sourceDoc: documents[2]?.id },
+        { id: 'ob-5', label: 'Broker Fee', status: 'NEEDS_REVIEW', sourceDoc: documents[1]?.id },
       ];
       obligationDemos.forEach((ob, i) => {
-        const angle = (Math.PI / 4) + (i - obligationDemos.length / 2) * 0.4;
+        const angle = (Math.PI / 4) + (i - obligationDemos.length / 2) * 0.35;
         const risk: GraphNode['riskLevel'] = ob.status === 'DRAFT_EXTRACTED' ? 'warning' : ob.status === 'NEEDS_REVIEW' ? 'info' : 'none';
         ns.push({
           id: ob.id, label: ob.label, type: 'obligation',
           x: cx + Math.cos(angle) * 195, y: cy + Math.sin(angle) * 158,
           color: typeColors.obligation, size: 19, riskLevel: risk,
-          metadata: { status: ob.status, type: 'obligation' },
+          metadata: { status: ob.status, type: 'obligation', obligationType: ob.label },
         });
+        // Document → Obligation edge (contract extraction provenance)
+        if (filters.document && ob.sourceDoc) {
+          es.push({ from: ob.sourceDoc, to: ob.id, label: 'extracts_obligation', strength: 0.6 });
+        }
         es.push({ from: deal.id, to: ob.id, label: 'requires' });
       });
-      // Link obligations to matching payments
+      // Obligation → Disbursement Intent edges (mapping)
       if (filters.payment) {
-        payments.forEach(p => {
-          const matchOb = obligationDemos.find(ob => ob.status === 'CONFIRMED');
-          if (matchOb) es.push({ from: matchOb.id, to: p.id, label: 'maps_to_intent', strength: 0.4 });
+        payments.forEach((p, i) => {
+          const matchOb = obligationDemos.filter(ob => ob.status === 'CONFIRMED')[i];
+          if (matchOb) es.push({ from: matchOb.id, to: p.id, label: 'maps_to_intent', strength: 0.5 });
         });
       }
     }
