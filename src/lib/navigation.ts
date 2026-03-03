@@ -40,6 +40,8 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
         { label: 'AI Deal Scan', icon: Brain, path: 'ai', iconColor: '#5E3BEE' },
         { label: 'Newton Chatbot', icon: Brain, path: 'newton', iconColor: '#3EC7FF' },
         { label: 'Support', icon: HelpCircle, path: 'support', iconColor: '#22C55E' },
+        { label: 'Ontology', icon: BookOpen, path: 'ontology', iconColor: '#8B5CF6' },
+        { label: 'Discrepancy Engine', icon: ShieldAlert, path: 'discrepancy-engine', iconColor: '#EF4444' },
       ],
     },
     {
@@ -47,8 +49,6 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
       items: [
         { label: 'Team & Roles', icon: Users, path: 'settings', iconColor: '#94A3B8' },
         { label: 'Integrations', icon: Plug, path: 'integrations', iconColor: '#F59E0B' },
-        { label: 'Ontology', icon: BookOpen, path: 'ontology', iconColor: '#8B5CF6' },
-        { label: 'Discrepancy Engine', icon: ShieldAlert, path: 'discrepancy-engine', iconColor: '#EF4444' },
       ],
     },
   ],
