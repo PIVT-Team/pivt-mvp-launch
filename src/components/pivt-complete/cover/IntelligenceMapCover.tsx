@@ -844,12 +844,12 @@ export const IntelligenceMapCover: React.FC = () => {
 
                   let strokeColor = 'rgba(168,162,200,0.7)';
                   let strokeOp = visible ? 0.3 : 0.08;
-                  let strokeW = e.strength ? Math.max(1.8, e.strength * 2) : 1.8;
+                  let strokeW = e.strength ? Math.max(3, e.strength * 4) : 3;
 
                   if (highlighted) {
                     strokeColor = '#A78BFA';
                     strokeOp = 0.7;
-                    strokeW = 2.5;
+                    strokeW = 4.5;
                   } else if (dimmedEdge) {
                     strokeOp = 0.08;
                   }
@@ -917,29 +917,16 @@ export const IntelligenceMapCover: React.FC = () => {
                         stroke={showHalo ? riskHaloColors[node.riskLevel!] : isHovered ? '#fff' : 'transparent'}
                         strokeWidth={showHalo ? 2.5 : 2}
                       />
-                      {/* Label — high contrast for dark bg */}
+                      {/* Label */}
                       {showLabel && (
-                        <>
-                          <text x={node.x} y={node.y + node.size / 2 + 20}
-                            textAnchor="middle"
-                            fill="#0F0F1A"
-                            fontSize={isDealNode ? 15 : 13}
-                            fontWeight={isDealNode || isHovered ? 700 : 500}
-                            stroke="#0F0F1A"
-                            strokeWidth="4"
-                            strokeLinejoin="round"
-                          >
-                            {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
-                          </text>
-                          <text x={node.x} y={node.y + node.size / 2 + 20}
-                            textAnchor="middle"
-                            fill={isHovered ? '#fff' : 'rgba(255,255,255,0.85)'}
-                            fontSize={isDealNode ? 15 : 13}
-                            fontWeight={isDealNode || isHovered ? 700 : 500}
-                          >
-                            {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
-                          </text>
-                        </>
+                        <text x={node.x} y={node.y + node.size / 2 + 28}
+                          textAnchor="middle"
+                          fill="hsl(var(--foreground))"
+                          fontSize={isDealNode ? 28 : 22}
+                          fontWeight={isDealNode || isHovered ? 700 : 600}
+                        >
+                          {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
+                        </text>
                       )}
                     </g>
                   );
@@ -955,9 +942,9 @@ export const IntelligenceMapCover: React.FC = () => {
                 const count = nodes.filter(n => n.type === type).length;
                 if (count === 0) return null;
                 return (
-                  <div key={type} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] cursor-default" style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}>
-                    <div className="w-2 h-2 rounded-full" style={{ background: color }} />
-                    <span className="text-white/60 capitalize">{type}</span>
+                  <div key={type} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs cursor-default border border-border/30 bg-background/80 backdrop-blur-sm">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+                    <span className="text-muted-foreground capitalize">{type}</span>
                     <span className="text-white font-semibold">{count}</span>
                   </div>
                 );
