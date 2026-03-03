@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { usePIVTStore, useSelectedDeal, DealWorkflowState } from '@/stores/pivtStore';
+import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
   ArrowLeft, AlertTriangle, Ban,
@@ -9,6 +9,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { DealWorkflowStepper, WorkflowStep, deriveStatus } from './DealWorkflowStepper';
+import { supabase } from '@/integrations/supabase/client';
+import type { RealDeal } from '@/hooks/useDealOperations';
 
 // Import existing cover pages
 import { StakeholdersDealTab } from './StakeholdersDealTab';
@@ -28,33 +30,16 @@ import { DiscrepancyPanelCover } from './DiscrepancyPanelCover';
 import { ExecutionAuthorityPanel } from './ExecutionAuthorityPanel';
 
 // ── Workflow helpers ──
-function getNextAction(state: DealWorkflowState, discrepancies: number, pendingApprovals: number): string {
-  switch (state) {
-    case 'draft': return 'Upload Seller Cap Table';
-    case 'data_uploaded': return 'Run reconciliation to validate data';
-    case 'reconciliation':
-      return discrepancies > 0 ? `Resolve ${discrepancies} discrepancies` : 'All checks passed — submit for approval';
-    case 'awaiting_approval':
-      return pendingApprovals > 0 ? `Awaiting ${pendingApprovals} approval(s)` : 'All approvals received';
-    case 'approved': return 'Ready to release funds';
-    case 'closed': return 'Deal closed successfully';
-    default: return '';
-  }
-}
-
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
-  { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for a16z trust account', severity: 'critical' as const, resolved: false },
-  { id: 3, field: 'Tax ID', desc: 'GIC Singapore entity TIN mismatch', severity: 'warning' as const, resolved: true },
+  { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for trust account', severity: 'critical' as const, resolved: false },
+  { id: 3, field: 'Tax ID', desc: 'Entity TIN mismatch', severity: 'warning' as const, resolved: true },
 ];
 
 const AUDIT_ENTRIES = [
-  { time: '2026-02-14 09:12', action: 'Waterfall Schedule v3 uploaded', actor: 'Deal Admin' },
-  { time: '2026-02-13 16:45', action: 'KYC verification failed — GIC Private Limited', actor: 'System' },
-  { time: '2026-02-12 11:00', action: 'Buyer Counsel approved payout execution', actor: 'Buyer Counsel' },
-  { time: '2026-02-10 14:32', action: 'Cap table reconciliation triggered', actor: 'Deal Admin' },
-  { time: '2026-02-08 10:15', action: 'Escrow account funded — $280M', actor: 'Escrow Agent' },
-  { time: '2026-02-05 08:00', action: 'Deal created', actor: 'Deal Admin' },
+  { time: 'Recent', action: 'Waterfall Schedule uploaded', actor: 'Deal Admin' },
+  { time: 'Recent', action: 'KYC verification triggered', actor: 'System' },
+  { time: 'Recent', action: 'Deal created', actor: 'Deal Admin' },
 ];
 
 // ── Step definitions ──
@@ -106,15 +91,20 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   needs_attention: { label: 'Attention', className: 'bg-red-400/10 text-red-400' },
 };
 
+const formatCurrency = (n: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+
 // ── Section Components ──
-const OverviewSection: React.FC = () => {
-  const deal = useSelectedDeal();
-  const { stakeholders } = usePIVTStore();
-  const nextAction = getNextAction(deal.workflowState, deal.discrepanciesFound, deal.pendingApprovals);
+const OverviewSection: React.FC<{ realDeal?: RealDeal | null }> = ({ realDeal }) => {
+  const demoDeal = useSelectedDeal();
+
+  // Use real deal data if available
+  const dealName = realDeal?.deal_name || demoDeal.codeName;
+  const dealValue = realDeal ? realDeal.deal_value : demoDeal.consideration;
+  const status = realDeal?.status || demoDeal.status;
 
   return (
     <div className="space-y-8">
-      {/* V2 Next Action Panel */}
       <motion.div {...fadeInUp} className="pivt-next-action p-5">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-accent/12 flex items-center justify-center pivt-icon-pulse">
@@ -122,58 +112,25 @@ const OverviewSection: React.FC = () => {
           </div>
           <div>
             <p className="pivt-metric-label">Next Required Action</p>
-            <p className="text-sm font-semibold mt-0.5">{nextAction}</p>
+            <p className="text-sm font-semibold mt-0.5">
+              {status === 'draft' ? 'Upload Seller Cap Table' : 'Continue deal setup'}
+            </p>
           </div>
         </div>
       </motion.div>
 
       <div className="grid grid-cols-4 gap-5">
         {[
-          { label: 'Recipients', value: deal.totalRecipients },
-          { label: 'Documents', value: deal.documentsUploaded },
-          { label: 'Discrepancies', value: deal.discrepanciesFound, color: deal.discrepanciesFound > 0 ? 'text-discrepancy' : 'text-validated' },
-          { label: 'Pending Approvals', value: deal.pendingApprovals, color: deal.pendingApprovals > 0 ? 'text-discrepancy' : 'text-validated' },
+          { label: 'Deal Value', value: formatCurrency(dealValue) },
+          { label: 'Status', value: status.charAt(0).toUpperCase() + status.slice(1) },
+          { label: 'Escrow', value: formatCurrency(realDeal?.escrow_amount || 0) },
+          { label: 'Closing', value: realDeal?.closing_date || 'TBD' },
         ].map(stat => (
           <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-6">
             <p className="pivt-metric-label">{stat.label}</p>
-            <p className={`pivt-stat text-2xl mt-3 ${stat.color || ''}`}>{stat.value}</p>
+            <p className="pivt-stat text-2xl mt-3">{stat.value}</p>
           </motion.div>
         ))}
-      </div>
-
-      <div className="pivt-card p-6 space-y-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Users className="w-4 h-4 text-accent" />
-          <h3 className="font-medium text-sm">Top Shareholders</h3>
-        </div>
-        {stakeholders.slice(0, 4).map(s => (
-          <div key={s.id} className="flex items-center justify-between text-sm py-2 border-b border-border/30 last:border-0">
-            <span>{s.name}</span>
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-muted-foreground">{s.ownershipPct}%</span>
-              <span className="font-mono text-xs">${(s.payoutAmount / 1e6).toFixed(0)}M</span>
-              <Badge className={`text-[9px] ${s.kycStatus === 'verified' ? 'bg-validated/10 text-validated' : s.kycStatus === 'failed' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
-                {s.kycStatus}
-              </Badge>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="pivt-card p-5">
-        <div className="flex items-center justify-between mb-2">
-          <span className="pivt-metric-label">Ready to Pay</span>
-          <span className="font-mono text-sm font-medium">{deal.readyToPayPercent}%</span>
-        </div>
-        <div className="w-full h-2 bg-muted/40 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full rounded-full"
-            style={{ background: 'linear-gradient(90deg, hsl(var(--g5-from)), hsl(var(--g5-to)))' }}
-            initial={{ width: 0 }}
-            animate={{ width: `${deal.readyToPayPercent}%` }}
-            transition={{ duration: 1, ease: [0.23, 1, 0.32, 1] }}
-          />
-        </div>
       </div>
     </div>
   );
@@ -186,7 +143,6 @@ const ReconciliationSection: React.FC = () => (
       <h3 className="font-medium">Reconciliation Results</h3>
       <span className="text-xs text-muted-foreground ml-auto">{DISCREPANCIES.filter(d => !d.resolved).length} unresolved</span>
     </div>
-    <p className="text-xs text-muted-foreground mb-4">Newton AI validation findings. Discrepancy resolution tracked automatically.</p>
     <div className="space-y-2">
       {DISCREPANCIES.map(disc => (
         <div key={disc.id} className={`pivt-card p-4 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/4' : 'border-discrepancy bg-discrepancy/4'} ${disc.resolved ? 'opacity-50' : ''}`}>
@@ -228,7 +184,7 @@ const DealAuditSection: React.FC = () => (
 );
 
 // ── Content resolver ──
-function getContentComponent(stepId: StepId, subNavId?: string): React.FC {
+function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
   switch (stepId) {
     case 'overview': return OverviewSection;
     case 'stakeholders':
@@ -311,10 +267,35 @@ const SectionWithSideTabs: React.FC<{
 
 // ── Main Component ──
 export const DealWorkspaceCover: React.FC = () => {
-  const deal = useSelectedDeal();
-  const { setActiveSection } = usePIVTStore();
+  const { selectedDealId, setActiveSection } = usePIVTStore();
+  const demoDeal = useSelectedDeal();
   const [activeStepId, setActiveStepId] = useState<StepId>('overview');
   const [activeSubNav, setActiveSubNav] = useState<string | undefined>();
+  const [realDeal, setRealDeal] = useState<RealDeal | null>(null);
+  const [loadingDeal, setLoadingDeal] = useState(false);
+
+  // Check if selectedDealId looks like a UUID (real deal) vs demo id
+  const isRealDeal = selectedDealId && selectedDealId.includes('-') && selectedDealId.length > 10;
+
+  useEffect(() => {
+    if (isRealDeal) {
+      setLoadingDeal(true);
+      supabase.from('deals').select('*').eq('id', selectedDealId).single()
+        .then(({ data }) => {
+          setRealDeal(data as RealDeal | null);
+          setLoadingDeal(false);
+        });
+    } else {
+      setRealDeal(null);
+    }
+  }, [selectedDealId, isRealDeal]);
+
+  // If no deal selected, redirect
+  useEffect(() => {
+    if (!selectedDealId) {
+      setActiveSection('deals');
+    }
+  }, [selectedDealId]);
 
   const handleStepClick = (id: string) => {
     setActiveStepId(id as StepId);
@@ -322,17 +303,26 @@ export const DealWorkspaceCover: React.FC = () => {
     setActiveSubNav(subs ? subs[0].id : undefined);
   };
 
+  // Derive display values
+  const dealName = realDeal?.deal_name || demoDeal.codeName;
+  const dealNumber = realDeal?.deal_number || demoDeal.dealNumber;
+  const dealValue = realDeal ? realDeal.deal_value : demoDeal.consideration;
+  const closingDate = realDeal?.closing_date || demoDeal.closingDate;
+  const dealStatus = realDeal?.status || demoDeal.status;
+  const hasBlocker = !isRealDeal && demoDeal.hasBlocker;
+  const readyPct = isRealDeal ? (dealStatus === 'closed' ? 100 : dealStatus === 'active' ? 50 : 10) : demoDeal.readyToPayPercent;
+
   const workflowSteps: WorkflowStep[] = useMemo(() => [
     { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-    { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 85, blockers: deal.hasBlocker ? 1 : 0 },
-    { id: 'verification', number: 3, label: 'Verification', completionPct: 72, blockers: 1 },
-    { id: 'structuring', number: 4, label: 'Structuring', completionPct: 64, blockers: deal.discrepanciesFound },
-    { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: 45, blockers: 2 },
-    { id: 'execution', number: 6, label: 'Execution', completionPct: deal.pendingApprovals > 0 ? 50 : 100, blockers: deal.pendingApprovals },
+    { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: isRealDeal ? 0 : 85, blockers: 0 },
+    { id: 'verification', number: 3, label: 'Verification', completionPct: isRealDeal ? 0 : 72, blockers: 0 },
+    { id: 'structuring', number: 4, label: 'Structuring', completionPct: isRealDeal ? 0 : 64, blockers: 0 },
+    { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: isRealDeal ? 0 : 45, blockers: 0 },
+    { id: 'execution', number: 6, label: 'Execution', completionPct: isRealDeal ? 0 : 50, blockers: 0 },
     { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
     { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
     { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
-  ], [deal]);
+  ], [isRealDeal]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
@@ -342,6 +332,27 @@ export const DealWorkspaceCover: React.FC = () => {
 
   const currentStep = workflowSteps.find(s => s.id === activeStepId);
   const currentStatus = currentStep ? deriveStatus(currentStep) : 'not_started';
+
+  if (loadingDeal) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (isRealDeal && !realDeal) {
+    return (
+      <div className="space-y-4">
+        <button onClick={() => setActiveSection('deals')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-4 h-4" /> Back to Deals
+        </button>
+        <div className="pivt-card p-12 text-center">
+          <p className="text-muted-foreground">Deal not found.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div {...staggerChildren} className="space-y-8">
@@ -354,13 +365,13 @@ export const DealWorkspaceCover: React.FC = () => {
         Back to Deals
       </button>
 
-      {/* ── V2 Deal Header — Hero Command Module ── */}
+      {/* ── Deal Header ── */}
       <div className="pivt-panel p-8 lg:p-10">
         <div className="flex flex-col lg:flex-row lg:items-center gap-8" style={{ justifyContent: 'space-between' }}>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-3">
-              <h1 className="text-[28px] font-semibold text-foreground" style={{ letterSpacing: '-0.04em', whiteSpace: 'normal', overflow: 'visible' }}>{deal.codeName}</h1>
-              {deal.hasBlocker && (
+              <h1 className="text-[28px] font-semibold text-foreground" style={{ letterSpacing: '-0.04em' }}>{dealName}</h1>
+              {hasBlocker && (
                 <Badge className="bg-blocking/10 text-blocking border-blocking/15 shrink-0">
                   <Ban className="w-3 h-3 mr-1" /> Blocked
                 </Badge>
@@ -368,16 +379,18 @@ export const DealWorkspaceCover: React.FC = () => {
             </div>
             <div className="flex items-center gap-3 mt-1.5">
               <button
-                onClick={() => {
-                  navigator.clipboard.writeText(deal.dealNumber);
-                }}
+                onClick={() => navigator.clipboard.writeText(dealNumber)}
                 className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted text-[11px] font-mono text-muted-foreground hover:bg-accent/10 hover:text-accent transition-colors cursor-pointer"
                 title="Click to copy Deal ID"
               >
-                {deal.dealNumber}
+                {dealNumber}
               </button>
-              <span className="text-muted-foreground/60 text-sm font-normal truncate">
-                {deal.buyerName} acquiring {deal.targetCompany}
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                dealStatus === 'active' ? 'bg-accent/10 text-accent' :
+                dealStatus === 'closed' ? 'bg-validated/10 text-validated' :
+                'bg-muted text-muted-foreground'
+              }`}>
+                {dealStatus.charAt(0).toUpperCase() + dealStatus.slice(1)}
               </span>
             </div>
           </div>
@@ -385,23 +398,23 @@ export const DealWorkspaceCover: React.FC = () => {
           <div className="flex items-center gap-8 flex-wrap lg:ml-auto" style={{ flexShrink: 0 }}>
             <div className="text-left lg:text-right">
               <p className="pivt-metric-label">Deal Value</p>
-              <p className="font-mono text-lg font-medium mt-1.5">${(deal.consideration / 1e6).toFixed(1)}M</p>
+              <p className="font-mono text-lg font-medium mt-1.5">{formatCurrency(dealValue)}</p>
             </div>
             <div className="h-10 w-px bg-border/20 hidden lg:block" />
             <div className="text-left lg:text-right">
               <p className="pivt-metric-label">Closing</p>
               <p className="text-sm font-medium flex items-center gap-1.5 mt-1.5">
                 <Calendar className="w-3.5 h-3.5 text-muted-foreground/40" />
-                {deal.closingDate}
+                {closingDate || 'TBD'}
               </p>
             </div>
             <div className="h-10 w-px bg-border/20 hidden lg:block" />
             <div className="min-w-[140px]">
               <div className="flex items-center justify-between mb-2">
                 <p className="pivt-metric-label">Readiness</p>
-                <span className="font-mono text-xs font-medium">{deal.readyToPayPercent}%</span>
+                <span className="font-mono text-xs font-medium">{readyPct}%</span>
               </div>
-              <Progress value={deal.readyToPayPercent} className="h-1.5" />
+              <Progress value={readyPct} className="h-1.5" />
             </div>
             <div className="h-10 w-px bg-border/20 hidden lg:block" />
             <button className="pivt-ai-btn flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-accent whitespace-nowrap">
@@ -412,7 +425,7 @@ export const DealWorkspaceCover: React.FC = () => {
         </div>
       </div>
 
-      {/* ── V2 Blocking Issues — Slim inline notification ── */}
+      {/* ── Blocking Issues ── */}
       {totalBlockers > 0 && (
         <motion.div
           {...fadeInUp}
@@ -428,19 +441,10 @@ export const DealWorkspaceCover: React.FC = () => {
             {' '}need attention across{' '}
             <span className="font-semibold">{sectionsWithBlockers} sections</span>
           </span>
-          <button
-            onClick={() => {
-              const firstBlocked = workflowSteps.find(s => s.blockers > 0);
-              if (firstBlocked) handleStepClick(firstBlocked.id);
-            }}
-            className="ml-auto text-xs font-medium text-blocking/70 hover:text-blocking transition-colors whitespace-nowrap"
-          >
-            View all →
-          </button>
         </motion.div>
       )}
 
-      {/* ── V2 Workflow Stepper ── */}
+      {/* ── Workflow Stepper ── */}
       <DealWorkflowStepper
         steps={workflowSteps}
         activeStepId={activeStepId}
@@ -462,10 +466,10 @@ export const DealWorkspaceCover: React.FC = () => {
             stepLabel={currentStep?.label || ''}
             stepStatus={currentStatus}
           >
-            <ContentComponent />
+            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} /> : <ContentComponent />}
           </SectionWithSideTabs>
         ) : (
-          <ContentComponent />
+          activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} /> : <ContentComponent />
         )}
       </motion.div>
     </motion.div>

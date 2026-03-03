@@ -13,7 +13,8 @@ export type ActiveSection =
   | 'messages' | 'notifications' | 'timeline' | 'communications'
   | 'cap-table' | 'recipient' | 'lp-portal' | 'onboarding'
   | 'integrations' | 'intelligence-map' | 'ai' | 'newton' | 'support'
-  | 'payments-execution';
+  | 'payments-execution' | 'portfolio-payments' | 'risk-monitor' | 'ontology'
+  | 'deal-inputs' | 'execution' | 'command-center';
 
 export type EntityType = 'deal' | 'stakeholder' | 'document' | 'payment' | 'escrow' | 'approval';
 
@@ -208,7 +209,7 @@ export const usePIVTStore = create<PIVTStore>((set, get) => ({
   selectedEntity: null,
   setSelectedEntity: (entity) => set({ selectedEntity: entity }),
 
-  selectedDealId: 'atlas',
+  selectedDealId: '',
   setSelectedDealId: (id) => set({ selectedDealId: id }),
 
   deals: DEMO_DEALS,
