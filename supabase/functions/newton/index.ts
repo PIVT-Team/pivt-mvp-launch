@@ -15,6 +15,7 @@ YOU ARE NOT A GENERIC CHATBOT. You are a structured system intelligence layer.
 2. If a question exceeds available data, respond: "Requested analysis not supported in current configuration."
 3. Responses must be: structured, bullet-pointed, quantified, data-backed, professional tone, no conversational fluff.
 4. NEVER override deal state logic. If state is compromised, flag it.
+5. NEVER fabricate bank routing details, execution authorization, or amount overrides.
 
 ## ROLE-AWARE BEHAVIOR
 Adjust your analysis based on the user's role:
@@ -34,18 +35,36 @@ C. **Approval & Governance**: Blocking approvals, overdue items, post-change app
 D. **Stakeholder & Compliance**: KYC status, bank verification, wire instruction changes, document completeness, jurisdictional risks.
 E. **Portfolio Intelligence**: Cross-deal risk, variance comparison, approval velocity, reconciliation rates.
 F. **Audit & Change Integrity**: Change history, version diffs, post-signoff modifications.
+G. **Obligation Intelligence**: Query CONFIRMED obligations only. Ignore DRAFT_EXTRACTED and REJECTED. Surface obligation type, amount, timing, payor/payee, confidence, mapping status. Reference source document snippets when available.
+
+## OBLIGATION QUERIES
+When answering obligation questions:
+- Reference the obligations.summary for aggregate counts
+- Use obligations.all for specific items (only those with status CONFIRMED or NEEDS_REVIEW)
+- Always cite the source_snippet when available
+- Surface mapping_status to indicate execution alignment
+- Use execution_readiness.checks to answer "is execution ready?"
+- If obligations are unmapped, warn about execution risk
+
+Supported queries:
+- "What escrow obligations exist?" → filter by type ESCROW_HOLD_BACK
+- "Are any obligations unmapped?" → check mapping_status = UNMAPPED
+- "Which payments don't match the SPA?" → cross-reference discrepancies with rule_key containing "obligation"
+- "Is execution ready?" → reference execution_readiness.ready and checks
+- "What obligations are still unconfirmed?" → filter by status != CONFIRMED
 
 ## DEAL SAFETY ASSESSMENT
 When asked "Is this deal safe to close?", respond with:
 - **Financial Integrity**: Pass/Fail
 - **Approval Integrity**: Pass/Fail
 - **Compliance Integrity**: Pass/Fail
+- **Obligation Integrity**: Pass/Fail (all confirmed, mapped, no blocking discrepancies)
 - **Outstanding Risks**: count
 - **Material Exposure**: dollar amount
 If ANY gating condition unmet: "**Closing Not Recommended.**"
 
 ## STATE GATING
-If reconciliation failed, approvals incomplete, or payment data changed post-approval:
+If reconciliation failed, approvals incomplete, obligations unconfirmed, or payment data changed post-approval:
 Flag: "**Deal State Compromised – Progression Locked**"
 
 ## RESPONSE FORMAT
@@ -53,19 +72,7 @@ Always use this structure:
 - Deal name and status header
 - Bullet-pointed findings with quantified data
 - Recommended action at the bottom
-- Use monospace for financial figures
-
-Example:
-**Deal: ATLAS**
-**Status: At Risk**
-
-**Blockers:**
-- Share Count Discrepancy – \`$1.2M\` variance
-- Buyer Counsel Approval Pending – 4 days overdue
-- 2 stakeholders missing wire verification
-
-**Estimated Close Probability:** 62%
-**Recommended Action:** Resolve reconciliation prior to approval escalation.`;
+- Use monospace for financial figures`;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -77,14 +84,12 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    // Build contextual system message with deal data
     let contextualPrompt = SYSTEM_PROMPT;
     
     if (dealContext) {
       contextualPrompt += `\n\n## CURRENT DEAL CONTEXT\n\`\`\`json\n${JSON.stringify(dealContext, null, 2)}\n\`\`\``;
     }
 
-    // Determine user role from auth token if available
     const authHeader = req.headers.get("authorization");
     let userRole = "PE Associate";
     let userId: string | null = null;
@@ -99,16 +104,14 @@ serve(async (req) => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           userId = user.id;
-          // Check role
           const { data: roles } = await supabase
             .from("user_roles")
             .select("role")
             .eq("user_id", user.id);
           if (roles && roles.length > 0) {
             const role = roles[0].role;
-            if (role === "admin") userRole = "PE Associate"; // Admin gets full view
+            if (role === "admin") userRole = "PE Associate";
           }
-          // Check deal_participants for party_role
           if (dealContext?.deal) {
             const { data: participants } = await supabase
               .from("deal_participants")
@@ -165,7 +168,7 @@ serve(async (req) => {
       });
     }
 
-    // Log Newton interaction to audit (fire-and-forget)
+    // Log Newton interaction to audit
     if (userId && dealContext?.deal) {
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -177,7 +180,7 @@ serve(async (req) => {
           action: "Newton Intelligence Query",
           details: {
             query_category: categorizeQuery(lastUserMsg?.content || ""),
-            deal_context: dealContext.deal.codeName,
+            deal_context: dealContext.deal.codeName || dealContext.deal.name,
             user_role: userRole,
             query_summary: (lastUserMsg?.content || "").slice(0, 200),
           },
@@ -200,6 +203,7 @@ serve(async (req) => {
 
 function categorizeQuery(query: string): string {
   const q = query.toLowerCase();
+  if (q.includes("obligation") || q.includes("extract") || q.includes("unmapped") || q.includes("confirm")) return "Obligation Intelligence";
   if (q.includes("close") || q.includes("ready") || q.includes("probability") || q.includes("track")) return "Closing Readiness";
   if (q.includes("discrepan") || q.includes("reconcil") || q.includes("variance") || q.includes("waterfall")) return "Reconciliation & Financial Integrity";
   if (q.includes("approv") || q.includes("block") || q.includes("governance") || q.includes("sign")) return "Approval & Governance";

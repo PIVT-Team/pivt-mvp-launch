@@ -5,13 +5,14 @@ import { fadeInUp } from '@/lib/animations';
 import {
   Upload, FileText, CheckCircle2, AlertTriangle, Loader2,
   Zap, Eye, X, Download, Filter, Shield, Clock, DollarSign, Link2,
-  Table2, FileSpreadsheet, ArrowRight,
+  Table2, FileSpreadsheet, ArrowRight, Activity,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { useAuditStore } from '@/stores/auditStore';
 
 // ── Types ──
 interface ContractDocument {
@@ -153,6 +154,29 @@ export const DealInputsCover: React.FC = () => {
   const [showObligations, setShowObligations] = useState(false);
 
   const deal = useSelectedDeal();
+  const { addEvent } = useAuditStore();
+
+  const logAuditEvent = useCallback((action: string, details: Record<string, unknown>) => {
+    addEvent({
+      deal_id: deal.id,
+      actor_type: 'User',
+      actor_id: 'current-user',
+      actor_display_name: 'Current User',
+      actor_role: 'Deal Lead',
+      action,
+      object_type: 'Deal',
+      object_id: deal.id,
+      severity: 'info',
+      summary: `${action} on ${deal.codeName}`,
+      before_state: null,
+      after_state: details as Record<string, any>,
+      source: 'UI',
+      ip_address: null,
+      user_agent: null,
+      correlation_id: null,
+      category: 'compliance',
+    });
+  }, [addEvent, deal.codeName, deal.id]);
 
   // Upload handlers
   const handleFinancialUpload = useCallback(() => {
@@ -168,8 +192,9 @@ export const DealInputsCover: React.FC = () => {
       text_content: null,
     };
     setFinancialDocs(prev => [...prev, newDoc]);
+    logAuditEvent('Financial Document Uploaded', { filename: newDoc.filename, doc_type: newDoc.doc_type, category: 'FINANCIAL_STRUCTURING' });
     toast.success(`Financial input uploaded: ${newDoc.filename}`);
-  }, [deal, selectedFinType]);
+  }, [deal, selectedFinType, logAuditEvent]);
 
   const handleContractUpload = useCallback(() => {
     const newDoc: ContractDocument = {
@@ -184,12 +209,15 @@ export const DealInputsCover: React.FC = () => {
       text_content: null,
     };
     setContractDocs(prev => [...prev, newDoc]);
+    logAuditEvent('Contract Document Uploaded', { filename: newDoc.filename, doc_type: newDoc.doc_type, category: 'CONTRACTUAL_OBLIGATION' });
     toast.success(`Contract document uploaded: ${newDoc.filename}`);
-  }, [deal, selectedContractType]);
+  }, [deal, selectedContractType, logAuditEvent]);
 
   // Extract obligations
   const handleExtract = useCallback(async (docId: string) => {
     setExtracting(docId);
+    const doc = contractDocs.find(d => d.id === docId);
+    logAuditEvent('Obligation Extraction Started', { document_id: docId, filename: doc?.filename });
     toast.info('Extracting obligations with AI...');
     setTimeout(() => {
       setContractDocs(prev => prev.map(d => d.id === docId ? { ...d, status: 'EXTRACTION_COMPLETE' } : d));
@@ -205,21 +233,26 @@ export const DealInputsCover: React.FC = () => {
       }];
       setObligations(prev => [...prev, ...newObs]);
       setExtracting(null);
+      logAuditEvent('Obligations Extracted', { document_id: docId, count: newObs.length, filename: doc?.filename });
       toast.success('Obligations extracted successfully');
     }, 3000);
-  }, [deal]);
+  }, [deal, contractDocs, logAuditEvent]);
 
   const handleConfirm = useCallback((obId: string) => {
+    const ob = obligations.find(o => o.id === obId);
     setObligations(prev => prev.map(o => o.id === obId ? { ...o, status: 'CONFIRMED', confirmed_at: new Date().toISOString(), confirmed_by_user_id: 'current' } : o));
     if (selectedObligation?.id === obId) setSelectedObligation(prev => prev ? { ...prev, status: 'CONFIRMED' } : null);
+    logAuditEvent('Obligation Confirmed', { obligation_id: obId, obligation_type: ob?.obligation_type, payee: ob?.payee_label, previous_status: ob?.status });
     toast.success('Obligation confirmed');
-  }, [selectedObligation]);
+  }, [selectedObligation, obligations, logAuditEvent]);
 
   const handleReject = useCallback((obId: string) => {
+    const ob = obligations.find(o => o.id === obId);
     setObligations(prev => prev.map(o => o.id === obId ? { ...o, status: 'REJECTED' } : o));
     if (selectedObligation?.id === obId) setSelectedObligation(prev => prev ? { ...prev, status: 'REJECTED' } : null);
+    logAuditEvent('Obligation Rejected', { obligation_id: obId, obligation_type: ob?.obligation_type, payee: ob?.payee_label, previous_status: ob?.status });
     toast.info('Obligation rejected');
-  }, [selectedObligation]);
+  }, [selectedObligation, obligations, logAuditEvent]);
 
   const filteredObligations = useMemo(() => {
     let obs = [...obligations];
