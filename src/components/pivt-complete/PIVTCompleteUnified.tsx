@@ -35,7 +35,7 @@ import { SupportPanel } from '../support/SupportPanel';
 import { PaymentsExecutionCover } from './cover/PaymentsExecutionCover';
 import { OntologyCover } from './cover/OntologyCover';
 import { DiscrepancyPanelCover } from './cover/DiscrepancyPanelCover';
-import { ContractIngestionCover } from './cover/ContractIngestionCover';
+import { DealInputsCover } from './cover/DealInputsCover';
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
   'payments', 'ingestion', 'closing', 'verification', 'cap-table',
@@ -57,7 +57,7 @@ const coverSections: Record<string, React.FC> = {
   'payments-execution': PaymentsExecutionCover,
   'ontology': OntologyCover,
   'discrepancy-engine': DiscrepancyPanelCover,
-  'contract-ingestion': ContractIngestionCover,
+  'deal-inputs': DealInputsCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {

@@ -15,7 +15,6 @@ import { StakeholdersDealTab } from './StakeholdersDealTab';
 import { KycKybDealTab } from './KycKybDealTab';
 import { CapTableCover } from './CapTableCover';
 import { WaterfallCover } from './WaterfallCover';
-import { DocumentIngestionCover } from './DocumentIngestionCover';
 import { DocumentsCover } from './DocumentsCover';
 import { ApprovalsCover } from './ApprovalsCover';
 import { PaymentsCover } from './PaymentsCover';
@@ -24,7 +23,7 @@ import { DealReportsCover } from './DealReportsCover';
 import { DealActivityCover } from './DealActivityCover';
 import { AIDashboardCover } from './AIDashboardCover';
 import { CommentsCover } from './CommentsCover';
-import { ContractIngestionCover } from './ContractIngestionCover';
+import { DealInputsCover } from './DealInputsCover';
 
 // ── Workflow helpers ──
 function getNextAction(state: DealWorkflowState, discrepancies: number, pendingApprovals: number): string {
@@ -75,7 +74,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   structuring: [
     { id: 'cap-table', label: 'Cap Table' },
     { id: 'waterfall', label: 'Waterfall' },
-    { id: 'data-ingestion', label: 'Data Ingestion' },
+    { id: 'deal-inputs', label: 'Deal Inputs' },
   ],
   obligations: [
     { id: 'documents', label: 'Documents' },
@@ -235,10 +234,10 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC {
       return KycKybDealTab;
     case 'structuring':
       if (subNavId === 'waterfall') return WaterfallCover;
-      if (subNavId === 'data-ingestion') return DocumentIngestionCover;
+      if (subNavId === 'deal-inputs') return DealInputsCover;
       return CapTableCover;
     case 'obligations':
-      return ContractIngestionCover;
+      return DealInputsCover;
     case 'execution':
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'escrow') return EscrowCover;

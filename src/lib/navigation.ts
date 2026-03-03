@@ -27,7 +27,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
         { label: 'Home', icon: Home, path: 'home', iconColor: '#64748B' },
         { label: 'Deals', icon: Briefcase, path: 'deals', iconColor: '#5B3DF5' },
         { label: 'Timeline', icon: Clock, path: 'timeline', iconColor: '#F59E0B' },
-        { label: 'Contract Ingestion', icon: FileSearch, path: 'contract-ingestion', iconColor: '#6366F1' },
+        { label: 'Deal Inputs', icon: FileSearch, path: 'deal-inputs', iconColor: '#6366F1' },
         { label: 'Communications', icon: MessageSquareText, path: 'communications', iconColor: '#2F6BFF' },
         { label: 'Reports', icon: FileBarChart, path: 'reports', iconColor: '#22C55E' },
         { label: 'Audit Log', icon: History, path: 'audit', iconColor: '#94A3B8' },
