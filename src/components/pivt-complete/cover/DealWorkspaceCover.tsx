@@ -183,14 +183,111 @@ const useDealSummary = (dealId: string | undefined) => {
   return { summary, loading };
 };
 
-const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string }> = ({ realDeal, dealId }) => {
+const DemoOverviewSection: React.FC = () => {
   const demoDeal = useSelectedDeal();
-  const { selectedDealId } = usePIVTStore();
-  const effectiveDealId = dealId || selectedDealId;
-  const { summary, loading: summaryLoading } = useDealSummary(effectiveDealId);
 
-  const dealValue = realDeal ? realDeal.deal_value : demoDeal.consideration;
-  const status = realDeal?.status || demoDeal.status;
+  const DEMO_NEXT_ACTIONS: Record<string, string> = {
+    atlas: '2 approvals pending — Waterfall Schedule v3 & Wire Authorization',
+    beacon: '7 discrepancies found — resolve KYC and wire instruction issues',
+    cipher: 'Final signature pending — 1 approval remaining before execution',
+  };
+
+  const DEMO_BLOCKERS: Record<string, { label: string; severity: 'warning' | 'critical' }[]> = {
+    atlas: [
+      { label: 'Waterfall Schedule v3 awaiting approval', severity: 'warning' },
+      { label: 'Wire instructions missing for a16z', severity: 'critical' },
+    ],
+    beacon: [
+      { label: 'KYC failed for GIC Private Limited', severity: 'critical' },
+      { label: '7 discrepancies unresolved', severity: 'warning' },
+      { label: 'ESOP trust KYC pending', severity: 'warning' },
+    ],
+    cipher: [
+      { label: '1 board resolution pending final signature', severity: 'warning' },
+    ],
+  };
+
+  const nextAction = DEMO_NEXT_ACTIONS[demoDeal.id] || 'Review deal workspace';
+  const blockers = DEMO_BLOCKERS[demoDeal.id] || [];
+
+  return (
+    <div className="space-y-8">
+      <motion.div {...fadeInUp} className="pivt-next-action p-5">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-accent/12 flex items-center justify-center pivt-icon-pulse">
+            <AlertTriangle className="w-4 h-4 text-accent" />
+          </div>
+          <div>
+            <p className="pivt-metric-label">Next Required Action</p>
+            <p className="text-sm font-semibold mt-0.5">{nextAction}</p>
+          </div>
+        </div>
+      </motion.div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+        {[
+          { label: 'Deal Value', value: formatCurrency(demoDeal.consideration) },
+          { label: 'Status', value: demoDeal.status.charAt(0).toUpperCase() + demoDeal.status.slice(1) },
+          { label: 'Recipients', value: `${demoDeal.totalRecipients} parties` },
+          { label: 'Closing', value: demoDeal.closingDate },
+        ].map(stat => (
+          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-6">
+            <p className="pivt-metric-label">{stat.label}</p>
+            <p className="pivt-stat text-2xl mt-3">{stat.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="pivt-card p-4">
+          <p className="pivt-metric-label">Documents</p>
+          <p className="font-mono text-lg font-medium mt-1">{demoDeal.documentsUploaded}</p>
+          <p className="text-[10px] text-muted-foreground">uploaded</p>
+        </div>
+        <div className="pivt-card p-4">
+          <p className="pivt-metric-label">Discrepancies</p>
+          <p className="font-mono text-lg font-medium mt-1">{demoDeal.discrepanciesFound}</p>
+          <p className="text-[10px] text-muted-foreground">found</p>
+        </div>
+        <div className="pivt-card p-4">
+          <p className="pivt-metric-label">Approvals</p>
+          <p className="font-mono text-lg font-medium mt-1">{demoDeal.pendingApprovals}</p>
+          <p className="text-[10px] text-muted-foreground">pending</p>
+        </div>
+        <div className="pivt-card p-4">
+          <p className="pivt-metric-label">Readiness</p>
+          <p className="font-mono text-lg font-medium mt-1">{demoDeal.readyToPayPercent}%</p>
+          <p className="text-[10px] text-muted-foreground">ready to pay</p>
+        </div>
+        <div className="pivt-card p-4">
+          <p className="pivt-metric-label">Sector</p>
+          <p className="font-mono text-sm font-medium mt-1">{demoDeal.sector}</p>
+        </div>
+      </div>
+
+      {blockers.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-foreground/80">What's Blocking Close</h3>
+          {blockers.map((b, i) => (
+            <div key={i} className={`pivt-card p-4 border-l-4 ${b.severity === 'critical' ? 'border-blocking bg-blocking/4' : 'border-discrepancy bg-discrepancy/4'}`}>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className={`w-3.5 h-3.5 ${b.severity === 'critical' ? 'text-blocking' : 'text-discrepancy'}`} />
+                <p className="text-sm">{b.label}</p>
+                <Badge className={`ml-auto text-[9px] ${b.severity === 'critical' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
+                  {b.severity}
+                </Badge>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> = ({ realDeal, dealId }) => {
+  const { summary } = useDealSummary(dealId);
+  const status = realDeal.status;
 
   const nextAction = summary
     ? computeNextAction(summary, status)
@@ -212,10 +309,10 @@ const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string }>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {[
-          { label: 'Deal Value', value: formatCurrency(dealValue) },
+          { label: 'Deal Value', value: formatCurrency(realDeal.deal_value) },
           { label: 'Status', value: status.charAt(0).toUpperCase() + status.slice(1) },
-          { label: 'Escrow', value: formatCurrency(realDeal?.escrow_amount || 0) },
-          { label: 'Closing', value: realDeal?.closing_date || 'TBD' },
+          { label: 'Escrow', value: formatCurrency(realDeal.escrow_amount || 0) },
+          { label: 'Closing', value: realDeal.closing_date || 'TBD' },
         ].map(stat => (
           <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-6">
             <p className="pivt-metric-label">{stat.label}</p>
@@ -224,7 +321,6 @@ const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string }>
         ))}
       </div>
 
-      {/* Deal-specific summary stats */}
       {summary && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="pivt-card p-4">
@@ -255,6 +351,13 @@ const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string }>
       )}
     </div>
   );
+};
+
+const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string; isDemoDeal?: boolean }> = ({ realDeal, dealId, isDemoDeal }) => {
+  if (isDemoDeal || !realDeal) {
+    return <DemoOverviewSection />;
+  }
+  return <RealDealOverviewSection realDeal={realDeal} dealId={dealId || ''} />;
 };
 
 const ReconciliationSection: React.FC = () => (
@@ -394,11 +497,11 @@ export const DealWorkspaceCover: React.FC = () => {
   const [activeSubNav, setActiveSubNav] = useState<string | undefined>();
   const [realDeal, setRealDeal] = useState<RealDeal | null>(null);
   const [loadingDeal, setLoadingDeal] = useState(false);
-  const { summary: dealSummary } = useDealSummary(selectedDealId);
 
-  // Check if selectedDealId looks like a UUID (real deal) vs demo id
+  // Demo deals use pivtStore IDs like 'atlas','beacon','cipher'
   const isRealDeal = selectedDealId && selectedDealId.includes('-') && selectedDealId.length > 10;
-
+  const isDemoDeal = !isRealDeal;
+  const { summary: dealSummary } = useDealSummary(isRealDeal ? selectedDealId : undefined);
   useEffect(() => {
     if (isRealDeal) {
       setLoadingDeal(true);
@@ -434,20 +537,61 @@ export const DealWorkspaceCover: React.FC = () => {
   const hasBlocker = !isRealDeal && demoDeal.hasBlocker;
   // Compute readiness from deal summary
   const readyPct = useMemo(() => {
-    if (!dealSummary) return demoDeal.readyToPayPercent;
+    if (isDemoDeal) return demoDeal.readyToPayPercent;
+    if (!dealSummary) return 0;
     const total = dealSummary.conditionsTotal + dealSummary.approvalsTotal + dealSummary.paymentsTotal;
     if (total === 0) return 0;
     const done = dealSummary.conditionsSatisfied + dealSummary.approvalsApproved + dealSummary.paymentsConfirmed;
     return Math.round((done / total) * 100);
-  }, [dealSummary, demoDeal.readyToPayPercent]);
+  }, [isDemoDeal, dealSummary, demoDeal.readyToPayPercent]);
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
+    if (isDemoDeal) {
+      // Static workflow for demo deals
+      const DEMO_STEPS: Record<string, WorkflowStep[]> = {
+        atlas: [
+          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
+          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 92, blockers: 0 },
+          { id: 'verification', number: 3, label: 'Verification', completionPct: 85, blockers: 1 },
+          { id: 'structuring', number: 4, label: 'Structuring', completionPct: 78, blockers: 0 },
+          { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: 90, blockers: 0 },
+          { id: 'execution', number: 6, label: 'Execution', completionPct: 64, blockers: 2 },
+          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
+          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+        ],
+        beacon: [
+          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
+          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 75, blockers: 1 },
+          { id: 'verification', number: 3, label: 'Verification', completionPct: 50, blockers: 2 },
+          { id: 'structuring', number: 4, label: 'Structuring', completionPct: 40, blockers: 0 },
+          { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: 60, blockers: 0 },
+          { id: 'execution', number: 6, label: 'Execution', completionPct: 20, blockers: 3 },
+          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 55, blockers: 1 },
+          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+        ],
+        cipher: [
+          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
+          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 100, blockers: 0 },
+          { id: 'verification', number: 3, label: 'Verification', completionPct: 95, blockers: 0 },
+          { id: 'structuring', number: 4, label: 'Structuring', completionPct: 100, blockers: 0 },
+          { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: 100, blockers: 0 },
+          { id: 'execution', number: 6, label: 'Execution', completionPct: 88, blockers: 1 },
+          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
+          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+        ],
+      };
+      return DEMO_STEPS[demoDeal.id] || DEMO_STEPS.atlas;
+    }
+
+    // Dynamic workflow for real deals
     const s = dealSummary;
     const condPct = s ? (s.conditionsTotal > 0 ? Math.round((s.conditionsSatisfied / s.conditionsTotal) * 100) : 0) : 0;
     const appPct = s ? (s.approvalsTotal > 0 ? Math.round((s.approvalsApproved / s.approvalsTotal) * 100) : 0) : 0;
     const docPct = s ? (s.documentsCount > 0 ? 100 : 0) : 0;
     const payPct = s ? (s.paymentsTotal > 0 ? Math.round((s.paymentsConfirmed / s.paymentsTotal) * 100) : 0) : 0;
-    const escPct = s ? (s.escrowStatus === 'active' ? 100 : s.escrowStatus === 'pending' ? 30 : 0) : 0;
 
     return [
       { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
@@ -460,7 +604,7 @@ export const DealWorkspaceCover: React.FC = () => {
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
     ];
-  }, [dealSummary]);
+  }, [isDemoDeal, demoDeal.id, dealSummary]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
@@ -604,10 +748,10 @@ export const DealWorkspaceCover: React.FC = () => {
             stepLabel={currentStep?.label || ''}
             stepStatus={currentStatus}
           >
-            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} /> : <ContentComponent />}
+            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} /> : <ContentComponent />}
           </SectionWithSideTabs>
         ) : (
-          activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} /> : <ContentComponent />
+          activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} /> : <ContentComponent />
         )}
       </motion.div>
     </motion.div>
