@@ -389,11 +389,11 @@ export const IntelligenceMapCover: React.FC = () => {
   const { nodes, edges } = useMemo(() => {
     const ns: GraphNode[] = [];
     const es: GraphEdge[] = [];
-    const cx = 1200, cy = 900;
+    const cx = 300, cy = 225;
 
     ns.push({
       id: deal.id, label: deal.codeName, type: 'deal', x: cx, y: cy,
-      color: typeColors.deal, size: 180, riskLevel: deal.hasBlocker ? 'critical' : 'none',
+      color: typeColors.deal, size: 50, riskLevel: deal.hasBlocker ? 'critical' : 'none',
       metadata: { value: `$${(deal.consideration / 1e6).toFixed(0)}M`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
     });
 
@@ -403,8 +403,8 @@ export const IntelligenceMapCover: React.FC = () => {
         const risk: GraphNode['riskLevel'] = s.kycStatus === 'failed' ? 'critical' : s.kycStatus === 'pending' ? 'warning' : 'none';
         ns.push({
           id: s.id, label: s.name, type: 'stakeholder',
-          x: cx + Math.cos(angle) * 720, y: cy + Math.sin(angle) * 600,
-          color: typeColors.stakeholder, size: 80, riskLevel: risk,
+          x: cx + Math.cos(angle) * 180, y: cy + Math.sin(angle) * 150,
+          color: typeColors.stakeholder, size: 22, riskLevel: risk,
           metadata: { role: s.role, kyc: s.kycStatus, payout: `$${(s.payoutAmount / 1e6).toFixed(0)}M`, ownership: `${s.ownershipPct}%` },
         });
         es.push({ from: deal.id, to: s.id, label: 'has_stakeholder', strength: s.ownershipPct / 30 });
@@ -417,8 +417,8 @@ export const IntelligenceMapCover: React.FC = () => {
         const risk: GraphNode['riskLevel'] = d.status === 'rejected' ? 'critical' : d.status === 'pending' ? 'warning' : 'none';
         ns.push({
           id: d.id, label: d.name.slice(0, 20), type: 'document',
-          x: cx + Math.cos(angle) * 800, y: cy + Math.sin(angle) * 640,
-          color: typeColors.document, size: 64, riskLevel: risk,
+          x: cx + Math.cos(angle) * 200, y: cy + Math.sin(angle) * 160,
+          color: typeColors.document, size: 18, riskLevel: risk,
           metadata: { docType: d.type, status: d.status, uploaded: d.uploadedAt },
         });
         es.push({ from: deal.id, to: d.id, label: 'references' });
@@ -431,8 +431,8 @@ export const IntelligenceMapCover: React.FC = () => {
         const risk: GraphNode['riskLevel'] = p.status === 'failed' ? 'critical' : p.status === 'pending' ? 'info' : 'none';
         ns.push({
           id: p.id, label: p.recipientName.split(' ')[0], type: 'payment',
-          x: cx + Math.cos(angle) * 740, y: cy + Math.sin(angle) * 620,
-          color: typeColors.payment, size: 68, riskLevel: risk,
+          x: cx + Math.cos(angle) * 185, y: cy + Math.sin(angle) * 155,
+          color: typeColors.payment, size: 20, riskLevel: risk,
           metadata: { amount: `$${(p.amount / 1e6).toFixed(0)}M`, status: p.status, method: p.method },
         });
         es.push({ from: deal.id, to: p.id, label: 'pays' });
@@ -444,8 +444,8 @@ export const IntelligenceMapCover: React.FC = () => {
         const angle = Math.PI + (i - waterfallTiers.length / 2) * 0.45;
         ns.push({
           id: t.id, label: t.name.slice(0, 15), type: 'waterfall',
-          x: cx + Math.cos(angle) * 760, y: cy + Math.sin(angle) * 600,
-          color: typeColors.waterfall, size: 64, riskLevel: 'none',
+          x: cx + Math.cos(angle) * 190, y: cy + Math.sin(angle) * 150,
+          color: typeColors.waterfall, size: 18, riskLevel: 'none',
           metadata: { amount: `$${(t.amount / 1e6).toFixed(0)}M`, percentage: `${t.percentage}%`, recipients: t.recipients },
         });
         es.push({ from: deal.id, to: t.id, label: 'distributes' });
@@ -796,7 +796,7 @@ export const IntelligenceMapCover: React.FC = () => {
             <PortfolioGraph deals={deals} onDealClick={handleDealSwitch} />
           ) : (
             <>
-              <svg width="100%" height="100%" viewBox="0 0 2400 1800" className="absolute inset-0" preserveAspectRatio="xMidYMid meet">
+              <svg width="100%" height="100%" viewBox="0 0 600 450" className="absolute inset-0" preserveAspectRatio="xMidYMid meet">
                 <defs>
                   <radialGradient id="im-glow-accent" cx="50%" cy="50%" r="50%">
                     <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.4" />
@@ -825,7 +825,7 @@ export const IntelligenceMapCover: React.FC = () => {
                 </defs>
 
                 {/* Ambient center glow */}
-                <circle cx="1200" cy="900" r="500" fill="url(#im-center-glow)" />
+                <circle cx="300" cy="225" r="120" fill="url(#im-center-glow)" />
 
                 {/* Edges — curved paths, always visible */}
                 {edges.map((e, i) => {
@@ -844,12 +844,12 @@ export const IntelligenceMapCover: React.FC = () => {
 
                   let strokeColor = 'rgba(168,162,200,0.7)';
                   let strokeOp = visible ? 0.3 : 0.08;
-                  let strokeW = e.strength ? Math.max(3, e.strength * 4) : 3;
+                  let strokeW = e.strength ? Math.max(1.5, e.strength * 2) : 1.5;
 
                   if (highlighted) {
                     strokeColor = '#A78BFA';
                     strokeOp = 0.7;
-                    strokeW = 4.5;
+                    strokeW = 2.5;
                   } else if (dimmedEdge) {
                     strokeOp = 0.08;
                   }
@@ -919,10 +919,10 @@ export const IntelligenceMapCover: React.FC = () => {
                       />
                       {/* Label */}
                       {showLabel && (
-                        <text x={node.x} y={node.y + node.size / 2 + 28}
+                        <text x={node.x} y={node.y + node.size / 2 + 14}
                           textAnchor="middle"
                           fill="hsl(var(--foreground))"
-                          fontSize={isDealNode ? 28 : 22}
+                          fontSize={isDealNode ? 14 : 11}
                           fontWeight={isDealNode || isHovered ? 700 : 600}
                         >
                           {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
