@@ -33,7 +33,8 @@ import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 import { SupportPanel } from '../support/SupportPanel';
 import { PaymentsExecutionCover } from './cover/PaymentsExecutionCover';
-
+import { OntologyCover } from './cover/OntologyCover';
+import { DiscrepancyPanelCover } from './cover/DiscrepancyPanelCover';
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
   'payments', 'ingestion', 'closing', 'verification', 'cap-table',
@@ -53,6 +54,8 @@ const coverSections: Record<string, React.FC> = {
   ai: AIDashboardCover,
   communications: CommunicationsHub,
   'payments-execution': PaymentsExecutionCover,
+  'ontology': OntologyCover,
+  'discrepancy-engine': DiscrepancyPanelCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
