@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, List, LayoutGrid } from 'lucide-react';
+import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Layers } from 'lucide-react';
 import { usePIVTStore, DemoDeal } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
-import { Badge } from '@/components/ui/badge';
 import { useDealOperations, RealDeal } from '@/hooks/useDealOperations';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -11,66 +10,295 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
-type DealsView = 'list' | 'portfolio';
-
-// Unified type for display
-interface DisplayDeal {
+// ── Rich demo deal data matching old MVP screenshot ──
+interface DemoCardData {
   id: string;
   name: string;
+  letter: string;
   dealNumber: string;
-  value: number;
-  closingDate: string;
   status: string;
-  escrow?: number;
-  isDemo: boolean;
-  sector?: string;
-  readiness?: number;
+  statusColor: string;
+  tags: string[];
+  totalValue: number;
+  executedAmount: number;
+  executedPercent: number;
+  readinessPercent: number;
+  buyerBorrower: string;
+  sector: string;
+  waterfallTiers: number;
+  closingDate: string;
+  partiesCount: number;
+  docsCount: number;
+  capTableCount: number;
 }
 
-const STATUS_COLOR: Record<string, string> = {
-  draft: 'bg-muted text-muted-foreground',
-  active: 'bg-accent text-accent-foreground',
-  closing: 'bg-discrepancy text-white',
-  closed: 'bg-validated text-white',
-  settled: 'bg-validated text-white',
-  drafting: 'bg-muted text-muted-foreground',
-  diligence: 'bg-amber-500/10 text-amber-600',
-  signing: 'bg-accent/10 text-accent',
-  completed: 'bg-validated text-white',
+const DEMO_CARDS: DemoCardData[] = [
+  {
+    id: 'atlas',
+    name: 'Project ATLAS',
+    letter: 'A',
+    dealNumber: 'PIVT-2026-000142',
+    status: 'active',
+    statusColor: 'bg-amber-500',
+    tags: ['M&A', 'Stock Purchase – Take Private'],
+    totalValue: 142_500_000,
+    executedAmount: 109_700_000,
+    executedPercent: 77,
+    readinessPercent: 77,
+    buyerBorrower: 'N/A',
+    sector: 'Enterprise Software / SaaS',
+    waterfallTiers: 8,
+    closingDate: '2025-01-15',
+    partiesCount: 28,
+    docsCount: 108,
+    capTableCount: 26,
+  },
+  {
+    id: 'beacon',
+    name: 'Project BEACON',
+    letter: 'B',
+    dealNumber: 'PIVT-2026-000143',
+    status: 'ready',
+    statusColor: 'bg-emerald-500',
+    tags: ['Credit', 'Unitranche Credit Facility'],
+    totalValue: 89_000_000,
+    executedAmount: 89_000_000,
+    executedPercent: 100,
+    readinessPercent: 100,
+    buyerBorrower: 'Beacon Holdings, LLC',
+    sector: 'Healthcare Services / Healthcare IT',
+    waterfallTiers: 6,
+    closingDate: '2025-01-18',
+    partiesCount: 25,
+    docsCount: 75,
+    capTableCount: 0,
+  },
+  {
+    id: 'cipher',
+    name: 'Project CIPHER',
+    letter: 'C',
+    dealNumber: 'PIVT-2026-000144',
+    status: 'setup',
+    statusColor: 'bg-muted-foreground',
+    tags: ['M&A', 'Stock Purchase – Take Private'],
+    totalValue: 215_000_000,
+    executedAmount: 0,
+    executedPercent: 0,
+    readinessPercent: 0,
+    buyerBorrower: 'N/A',
+    sector: 'Cybersecurity / Enterprise Software',
+    waterfallTiers: 10,
+    closingDate: '2025-01-22',
+    partiesCount: 48,
+    docsCount: 145,
+    capTableCount: 24,
+  },
+];
+
+const STATUS_LABELS: Record<string, { label: string; bg: string; text: string }> = {
+  active: { label: 'active', bg: 'bg-amber-100', text: 'text-amber-700' },
+  ready: { label: 'ready', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  setup: { label: 'setup', bg: 'bg-muted', text: 'text-muted-foreground' },
+  draft: { label: 'draft', bg: 'bg-muted', text: 'text-muted-foreground' },
+  closing: { label: 'closing', bg: 'bg-orange-100', text: 'text-orange-700' },
+  closed: { label: 'closed', bg: 'bg-emerald-100', text: 'text-emerald-700' },
+  settled: { label: 'settled', bg: 'bg-emerald-100', text: 'text-emerald-700' },
 };
 
-const formatCurrency = (n: number) =>
-  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+const fmt = (n: number) => {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n.toLocaleString()}`;
+};
 
-function demoToDisplay(d: DemoDeal): DisplayDeal {
-  return {
-    id: d.id,
-    name: d.name,
-    dealNumber: d.dealNumber,
-    value: d.consideration,
-    closingDate: d.closingDate,
-    status: d.status,
-    isDemo: true,
-    sector: d.sector,
-    readiness: d.readyToPayPercent,
-  };
+// ── Progress bar color logic ──
+function progressColor(pct: number): string {
+  if (pct >= 90) return 'bg-emerald-500';
+  if (pct >= 50) return 'bg-amber-500';
+  return 'bg-orange-500';
 }
 
-function realToDisplay(d: RealDeal): DisplayDeal {
-  return {
-    id: d.id,
-    name: d.deal_name,
-    dealNumber: d.deal_number,
-    value: d.deal_value,
-    closingDate: d.closing_date || 'TBD',
-    status: d.status,
-    escrow: d.escrow_amount || undefined,
-    isDemo: false,
-  };
-}
+// ── Demo Deal Card ──
+const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ deal, onClick }) => {
+  const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
 
+  return (
+    <motion.div
+      {...fadeInUp}
+      onClick={onClick}
+      className="border border-border rounded-xl bg-card hover:shadow-lg transition-all cursor-pointer group"
+    >
+      {/* Header */}
+      <div className="p-5 pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0 mt-0.5">
+              {deal.letter}
+            </div>
+            <div>
+              <h3 className="text-base font-bold leading-tight">{deal.name}</h3>
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${sts.bg} ${sts.text}`}>
+                  {sts.label}
+                </span>
+                {deal.tags.map((tag) => (
+                  <span key={tag} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-xl font-bold font-mono">{fmt(deal.totalValue)}</p>
+            <p className="text-[11px] text-muted-foreground">Total Value</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Readiness bar */}
+      <div className="px-5 pb-1">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[11px] text-orange-600 font-medium">Ready to disburse</span>
+          <span className="text-[11px] font-mono font-semibold text-right">
+            {fmt(deal.executedAmount)} ({deal.executedPercent}%)
+          </span>
+        </div>
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all ${progressColor(deal.executedPercent)}`}
+            style={{ width: `${Math.max(deal.executedPercent, 1)}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Body: 2 columns */}
+      <div className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Buyer/Borrower</p>
+          <p className="font-medium text-foreground text-sm">{deal.buyerBorrower}</p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Sector</p>
+          <p className="font-medium text-foreground text-sm">{deal.sector}</p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Waterfall Tiers</p>
+          <p className="font-medium text-foreground text-sm">{deal.waterfallTiers} tiers</p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" />
+            {deal.closingDate}
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="w-3.5 h-3.5" />
+            {deal.partiesCount} parties
+          </span>
+          <span className="flex items-center gap-1">
+            <FileText className="w-3.5 h-3.5" />
+            {deal.docsCount} docs
+          </span>
+          <span className="flex items-center gap-1">
+            <Table className="w-3.5 h-3.5" />
+            {deal.capTableCount} cap table
+          </span>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      </div>
+    </motion.div>
+  );
+};
+
+// ── Real Deal Card (user-created) ──
+const RealDealCard: React.FC<{ deal: RealDeal; letter: string; onClick: () => void }> = ({ deal, letter, onClick }) => {
+  const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
+
+  return (
+    <motion.div
+      {...fadeInUp}
+      onClick={onClick}
+      className="border border-border rounded-xl bg-card hover:shadow-lg transition-all cursor-pointer group"
+    >
+      <div className="p-5 pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0 mt-0.5">
+              {letter}
+            </div>
+            <div>
+              <h3 className="text-base font-bold leading-tight">{deal.deal_name}</h3>
+              <div className="flex items-center gap-1.5 mt-1.5">
+                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${sts.bg} ${sts.text}`}>
+                  {sts.label}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-xl font-bold font-mono">{fmt(deal.deal_value)}</p>
+            <p className="text-[11px] text-muted-foreground">Total Value</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress bar placeholder */}
+      <div className="px-5 pb-1">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-[11px] text-orange-600 font-medium">Ready to disburse</span>
+          <span className="text-[11px] font-mono font-semibold text-right">$0 (0%)</span>
+        </div>
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-full rounded-full bg-orange-500" style={{ width: '1%' }} />
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-5 py-3 grid grid-cols-2 gap-x-8 text-sm">
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Buyer/Borrower</p>
+          <p className="font-medium text-foreground text-sm">—</p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-orange-600 font-semibold mb-0.5">Sector</p>
+          <p className="font-medium text-foreground text-sm">—</p>
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" />
+            {deal.closing_date || 'TBD'}
+          </span>
+          <span className="flex items-center gap-1">
+            <Hash className="w-3.5 h-3.5" />
+            {deal.deal_number}
+          </span>
+          <span className="flex items-center gap-1">
+            <Users className="w-3.5 h-3.5" />
+            0 parties
+          </span>
+          <span className="flex items-center gap-1">
+            <FileText className="w-3.5 h-3.5" />
+            0 docs
+          </span>
+        </div>
+        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      </div>
+    </motion.div>
+  );
+};
+
+// ── Main component ──
 export const DealsCover: React.FC = () => {
-  const { setSelectedDealId, setActiveSection, deals: demoDeals } = usePIVTStore();
+  const { setSelectedDealId, setActiveSection } = usePIVTStore();
   const { createDeal, fetchDeals } = useDealOperations();
   const { user } = useAuth();
 
@@ -78,29 +306,17 @@ export const DealsCover: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [view, setView] = useState<DealsView>('list');
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '' });
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
     const data = await fetchDeals();
-    // Filter out seeded demo deals from DB results (they're shown from pivtStore)
     const userDeals = data.filter(d => !d.seed_key);
     setRealDeals(userDeals);
     setLoading(false);
   }, []);
 
   useEffect(() => { loadDeals(); }, []);
-
-  // Merge demo + real deals
-  const allDeals: DisplayDeal[] = [
-    ...demoDeals.map(demoToDisplay),
-    ...realDeals.map(realToDisplay),
-  ];
-
-  const handleNewDeal = () => {
-    setShowCreate(true);
-  };
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,10 +336,16 @@ export const DealsCover: React.FC = () => {
     setCreating(false);
   };
 
-  const openDeal = (deal: DisplayDeal) => {
-    setSelectedDealId(deal.id);
+  const openDeal = (id: string) => {
+    setSelectedDealId(id);
     setActiveSection('workspace');
   };
+
+  // Sort demo cards alphabetically (already A, B, C)
+  const sortedDemos = [...DEMO_CARDS].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  const sortedReal = [...realDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
+
+  const totalDeals = sortedDemos.length + sortedReal.length;
 
   return (
     <div className="space-y-6">
@@ -131,122 +353,35 @@ export const DealsCover: React.FC = () => {
         <div>
           <h2 className="text-xl font-semibold">Deals</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {allDeals.length} deal{allDeals.length !== 1 ? 's' : ''}
+            {totalDeals} deal{totalDeals !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center bg-muted/50 rounded-lg p-0.5 border border-border/50">
-            <button
-              onClick={() => setView('list')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'list' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              <List className="w-4 h-4" />
-              List View
-            </button>
-            <button
-              onClick={() => setView('portfolio')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-all ${view === 'portfolio' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Portfolio View
-            </button>
-          </div>
-
-          <button
-            onClick={handleNewDeal}
-            className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-          >
-            <Plus className="w-4 h-4" />
-            New Deal
-          </button>
-        </div>
+        <button
+          onClick={() => setShowCreate(true)}
+          className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+        >
+          <Plus className="w-4 h-4" />
+          New Deal
+        </button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : view === 'list' ? (
-        <div className="grid gap-4">
-          {allDeals.map((deal) => (
-            <motion.div
-              key={deal.id}
-              {...fadeInUp}
-              onClick={() => openDeal(deal)}
-              className="pivt-card p-5 cursor-pointer transition-all hover:shadow-md hover:border-accent/30"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-semibold text-lg">{deal.name}</h3>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_COLOR[deal.status] || STATUS_COLOR.draft}`}>
-                      {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
-                    </span>
-                    {deal.isDemo && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/8 text-accent font-medium">DEMO</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(deal.dealNumber); }}
-                      className="font-mono text-xs text-accent/70 bg-muted px-1.5 py-0.5 rounded hover:bg-accent/10 transition-colors"
-                      title="Click to copy"
-                    >
-                      {deal.dealNumber}
-                    </button>
-                    {deal.sector && (
-                      <span className="text-xs text-muted-foreground">· {deal.sector}</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Closing {deal.closingDate}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-mono text-lg font-semibold">{formatCurrency(deal.value)}</p>
-                  {deal.readiness !== undefined && (
-                    <p className="text-xs text-muted-foreground mt-1">Readiness: {deal.readiness}%</p>
-                  )}
-                  {deal.escrow ? (
-                    <p className="text-xs text-muted-foreground mt-1">Escrow: {formatCurrency(deal.escrow)}</p>
-                  ) : null}
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
       ) : (
-        <div className="space-y-4">
-          <div className="pivt-card overflow-hidden">
-            <div className="p-4 border-b border-border bg-muted/30 grid grid-cols-5 text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              <span className="col-span-2">Deal</span>
-              <span>Status</span>
-              <span className="text-right">Value</span>
-              <span className="text-right">Closing</span>
-            </div>
-            {allDeals.map(deal => (
-              <div
-                key={deal.id}
-                onClick={() => openDeal(deal)}
-                className="p-4 border-b border-border last:border-0 grid grid-cols-5 items-center hover:bg-muted/20 transition-colors cursor-pointer"
-              >
-                <div className="col-span-2">
-                  <div className="flex items-center gap-2">
-                    <p className="text-base font-semibold">{deal.name}</p>
-                    {deal.isDemo && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-accent/8 text-accent font-medium">DEMO</span>
-                    )}
-                  </div>
-                  <span className="font-mono text-xs text-accent/70">{deal.dealNumber}</span>
-                </div>
-                <Badge className={`text-xs w-fit ${STATUS_COLOR[deal.status] || STATUS_COLOR.draft}`}>
-                  {deal.status.charAt(0).toUpperCase() + deal.status.slice(1)}
-                </Badge>
-                <p className="font-mono text-sm text-right">{formatCurrency(deal.value)}</p>
-                <p className="text-sm text-muted-foreground text-right">{deal.closingDate}</p>
-              </div>
-            ))}
-          </div>
+        <div className="grid gap-4">
+          {sortedDemos.map((deal) => (
+            <DemoDealCard key={deal.id} deal={deal} onClick={() => openDeal(deal.id)} />
+          ))}
+          {sortedReal.map((deal, i) => (
+            <RealDealCard
+              key={deal.id}
+              deal={deal}
+              letter={deal.deal_name.charAt(0).toUpperCase()}
+              onClick={() => openDeal(deal.id)}
+            />
+          ))}
         </div>
       )}
 
