@@ -24,6 +24,7 @@ import { DealReportsCover } from './DealReportsCover';
 import { DealActivityCover } from './DealActivityCover';
 import { AIDashboardCover } from './AIDashboardCover';
 import { CommentsCover } from './CommentsCover';
+import { ContractIngestionCover } from './ContractIngestionCover';
 
 // ── Workflow helpers ──
 function getNextAction(state: DealWorkflowState, discrepancies: number, pendingApprovals: number): string {
@@ -56,7 +57,7 @@ const AUDIT_ENTRIES = [
 ];
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'verification' | 'structuring' | 'execution' | 'compliance' | 'comments' | 'ai';
+type StepId = 'overview' | 'stakeholders' | 'verification' | 'structuring' | 'obligations' | 'execution' | 'compliance' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -75,6 +76,11 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'cap-table', label: 'Cap Table' },
     { id: 'waterfall', label: 'Waterfall' },
     { id: 'data-ingestion', label: 'Data Ingestion' },
+  ],
+  obligations: [
+    { id: 'documents', label: 'Documents' },
+    { id: 'extracted', label: 'Obligations' },
+    { id: 'readiness', label: 'Readiness' },
   ],
   execution: [
     { id: 'approvals', label: 'Approvals' },
@@ -231,6 +237,8 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC {
       if (subNavId === 'waterfall') return WaterfallCover;
       if (subNavId === 'data-ingestion') return DocumentIngestionCover;
       return CapTableCover;
+    case 'obligations':
+      return ContractIngestionCover;
     case 'execution':
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'escrow') return EscrowCover;
@@ -310,10 +318,11 @@ export const DealWorkspaceCover: React.FC = () => {
     { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 85, blockers: deal.hasBlocker ? 1 : 0 },
     { id: 'verification', number: 3, label: 'Verification', completionPct: 72, blockers: 1 },
     { id: 'structuring', number: 4, label: 'Structuring', completionPct: 64, blockers: deal.discrepanciesFound },
-    { id: 'execution', number: 5, label: 'Execution', completionPct: deal.pendingApprovals > 0 ? 50 : 100, blockers: deal.pendingApprovals },
-    { id: 'compliance', number: 6, label: 'Compliance', completionPct: 100, blockers: 0 },
-    { id: 'comments', number: 7, label: 'Comments', completionPct: 100, blockers: 0 },
-    { id: 'ai', number: 8, label: 'AI', completionPct: 0, blockers: 0 },
+    { id: 'obligations', number: 5, label: 'Obligations', completionPct: 45, blockers: 2 },
+    { id: 'execution', number: 6, label: 'Execution', completionPct: deal.pendingApprovals > 0 ? 50 : 100, blockers: deal.pendingApprovals },
+    { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
+    { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+    { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
   ], [deal]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);

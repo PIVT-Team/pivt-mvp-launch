@@ -37,6 +37,7 @@ const typeColors: Record<string, string> = {
   deal: '#7C3AED',
   stakeholder: '#A78BFA',
   document: '#22C55E',
+  obligation: '#8B5CF6',
   payment: '#F59E0B',
   escrow: '#06B6D4',
   waterfall: '#C084FC',
@@ -54,6 +55,7 @@ const FILTER_DEFS = [
   { key: 'waterfall', label: 'Financial Entities', icon: CreditCard },
   { key: 'compliance', label: 'Compliance Flags', icon: Shield },
   { key: 'document', label: 'Documents', icon: FileText },
+  { key: 'obligation', label: 'Obligations', icon: Shield },
   { key: 'payment', label: 'Transactions', icon: Activity },
 ] as const;
 
@@ -360,7 +362,7 @@ export const IntelligenceMapCover: React.FC = () => {
   const [labelMode, setLabelMode] = useState<'off' | 'smart' | 'all'>('smart');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [filters, setFilters] = useState<Record<string, boolean>>({
-    stakeholder: true, waterfall: true, compliance: true, document: true, payment: true,
+    stakeholder: true, waterfall: true, compliance: true, document: true, obligation: true, payment: true,
   });
 
   // Escape key exits fullscreen
@@ -423,6 +425,34 @@ export const IntelligenceMapCover: React.FC = () => {
         });
         es.push({ from: deal.id, to: d.id, label: 'references' });
       });
+    }
+
+    // Obligation nodes — between documents and payments
+    if (filters.obligation !== false) {
+      const obligationDemos = [
+        { id: 'ob-1', label: 'Base Purchase Price', status: 'CONFIRMED' },
+        { id: 'ob-2', label: 'Escrow Holdback', status: 'NEEDS_REVIEW' },
+        { id: 'ob-3', label: 'Debt Payoff', status: 'CONFIRMED' },
+        { id: 'ob-4', label: 'Legal Fees', status: 'DRAFT_EXTRACTED' },
+      ];
+      obligationDemos.forEach((ob, i) => {
+        const angle = (Math.PI / 4) + (i - obligationDemos.length / 2) * 0.4;
+        const risk: GraphNode['riskLevel'] = ob.status === 'DRAFT_EXTRACTED' ? 'warning' : ob.status === 'NEEDS_REVIEW' ? 'info' : 'none';
+        ns.push({
+          id: ob.id, label: ob.label, type: 'obligation',
+          x: cx + Math.cos(angle) * 195, y: cy + Math.sin(angle) * 158,
+          color: typeColors.obligation, size: 19, riskLevel: risk,
+          metadata: { status: ob.status, type: 'obligation' },
+        });
+        es.push({ from: deal.id, to: ob.id, label: 'requires' });
+      });
+      // Link obligations to matching payments
+      if (filters.payment) {
+        payments.forEach(p => {
+          const matchOb = obligationDemos.find(ob => ob.status === 'CONFIRMED');
+          if (matchOb) es.push({ from: matchOb.id, to: p.id, label: 'maps_to_intent', strength: 0.4 });
+        });
+      }
     }
 
     if (filters.payment) {
