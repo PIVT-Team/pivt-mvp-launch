@@ -621,6 +621,101 @@ export type Database = {
           },
         ]
       }
+      discrepancies: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          created_at: string
+          deal_id: string
+          details: Json
+          id: string
+          message: string
+          object_id: string
+          object_type: string
+          resolved_at: string | null
+          rule_key: string
+          severity: Database["public"]["Enums"]["discrepancy_severity"]
+          status: Database["public"]["Enums"]["discrepancy_status"]
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          deal_id: string
+          details?: Json
+          id?: string
+          message: string
+          object_id: string
+          object_type: string
+          resolved_at?: string | null
+          rule_key: string
+          severity: Database["public"]["Enums"]["discrepancy_severity"]
+          status?: Database["public"]["Enums"]["discrepancy_status"]
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          created_at?: string
+          deal_id?: string
+          details?: Json
+          id?: string
+          message?: string
+          object_id?: string
+          object_type?: string
+          resolved_at?: string | null
+          rule_key?: string
+          severity?: Database["public"]["Enums"]["discrepancy_severity"]
+          status?: Database["public"]["Enums"]["discrepancy_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "discrepancies_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      discrepancy_rules: {
+        Row: {
+          config: Json
+          created_at: string
+          description: string
+          enabled: boolean
+          id: string
+          name: string
+          rule_key: string
+          scope: Database["public"]["Enums"]["discrepancy_scope"]
+          severity: Database["public"]["Enums"]["discrepancy_severity"]
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          description: string
+          enabled?: boolean
+          id?: string
+          name: string
+          rule_key: string
+          scope?: Database["public"]["Enums"]["discrepancy_scope"]
+          severity?: Database["public"]["Enums"]["discrepancy_severity"]
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          description?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          rule_key?: string
+          scope?: Database["public"]["Enums"]["discrepancy_scope"]
+          severity?: Database["public"]["Enums"]["discrepancy_severity"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       escrow_accounts: {
         Row: {
           account_type: string
@@ -889,6 +984,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ontology_terms: {
+        Row: {
+          created_at: string
+          definition: string
+          display_name: string
+          entity_type: Database["public"]["Enums"]["ontology_entity_type"]
+          example: string | null
+          id: string
+          relationships: Json
+          required_fields: Json
+          status: Database["public"]["Enums"]["ontology_status"]
+          term_key: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          created_at?: string
+          definition: string
+          display_name: string
+          entity_type: Database["public"]["Enums"]["ontology_entity_type"]
+          example?: string | null
+          id?: string
+          relationships?: Json
+          required_fields?: Json
+          status?: Database["public"]["Enums"]["ontology_status"]
+          term_key: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          created_at?: string
+          definition?: string
+          display_name?: string
+          entity_type?: Database["public"]["Enums"]["ontology_entity_type"]
+          example?: string | null
+          id?: string
+          relationships?: Json
+          required_fields?: Json
+          status?: Database["public"]["Enums"]["ontology_status"]
+          term_key?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
       }
       org_kyb: {
         Row: {
@@ -1390,6 +1530,9 @@ export type Database = {
         | "settled"
         | "reconciled"
         | "failed"
+      discrepancy_scope: "deal" | "intent" | "document" | "party"
+      discrepancy_severity: "blocker" | "warn" | "info"
+      discrepancy_status: "open" | "acknowledged" | "resolved" | "suppressed"
       fx_risk_bearer: "buyer" | "seller" | "shared"
       kyc_status:
         | "not_started"
@@ -1409,6 +1552,12 @@ export type Database = {
         | "ESCROW_AGREEMENT"
         | "PAYMENT_INSTRUCTIONS"
         | "OTHER"
+      ontology_entity_type:
+        | "core_entity"
+        | "workflow_entity"
+        | "compliance_entity"
+        | "computed_entity"
+      ontology_status: "draft" | "active" | "deprecated"
       party_type: "BUYER" | "SELLER" | "ESCROW_AGENT" | "LENDER" | "OTHER"
       payment_status: "DRAFT" | "READY" | "SENT" | "CONFIRMED"
     }
@@ -1577,6 +1726,9 @@ export const Constants = {
         "reconciled",
         "failed",
       ],
+      discrepancy_scope: ["deal", "intent", "document", "party"],
+      discrepancy_severity: ["blocker", "warn", "info"],
+      discrepancy_status: ["open", "acknowledged", "resolved", "suppressed"],
       fx_risk_bearer: ["buyer", "seller", "shared"],
       kyc_status: [
         "not_started",
@@ -1599,6 +1751,13 @@ export const Constants = {
         "PAYMENT_INSTRUCTIONS",
         "OTHER",
       ],
+      ontology_entity_type: [
+        "core_entity",
+        "workflow_entity",
+        "compliance_entity",
+        "computed_entity",
+      ],
+      ontology_status: ["draft", "active", "deprecated"],
       party_type: ["BUYER", "SELLER", "ESCROW_AGENT", "LENDER", "OTHER"],
       payment_status: ["DRAFT", "READY", "SENT", "CONFIRMED"],
     },
