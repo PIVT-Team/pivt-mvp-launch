@@ -110,10 +110,14 @@ export const PIVTCompleteUnified: React.FC = () => {
     setSearchParams(params, { replace: true });
   }, [activeSection]);
 
-  // Deal context locking
+  // Deal context locking - redirect to deals if no deal selected for scoped sections
   useEffect(() => {
     if (DEAL_SCOPED_SECTIONS.has(activeSection) && activeSection !== 'workspace') {
-      setActiveSection(selectedDealId ? 'workspace' : 'deals');
+      if (!selectedDealId) {
+        setActiveSection('deals');
+      } else {
+        setActiveSection('workspace');
+      }
     }
   }, [activeSection, selectedDealId]);
 

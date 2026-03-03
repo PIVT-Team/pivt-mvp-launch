@@ -1,69 +1,88 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
-import { useDealWizardStore } from '@/stores/dealWizardStore';
+import { usePIVTStore } from '@/stores/pivtStore';
 import { useKycStore } from '@/stores/kycStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import { Shield, FileCheck, Users, AlertTriangle, TrendingUp, Clock, Plus } from 'lucide-react';
 import { NewtonInsights } from './NewtonInsights';
-import pivtLogo from '@/assets/pivt-logo.png';
 import { ActivityFeed } from './ActivityFeed';
 import { KycGateModal } from '@/components/deal-wizard/KycGateModal';
+import { useDealOperations, RealDeal } from '@/hooks/useDealOperations';
+import { supabase } from '@/integrations/supabase/client';
+
+const formatCurrency = (n: number) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
 export const CommandCenterCover: React.FC = () => {
-  const deal = useSelectedDeal();
-  const { stakeholders, documents, payments, pendingApprovals, setActiveSection } = usePIVTStore();
-  const { openWizard, setWizardMode, prefillDemo } = useDealWizardStore();
+  const { setActiveSection, setSelectedDealId } = usePIVTStore();
   const { userKyc, orgKyb, fetchKycData } = useKycStore();
+  const { createDealFromTemplate } = useDealOperations();
   const [showGate, setShowGate] = useState(false);
+  const [deals, setDeals] = useState<RealDeal[]>([]);
+  const [creating, setCreating] = useState(false);
 
-  useEffect(() => { fetchKycData(); }, []);
+  useEffect(() => {
+    fetchKycData();
+    supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(5)
+      .then(({ data }) => setDeals((data as RealDeal[]) || []));
+  }, []);
+
+  const totalValue = deals.reduce((s, d) => s + Number(d.deal_value), 0);
+  const activeCount = deals.filter(d => d.status === 'active').length;
+  const draftCount = deals.filter(d => d.status === 'draft').length;
 
   const handleNewDeal = () => {
-    // Check if KYC/KYB is approved for live deals
     const kycApproved = userKyc?.status === 'approved';
     const kybApproved = orgKyb?.status === 'approved';
     if (!kycApproved || !kybApproved) {
       setShowGate(true);
     } else {
-      openWizard();
+      setActiveSection('deals');
     }
   };
 
+  const handleCreateFromTemplate = async () => {
+    setCreating(true);
+    const deal = await createDealFromTemplate();
+    if (deal) {
+      setShowGate(false);
+      setSelectedDealId(deal.id);
+      setActiveSection('workspace');
+    }
+    setCreating(false);
+  };
+
   const stats = [
-    { label: 'Deal Value', value: `$${(deal.consideration / 1e6).toFixed(1)}M`, icon: TrendingUp, chip: 'pivt-icon-purple' },
-    { label: 'Recipients', value: deal.totalRecipients, icon: Users, chip: 'pivt-icon-blue' },
-    { label: 'Documents', value: deal.documentsUploaded, icon: FileCheck, chip: 'pivt-icon-green' },
-    { label: 'Ready to Pay', value: `${deal.readyToPayPercent}%`, icon: Shield, chip: 'pivt-icon-purple' },
-    { label: 'Discrepancies', value: deal.discrepanciesFound, icon: AlertTriangle, chip: 'pivt-icon-amber' },
-    { label: 'Pending Approvals', value: pendingApprovals.length, icon: Clock, chip: 'pivt-icon-red' },
+    { label: 'Total Deals', value: deals.length, icon: TrendingUp, chip: 'pivt-icon-purple' },
+    { label: 'Total Value', value: formatCurrency(totalValue), icon: Shield, chip: 'pivt-icon-blue' },
+    { label: 'Active', value: activeCount, icon: FileCheck, chip: 'pivt-icon-green' },
+    { label: 'Draft', value: draftCount, icon: Clock, chip: 'pivt-icon-amber' },
   ];
 
   return (
     <motion.div {...staggerChildren} className="space-y-7">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">{deal.name}</h1>
-            <p className="text-muted-foreground mt-1">{deal.buyerName} acquiring {deal.targetCompany} · {deal.sector}</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Command Center</h1>
+          <p className="text-muted-foreground mt-1">Portfolio overview and deal management</p>
         </div>
         <button
           onClick={handleNewDeal}
+          disabled={creating}
           className="pivt-btn-primary flex items-center gap-2 px-5 py-2.5 text-white rounded-xl text-sm font-semibold"
         >
           <Plus className="w-4 h-4" />
-          New Deal
+          {creating ? 'Creating...' : 'New Deal'}
         </button>
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'View Waterfall', section: 'waterfall' as const },
-          { label: 'Review Approvals', section: 'approvals' as const },
-          { label: 'Check Escrow', section: 'escrow' as const },
-          { label: 'Portfolio Analytics', section: 'reports' as const },
+          { label: 'View Deals', section: 'deals' as const },
+          { label: 'Portfolio Payments', section: 'portfolio-payments' as const },
+          { label: 'Risk Monitor', section: 'risk-monitor' as const },
+          { label: 'Intelligence Map', section: 'intelligence-map' as const },
         ].map(action => (
           <button
             key={action.label}
@@ -75,7 +94,7 @@ export const CommandCenterCover: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-5">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {stats.map((stat) => (
           <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-5">
             <div className="flex items-center gap-2.5 mb-3">
@@ -89,36 +108,33 @@ export const CommandCenterCover: React.FC = () => {
         ))}
       </div>
 
-      {/* Readiness Bar */}
-      <motion.div {...fadeInUp} className="pivt-card p-7">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold text-base">Closing Readiness</h3>
-          <span className="pivt-stat text-lg text-accent">{deal.readyToPayPercent}%</span>
-        </div>
-        <div className="w-full bg-muted rounded-full h-3 overflow-hidden">
-          <motion.div
-            className="h-3 rounded-full"
-            style={{ background: 'linear-gradient(90deg, hsl(262 72% 55%), hsl(217 80% 58%))' }}
-            initial={{ width: 0 }}
-            animate={{ width: `${deal.readyToPayPercent}%` }}
-            transition={{ duration: 1, ease: 'easeOut' }}
-          />
-        </div>
-        <div className="mt-5 grid grid-cols-3 gap-4 text-sm">
-          <div className="flex items-center gap-2 cursor-pointer hover:text-accent transition-colors" onClick={() => setActiveSection('stakeholders')}>
-            <div className="w-2.5 h-2.5 rounded-full bg-validated" />
-            <span>{stakeholders.filter(s => s.kycStatus === 'verified').length} KYC Verified</span>
+      {/* Recent Deals */}
+      {deals.length > 0 && (
+        <motion.div {...fadeInUp} className="pivt-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-base">Recent Deals</h3>
+            <button onClick={() => setActiveSection('deals')} className="text-xs text-accent hover:underline">View all →</button>
           </div>
-          <div className="flex items-center gap-2 cursor-pointer hover:text-accent transition-colors" onClick={() => setActiveSection('documents')}>
-            <div className="w-2.5 h-2.5 rounded-full bg-validated" />
-            <span>{documents.filter(d => d.status === 'verified').length} Docs Verified</span>
+          <div className="space-y-2">
+            {deals.slice(0, 5).map(deal => (
+              <button
+                key={deal.id}
+                onClick={() => { setSelectedDealId(deal.id); setActiveSection('workspace'); }}
+                className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted/30 transition-colors text-left"
+              >
+                <div>
+                  <p className="text-sm font-medium">{deal.deal_name}</p>
+                  <p className="text-xs text-muted-foreground font-mono">{deal.deal_number}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm font-mono">{formatCurrency(deal.deal_value)}</p>
+                  <span className="text-[10px] text-muted-foreground">{deal.status}</span>
+                </div>
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-2 cursor-pointer hover:text-accent transition-colors" onClick={() => setActiveSection('approvals')}>
-            <div className="w-2.5 h-2.5 rounded-full bg-discrepancy" />
-            <span>{pendingApprovals.length} Pending Approvals</span>
-          </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Newton Insights + Activity Feed side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -130,12 +146,11 @@ export const CommandCenterCover: React.FC = () => {
         </motion.div>
       </div>
 
-
       <KycGateModal
         open={showGate}
         onClose={() => setShowGate(false)}
         onGoToVerification={() => { setShowGate(false); setActiveSection('verification'); }}
-        onCreateDemo={() => { setShowGate(false); setWizardMode('demo'); prefillDemo(); openWizard(); }}
+        onCreateDemo={handleCreateFromTemplate}
       />
     </motion.div>
   );
