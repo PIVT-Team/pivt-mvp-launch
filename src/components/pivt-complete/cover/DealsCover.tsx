@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight } from 'lucide-react';
+import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase } from 'lucide-react';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import { useDealOperations, RealDeal, DealTemplate, DealSummaryCounts } from '@/hooks/useDealOperations';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -256,18 +257,31 @@ export const DealsCover: React.FC = () => {
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', templateId: '' });
 
   const isDemoUser = user?.email === 'demo@pivt.app';
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
     const data = await fetchDeals();
-    const liveDeals = data.filter(d => d.deal_kind === 'live' || (!d.deal_kind && !d.seed_key));
-    setRealDeals(liveDeals);
-    if (liveDeals.length > 0) {
-      const sums = await fetchDealSummaries(liveDeals.map(d => d.id));
-      setSummaries(sums);
+    // For demo user, separate demo vs live; for normal user all are live
+    if (isDemoUser) {
+      const liveDeals = data.filter(d => d.deal_kind === 'live' || (!d.deal_kind && !d.seed_key));
+      setRealDeals(liveDeals);
+      if (liveDeals.length > 0) {
+        const sums = await fetchDealSummaries(liveDeals.map(d => d.id));
+        setSummaries(sums);
+      }
+    } else {
+      setRealDeals(data);
+      if (data.length === 0) {
+        setShowOnboarding(true);
+      }
+      if (data.length > 0) {
+        const sums = await fetchDealSummaries(data.map(d => d.id));
+        setSummaries(sums);
+      }
     }
     setLoading(false);
-  }, []);
+  }, [isDemoUser]);
 
   useEffect(() => {
     loadDeals();
@@ -324,13 +338,42 @@ export const DealsCover: React.FC = () => {
         <div className="flex justify-center py-20">
           <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
+      ) : showOnboarding && totalDeals === 0 ? (
+        <motion.div {...fadeInUp} className="border border-border rounded-xl bg-card p-10 text-center space-y-6">
+          <h3 className="text-lg font-semibold">Welcome to PIVT</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto">
+            Get started by creating your first deal, or explore pre-configured demo deals to see how the platform works.
+          </p>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <Button
+              onClick={() => { setShowOnboarding(false); setShowCreate(true); }}
+              className="pivt-btn-primary gap-2 px-6 py-3 rounded-xl"
+            >
+              <Briefcase className="w-4 h-4" />
+              Create Your First Deal
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 px-6 py-3 rounded-xl"
+              onClick={async () => {
+                // Sign out and redirect to login so user can use demo
+                await supabase.auth.signOut();
+                window.location.href = '/login';
+              }}
+            >
+              <Eye className="w-4 h-4" />
+              Explore Demo Deals
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground/60">
+            Demo mode uses a shared account with pre-loaded deal data.
+          </p>
+        </motion.div>
       ) : (
         <div className="grid gap-4">
-          {/* Live deals first */}
           {sortedReal.map((deal) => (
             <LiveDealCard key={deal.id} deal={deal} summary={summaries[deal.id]} onClick={() => openDeal(deal.id)} />
           ))}
-          {/* Demo deals */}
           {sortedDemos.map((deal) => (
             <DemoDealCard key={deal.id} deal={deal} onClick={() => openDeal(deal.id)} />
           ))}
