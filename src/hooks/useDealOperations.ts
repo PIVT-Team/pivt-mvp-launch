@@ -19,6 +19,10 @@ export interface RealDeal {
   owner_id?: string | null;
   visibility?: string;
   is_demo?: boolean;
+  buyer?: string | null;
+  seller?: string | null;
+  sector?: string | null;
+  deal_type?: string | null;
 }
 
 export interface DealSummaryCounts {
