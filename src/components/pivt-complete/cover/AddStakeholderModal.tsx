@@ -79,10 +79,24 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const currentTotal = stakeholders.reduce((s, x) => s + x.ownershipPct, 0);
+  const basis = getBasis(role);
+  const isOwnershipDisabled = basis === 'NOT_APPLICABLE';
+
+  // Compute basis-specific total (demo stakeholders don't have role-basis mapping, so fallback to SELLER_EQUITY)
+  const sameBasisTotal = stakeholders
+    .filter(s => getBasis(s.role) === basis)
+    .reduce((s, x) => s + x.ownershipPct, 0);
   const ownershipNum = parseFloat(ownership) || 0;
-  const newTotal = currentTotal + ownershipNum;
-  const exceedsMax = newTotal > 100;
+  const newBasisTotal = sameBasisTotal + ownershipNum;
+  const exceedsMax = basis !== 'NOT_APPLICABLE' && newBasisTotal > 100;
+
+  // Auto-clear ownership when role switches to NOT_APPLICABLE
+  const handleRoleChange = (newRole: string) => {
+    setRole(newRole);
+    if (getBasis(newRole) === 'NOT_APPLICABLE') {
+      setOwnership('0');
+    }
+  };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -92,8 +106,11 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     if (!trimName || trimName.length > 200) errs.name = trimName ? 'Name must be under 200 characters' : 'Name is required';
     if (!trimEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) errs.email = 'Valid email is required';
     if (trimEmail.length > 255) errs.email = 'Email must be under 255 characters';
-    if (ownership === '' || ownershipNum < 0 || ownershipNum > 100) errs.ownership = 'Must be between 0 and 100';
-    if (ownershipNum > 0 && exceedsMax) errs.ownership = `Would exceed 100% (current total: ${currentTotal}%)`;
+    if (!isOwnershipDisabled && (ownership === '' || ownershipNum < 0 || ownershipNum > 100)) errs.ownership = 'Must be between 0 and 100';
+    if (!isOwnershipDisabled && ownershipNum > 0 && exceedsMax) {
+      const basisLabel = BASIS_LABELS[basis] || 'Total';
+      errs.ownership = `${basisLabel} ownership totals would be ${newBasisTotal.toFixed(1)}% — exceeds 100%`;
+    }
     if (!role) errs.role = 'Role is required';
 
     if (!isDemoDeal && !dealId) {
