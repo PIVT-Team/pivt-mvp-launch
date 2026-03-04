@@ -89,10 +89,10 @@ function layoutNodes(nodes: DbNode[], viewMode: ViewMode): PositionedNode[] {
   const filtered = nodes.filter(n => allowedTypes.has(n.node_type));
 
   // Group by type
-  const groups = new Map<string, DbNode[]>();
+  const groups: Record<string, DbNode[]> = {};
   for (const n of filtered) {
-    if (!groups.has(n.node_type)) groups.set(n.node_type, []);
-    groups.get(n.node_type)!.push(n);
+    if (!groups[n.node_type]) groups[n.node_type] = [];
+    groups[n.node_type].push(n);
   }
 
   const typeOrder = ['deal', 'stakeholder', 'document', 'obligation', 'compliance_check', 'approval', 'payment_intent', 'settlement', 'waterfall', 'discrepancy'];
