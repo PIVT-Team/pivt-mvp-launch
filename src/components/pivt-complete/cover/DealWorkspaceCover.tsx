@@ -710,7 +710,7 @@ export const DealWorkspaceCover: React.FC = () => {
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
     ];
-  }, [isDemoDeal, demoDeal.id, dealSummary]);
+  }, [isDemoDeal, demoDealSeedKey, dealSummary]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
