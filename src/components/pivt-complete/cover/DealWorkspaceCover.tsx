@@ -554,6 +554,24 @@ export const DealWorkspaceCover: React.FC = () => {
     }
   }, [selectedDealId]);
 
+  // Replay pending action after duplication redirect
+  useEffect(() => {
+    if (!loadingDeal && realDeal && !isDemoDeal) {
+      const pending = consumePendingAction();
+      if (pending) {
+        // Navigate to the relevant step based on the action type
+        if (pending.type === 'ADD_STAKEHOLDER') {
+          setActiveStepId('stakeholders');
+        } else if (pending.type === 'ADD_WATERFALL_TIER') {
+          setActiveStepId('structuring');
+          setActiveSubNav('waterfall');
+        } else if (pending.type === 'UPLOAD_DOCUMENT') {
+          setActiveStepId('deal-inputs');
+        }
+      }
+    }
+  }, [loadingDeal, realDeal, isDemoDeal]);
+
   const handleStepClick = (id: string) => {
     setActiveStepId(id as StepId);
     const subs = STEP_SUB_NAV[id as StepId];
