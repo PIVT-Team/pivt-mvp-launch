@@ -27,7 +27,7 @@ export const StakeholdersDealTab: React.FC = () => {
   const [dbStakeholders, setDbStakeholders] = useState<DbStakeholder[]>([]);
   const [loading, setLoading] = useState(!isDemoDeal);
 
-  useEffect(() => {
+  const fetchStakeholders = () => {
     if (isDemoDeal || !dealId) return;
     setLoading(true);
     supabase
@@ -38,6 +38,10 @@ export const StakeholdersDealTab: React.FC = () => {
         setDbStakeholders((data as DbStakeholder[]) || []);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    fetchStakeholders();
   }, [isDemoDeal, dealId]);
 
   const handleAddClick = () => {
@@ -100,7 +104,7 @@ export const StakeholdersDealTab: React.FC = () => {
             </button>
           </motion.div>
 
-          <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} />
+          <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} dealId={dealId} isDemoDeal={false} onAdded={fetchStakeholders} />
         </div>
       );
     }
@@ -166,7 +170,7 @@ export const StakeholdersDealTab: React.FC = () => {
           ))}
         </div>
 
-        <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} />
+        <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} dealId={dealId} isDemoDeal={false} onAdded={fetchStakeholders} />
       </div>
     );
   }
@@ -267,7 +271,7 @@ export const StakeholdersDealTab: React.FC = () => {
         ))}
       </div>
 
-      <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} dealId={dealId} isDemoDeal={isDemoDeal} />
     </div>
   );
 };

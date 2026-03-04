@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePIVTStore, DemoStakeholder } from '@/stores/pivtStore';
-import { X, User, Building2, AlertTriangle, Send, Clock } from 'lucide-react';
+import { X, User, Building2, AlertTriangle, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type StakeholderType = 'individual' | 'entity';
 
@@ -21,9 +23,12 @@ const SHARE_CLASSES = ['Common', 'Preferred A', 'Preferred B', 'Options', 'Warra
 interface AddStakeholderModalProps {
   open: boolean;
   onClose: () => void;
+  dealId?: string;
+  isDemoDeal?: boolean;
+  onAdded?: () => void;
 }
 
-export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, onClose }) => {
+export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, onClose, dealId, isDemoDeal = true, onAdded }) => {
   const { stakeholders } = usePIVTStore();
   const addStakeholder = usePIVTStore(s => s.addStakeholder);
 
@@ -37,6 +42,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
   const [notes, setNotes] = useState('');
   const [showKycPrompt, setShowKycPrompt] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
 
   const currentTotal = stakeholders.reduce((s, x) => s + x.ownershipPct, 0);
   const ownershipNum = parseFloat(ownership) || 0;
@@ -55,24 +61,61 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     if (ownershipNum > 0 && exceedsMax) errs.ownership = `Would exceed 100% (current total: ${currentTotal}%)`;
     if (!role) errs.role = 'Role is required';
 
+    if (!isDemoDeal && !dealId) {
+      errs.general = 'Deal not loaded yet.';
+      toast.error('Deal not loaded yet. Please try again.');
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
 
-    const newStakeholder: DemoStakeholder = {
-      id: `s-${Date.now()}`,
-      name: name.trim(),
-      email: email.trim(),
-      ownershipPct: ownershipNum,
-      role,
-      kycStatus: 'pending',
-      payoutAmount: 0,
-    };
+    if (isDemoDeal) {
+      // Demo: add to Zustand store only
+      const newStakeholder: DemoStakeholder = {
+        id: `s-${Date.now()}`,
+        name: name.trim(),
+        email: email.trim(),
+        ownershipPct: ownershipNum,
+        role,
+        kycStatus: 'pending',
+        payoutAmount: 0,
+      };
+      addStakeholder(newStakeholder);
+      setShowKycPrompt(true);
+      return;
+    }
 
-    addStakeholder(newStakeholder);
+    // Real deal: insert into cap_table_entries
+    setSaving(true);
+    const { data, error } = await supabase
+      .from('cap_table_entries')
+      .insert({
+        deal_id: dealId!,
+        shareholder_name: name.trim(),
+        ownership_pct: ownershipNum,
+        payout_amount: 0,
+        escrow_holdback: 0,
+        fees: 0,
+        net_payout: 0,
+      })
+      .select()
+      .single();
+
+    setSaving(false);
+
+    if (error) {
+      console.error('Stakeholder insert failed', error);
+      toast.error('Failed to add stakeholder. Please try again.');
+      return;
+    }
+
+    console.log('Stakeholder inserted', data);
+    toast.success('Stakeholder added successfully');
+    onAdded?.();
     setShowKycPrompt(true);
   };
 
@@ -295,10 +338,10 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                 </button>
                 <button
                   onClick={handleSubmit}
-                  disabled={exceedsMax}
+                  disabled={exceedsMax || saving}
                   className="px-5 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add Stakeholder
+                  {saving ? 'Adding…' : 'Add Stakeholder'}
                 </button>
               </div>
             </>
