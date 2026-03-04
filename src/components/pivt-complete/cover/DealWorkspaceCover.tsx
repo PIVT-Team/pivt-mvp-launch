@@ -14,6 +14,7 @@ import { DealProgressRibbon, DealProgressData } from './DealProgressRibbon';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
+import { DealWorkspaceProvider } from '@/contexts/DealWorkspaceContext';
 
 // Import existing cover pages
 import { StakeholdersDealTab } from './StakeholdersDealTab';
@@ -758,6 +759,7 @@ export const DealWorkspaceCover: React.FC = () => {
 
   return (
     <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
+    <DealWorkspaceProvider dealId={selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal}>
     <motion.div {...staggerChildren} className="space-y-8">
       {/* Back */}
       <button
@@ -895,6 +897,7 @@ export const DealWorkspaceCover: React.FC = () => {
         )}
       </motion.div>
     </motion.div>
+    </DealWorkspaceProvider>
     </EditGuardProvider>
   );
 };
