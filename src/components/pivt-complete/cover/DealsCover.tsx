@@ -308,12 +308,15 @@ export const DealsCover: React.FC = () => {
       target_company: form.target_company || null,
       sector: form.sector || null,
       deal_type: form.deal_type || null,
-      currency: form.currency || 'USD',
+      currency: selectedCurrencies.join(',') || 'USD',
       jurisdiction: form.jurisdiction || null,
+      signing_date: signingDate ? format(signingDate, 'yyyy-MM-dd') : null,
     });
     if (deal) {
       setShowCreate(false);
-      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '' });
+      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
+      setSelectedCurrencies(['USD']);
+      setSigningDate(undefined);
       setSelectedDealId(deal.id);
       setActiveSection('workspace');
     }
