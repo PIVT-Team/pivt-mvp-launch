@@ -622,6 +622,7 @@ export type Database = {
           closing_date: string | null
           created_at: string
           created_by: string | null
+          deal_kind: Database["public"]["Enums"]["deal_kind"]
           deal_name: string
           deal_number: string
           deal_value: number
@@ -635,6 +636,7 @@ export type Database = {
           closing_date?: string | null
           created_at?: string
           created_by?: string | null
+          deal_kind?: Database["public"]["Enums"]["deal_kind"]
           deal_name: string
           deal_number: string
           deal_value?: number
@@ -648,6 +650,7 @@ export type Database = {
           closing_date?: string | null
           created_at?: string
           created_by?: string | null
+          deal_kind?: Database["public"]["Enums"]["deal_kind"]
           deal_name?: string
           deal_number?: string
           deal_value?: number
@@ -1861,6 +1864,7 @@ export type Database = {
         | "FEE_LETTER"
         | "OTHER"
       deal_execution_role: "VIEWER" | "EDITOR" | "APPROVER" | "EXECUTOR"
+      deal_kind: "demo" | "template" | "live"
       deal_member_role:
         | "BUYER_COUNSEL"
         | "SELLER_COUNSEL"
@@ -2102,6 +2106,7 @@ export const Constants = {
         "OTHER",
       ],
       deal_execution_role: ["VIEWER", "EDITOR", "APPROVER", "EXECUTOR"],
+      deal_kind: ["demo", "template", "live"],
       deal_member_role: [
         "BUYER_COUNSEL",
         "SELLER_COUNSEL",

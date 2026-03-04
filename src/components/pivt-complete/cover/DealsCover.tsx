@@ -1,28 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Layers } from 'lucide-react';
-import { usePIVTStore, DemoDeal } from '@/stores/pivtStore';
+import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight } from 'lucide-react';
+import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
-import { useDealOperations, RealDeal } from '@/hooks/useDealOperations';
+import { useDealOperations, RealDeal, DealTemplate } from '@/hooks/useDealOperations';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
-// ── Rich demo deal data matching old MVP screenshot ──
+// ── Rich demo deal data ──
 interface DemoCardData {
   id: string;
   name: string;
   letter: string;
   dealNumber: string;
   status: string;
-  statusColor: string;
   tags: string[];
   totalValue: number;
   executedAmount: number;
   executedPercent: number;
-  readinessPercent: number;
   buyerBorrower: string;
   sector: string;
   waterfallTiers: number;
@@ -34,64 +34,25 @@ interface DemoCardData {
 
 const DEMO_CARDS: DemoCardData[] = [
   {
-    id: 'atlas',
-    name: 'Project ATLAS',
-    letter: 'A',
-    dealNumber: 'PIVT-2026-000142',
-    status: 'active',
-    statusColor: 'bg-amber-500',
-    tags: ['M&A', 'Stock Purchase – Take Private'],
-    totalValue: 142_500_000,
-    executedAmount: 109_700_000,
-    executedPercent: 77,
-    readinessPercent: 77,
-    buyerBorrower: 'N/A',
-    sector: 'Enterprise Software / SaaS',
-    waterfallTiers: 8,
-    closingDate: '2025-01-15',
-    partiesCount: 28,
-    docsCount: 108,
-    capTableCount: 26,
+    id: 'atlas', name: 'Project ATLAS', letter: 'A', dealNumber: 'PIVT-2026-000142',
+    status: 'active', tags: ['M&A', 'Stock Purchase – Take Private'],
+    totalValue: 142_500_000, executedAmount: 109_700_000, executedPercent: 77,
+    buyerBorrower: 'N/A', sector: 'Enterprise Software / SaaS', waterfallTiers: 8,
+    closingDate: '2025-01-15', partiesCount: 28, docsCount: 108, capTableCount: 26,
   },
   {
-    id: 'beacon',
-    name: 'Project BEACON',
-    letter: 'B',
-    dealNumber: 'PIVT-2026-000143',
-    status: 'ready',
-    statusColor: 'bg-emerald-500',
-    tags: ['Credit', 'Unitranche Credit Facility'],
-    totalValue: 89_000_000,
-    executedAmount: 89_000_000,
-    executedPercent: 100,
-    readinessPercent: 100,
-    buyerBorrower: 'Beacon Holdings, LLC',
-    sector: 'Healthcare Services / Healthcare IT',
-    waterfallTiers: 6,
-    closingDate: '2025-01-18',
-    partiesCount: 25,
-    docsCount: 75,
-    capTableCount: 0,
+    id: 'beacon', name: 'Project BEACON', letter: 'B', dealNumber: 'PIVT-2026-000143',
+    status: 'ready', tags: ['Credit', 'Unitranche Credit Facility'],
+    totalValue: 89_000_000, executedAmount: 89_000_000, executedPercent: 100,
+    buyerBorrower: 'Beacon Holdings, LLC', sector: 'Healthcare Services / Healthcare IT', waterfallTiers: 6,
+    closingDate: '2025-01-18', partiesCount: 25, docsCount: 75, capTableCount: 0,
   },
   {
-    id: 'cipher',
-    name: 'Project CIPHER',
-    letter: 'C',
-    dealNumber: 'PIVT-2026-000144',
-    status: 'setup',
-    statusColor: 'bg-muted-foreground',
-    tags: ['M&A', 'Stock Purchase – Take Private'],
-    totalValue: 215_000_000,
-    executedAmount: 0,
-    executedPercent: 0,
-    readinessPercent: 0,
-    buyerBorrower: 'N/A',
-    sector: 'Cybersecurity / Enterprise Software',
-    waterfallTiers: 10,
-    closingDate: '2025-01-22',
-    partiesCount: 48,
-    docsCount: 145,
-    capTableCount: 24,
+    id: 'cipher', name: 'Project CIPHER', letter: 'C', dealNumber: 'PIVT-2026-000144',
+    status: 'setup', tags: ['M&A', 'Stock Purchase – Take Private'],
+    totalValue: 215_000_000, executedAmount: 0, executedPercent: 0,
+    buyerBorrower: 'N/A', sector: 'Cybersecurity / Enterprise Software', waterfallTiers: 10,
+    closingDate: '2025-01-22', partiesCount: 48, docsCount: 145, capTableCount: 24,
   },
 ];
 
@@ -112,7 +73,6 @@ const fmt = (n: number) => {
   return `$${n.toLocaleString()}`;
 };
 
-// ── Progress bar uses PIVT purple gradient ──
 const PROGRESS_BAR_STYLE = 'bg-gradient-to-r from-accent to-[hsl(217,100%,55%)]';
 
 // ── Demo Deal Card ──
@@ -125,7 +85,6 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
       onClick={onClick}
       className="border border-border rounded-xl bg-card hover:shadow-lg transition-all cursor-pointer group"
     >
-      {/* Header */}
       <div className="p-5 pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
@@ -133,7 +92,10 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
               {deal.letter}
             </div>
             <div>
-              <h3 className="text-base font-bold leading-tight">{deal.name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold leading-tight">{deal.name}</h3>
+                <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-accent/30 text-accent">DEMO</Badge>
+              </div>
               <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                 <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${sts.bg} ${sts.text}`}>
                   {sts.label}
@@ -153,7 +115,6 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
         </div>
       </div>
 
-      {/* Readiness bar */}
       <div className="px-5 pb-1">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[11px] text-accent font-medium">Ready to disburse</span>
@@ -162,14 +123,10 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
           </span>
         </div>
         <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${PROGRESS_BAR_STYLE}`}
-            style={{ width: `${Math.max(deal.executedPercent, 1)}%` }}
-          />
+          <div className={`h-full rounded-full transition-all ${PROGRESS_BAR_STYLE}`} style={{ width: `${Math.max(deal.executedPercent, 1)}%` }} />
         </div>
       </div>
 
-      {/* Body: 2 columns */}
       <div className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
@@ -185,29 +142,13 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
         </div>
       </div>
 
-      {/* Footer */}
       <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="flex items-center gap-1">
-            <Hash className="w-3.5 h-3.5" />
-            {deal.dealNumber}
-          </span>
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            {deal.closingDate}
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="w-3.5 h-3.5" />
-            {deal.partiesCount} parties
-          </span>
-          <span className="flex items-center gap-1">
-            <FileText className="w-3.5 h-3.5" />
-            {deal.docsCount} docs
-          </span>
-          <span className="flex items-center gap-1">
-            <Table className="w-3.5 h-3.5" />
-            {deal.capTableCount} cap table
-          </span>
+          <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" />{deal.dealNumber}</span>
+          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{deal.closingDate}</span>
+          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{deal.partiesCount} parties</span>
+          <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{deal.docsCount} docs</span>
+          <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{deal.capTableCount} cap table</span>
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>
@@ -215,9 +156,10 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
   );
 };
 
-// ── Real Deal Card (user-created) ──
-const RealDealCard: React.FC<{ deal: RealDeal; letter: string; onClick: () => void }> = ({ deal, letter, onClick }) => {
+// ── Live Deal Card ──
+const LiveDealCard: React.FC<{ deal: RealDeal; onClick: () => void }> = ({ deal, onClick }) => {
   const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
+  const letter = deal.deal_name.charAt(0).toUpperCase();
 
   return (
     <motion.div
@@ -247,7 +189,6 @@ const RealDealCard: React.FC<{ deal: RealDeal; letter: string; onClick: () => vo
         </div>
       </div>
 
-      {/* Progress bar placeholder */}
       <div className="px-5 pb-1">
         <div className="flex items-center justify-between mb-1">
           <span className="text-[11px] text-accent font-medium">Ready to disburse</span>
@@ -258,7 +199,6 @@ const RealDealCard: React.FC<{ deal: RealDeal; letter: string; onClick: () => vo
         </div>
       </div>
 
-      {/* Body */}
       <div className="px-5 py-3 grid grid-cols-2 gap-x-8 text-sm">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
@@ -270,25 +210,12 @@ const RealDealCard: React.FC<{ deal: RealDeal; letter: string; onClick: () => vo
         </div>
       </div>
 
-      {/* Footer */}
       <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
-            {deal.closing_date || 'TBD'}
-          </span>
-          <span className="flex items-center gap-1">
-            <Hash className="w-3.5 h-3.5" />
-            {deal.deal_number}
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="w-3.5 h-3.5" />
-            0 parties
-          </span>
-          <span className="flex items-center gap-1">
-            <FileText className="w-3.5 h-3.5" />
-            0 docs
-          </span>
+          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{deal.closing_date || 'TBD'}</span>
+          <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" />{deal.deal_number}</span>
+          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />0 parties</span>
+          <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />0 docs</span>
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>
@@ -299,24 +226,29 @@ const RealDealCard: React.FC<{ deal: RealDeal; letter: string; onClick: () => vo
 // ── Main component ──
 export const DealsCover: React.FC = () => {
   const { setSelectedDealId, setActiveSection } = usePIVTStore();
-  const { createDeal, fetchDeals } = useDealOperations();
+  const { createDeal, fetchDeals, fetchTemplates } = useDealOperations();
   const { user } = useAuth();
 
   const [realDeals, setRealDeals] = useState<RealDeal[]>([]);
+  const [templates, setTemplates] = useState<DealTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '' });
+  const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', templateId: '' });
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
     const data = await fetchDeals();
-    const userDeals = data.filter(d => !d.seed_key);
-    setRealDeals(userDeals);
+    // Filter: show only live deals (demo deals are rendered from DEMO_CARDS)
+    const liveDeals = data.filter(d => d.deal_kind === 'live' || (!d.deal_kind && !d.seed_key));
+    setRealDeals(liveDeals);
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadDeals(); }, []);
+  useEffect(() => {
+    loadDeals();
+    fetchTemplates().then(setTemplates);
+  }, []);
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -326,10 +258,11 @@ export const DealsCover: React.FC = () => {
       deal_value: Number(form.deal_value),
       closing_date: form.closing_date || null,
       escrow_amount: Number(form.escrow_amount) || 0,
+      templateId: (form.templateId && form.templateId !== 'none') ? form.templateId : null,
     });
     if (deal) {
       setShowCreate(false);
-      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '' });
+      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', templateId: '' });
       setSelectedDealId(deal.id);
       setActiveSection('workspace');
     }
@@ -341,10 +274,8 @@ export const DealsCover: React.FC = () => {
     setActiveSection('workspace');
   };
 
-  // Sort demo cards alphabetically (already A, B, C)
   const sortedDemos = [...DEMO_CARDS].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
   const sortedReal = [...realDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
-
   const totalDeals = sortedDemos.length + sortedReal.length;
 
   return (
@@ -353,7 +284,7 @@ export const DealsCover: React.FC = () => {
         <div>
           <h2 className="text-xl font-semibold">Deals</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalDeals} deal{totalDeals !== 1 ? 's' : ''}
+            {totalDeals} deal{totalDeals !== 1 ? 's' : ''} · {sortedReal.length} live · {sortedDemos.length} demo
           </p>
         </div>
         <button
@@ -371,21 +302,18 @@ export const DealsCover: React.FC = () => {
         </div>
       ) : (
         <div className="grid gap-4">
+          {/* Live deals first */}
+          {sortedReal.map((deal) => (
+            <LiveDealCard key={deal.id} deal={deal} onClick={() => openDeal(deal.id)} />
+          ))}
+          {/* Demo deals */}
           {sortedDemos.map((deal) => (
             <DemoDealCard key={deal.id} deal={deal} onClick={() => openDeal(deal.id)} />
-          ))}
-          {sortedReal.map((deal, i) => (
-            <RealDealCard
-              key={deal.id}
-              deal={deal}
-              letter={deal.deal_name.charAt(0).toUpperCase()}
-              onClick={() => openDeal(deal.id)}
-            />
           ))}
         </div>
       )}
 
-      {/* Create Deal Dialog */}
+      {/* Create Deal Dialog with Template Selector */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -397,7 +325,7 @@ export const DealsCover: React.FC = () => {
               <Input
                 value={form.deal_name}
                 onChange={(e) => setForm({ ...form, deal_name: e.target.value })}
-                placeholder="Project Atlas Acquisition"
+                placeholder="Project Delta Acquisition"
                 required
               />
             </div>
@@ -431,6 +359,21 @@ export const DealsCover: React.FC = () => {
                 value={form.closing_date}
                 onChange={(e) => setForm({ ...form, closing_date: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Deal Template</Label>
+              <Select value={form.templateId} onValueChange={(v) => setForm({ ...form, templateId: v })}>
+                <SelectTrigger>
+                  <SelectValue placeholder="No template (blank deal)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No template (blank deal)</SelectItem>
+                  {templates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>{t.deal_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">Templates pre-load conditions and checklists only — no stakeholders or documents.</p>
             </div>
             <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={creating}>
               {creating ? 'Creating...' : 'Create Deal'}
