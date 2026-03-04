@@ -144,13 +144,29 @@ const DealCard: React.FC<{
       {/* Deal details grid */}
       <div className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer</p>
           <p className="font-medium text-foreground text-sm">{buyerBorrower}</p>
         </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Seller</p>
+          <p className="font-medium text-foreground text-sm">{(deal as any).seller || '—'}</p>
+        </div>
+        {(deal as any).target_company && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Target</p>
+            <p className="font-medium text-foreground text-sm">{(deal as any).target_company}</p>
+          </div>
+        )}
         <div>
           <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Sector</p>
           <p className="font-medium text-foreground text-sm">{sector}</p>
         </div>
+        {(deal as any).jurisdiction && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Jurisdiction</p>
+            <p className="font-medium text-foreground text-sm">{(deal as any).jurisdiction}</p>
+          </div>
+        )}
         {tierCount > 0 && (
           <div>
             <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Waterfall Tiers</p>
