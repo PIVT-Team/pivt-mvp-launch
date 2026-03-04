@@ -277,6 +277,18 @@ export const DealsCover: React.FC = () => {
     setActiveSection('workspace');
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const success = await softDeleteDeal(deleteTarget.id);
+    setDeleting(false);
+    if (success) {
+      setAllDeals((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+    }
+    setDeleteTarget(null);
+    setDeleteConfirmText('');
+  };
+
   // Separate demo deals from user's private deals
   const demoDeals = allDeals.filter(d => d.is_demo || d.visibility === 'global_demo');
   const privateDeals = allDeals.filter(d => !d.is_demo && d.visibility !== 'global_demo');
