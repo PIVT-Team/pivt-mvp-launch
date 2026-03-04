@@ -10,6 +10,11 @@ import { useEditGuard } from '@/hooks/useEditGuard';
 export const StakeholdersDealTab: React.FC = () => {
   const { stakeholders } = usePIVTStore();
   const [modalOpen, setModalOpen] = useState(false);
+  const { isProtected, guardEdit } = useEditGuard();
+
+  const handleAddClick = () => {
+    guardEdit('ADD_STAKEHOLDER', null, () => setModalOpen(true));
+  };
 
   const verified = stakeholders.filter(s => s.kycStatus === 'verified').length;
   const total = stakeholders.length;
