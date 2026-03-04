@@ -86,6 +86,7 @@ export function useDealOperations() {
         deal_type: params.deal_type || null,
         currency: params.currency || 'USD',
         jurisdiction: params.jurisdiction || null,
+        signing_date: params.signing_date || null,
       } as any)
       .select()
       .single();
