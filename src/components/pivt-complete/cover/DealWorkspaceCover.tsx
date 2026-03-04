@@ -530,10 +530,18 @@ export const DealWorkspaceCover: React.FC = () => {
   const [realDeal, setRealDeal] = useState<RealDeal | null>(null);
   const [loadingDeal, setLoadingDeal] = useState(false);
 
-  // Demo deals use pivtStore IDs like 'atlas','beacon','cipher'
+  // Demo deals: detect by seed_key or is_demo flag on the fetched real deal
   const isRealDeal = selectedDealId && selectedDealId.includes('-') && selectedDealId.length > 10;
-  const isDemoDeal = !isRealDeal;
-  const { summary: dealSummary } = useDealSummary(isRealDeal ? selectedDealId : undefined);
+  const isDemoDeal = useMemo(() => {
+    if (!isRealDeal) return true; // pivtStore ID like 'atlas'
+    if (realDeal) return !!(realDeal.is_demo || realDeal.seed_key);
+    return false;
+  }, [isRealDeal, realDeal]);
+  const demoDealSeedKey = useMemo(() => {
+    if (!isRealDeal) return selectedDealId; // 'atlas', 'beacon', 'cipher'
+    return realDeal?.seed_key || null;
+  }, [isRealDeal, realDeal, selectedDealId]);
+  const { summary: dealSummary } = useDealSummary(!isDemoDeal && isRealDeal ? selectedDealId : undefined);
   useEffect(() => {
     if (isRealDeal) {
       setLoadingDeal(true);
