@@ -90,7 +90,7 @@ export const EditDealDrawer: React.FC<EditDealDrawerProps> = ({ open, onOpenChan
       setDealType(deal.deal_type || '');
       setDealValue(String(deal.deal_value || 0));
       setEscrowAmount(String(deal.escrow_amount || 0));
-      setSigningDate(deal.signing_date ? new Date(deal.signing_date + 'T00:00:00') : undefined);
+      setSigningDate((deal as any).signing_date ? new Date((deal as any).signing_date + 'T00:00:00') : undefined);
       setClosingDate(deal.closing_date ? new Date(deal.closing_date + 'T00:00:00') : undefined);
       setBuyer(deal.buyer || '');
       setSeller(deal.seller || '');
