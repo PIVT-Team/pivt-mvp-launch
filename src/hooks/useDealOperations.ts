@@ -126,11 +126,14 @@ export function useDealOperations() {
   };
 
   const fetchDeals = async (): Promise<RealDeal[]> => {
-    const { data } = await (supabase
-      .from("deals")
-      .select("*") as any)
-      .in("deal_kind", ["demo", "live"])
-      .order("created_at", { ascending: false });
+    const isDemoUser = user?.email === 'demo@pivt.app';
+    let query = (supabase.from("deals").select("*") as any);
+    if (isDemoUser) {
+      query = query.in("deal_kind", ["demo", "live"]);
+    } else {
+      query = query.eq("deal_kind", "live");
+    }
+    const { data } = await query.order("created_at", { ascending: false });
     return (data as RealDeal[]) || [];
   };
 

@@ -1834,6 +1834,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_deal_accessible: {
+        Args: { _deal_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       allocation_logic_type: "fixed" | "percentage" | "pro_rata" | "threshold"
