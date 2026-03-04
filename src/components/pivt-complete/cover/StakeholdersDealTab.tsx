@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
-import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AddStakeholderModal } from './AddStakeholderModal';
+import { useEditGuard } from '@/hooks/useEditGuard';
 
 export const StakeholdersDealTab: React.FC = () => {
   const { stakeholders } = usePIVTStore();
