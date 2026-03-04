@@ -40,7 +40,7 @@ const DEMO_GOLDEN_SUMMARIES: Record<string, DealSummaryCounts & { buyerBorrower:
     dealKindTags: ['M&A', 'Stock Purchase', 'Take Private'],
     funded: 109_700_000, fundedPct: 77,
   },
-  beacon: {
+  beacon_demo: {
     deal_id: '', partiesCount: 25, docsCount: 75, capTableCount: 0, waterfallTiers: 6,
     conditionsMet: 3, conditionsTotal: 6, approvalsGranted: 2, approvalsTotal: 5,
     buyerBorrower: 'Beacon Holdings, LLC', sector: 'Healthcare Services / Healthcare IT',
