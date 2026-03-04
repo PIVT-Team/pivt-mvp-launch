@@ -4,9 +4,10 @@ import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
   ArrowLeft, AlertTriangle, Ban,
-  FileText, Users, Search, Sparkles, Calendar, Brain,
+  FileText, Users, Search, Sparkles, Calendar, Brain, ShieldAlert, Copy,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { DealWorkflowStepper, WorkflowStep, deriveStatus } from './DealWorkflowStepper';
 import { DealProgressRibbon, DealProgressData } from './DealProgressRibbon';
