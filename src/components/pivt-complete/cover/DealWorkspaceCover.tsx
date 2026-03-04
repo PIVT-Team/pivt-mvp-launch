@@ -186,8 +186,9 @@ const useDealSummary = (dealId: string | undefined) => {
   return { summary, loading };
 };
 
-const DemoOverviewSection: React.FC = () => {
+const DemoOverviewSection: React.FC<{ seedKey?: string | null }> = ({ seedKey }) => {
   const demoDeal = useSelectedDeal();
+  const effectiveKey = seedKey || demoDeal.id;
 
   const DEMO_NEXT_ACTIONS: Record<string, string> = {
     atlas: '2 approvals pending — Waterfall Schedule v3 & Wire Authorization',
@@ -210,8 +211,8 @@ const DemoOverviewSection: React.FC = () => {
     ],
   };
 
-  const nextAction = DEMO_NEXT_ACTIONS[demoDeal.id] || 'Review deal workspace';
-  const blockers = DEMO_BLOCKERS[demoDeal.id] || [];
+  const nextAction = DEMO_NEXT_ACTIONS[effectiveKey] || 'Review deal workspace';
+  const blockers = DEMO_BLOCKERS[effectiveKey] || [];
 
   return (
     <div className="space-y-8">
