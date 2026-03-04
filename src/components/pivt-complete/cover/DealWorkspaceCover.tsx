@@ -776,75 +776,81 @@ export const DealWorkspaceCover: React.FC = () => {
       <ProtectedDealBanner />
 
       {/* ── Deal Header ── */}
-      <div className="pivt-panel p-8 lg:p-10">
-        <div className="flex flex-col lg:flex-row lg:items-center gap-8" style={{ justifyContent: 'space-between' }}>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3">
-              <h1 className="text-[28px] font-semibold text-foreground" style={{ letterSpacing: '-0.04em' }}>{dealName}</h1>
-              {hasBlocker && (
-                <Badge className="bg-blocking/10 text-blocking border-blocking/15 shrink-0">
-                  <Ban className="w-3 h-3 mr-1" /> Blocked
-                </Badge>
-              )}
+      <div className="pivt-panel p-6 lg:p-8">
+        <div className="flex flex-col gap-5">
+          {/* Row 1: Deal name + action buttons */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-semibold text-foreground truncate" style={{ letterSpacing: '-0.04em' }}>{dealName}</h1>
+                {hasBlocker && (
+                  <Badge className="bg-blocking/10 text-blocking border-blocking/15 shrink-0">
+                    <Ban className="w-3 h-3 mr-1" /> Blocked
+                  </Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mt-1.5">
+                <button
+                  onClick={() => navigator.clipboard.writeText(dealNumber)}
+                  className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted text-[11px] font-mono text-muted-foreground hover:bg-accent/10 hover:text-accent transition-colors cursor-pointer"
+                  title="Click to copy Deal ID"
+                >
+                  {dealNumber}
+                </button>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                  dealStatus === 'active' ? 'bg-accent/10 text-accent' :
+                  dealStatus === 'closed' ? 'bg-validated/10 text-validated' :
+                  'bg-muted text-muted-foreground'
+                }`}>
+                  {dealStatus.charAt(0).toUpperCase() + dealStatus.slice(1)}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center gap-3 mt-1.5">
-              <button
-                onClick={() => navigator.clipboard.writeText(dealNumber)}
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-muted text-[11px] font-mono text-muted-foreground hover:bg-accent/10 hover:text-accent transition-colors cursor-pointer"
-                title="Click to copy Deal ID"
-              >
-                {dealNumber}
+
+            <div className="flex items-center gap-2 shrink-0">
+              {!isDemoDeal && realDeal && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1.5 text-xs"
+                  onClick={() => setEditDrawerOpen(true)}
+                >
+                  <Pencil className="w-3 h-3" />
+                  Edit Deal
+                </Button>
+              )}
+              {isDemoDeal && (
+                <Badge variant="secondary" className="text-[10px]">Read-only demo</Badge>
+              )}
+              <button className="pivt-ai-btn flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-accent whitespace-nowrap">
+                <Sparkles className="w-3.5 h-3.5 pivt-spark" />
+                What's blocking close?
               </button>
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                dealStatus === 'active' ? 'bg-accent/10 text-accent' :
-                dealStatus === 'closed' ? 'bg-validated/10 text-validated' :
-                'bg-muted text-muted-foreground'
-              }`}>
-                {dealStatus.charAt(0).toUpperCase() + dealStatus.slice(1)}
-              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-8 flex-wrap lg:ml-auto" style={{ flexShrink: 0 }}>
-            <div className="text-left lg:text-right">
+          {/* Row 2: Metrics */}
+          <div className="flex items-center gap-6 flex-wrap border-t border-border/30 pt-4">
+            <div>
               <p className="pivt-metric-label">Deal Value</p>
-              <p className="font-mono text-lg font-medium mt-1.5">{formatCurrency(dealValue)}</p>
+              <p className="font-mono text-lg font-medium mt-1">{formatCurrency(dealValue)}</p>
             </div>
-            <div className="h-10 w-px bg-border/20 hidden lg:block" />
-            <div className="text-left lg:text-right">
+            <div className="h-8 w-px bg-border/20 hidden sm:block" />
+            <div>
               <p className="pivt-metric-label">Closing</p>
-              <p className="text-sm font-medium flex items-center gap-1.5 mt-1.5">
+              <p className="text-sm font-medium flex items-center gap-1.5 mt-1">
                 <Calendar className="w-3.5 h-3.5 text-muted-foreground/40" />
                 {closingDate || 'TBD'}
               </p>
             </div>
-            <div className="h-10 w-px bg-border/20 hidden lg:block" />
-            <div className="min-w-[140px]">
-              <div className="flex items-center justify-between mb-2">
+            <div className="h-8 w-px bg-border/20 hidden sm:block" />
+            <div className="min-w-[120px]">
+              <div className="flex items-center justify-between mb-1.5">
                 <p className="pivt-metric-label">Readiness</p>
                 <span className="font-mono text-xs font-medium">{readyPct}%</span>
               </div>
               <Progress value={readyPct} className="h-1.5" />
             </div>
-            <div className="h-10 w-px bg-border/20 hidden lg:block" />
-            {!isDemoDeal && realDeal && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1.5 text-xs shrink-0"
-                onClick={() => setEditDrawerOpen(true)}
-              >
-                <Pencil className="w-3 h-3" />
-                Edit Deal
-              </Button>
-            )}
-            {isDemoDeal && (
-              <Badge variant="secondary" className="text-[10px] shrink-0">Read-only demo</Badge>
-            )}
-            <button className="pivt-ai-btn flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-accent whitespace-nowrap">
-              <Sparkles className="w-3.5 h-3.5 pivt-spark" />
-              What's blocking close?
-            </button>
           </div>
         </div>
       </div>
