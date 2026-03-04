@@ -697,6 +697,9 @@ export const DealWorkspaceCover: React.FC = () => {
         Back to Deals
       </button>
 
+      {/* ── Read-only banner for protected deals ── */}
+      <ProtectedDealBanner />
+
       {/* ── Deal Header ── */}
       <div className="pivt-panel p-8 lg:p-10">
         <div className="flex flex-col lg:flex-row lg:items-center gap-8" style={{ justifyContent: 'space-between' }}>
