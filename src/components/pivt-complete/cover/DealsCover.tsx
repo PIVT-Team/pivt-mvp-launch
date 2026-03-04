@@ -206,7 +206,7 @@ const DealCard: React.FC<{
 // ── Main component ──
 export const DealsCover: React.FC = () => {
   const { setSelectedDealId, setActiveSection } = usePIVTStore();
-  const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries, duplicateDeal } = useDealOperations();
+  const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries, duplicateDeal, softDeleteDeal } = useDealOperations();
   const { user } = useAuth();
 
   const [allDeals, setAllDeals] = useState<RealDeal[]>([]);
@@ -216,6 +216,9 @@ export const DealsCover: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<RealDeal | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '' });
 
   const loadDeals = useCallback(async () => {
