@@ -1,1143 +1,572 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal, DemoDeal } from '@/stores/pivtStore';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
-  Search, Play, RotateCcw, X, ArrowRight, Sparkles, ChevronDown, Check,
-  Eye, Users, CreditCard, FileText, Shield, Activity, ExternalLink,
-  Calendar, AlertTriangle, Ban, TrendingUp, Maximize2, Minimize2,
+  Search, Play, RotateCcw, X, Sparkles, ChevronDown, Check,
+  Eye, TrendingUp, Maximize2, Minimize2, Map, Crosshair, AlertTriangle, ShieldAlert,
+  Users as UsersIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { springConfig, fadeInUp } from '@/lib/animations';
+import { fadeInUp } from '@/lib/animations';
+import { GraphLegend } from './intelligence-map/GraphLegend';
+import { NodeDrawer } from './intelligence-map/NodeDrawer';
+import { NextActionsBanner } from './intelligence-map/NextActionsBanner';
 
 // ── Types ──
-interface GraphNode {
+interface DbNode {
   id: string;
+  deal_id: string;
+  node_type: string;
   label: string;
-  type: string;
+  status: string;
+  metadata: Record<string, unknown>;
+  source_entity_id: string | null;
+}
+
+interface DbEdge {
+  id: string;
+  deal_id: string;
+  from_node_id: string;
+  to_node_id: string;
+  edge_type: string;
+  metadata: Record<string, unknown>;
+}
+
+interface PositionedNode extends DbNode {
   x: number;
   y: number;
   color: string;
   size: number;
-  riskLevel?: 'critical' | 'warning' | 'info' | 'none';
-  metadata?: Record<string, any>;
 }
 
-interface GraphEdge {
-  from: string;
-  to: string;
-  label: string;
-  strength?: number;
-}
-
+// ── Color Maps ──
 const typeColors: Record<string, string> = {
   deal: '#7C3AED',
   stakeholder: '#A78BFA',
   document: '#22C55E',
   obligation: '#8B5CF6',
-  payment: '#F59E0B',
-  escrow: '#06B6D4',
+  compliance_check: '#06B6D4',
+  approval: '#3B82F6',
+  payment_intent: '#F59E0B',
+  settlement: '#10B981',
   waterfall: '#C084FC',
+  discrepancy: '#EF4444',
 };
 
-const riskHaloColors: Record<string, string> = {
-  critical: '#EF4444',
-  warning: '#F59E0B',
-  info: '#F97316',
-  none: 'transparent',
+const statusRingColors: Record<string, string> = {
+  not_started: 'rgba(148,163,184,0.5)',
+  in_progress: '#3B82F6',
+  complete: '#22C55E',
+  blocked: '#EF4444',
+  failed: '#EF4444',
 };
 
-const FILTER_DEFS = [
-  { key: 'stakeholder', label: 'Stakeholders', icon: Users },
-  { key: 'waterfall', label: 'Financial Entities', icon: CreditCard },
-  { key: 'compliance', label: 'Compliance Flags', icon: Shield },
-  { key: 'document', label: 'Documents', icon: FileText },
-  { key: 'obligation', label: 'Obligations', icon: Shield },
-  { key: 'payment', label: 'Transactions', icon: Activity },
-] as const;
+type ViewMode = 'overview' | 'execution' | 'risk' | 'ownership';
 
-const SIMULATIONS = [
-  { id: 'remove-stakeholder', label: 'Remove a stakeholder', description: 'See how removing a key stakeholder affects the waterfall distribution' },
-  { id: 'increase-escrow', label: 'Increase escrow 20%', description: 'Model impact of a larger escrow holdback on net payouts' },
-  { id: 'delay-closing', label: 'Delay closing 30 days', description: 'Assess timeline impact on all connected entities' },
-  { id: 'add-expense', label: 'Add $50M transaction expense', description: 'See how additional fees flow through the waterfall' },
+const VIEW_MODES: { key: ViewMode; label: string; icon: React.ElementType; desc: string }[] = [
+  { key: 'overview', label: 'Overview', icon: Map, desc: 'Full deal graph' },
+  { key: 'execution', label: 'Execution', icon: Crosshair, desc: 'Docs → Compliance → Approvals → Payments' },
+  { key: 'risk', label: 'Risk', icon: ShieldAlert, desc: 'Discrepancies & blockers' },
+  { key: 'ownership', label: 'Ownership', icon: UsersIcon, desc: 'Stakeholders & payouts' },
 ];
 
-// ── Deal Selector Dropdown ──
-const DealSelectorDropdown: React.FC<{
-  deals: DemoDeal[];
-  selectedDealId: string;
-  onSelect: (id: string) => void;
-}> = ({ deals, selectedDealId, onSelect }) => {
-  const [open, setOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const selected = deals.find(d => d.id === selectedDealId) || deals[0];
-
-  const filtered = searchTerm
-    ? deals.filter(d => d.codeName.toLowerCase().includes(searchTerm.toLowerCase()) || d.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    : deals;
-
-  const statusDot: Record<string, string> = {
-    drafting: 'bg-muted-foreground/40',
-    diligence: 'bg-amber-400',
-    signing: 'bg-blue-400',
-    closing: 'bg-emerald-500',
-    completed: 'bg-emerald-600',
-  };
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/50 bg-background/60 backdrop-blur-sm hover:bg-muted/40 transition-all text-sm"
-      >
-        <span className={`w-2 h-2 rounded-full ${statusDot[selected.status] || 'bg-muted-foreground/40'}`} />
-        <span className="font-medium">Viewing: {selected.codeName}</span>
-        <ChevronDown className={`w-3.5 h-3.5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-            <motion.div
-              initial={{ opacity: 0, y: -4, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -4, scale: 0.98 }}
-              transition={{ duration: 0.15 }}
-              className="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border/50 bg-background/95 backdrop-blur-xl shadow-xl z-50 overflow-hidden"
-            >
-              <div className="p-2">
-                <div className="relative mb-2">
-                  <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    placeholder="Search deals..."
-                    className="w-full bg-muted/40 border border-border/50 rounded-lg pl-8 pr-3 py-1.5 text-sm focus:outline-none focus:border-accent/40"
-                    autoFocus
-                  />
-                </div>
-              </div>
-              <div className="max-h-60 overflow-y-auto px-1 pb-1">
-                {filtered.map(deal => (
-                  <button
-                    key={deal.id}
-                    onClick={() => { onSelect(deal.id); setOpen(false); setSearchTerm(''); }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-all ${
-                      deal.id === selectedDealId ? 'bg-accent/8' : 'hover:bg-muted/40'
-                    }`}
-                  >
-                    <span className={`w-2 h-2 rounded-full shrink-0 ${statusDot[deal.status] || 'bg-muted-foreground/40'}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{deal.codeName}</p>
-                      <p className="text-[11px] text-muted-foreground truncate">{deal.buyerName} → {deal.targetCompany}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-mono text-xs">${(deal.consideration / 1e6).toFixed(0)}M</p>
-                      <p className="text-[10px] text-muted-foreground">{deal.readyToPayPercent}%</p>
-                    </div>
-                    {deal.id === selectedDealId && <Check className="w-3.5 h-3.5 text-accent shrink-0" />}
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
+// Types visible per view mode
+const viewTypeFilters: Record<ViewMode, Set<string>> = {
+  overview: new Set(Object.keys(typeColors)),
+  execution: new Set(['deal', 'document', 'compliance_check', 'approval', 'payment_intent', 'settlement']),
+  risk: new Set(['deal', 'discrepancy', 'payment_intent', 'compliance_check']),
+  ownership: new Set(['deal', 'stakeholder', 'waterfall', 'payment_intent']),
 };
 
-// ── Deal Detail Side Panel ──
-const DealDetailPanel: React.FC<{
-  deal: DemoDeal;
-  onClose: () => void;
-  onGoToWorkspace: () => void;
-  riskCount: number;
-}> = ({ deal, onClose, onGoToWorkspace, riskCount }) => (
-  <motion.div
-    initial={{ opacity: 0, x: 20 }}
-    animate={{ opacity: 1, x: 0 }}
-    exit={{ opacity: 0, x: 20 }}
-    className="absolute top-4 right-4 w-80 rounded-2xl border border-border/50 overflow-hidden bg-background/95 backdrop-blur-xl shadow-xl z-10"
-  >
-    <div className="p-5 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Deal Details</h3>
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
-          <X className="w-4 h-4" />
-        </button>
-      </div>
-
-      <div>
-        <h4 className="text-lg font-semibold" style={{ letterSpacing: '-0.03em' }}>{deal.codeName}</h4>
-        <p className="text-xs text-muted-foreground/70 mt-0.5">{deal.buyerName} acquiring {deal.targetCompany}</p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="pivt-card p-3">
-          <p className="pivt-metric-label">Deal Value</p>
-          <p className="font-mono text-sm font-medium mt-1">${(deal.consideration / 1e6).toFixed(0)}M</p>
-        </div>
-        <div className="pivt-card p-3">
-          <p className="pivt-metric-label">Readiness</p>
-          <p className="font-mono text-sm font-medium mt-1">{deal.readyToPayPercent}%</p>
-        </div>
-        <div className="pivt-card p-3">
-          <p className="pivt-metric-label">Risk Nodes</p>
-          <p className={`font-mono text-sm font-medium mt-1 ${riskCount > 0 ? 'text-blocking' : 'text-validated'}`}>{riskCount}</p>
-        </div>
-        <div className="pivt-card p-3">
-          <p className="pivt-metric-label">Approvals</p>
-          <p className={`font-mono text-sm font-medium mt-1 ${deal.pendingApprovals > 0 ? 'text-discrepancy' : 'text-validated'}`}>{deal.pendingApprovals}</p>
-        </div>
-      </div>
-
-      <div className="space-y-2 text-xs">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Discrepancies</span>
-          <span className={`font-medium ${deal.discrepanciesFound > 0 ? 'text-discrepancy' : 'text-validated'}`}>{deal.discrepanciesFound}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Closing Date</span>
-          <span className="font-medium">{deal.closingDate}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">Sector</span>
-          <span className="font-medium">{deal.sector}</span>
-        </div>
-      </div>
-
-      <button
-        onClick={onGoToWorkspace}
-        className="w-full pivt-btn-primary text-white text-xs font-medium py-2.5 rounded-xl flex items-center justify-center gap-2"
-      >
-        <ExternalLink className="w-3.5 h-3.5" />
-        Go to Deal Workspace
-      </button>
-    </div>
-  </motion.div>
-);
-
-// ── Portfolio View (aggregate graph of all deals) ──
-const PortfolioGraph: React.FC<{
-  deals: DemoDeal[];
-  onDealClick: (dealId: string) => void;
-}> = ({ deals, onDealClick }) => {
-  const [hoveredDeal, setHoveredDeal] = useState<string | null>(null);
+// ── Layout helper: position nodes radially by type ──
+function layoutNodes(nodes: DbNode[], viewMode: ViewMode): PositionedNode[] {
   const cx = 400, cy = 300;
+  const allowedTypes = viewTypeFilters[viewMode];
+  const filtered = nodes.filter(n => allowedTypes.has(n.node_type));
 
-  // Position deals in a circle
-  const dealNodes = deals.map((d, i) => {
-    const angle = (2 * Math.PI * i) / deals.length - Math.PI / 2;
-    const radius = deals.length <= 3 ? 160 : 200;
-    return {
-      ...d,
-      x: cx + Math.cos(angle) * radius,
-      y: cy + Math.sin(angle) * radius,
-      riskLevel: d.hasBlocker ? 'critical' as const : d.discrepanciesFound > 3 ? 'warning' as const : 'none' as const,
-    };
-  });
+  // Group by type
+  const groups: Record<string, DbNode[]> = {};
+  for (const n of filtered) {
+    if (!groups[n.node_type]) groups[n.node_type] = [];
+    groups[n.node_type].push(n);
+  }
 
-  // Find shared stakeholders (demo: just connect deals that share sectors conceptually)
-  const crossEdges: { from: string; to: string; label: string }[] = [];
-  // For demo, connect deals that share high risk
-  for (let i = 0; i < dealNodes.length; i++) {
-    for (let j = i + 1; j < dealNodes.length; j++) {
-      if (dealNodes[i].pendingApprovals > 0 && dealNodes[j].pendingApprovals > 0) {
-        crossEdges.push({ from: dealNodes[i].id, to: dealNodes[j].id, label: 'shared_risk' });
+  const typeOrder = ['deal', 'stakeholder', 'document', 'obligation', 'compliance_check', 'approval', 'payment_intent', 'settlement', 'waterfall', 'discrepancy'];
+  const orderedTypes = typeOrder.filter(t => groups[t]);
+
+  const positioned: PositionedNode[] = [];
+
+  for (let gi = 0; gi < orderedTypes.length; gi++) {
+    const type = orderedTypes[gi];
+    const group = groups[type];
+
+    if (type === 'deal') {
+      // Center
+      for (const n of group) {
+        positioned.push({ ...n, x: cx, y: cy, color: typeColors[type] || '#888', size: 40 });
       }
+      continue;
+    }
+
+    // Spread each type in a sector
+    const sectorAngle = (2 * Math.PI) / Math.max(orderedTypes.length - 1, 1);
+    const baseAngle = sectorAngle * (gi - 1) - Math.PI / 2;
+    const radius = 160 + Math.min(group.length, 8) * 5;
+
+    for (let i = 0; i < group.length; i++) {
+      const n = group[i];
+      const spread = group.length > 1 ? (i - (group.length - 1) / 2) * 0.3 : 0;
+      const angle = baseAngle + spread;
+      const r = radius + (i % 2) * 20;
+      positioned.push({
+        ...n,
+        x: cx + Math.cos(angle) * r,
+        y: cy + Math.sin(angle) * r,
+        color: typeColors[type] || '#888',
+        size: type === 'discrepancy' ? 16 : 20,
+      });
     }
   }
 
-  return (
-    <svg width="100%" height="100%" viewBox="0 0 800 600" className="absolute inset-0">
-      <defs>
-        <radialGradient id="portfolio-glow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="hsl(var(--accent))" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="p-halo-critical" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#EF4444" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
-        </radialGradient>
-        <radialGradient id="p-halo-warning" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.4" />
-          <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-
-      {/* Center label */}
-      <text x={cx} y={cy - 10} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="10" fontWeight="500">
-        PORTFOLIO
-      </text>
-      <text x={cx} y={cy + 8} textAnchor="middle" fill="hsl(var(--foreground))" fontSize="13" fontWeight="600">
-        {deals.length} Deals
-      </text>
-      <text x={cx} y={cy + 24} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="10">
-        ${(deals.reduce((s, d) => s + d.consideration, 0) / 1e6).toFixed(0)}M Total
-      </text>
-
-      {/* Cross-deal edges */}
-      {crossEdges.map((e, i) => {
-        const from = dealNodes.find(d => d.id === e.from);
-        const to = dealNodes.find(d => d.id === e.to);
-        if (!from || !to) return null;
-        return (
-          <line key={i} x1={from.x} y1={from.y} x2={to.x} y2={to.y}
-            stroke="hsl(var(--accent))" strokeWidth="1" strokeDasharray="6 3" strokeOpacity="0.3"
-          />
-        );
-      })}
-
-      {/* Spokes from center */}
-      {dealNodes.map(d => (
-        <line key={`spoke-${d.id}`} x1={cx} y1={cy} x2={d.x} y2={d.y}
-          stroke="hsl(var(--border))" strokeWidth="1" strokeOpacity="0.25"
-        />
-      ))}
-
-      {/* Deal nodes */}
-      {dealNodes.map(d => {
-        const isHovered = hoveredDeal === d.id;
-        const showHalo = d.riskLevel !== 'none';
-        return (
-          <g key={d.id}
-            onClick={() => onDealClick(d.id)}
-            onMouseEnter={() => setHoveredDeal(d.id)}
-            onMouseLeave={() => setHoveredDeal(null)}
-            className="cursor-pointer"
-          >
-            {showHalo && (
-              <circle cx={d.x} cy={d.y} r={50}
-                fill={d.riskLevel === 'critical' ? 'url(#p-halo-critical)' : 'url(#p-halo-warning)'}
-              >
-                <animate attributeName="r" values="45;55;45" dur="2.5s" repeatCount="indefinite" />
-              </circle>
-            )}
-            {isHovered && <circle cx={d.x} cy={d.y} r={42} fill="url(#portfolio-glow)" />}
-            <circle cx={d.x} cy={d.y} r={28} fill={typeColors.deal} opacity={0.15} />
-            <circle cx={d.x} cy={d.y} r={20} fill={typeColors.deal}
-              stroke={isHovered ? 'hsl(var(--foreground))' : showHalo ? riskHaloColors[d.riskLevel] : 'transparent'}
-              strokeWidth={2}
-            />
-            <text x={d.x} y={d.y + 38} textAnchor="middle" fill={isHovered ? 'hsl(var(--foreground))' : 'hsl(var(--muted-foreground))'} fontSize={isHovered ? 12 : 11} fontWeight={isHovered ? 600 : 500}>
-              {d.codeName}
-            </text>
-            <text x={d.x} y={d.y + 52} textAnchor="middle" fill="hsl(var(--muted-foreground))" fontSize="9">
-              ${(d.consideration / 1e6).toFixed(0)}M · {d.readyToPayPercent}%
-            </text>
-            {/* Readiness arc */}
-            <circle cx={d.x} cy={d.y} r={24} fill="none" stroke="hsl(var(--border))" strokeWidth="2" opacity="0.2" />
-            <circle cx={d.x} cy={d.y} r={24} fill="none" stroke={typeColors.deal} strokeWidth="2"
-              strokeDasharray={`${(d.readyToPayPercent / 100) * 150.8} 150.8`}
-              strokeLinecap="round"
-              transform={`rotate(-90 ${d.x} ${d.y})`}
-              opacity="0.7"
-            />
-          </g>
-        );
-      })}
-    </svg>
-  );
-};
+  return positioned;
+}
 
 // ── Main Component ──
 export const IntelligenceMapCover: React.FC = () => {
   const { deals, stakeholders, documents, payments, waterfallTiers, setSelectedDealId, setActiveSection } = usePIVTStore();
   const deal = useSelectedDeal();
+
+  // Try to get deal workspace context (may not exist in all routes)
+  let workspaceDealId: string | undefined;
+  let isDemoDeal = true;
+  try {
+    const ctx = useDealWorkspace();
+    workspaceDealId = ctx.dealId;
+    isDemoDeal = ctx.isDemoDeal;
+  } catch {
+    // Not within DealWorkspaceProvider — use demo mode
+  }
+
   const [search, setSearch] = useState('');
-  const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [highlightRisk, setHighlightRisk] = useState(true);
-  const [showSimPanel, setShowSimPanel] = useState(false);
-  const [activeSim, setActiveSim] = useState<string | null>(null);
-  const [simResult, setSimResult] = useState<string | null>(null);
-  const [showDealDetail, setShowDealDetail] = useState(false);
-  const [viewMode, setViewMode] = useState<'deal' | 'portfolio'>('deal');
-  const [labelMode, setLabelMode] = useState<'off' | 'smart' | 'all'>('smart');
+  const [viewMode, setViewMode] = useState<ViewMode>('overview');
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [filters, setFilters] = useState<Record<string, boolean>>({
-    stakeholder: true, waterfall: true, compliance: true, document: true, obligation: true, payment: true,
-  });
+  const [showLegend, setShowLegend] = useState(true);
 
-  // Escape key exits fullscreen
+  // Graph data from DB
+  const [dbNodes, setDbNodes] = useState<DbNode[]>([]);
+  const [dbEdges, setDbEdges] = useState<DbEdge[]>([]);
+  const [dealState, setDealState] = useState<string | null>(null);
+  const [nextActions, setNextActions] = useState<string[]>([]);
+  const [blockers, setBlockers] = useState<string[]>([]);
+  const [graphLoading, setGraphLoading] = useState(false);
+
+  // Fetch graph for real deals
   useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false);
-    };
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isFullscreen]);
+    if (isDemoDeal || !workspaceDealId) return;
+    setGraphLoading(true);
 
-  const toggleFilter = (key: string) => setFilters(f => ({ ...f, [key]: !f[key] }));
+    Promise.all([
+      supabase.from('graph_nodes').select('*').eq('deal_id', workspaceDealId),
+      supabase.from('graph_edges').select('*').eq('deal_id', workspaceDealId),
+    ]).then(([nodesRes, edgesRes]) => {
+      setDbNodes((nodesRes.data as DbNode[]) || []);
+      setDbEdges((edgesRes.data as DbEdge[]) || []);
+      setGraphLoading(false);
+    });
+  }, [isDemoDeal, workspaceDealId]);
 
-  const handleDealSwitch = useCallback((dealId: string) => {
-    setSelectedDealId(dealId);
-    setSelectedNode(null);
-    setShowDealDetail(false);
-    if (viewMode === 'portfolio') setViewMode('deal');
-  }, [setSelectedDealId, viewMode]);
+  // Build graph trigger for real deals
+  const triggerBuildGraph = useCallback(async () => {
+    if (!workspaceDealId || isDemoDeal) return;
+    setGraphLoading(true);
+    try {
+      const { data } = await supabase.functions.invoke('build-deal-graph', {
+        body: { deal_id: workspaceDealId },
+      });
+      if (data) {
+        setDealState(data.deal_state);
+        setBlockers(data.blockers || []);
+        setNextActions(data.next_actions || []);
+      }
+      // Refresh graph data
+      const [nodesRes, edgesRes] = await Promise.all([
+        supabase.from('graph_nodes').select('*').eq('deal_id', workspaceDealId),
+        supabase.from('graph_edges').select('*').eq('deal_id', workspaceDealId),
+      ]);
+      setDbNodes((nodesRes.data as DbNode[]) || []);
+      setDbEdges((edgesRes.data as DbEdge[]) || []);
+    } finally {
+      setGraphLoading(false);
+    }
+  }, [workspaceDealId, isDemoDeal]);
 
-  const handleGoToWorkspace = useCallback(() => {
-    setActiveSection('workspace');
-  }, [setActiveSection]);
+  // ── Demo graph (fallback for demo deals) ──
+  const { demoNodes, demoEdges } = useMemo(() => {
+    if (!isDemoDeal) return { demoNodes: [] as DbNode[], demoEdges: [] as DbEdge[] };
 
-  // Build graph (same logic as before)
-  const { nodes, edges } = useMemo(() => {
-    const ns: GraphNode[] = [];
-    const es: GraphEdge[] = [];
-    const cx = 300, cy = 225;
+    const ns: DbNode[] = [];
+    const es: DbEdge[] = [];
 
-    ns.push({
-      id: deal.id, label: deal.codeName, type: 'deal', x: cx, y: cy,
-      color: typeColors.deal, size: 50, riskLevel: deal.hasBlocker ? 'critical' : 'none',
-      metadata: { value: `$${(deal.consideration / 1e6).toFixed(0)}M`, status: deal.status, buyer: deal.buyerName, target: deal.targetCompany },
+    ns.push({ id: deal.id, deal_id: deal.id, node_type: 'deal', label: deal.codeName, status: 'in_progress', metadata: { value: `$${(deal.consideration / 1e6).toFixed(0)}M`, buyer: deal.buyerName, target: deal.targetCompany }, source_entity_id: deal.id });
+
+    stakeholders.forEach(s => {
+      const st = s.kycStatus === 'verified' ? 'complete' : s.kycStatus === 'failed' ? 'failed' : 'in_progress';
+      ns.push({ id: s.id, deal_id: deal.id, node_type: 'stakeholder', label: s.name, status: st, metadata: { ownership: `${s.ownershipPct}%`, payout: `$${(s.payoutAmount / 1e6).toFixed(0)}M`, kyc: s.kycStatus }, source_entity_id: s.id });
+      es.push({ id: `e-${deal.id}-${s.id}`, deal_id: deal.id, from_node_id: deal.id, to_node_id: s.id, edge_type: 'HAS_PARTY', metadata: {} });
     });
 
-    if (filters.stakeholder) {
-      stakeholders.forEach((s, i) => {
-        const angle = (-Math.PI / 2) + (i - stakeholders.length / 2) * 0.4;
-        const risk: GraphNode['riskLevel'] = s.kycStatus === 'failed' ? 'critical' : s.kycStatus === 'pending' ? 'warning' : 'none';
-        ns.push({
-          id: s.id, label: s.name, type: 'stakeholder',
-          x: cx + Math.cos(angle) * 180, y: cy + Math.sin(angle) * 150,
-          color: typeColors.stakeholder, size: 22, riskLevel: risk,
-          metadata: { role: s.role, kyc: s.kycStatus, payout: `$${(s.payoutAmount / 1e6).toFixed(0)}M`, ownership: `${s.ownershipPct}%` },
-        });
-        es.push({ from: deal.id, to: s.id, label: 'has_stakeholder', strength: s.ownershipPct / 30 });
-      });
+    documents.slice(0, 6).forEach(d => {
+      const st = d.status === 'verified' ? 'complete' : d.status === 'pending' ? 'in_progress' : 'not_started';
+      ns.push({ id: d.id, deal_id: deal.id, node_type: 'document', label: d.name.slice(0, 25), status: st, metadata: { type: d.type, status: d.status }, source_entity_id: d.id });
+      es.push({ id: `e-${deal.id}-${d.id}`, deal_id: deal.id, from_node_id: deal.id, to_node_id: d.id, edge_type: 'HAS_DOCUMENT', metadata: {} });
+    });
+
+    // Demo obligations
+    const obligationDemos = [
+      { id: 'ob-1', label: 'Base Purchase Price', status: 'complete' },
+      { id: 'ob-2', label: 'Escrow Holdback', status: 'in_progress' },
+      { id: 'ob-3', label: 'Debt Payoff', status: 'complete' },
+      { id: 'ob-4', label: 'Legal Fees', status: 'not_started' },
+    ];
+    obligationDemos.forEach(ob => {
+      ns.push({ id: ob.id, deal_id: deal.id, node_type: 'obligation', label: ob.label, status: ob.status, metadata: {}, source_entity_id: ob.id });
+      if (documents[0]) es.push({ id: `e-${documents[0].id}-${ob.id}`, deal_id: deal.id, from_node_id: documents[0].id, to_node_id: ob.id, edge_type: 'DERIVED_FROM', metadata: {} });
+    });
+
+    payments.forEach(p => {
+      const st = p.status === 'executed' ? 'complete' : p.status === 'failed' ? 'failed' : 'in_progress';
+      ns.push({ id: p.id, deal_id: deal.id, node_type: 'payment_intent', label: `${p.recipientName.split(' ')[0]} $${(p.amount / 1e6).toFixed(0)}M`, status: st, metadata: { amount: `$${(p.amount / 1e6).toFixed(0)}M`, method: p.method }, source_entity_id: p.id });
+      es.push({ id: `e-${deal.id}-${p.id}`, deal_id: deal.id, from_node_id: deal.id, to_node_id: p.id, edge_type: 'REQUIRES', metadata: {} });
+    });
+
+    waterfallTiers.forEach(t => {
+      ns.push({ id: t.id, deal_id: deal.id, node_type: 'waterfall', label: t.name.slice(0, 20), status: 'complete', metadata: { amount: `$${(t.amount / 1e6).toFixed(0)}M` }, source_entity_id: t.id });
+      es.push({ id: `e-${deal.id}-${t.id}`, deal_id: deal.id, from_node_id: deal.id, to_node_id: t.id, edge_type: 'REQUIRES', metadata: {} });
+    });
+
+    // Demo discrepancy
+    if (deal.hasBlocker) {
+      ns.push({ id: 'disc-1', deal_id: deal.id, node_type: 'discrepancy', label: 'Missing W-9 for Seller', status: 'blocked', metadata: { severity: 'blocker' }, source_entity_id: 'disc-1' });
+      if (payments[0]) es.push({ id: 'e-disc-pay', deal_id: deal.id, from_node_id: 'disc-1', to_node_id: payments[0].id, edge_type: 'BLOCKS', metadata: {} });
     }
 
-    if (filters.document) {
-      documents.slice(0, 6).forEach((d, i) => {
-        const angle = 0 + (i - 3) * 0.45;
-        const risk: GraphNode['riskLevel'] = d.status === 'rejected' ? 'critical' : d.status === 'pending' ? 'warning' : 'none';
-        ns.push({
-          id: d.id, label: d.name.slice(0, 20), type: 'document',
-          x: cx + Math.cos(angle) * 200, y: cy + Math.sin(angle) * 160,
-          color: typeColors.document, size: 18, riskLevel: risk,
-          metadata: { docType: d.type, status: d.status, uploaded: d.uploadedAt },
-        });
-        es.push({ from: deal.id, to: d.id, label: 'references' });
-      });
-    }
+    return { demoNodes: ns, demoEdges: es };
+  }, [deal, stakeholders, documents, payments, waterfallTiers, isDemoDeal]);
 
-    // Obligation nodes — positioned between documents and payments with doc→obligation edges
-    if (filters.obligation !== false) {
-      const obligationDemos = [
-        { id: 'ob-1', label: 'Base Purchase Price', status: 'CONFIRMED', sourceDoc: documents[0]?.id },
-        { id: 'ob-2', label: 'Escrow Holdback', status: 'NEEDS_REVIEW', sourceDoc: documents[0]?.id },
-        { id: 'ob-3', label: 'Debt Payoff', status: 'CONFIRMED', sourceDoc: documents[1]?.id },
-        { id: 'ob-4', label: 'Legal Fees', status: 'DRAFT_EXTRACTED', sourceDoc: documents[2]?.id },
-        { id: 'ob-5', label: 'Broker Fee', status: 'NEEDS_REVIEW', sourceDoc: documents[1]?.id },
-      ];
-      obligationDemos.forEach((ob, i) => {
-        const angle = (Math.PI / 4) + (i - obligationDemos.length / 2) * 0.35;
-        const risk: GraphNode['riskLevel'] = ob.status === 'DRAFT_EXTRACTED' ? 'warning' : ob.status === 'NEEDS_REVIEW' ? 'info' : 'none';
-        ns.push({
-          id: ob.id, label: ob.label, type: 'obligation',
-          x: cx + Math.cos(angle) * 195, y: cy + Math.sin(angle) * 158,
-          color: typeColors.obligation, size: 19, riskLevel: risk,
-          metadata: { status: ob.status, type: 'obligation', obligationType: ob.label },
-        });
-        // Document → Obligation edge (contract extraction provenance)
-        if (filters.document && ob.sourceDoc) {
-          es.push({ from: ob.sourceDoc, to: ob.id, label: 'extracts_obligation', strength: 0.6 });
-        }
-        es.push({ from: deal.id, to: ob.id, label: 'requires' });
-      });
-      // Obligation → Disbursement Intent edges (mapping)
-      if (filters.payment) {
-        payments.forEach((p, i) => {
-          const matchOb = obligationDemos.filter(ob => ob.status === 'CONFIRMED')[i];
-          if (matchOb) es.push({ from: matchOb.id, to: p.id, label: 'maps_to_intent', strength: 0.5 });
-        });
-      }
-    }
+  // Choose data source
+  const activeNodes = isDemoDeal ? demoNodes : dbNodes;
+  const activeEdges = isDemoDeal ? demoEdges : dbEdges;
 
-    if (filters.payment) {
-      payments.forEach((p, i) => {
-        const angle = (Math.PI / 2) + (i - payments.length / 2) * 0.45;
-        const risk: GraphNode['riskLevel'] = p.status === 'failed' ? 'critical' : p.status === 'pending' ? 'info' : 'none';
-        ns.push({
-          id: p.id, label: p.recipientName.split(' ')[0], type: 'payment',
-          x: cx + Math.cos(angle) * 185, y: cy + Math.sin(angle) * 155,
-          color: typeColors.payment, size: 20, riskLevel: risk,
-          metadata: { amount: `$${(p.amount / 1e6).toFixed(0)}M`, status: p.status, method: p.method },
-        });
-        es.push({ from: deal.id, to: p.id, label: 'pays' });
-      });
-    }
+  // Position nodes
+  const positioned = useMemo(() => layoutNodes(activeNodes, viewMode), [activeNodes, viewMode]);
 
-    if (filters.waterfall) {
-      waterfallTiers.forEach((t, i) => {
-        const angle = Math.PI + (i - waterfallTiers.length / 2) * 0.45;
-        ns.push({
-          id: t.id, label: t.name.slice(0, 15), type: 'waterfall',
-          x: cx + Math.cos(angle) * 190, y: cy + Math.sin(angle) * 150,
-          color: typeColors.waterfall, size: 18, riskLevel: 'none',
-          metadata: { amount: `$${(t.amount / 1e6).toFixed(0)}M`, percentage: `${t.percentage}%`, recipients: t.recipients },
-        });
-        es.push({ from: deal.id, to: t.id, label: 'distributes' });
-      });
-    }
+  // Search filter
+  const searchFiltered = search
+    ? positioned.filter(n => n.label.toLowerCase().includes(search.toLowerCase()))
+    : positioned;
+  const searchIds = new Set(searchFiltered.map(n => n.id));
 
-    if (filters.stakeholder && filters.payment) {
-      stakeholders.forEach(s => {
-        const mp = payments.find(p => p.recipientName === s.name);
-        if (mp) es.push({ from: s.id, to: mp.id, label: 'receives_payment', strength: 0.5 });
-      });
-    }
-
-    return { nodes: ns, edges: es };
-  }, [deal, stakeholders, documents, payments, waterfallTiers, filters]);
-
-  const filtered = search ? nodes.filter(n => n.label.toLowerCase().includes(search.toLowerCase())) : nodes;
-  const filteredIds = new Set(filtered.map(n => n.id));
-
+  // Hover connectivity
   const connectedIds = useMemo(() => {
     if (!hoveredNode) return new Set<string>();
     const ids = new Set<string>();
     ids.add(hoveredNode);
-    edges.forEach(e => {
-      if (e.from === hoveredNode) ids.add(e.to);
-      if (e.to === hoveredNode) ids.add(e.from);
+    activeEdges.forEach(e => {
+      if (e.from_node_id === hoveredNode) ids.add(e.to_node_id);
+      if (e.to_node_id === hoveredNode) ids.add(e.from_node_id);
     });
     return ids;
-  }, [hoveredNode, edges]);
+  }, [hoveredNode, activeEdges]);
 
-  // Smart label visibility: compute which labels to show by priority with collision detection
-  const smartVisibleIds = useMemo(() => {
-    if (labelMode === 'off') return new Set<string>();
-    if (labelMode === 'all') return new Set(nodes.map(n => n.id));
+  const selectedNode = selectedNodeId ? activeNodes.find(n => n.id === selectedNodeId) || null : null;
 
-    // Priority scoring: deal=100, risk critical=80, risk warning=60, risk info=40, then by connectivity
-    const connectionCount = new Map<string, number>();
-    edges.forEach(e => {
-      connectionCount.set(e.from, (connectionCount.get(e.from) || 0) + 1);
-      connectionCount.set(e.to, (connectionCount.get(e.to) || 0) + 1);
-    });
+  // Escape exits fullscreen
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape' && isFullscreen) setIsFullscreen(false); };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isFullscreen]);
 
-    const scored = nodes.map(n => {
-      let score = 0;
-      if (n.type === 'deal') score = 100;
-      else if (n.riskLevel === 'critical') score = 80;
-      else if (n.riskLevel === 'warning') score = 60;
-      else if (n.riskLevel === 'info') score = 40;
-      score += (connectionCount.get(n.id) || 0) * 3;
-      // Key entity types get a boost
-      if (n.type === 'escrow' || n.type === 'stakeholder') score += 10;
-      return { node: n, score };
-    }).sort((a, b) => b.score - a.score);
-
-    // Take top 10 candidates, then collision-check
-    const candidates = scored.slice(0, 12);
-    const placed: { x: number; y: number; w: number; h: number }[] = [];
-    const visible = new Set<string>();
-
-    for (const { node } of candidates) {
-      const labelLen = Math.min(node.label.length, 18);
-      const w = labelLen * 7; // approx width
-      const h = 16;
-      const lx = node.x - w / 2;
-      const ly = node.y + node.size / 2 + 10;
-
-      // Check collision with already-placed labels
-      const collides = placed.some(p =>
-        lx < p.x + p.w && lx + w > p.x && ly < p.y + p.h && ly + h > p.y
-      );
-
-      if (!collides) {
-        placed.push({ x: lx, y: ly, w, h });
-        visible.add(node.id);
-      }
+  // Next actions for banner
+  const bannerActions = useMemo(() => {
+    if (isDemoDeal) {
+      const actions: { label: string; type: 'doc' | 'compliance' | 'approval' | 'payment' | 'discrepancy' }[] = [];
+      if (deal.hasBlocker) actions.push({ label: 'Upload Seller W-9', type: 'doc' });
+      if (deal.pendingApprovals > 0) actions.push({ label: 'Get Seller Counsel Approval', type: 'approval' });
+      const pending = stakeholders.filter(s => s.kycStatus === 'pending');
+      if (pending.length > 0) actions.push({ label: `Complete KYC for ${pending[0].name}`, type: 'compliance' });
+      return actions;
     }
+    return nextActions.map(a => ({
+      label: a,
+      type: (a.toLowerCase().includes('upload') ? 'doc' :
+        a.toLowerCase().includes('compliance') || a.toLowerCase().includes('kyc') ? 'compliance' :
+        a.toLowerCase().includes('approv') ? 'approval' :
+        a.toLowerCase().includes('resolv') ? 'discrepancy' : 'payment') as any,
+    }));
+  }, [isDemoDeal, deal, stakeholders, nextActions]);
 
-    return visible;
-  }, [nodes, edges, labelMode]);
-
-  const runSimulation = (simId: string) => {
-    setActiveSim(simId);
-    const results: Record<string, string> = {
-      'remove-stakeholder': `Removing ${stakeholders[0]?.name} redistributes $${(stakeholders[0]?.payoutAmount / 1e6).toFixed(0)}M across ${stakeholders.length - 1} remaining parties.`,
-      'increase-escrow': `20% escrow increase ($${((deal.consideration * 0.1 * 0.2) / 1e6).toFixed(0)}M additional) reduces immediate payouts by ~4% per stakeholder.`,
-      'delay-closing': `30-day delay: 3 KYC verifications may expire, 2 wire instructions need revalidation, est. $2.1M additional costs.`,
-      'add-expense': `$50M expense reduces Common Distribution from $${(waterfallTiers[waterfallTiers.length - 1]?.amount / 1e6).toFixed(0)}M to $${((waterfallTiers[waterfallTiers.length - 1]?.amount - 50_000_000) / 1e6).toFixed(0)}M.`,
-    };
-    setSimResult(results[simId] || 'Simulation complete.');
-  };
-
-  const riskNodeCount = nodes.filter(n => n.riskLevel && n.riskLevel !== 'none').length;
-
-  const handleNodeClick = useCallback((node: GraphNode) => {
-    if (node.type === 'deal') {
-      setShowDealDetail(true);
-      setSelectedNode(null);
-    } else {
-      setShowDealDetail(false);
-      setSelectedNode(node);
-    }
-  }, []);
+  const blockerCount = isDemoDeal
+    ? positioned.filter(n => n.status === 'blocked' || n.status === 'failed').length
+    : blockers.length;
 
   return (
-    <motion.div {...fadeInUp} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50' : ''}`} style={{ height: isFullscreen ? '100vh' : '85vh' }}>
-      {/* ══ ROW 1: Deal Context + Deal Selector ══ */}
-      <div
-        className="flex items-center justify-between gap-4 px-4 shrink-0"
-        style={{ minHeight: 40, background: isFullscreen ? 'hsl(var(--background))' : undefined }}
-      >
-        {/* Left: Deal context */}
-      <div className="flex-1 flex items-baseline gap-3 min-w-0">
-          {viewMode === 'deal' ? (
-            <>
-              <h2
-                className="text-[22px] font-semibold"
-                style={{ letterSpacing: '-0.04em', whiteSpace: 'normal', overflow: 'visible' }}
-              >
-                {deal.codeName}
-              </h2>
-              {deal.hasBlocker && (
-                <span className="text-[10px] font-medium text-blocking/80 uppercase tracking-wider whitespace-nowrap shrink-0">
-                  Blocked
-                </span>
-              )}
-              <span className="text-sm text-muted-foreground/70 truncate whitespace-nowrap hidden md:inline">
-                {deal.buyerName} acquiring {deal.targetCompany}
-              </span>
-              <span className="text-[13px] text-muted-foreground/50 whitespace-nowrap hidden lg:inline">
-                ${(deal.consideration / 1e6).toFixed(0)}M · {deal.closingDate} · {deal.readyToPayPercent}% Ready
-              </span>
-            </>
-          ) : (
-            <>
-              <h2
-                className="text-[22px] font-semibold whitespace-nowrap"
-                style={{ letterSpacing: '-0.04em' }}
-              >
-                Portfolio
-              </h2>
-              <span className="text-[13px] text-muted-foreground/50 whitespace-nowrap">
-                {deals.length} Deals · ${(deals.reduce((s, d) => s + d.consideration, 0) / 1e6).toFixed(0)}M Total
-              </span>
-            </>
-          )}
+    <motion.div {...fadeInUp} className={`flex flex-col ${isFullscreen ? 'fixed inset-0 z-50 bg-background' : ''}`} style={{ height: isFullscreen ? '100vh' : '85vh' }}>
+      {/* ═══ Toolbar ═══ */}
+      <div className="flex items-center justify-between gap-4 px-4 shrink-0" style={{ minHeight: 48, background: 'hsl(var(--muted) / 0.25)', border: '1px solid hsl(var(--border) / 0.5)' }}>
+        {/* Left: View modes */}
+        <div className="flex items-center gap-0.5 shrink-0">
+          {VIEW_MODES.map(vm => (
+            <Tooltip key={vm.key}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setViewMode(vm.key)}
+                  className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors ${
+                    viewMode === vm.key ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'
+                  }`}
+                >
+                  <vm.icon className="w-3 h-3 shrink-0" />
+                  {vm.label}
+                  {viewMode === vm.key && (
+                    <motion.div layoutId="map-view-underline" className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full" style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }} />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{vm.desc}</TooltipContent>
+            </Tooltip>
+          ))}
         </div>
 
-        {/* Right: Deal selector (always visible) */}
-        <div className="shrink-0 flex-shrink-0">
-          <DealSelectorDropdown
-            deals={deals}
-            selectedDealId={deal.id}
-            onSelect={handleDealSwitch}
-          />
-        </div>
-      </div>
-
-      {/* ══ ROW 2: Toolbar — strict flex, no wrap, fixed 48px height ══ */}
-      <div
-        className="flex items-center justify-between gap-6 rounded-xl px-4"
-        style={{
-          minHeight: 48,
-          maxHeight: 48,
-          background: 'hsl(var(--muted) / 0.25)',
-          border: '1px solid hsl(var(--border) / 0.5)',
-          flexWrap: 'nowrap',
-          overflow: 'hidden',
-        }}
-      >
-        {/* LEFT: View mode controls */}
-        <div className="flex items-center gap-1 shrink-0">
-          {/* Deal / Portfolio toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setViewMode('deal')}
-                className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
-                  viewMode === 'deal'
-                    ? 'text-foreground'
-                    : 'text-muted-foreground/50 hover:text-muted-foreground'
-                }`}
-              >
-                <Eye className="w-3 h-3 shrink-0" />
-                Deal
-                {viewMode === 'deal' && (
-                  <motion.div
-                    layoutId="view-mode-underline"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                    style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>View this deal's individual relationship network</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setViewMode('portfolio')}
-                className={`relative flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
-                  viewMode === 'portfolio'
-                    ? 'text-foreground'
-                    : 'text-muted-foreground/50 hover:text-muted-foreground'
-                }`}
-              >
-                <TrendingUp className="w-3 h-3 shrink-0" />
-                Portfolio
-                {viewMode === 'portfolio' && (
-                  <motion.div
-                    layoutId="view-mode-underline"
-                    className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                    style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                  />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>View cross-deal relationships and systemic exposure</TooltipContent>
-          </Tooltip>
-
-          {/* Separator */}
-          {viewMode === 'deal' && <div className="w-px h-5 bg-border/30 mx-1 shrink-0" />}
-
-          {/* Filter segments (deal view only) */}
-          {viewMode === 'deal' && FILTER_DEFS.map(f => {
-            const active = filters[f.key];
-            const filterTooltips: Record<string, string> = {
-              stakeholder: 'Equity holders, management, and key participants',
-              waterfall: 'Funds, lenders, vehicles, and capital structures',
-              compliance: 'Regulatory risks and outstanding verification issues',
-              document: 'Executed and pending legal documents',
-              payment: 'Payments, transfers, and waterfall movements',
-            };
-            return (
-              <Tooltip key={f.key}>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => toggleFilter(f.key)}
-                    className={`relative flex items-center gap-1 px-2.5 h-8 text-[11px] font-medium whitespace-nowrap transition-colors duration-200 ${
-                      active ? 'text-foreground' : 'text-muted-foreground/50 hover:text-muted-foreground'
-                    }`}
-                  >
-                    <f.icon className="w-3 h-3 shrink-0" />
-                    <span className="hidden xl:inline">{f.label}</span>
-                    {active && (
-                      <div
-                        className="absolute bottom-0 left-1.5 right-1.5 h-[2px] rounded-full"
-                        style={{ background: 'linear-gradient(90deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))' }}
-                      />
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>{filterTooltips[f.key]}</TooltipContent>
-              </Tooltip>
-            );
-          })}
-        </div>
-
-        {/* CENTER: Search */}
+        {/* Center: Search */}
         <div className="relative shrink-0">
           <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search entities..."
-            className="bg-transparent rounded-lg pl-8 pr-3 h-8 text-[12px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:bg-muted/20 w-36 transition-all duration-200 focus:w-48 border-none"
-          />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search nodes..."
+            className="bg-transparent rounded-lg pl-8 pr-3 h-8 text-[12px] placeholder:text-muted-foreground/40 focus:outline-none focus:bg-muted/20 w-36 focus:w-48 transition-all border-none" />
         </div>
 
-        {/* RIGHT: Risk + What-If + Open Deal */}
+        {/* Right: Controls */}
         <div className="flex items-center gap-2 shrink-0">
-          {viewMode === 'deal' && (
-            <>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setHighlightRisk(!highlightRisk)}
-                    className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all duration-200 ${
-                      highlightRisk
-                        ? 'text-foreground bg-muted/40'
-                        : 'text-muted-foreground/50 hover:text-muted-foreground'
-                    }`}
-                  >
-                    <AlertTriangle className="w-3 h-3 shrink-0" />
-                    <span className="hidden lg:inline">Risk</span>
-                    {riskNodeCount > 0 && (
-                      <span className={`text-[10px] whitespace-nowrap ${highlightRisk ? 'text-blocking/70' : 'text-muted-foreground/40'}`}>
-                        · {riskNodeCount}
-                      </span>
-                    )}
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>{riskNodeCount > 0 ? `${riskNodeCount} flagged risks detected across this network` : 'Highlight flagged risk nodes'}</TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    onClick={() => setShowSimPanel(!showSimPanel)}
-                    className={`flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium whitespace-nowrap transition-all duration-200 ${
-                      showSimPanel
-                        ? 'text-foreground bg-muted/40'
-                        : 'text-muted-foreground/50 hover:text-muted-foreground'
-                    }`}
-                  >
-                    <Play className="w-3 h-3 shrink-0" />
-                    <span className="hidden lg:inline">What-If</span>
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>Simulate changes to see how structure and payouts are affected</TooltipContent>
-              </Tooltip>
-
-              <button
-                onClick={handleGoToWorkspace}
-                className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium text-muted-foreground/50 hover:text-foreground hover:bg-muted/20 whitespace-nowrap transition-all duration-200"
-              >
-                <ExternalLink className="w-3 h-3 shrink-0" />
-                <span className="hidden lg:inline">Open Deal</span>
-              </button>
-
-              {/* Label mode toggle */}
-              <div className="w-px h-5 bg-border/30 mx-0.5 shrink-0" />
-              <div className="flex items-center gap-0.5">
-                {(['off', 'smart', 'all'] as const).map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => setLabelMode(mode)}
-                    className={`px-2 h-7 rounded text-[10px] font-medium whitespace-nowrap transition-all duration-200 ${
-                      labelMode === mode
-                        ? 'text-foreground bg-muted/50'
-                        : 'text-muted-foreground/40 hover:text-muted-foreground'
-                    }`}
-                  >
-                    {mode === 'off' ? 'Labels Off' : mode === 'smart' ? 'Smart' : 'All Labels'}
-                  </button>
-                ))}
-              </div>
-            </>
+          {!isDemoDeal && (
+            <Button variant="ghost" size="sm" onClick={triggerBuildGraph} disabled={graphLoading} className="text-[11px] h-8 gap-1.5">
+              <RotateCcw className={`w-3 h-3 ${graphLoading ? 'animate-spin' : ''}`} />
+              Rebuild
+            </Button>
           )}
+          {dealState && (
+            <Badge variant="outline" className="text-[10px]">{dealState.replace(/_/g, ' ')}</Badge>
+          )}
+          <button onClick={() => setIsFullscreen(!isFullscreen)} className="flex items-center gap-1.5 px-3 h-8 rounded-lg text-[11px] font-medium text-muted-foreground/50 hover:text-foreground transition-colors">
+            {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+          </button>
         </div>
       </div>
 
-      {/* ── Graph ── */}
-      <div className="flex-1 overflow-hidden flex rounded-xl border border-border/30">
-        <div className="flex-1 relative" style={{ background: 'hsl(var(--background))' }}>
-          {viewMode === 'portfolio' ? (
-            <PortfolioGraph deals={deals} onDealClick={handleDealSwitch} />
-          ) : (
-            <>
-              <svg width="100%" height="100%" viewBox="0 0 600 450" className="absolute inset-0" preserveAspectRatio="xMidYMid meet">
-                <defs>
-                  <radialGradient id="im-glow-accent" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
-                  </radialGradient>
-                  <radialGradient id="im-center-glow" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.15" />
-                    <stop offset="60%" stopColor="#7C3AED" stopOpacity="0.05" />
-                    <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
-                  </radialGradient>
-                  <radialGradient id="halo-critical" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#EF4444" stopOpacity="0.5" />
-                    <stop offset="70%" stopColor="#EF4444" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
-                  </radialGradient>
-                  <radialGradient id="halo-warning" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.5" />
-                    <stop offset="70%" stopColor="#F59E0B" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
-                  </radialGradient>
-                  <radialGradient id="halo-info" cx="50%" cy="50%" r="50%">
-                    <stop offset="0%" stopColor="#F97316" stopOpacity="0.4" />
-                    <stop offset="70%" stopColor="#F97316" stopOpacity="0.1" />
-                    <stop offset="100%" stopColor="#F97316" stopOpacity="0" />
-                  </radialGradient>
-                </defs>
+      {/* ═══ Graph Canvas ═══ */}
+      <div className="flex-1 overflow-hidden relative rounded-xl border border-border/30" style={{ background: 'hsl(var(--background))' }}>
+        {graphLoading && !isDemoDeal && positioned.length === 0 ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : positioned.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-4">
+            <Map className="w-10 h-10 text-muted-foreground/30" />
+            <div className="text-center">
+              <p className="text-sm font-medium">No graph data yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Add stakeholders, documents, or payments to populate the deal graph.</p>
+            </div>
+            {!isDemoDeal && (
+              <Button size="sm" onClick={triggerBuildGraph} className="text-xs gap-1.5">
+                <RotateCcw className="w-3 h-3" /> Build Graph
+              </Button>
+            )}
+          </div>
+        ) : (
+          <>
+            <svg width="100%" height="100%" viewBox="0 0 800 600" className="absolute inset-0" preserveAspectRatio="xMidYMid meet">
+              <defs>
+                <radialGradient id="g-center" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.12" />
+                  <stop offset="100%" stopColor="#7C3AED" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="g-halo-blocked" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#EF4444" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
+                </radialGradient>
+                <radialGradient id="g-halo-progress" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+                </radialGradient>
+              </defs>
 
-                {/* Ambient center glow */}
-                <circle cx="300" cy="225" r="120" fill="url(#im-center-glow)" />
+              {/* Center glow */}
+              <circle cx="400" cy="300" r="100" fill="url(#g-center)" />
 
-                {/* Edges — curved paths, always visible */}
-                {edges.map((e, i) => {
-                  const from = nodes.find(n => n.id === e.from);
-                  const to = nodes.find(n => n.id === e.to);
-                  if (!from || !to) return null;
-                  const visible = filteredIds.has(from.id) && filteredIds.has(to.id);
-                  const highlighted = hoveredNode ? connectedIds.has(from.id) && connectedIds.has(to.id) : false;
-                  const dimmedEdge = hoveredNode && !highlighted;
-                  const mx = (from.x + to.x) / 2;
-                  const my = (from.y + to.y) / 2;
-                  const dx = to.x - from.x;
-                  const dy = to.y - from.y;
-                  const cx2 = mx - dy * 0.08;
-                  const cy2 = my + dx * 0.08;
+              {/* Edges */}
+              {activeEdges.map((e, i) => {
+                const from = positioned.find(n => n.id === e.from_node_id);
+                const to = positioned.find(n => n.id === e.to_node_id);
+                if (!from || !to) return null;
 
-                  let strokeColor = 'rgba(168,162,200,0.7)';
-                  let strokeOp = visible ? 0.3 : 0.08;
-                  let strokeW = e.strength ? Math.max(1.5, e.strength * 2) : 1.5;
+                const visible = searchIds.has(from.id) && searchIds.has(to.id);
+                const highlighted = hoveredNode ? connectedIds.has(from.id) && connectedIds.has(to.id) : false;
+                const dimmed = hoveredNode && !highlighted;
+                const isBlocking = e.edge_type === 'BLOCKS';
+                const isDerived = e.edge_type === 'DERIVED_FROM';
 
-                  if (highlighted) {
-                    strokeColor = '#A78BFA';
-                    strokeOp = 0.7;
-                    strokeW = 2.5;
-                  } else if (dimmedEdge) {
-                    strokeOp = 0.08;
+                const mx = (from.x + to.x) / 2;
+                const my = (from.y + to.y) / 2;
+                const dx = to.x - from.x;
+                const dy = to.y - from.y;
+                const cx2 = mx - dy * 0.08;
+                const cy2 = my + dx * 0.08;
+
+                return (
+                  <path key={i}
+                    d={`M${from.x},${from.y} Q${cx2},${cy2} ${to.x},${to.y}`}
+                    fill="none"
+                    stroke={isBlocking ? '#EF4444' : highlighted ? '#A78BFA' : 'rgba(168,162,200,0.7)'}
+                    strokeWidth={isBlocking ? 3 : highlighted ? 2.5 : 1.5}
+                    strokeDasharray={isDerived ? '5 3' : undefined}
+                    strokeOpacity={dimmed ? 0.08 : visible ? (highlighted ? 0.8 : 0.3) : 0.08}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-opacity 0.2s' }}
+                  />
+                );
+              })}
+
+              {/* Nodes */}
+              {positioned.map(node => {
+                const visible = searchIds.has(node.id);
+                const isHovered = hoveredNode === node.id;
+                const isSelected = selectedNodeId === node.id;
+                const isConnected = connectedIds.has(node.id);
+                const dimmed = hoveredNode && !isConnected;
+                const isDealNode = node.node_type === 'deal';
+                const isBlocked = node.status === 'blocked' || node.status === 'failed';
+                const ringColor = statusRingColors[node.status] || statusRingColors.not_started;
+
+                // Label: always show for deal, hovered, selected, connected, or top-level
+                const showLabel = isDealNode || isHovered || isSelected || (isConnected && !!hoveredNode);
+
+                // Two-line label wrapping
+                const labelLines: string[] = [];
+                if (node.label.length > 20) {
+                  const mid = node.label.lastIndexOf(' ', 20);
+                  if (mid > 8) {
+                    labelLines.push(node.label.slice(0, mid));
+                    labelLines.push(node.label.slice(mid + 1, 40));
+                  } else {
+                    labelLines.push(node.label.slice(0, 18) + '…');
                   }
+                } else {
+                  labelLines.push(node.label);
+                }
 
-                  return (
-                    <path key={i}
-                      d={`M${from.x},${from.y} Q${cx2},${cy2} ${to.x},${to.y}`}
-                      fill="none"
-                      stroke={strokeColor}
-                      strokeWidth={strokeW}
-                      strokeLinecap="round"
-                      strokeDasharray={e.label === 'receives_payment' ? '4 3' : undefined}
-                      strokeOpacity={strokeOp}
-                      style={{ transition: 'stroke-opacity 0.2s, stroke 0.2s' }}
+                return (
+                  <g key={node.id}
+                    onClick={() => setSelectedNodeId(node.id === selectedNodeId ? null : node.id)}
+                    onMouseEnter={() => setHoveredNode(node.id)}
+                    onMouseLeave={() => setHoveredNode(null)}
+                    className="cursor-pointer"
+                    opacity={dimmed ? 0.12 : visible ? 1 : 0.12}
+                  >
+                    {/* Blocked halo */}
+                    {isBlocked && (
+                      <circle cx={node.x} cy={node.y} r={node.size * 1.3} fill="url(#g-halo-blocked)">
+                        <animate attributeName="r" values={`${node.size * 1.1};${node.size * 1.5};${node.size * 1.1}`} dur="2.5s" repeatCount="indefinite" />
+                      </circle>
+                    )}
+                    {/* Deal pulse */}
+                    {isDealNode && (
+                      <circle cx={node.x} cy={node.y} r={node.size * 0.8} fill={node.color} opacity={0.06}>
+                        <animate attributeName="r" values={`${node.size * 0.7};${node.size * 1.0};${node.size * 0.7}`} dur="3s" repeatCount="indefinite" />
+                      </circle>
+                    )}
+                    {/* Hover glow */}
+                    {isHovered && <circle cx={node.x} cy={node.y} r={node.size * 1.1} fill="url(#g-halo-progress)" />}
+
+                    {/* Status ring */}
+                    <circle cx={node.x} cy={node.y} r={node.size / 2 + 3} fill="none" stroke={ringColor} strokeWidth="2" opacity="0.6" />
+
+                    {/* Outer */}
+                    <circle cx={node.x} cy={node.y} r={node.size / 2} fill={node.color} opacity={0.2} />
+                    {/* Inner */}
+                    <circle cx={node.x} cy={node.y} r={isDealNode ? node.size / 2.5 : node.size / 3}
+                      fill={node.color}
+                      stroke={isHovered ? '#fff' : 'transparent'}
+                      strokeWidth={2}
                     />
-                  );
-                })}
 
-                {/* Nodes */}
-                {nodes.map((node) => {
-                  const visible = filteredIds.has(node.id);
-                  const isHovered = hoveredNode === node.id;
-                  const isSelected = selectedNode?.id === node.id;
-                  const isConnected = connectedIds.has(node.id);
-                  const dimmed = hoveredNode && !isConnected;
-                  const showHalo = highlightRisk && node.riskLevel && node.riskLevel !== 'none';
-                  const isDealNode = node.type === 'deal';
-                  const showLabel = isDealNode || isHovered || isSelected || (isConnected && hoveredNode !== null) || smartVisibleIds.has(node.id);
-                  return (
-                    <g key={node.id}
-                      onClick={() => handleNodeClick(node)}
-                      onMouseEnter={() => setHoveredNode(node.id)}
-                      onMouseLeave={() => setHoveredNode(null)}
-                      className="cursor-pointer"
-                      opacity={dimmed ? 0.12 : visible ? 1 : 0.12}
-                    >
-                      {/* Deal node slow radial pulse */}
-                      {isDealNode && (
-                        <circle cx={node.x} cy={node.y} r={node.size * 0.8} fill={node.color} opacity={0.06}>
-                          <animate attributeName="r" values={`${node.size * 0.7};${node.size * 1.0};${node.size * 0.7}`} dur="3s" repeatCount="indefinite" />
-                          <animate attributeName="opacity" values="0.08;0.03;0.08" dur="3s" repeatCount="indefinite" />
-                        </circle>
-                      )}
-                      {showHalo && (
-                        <circle cx={node.x} cy={node.y} r={node.size * 1.2}
-                          fill={`url(#halo-${node.riskLevel})`}
-                        >
-                          <animate attributeName="r" values={`${node.size * 1.1};${node.size * 1.4};${node.size * 1.1}`} dur="2.5s" repeatCount="indefinite" />
-                        </circle>
-                      )}
-                      {isHovered && (
-                        <circle cx={node.x} cy={node.y} r={node.size * 1.1} fill="url(#im-glow-accent)" />
-                      )}
-                      {/* Outer ring */}
-                      <circle cx={node.x} cy={node.y} r={node.size / 2} fill={node.color} opacity={isDealNode ? 0.15 : 0.2} />
-                      {/* Deal node gets gradient ring */}
-                      {isDealNode && (
-                        <circle cx={node.x} cy={node.y} r={node.size / 2 + 4}
-                          fill="none" stroke={node.color} strokeWidth="2" strokeOpacity="0.35"
-                        />
-                      )}
-                      {/* Inner circle */}
-                      <circle cx={node.x} cy={node.y} r={isDealNode ? node.size / 2.5 : node.size / 3}
-                        fill={node.color}
-                        stroke={showHalo ? riskHaloColors[node.riskLevel!] : isHovered ? '#fff' : 'transparent'}
-                        strokeWidth={showHalo ? 2.5 : 2}
-                      />
-                      {/* Label */}
-                      {showLabel && (
-                        <text x={node.x} y={node.y + node.size / 2 + 14}
-                          textAnchor="middle"
-                          fill="hsl(var(--foreground))"
-                          fontSize={isDealNode ? 14 : 11}
-                          fontWeight={isDealNode || isHovered ? 700 : 600}
-                        >
-                          {node.label.length > 18 ? node.label.slice(0, 16) + '…' : node.label}
-                        </text>
-                      )}
-                    </g>
-                  );
-                })}
-              </svg>
-            </>
-          )}
+                    {/* Label with wrapping */}
+                    {showLabel && labelLines.map((line, li) => (
+                      <text key={li} x={node.x} y={node.y + node.size / 2 + 14 + li * 13}
+                        textAnchor="middle" fill="hsl(var(--foreground))"
+                        fontSize={isDealNode ? 13 : 10}
+                        fontWeight={isDealNode || isHovered ? 700 : 500}
+                      >
+                        {line}
+                      </text>
+                    ))}
 
-          {/* Entity counts (Deal View only) */}
-          {viewMode === 'deal' && (
-            <div className="absolute bottom-4 left-4 flex gap-2">
+                    {/* Hover tooltip */}
+                    {isHovered && !showLabel && (
+                      <title>{`${node.label} (${node.node_type}) — ${node.status}`}</title>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Next Actions Banner */}
+            {bannerActions.length > 0 && !selectedNode && (
+              <NextActionsBanner actions={bannerActions} blockerCount={blockerCount} />
+            )}
+
+            {/* Legend */}
+            <GraphLegend collapsed={!showLegend} />
+
+            {/* Legend toggle */}
+            <button
+              onClick={() => setShowLegend(!showLegend)}
+              className="absolute bottom-3 left-3 z-20 px-2.5 py-1 rounded-lg bg-background/80 backdrop-blur-sm border border-border/30 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              style={{ display: showLegend ? 'none' : 'block' }}
+            >
+              Show Legend
+            </button>
+
+            {/* Node type counts */}
+            <div className="absolute bottom-3 right-3 flex gap-1.5">
               {Object.entries(typeColors).map(([type, color]) => {
-                const count = nodes.filter(n => n.type === type).length;
+                const count = positioned.filter(n => n.node_type === type).length;
                 if (count === 0) return null;
                 return (
-                  <div key={type} className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs cursor-default border border-border/30 bg-background/80 backdrop-blur-sm">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
-                    <span className="text-muted-foreground capitalize">{type}</span>
-                    <span className="text-white font-semibold">{count}</span>
+                  <div key={type} className="flex items-center gap-1 rounded-full px-2 py-1 text-[10px] border border-border/30 bg-background/80 backdrop-blur-sm">
+                    <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+                    <span className="text-muted-foreground capitalize">{type.replace('_', ' ')}</span>
+                    <span className="font-semibold">{count}</span>
                   </div>
                 );
               })}
             </div>
-          )}
+          </>
+        )}
 
-          {/* Top-right controls */}
-          <div className="absolute top-3 right-3 flex items-center gap-2">
-            <Badge variant="outline" className="text-[9px] border-white/20 text-white/50 cursor-default bg-transparent">
-              Read-Only View
-            </Badge>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium text-white/70 hover:text-white transition-colors"
-                  style={{ background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)' }}
-                >
-                  {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                  {isFullscreen ? 'Exit Fullscreen' : 'Expand'}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>{isFullscreen ? 'Exit fullscreen (Esc)' : 'Expand Intelligence Map to fullscreen'}</TooltipContent>
-            </Tooltip>
-          </div>
-
-          {/* Deal Detail Panel (appears when clicking central deal node) */}
-          <AnimatePresence>
-            {showDealDetail && viewMode === 'deal' && (
-              <DealDetailPanel
-                deal={deal}
-                onClose={() => setShowDealDetail(false)}
-                onGoToWorkspace={handleGoToWorkspace}
-                riskCount={riskNodeCount}
-              />
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* What-If Panel */}
+        {/* Node Drawer */}
         <AnimatePresence>
-          {showSimPanel && viewMode === 'deal' && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 300, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={springConfig.standard}
-              className="border-l border-border/50 overflow-hidden shrink-0 bg-muted/20"
-            >
-              <div className="p-4 w-[300px]">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Play className="w-4 h-4 text-accent" />
-                    <h3 className="text-sm font-semibold">What-If Simulations</h3>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowSimPanel(false)}>
-                    <X className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
-                <div className="space-y-2">
-                  {SIMULATIONS.map(sim => (
-                    <button key={sim.id} onClick={() => runSimulation(sim.id)}
-                      className={`w-full text-left p-3 rounded-lg border text-xs ${
-                        activeSim === sim.id ? 'border-accent/50 bg-accent/5' : 'border-border/50 bg-background hover:bg-muted/40'
-                      }`}
-                    >
-                      <p className="font-medium">{sim.label}</p>
-                      <p className="text-muted-foreground mt-0.5">{sim.description}</p>
-                    </button>
-                  ))}
-                </div>
-                <AnimatePresence>
-                  {simResult && (
-                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}
-                      className="mt-4 p-3 rounded-lg bg-accent/5 border border-accent/20"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="w-3.5 h-3.5 text-accent" />
-                        <span className="text-xs font-medium text-accent">Simulation Result</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{simResult}</p>
-                      <button onClick={() => { setSimResult(null); setActiveSim(null); }}
-                        className="mt-2 flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground"
-                      >
-                        <RotateCcw className="w-3 h-3" /> Reset
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Selected Node Detail (non-deal nodes) */}
-        <AnimatePresence>
-          {selectedNode && !showSimPanel && !showDealDetail && viewMode === 'deal' && (
-            <motion.div
-              initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }}
-              className="absolute top-16 right-4 w-72 rounded-xl border border-border/50 overflow-hidden bg-background/95 backdrop-blur-xl shadow-xl"
-            >
-              <div className="p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-3 h-3 rounded-full" style={{ background: selectedNode.color }} />
-                  <Badge variant="outline" className="text-[10px]">
-                    {selectedNode.type}
-                  </Badge>
-                  {selectedNode.riskLevel && selectedNode.riskLevel !== 'none' && (
-                    <Badge className={`text-[9px] ${
-                      selectedNode.riskLevel === 'critical' ? 'bg-blocking/10 text-blocking' :
-                      selectedNode.riskLevel === 'warning' ? 'bg-discrepancy/10 text-discrepancy' :
-                      'bg-orange-500/10 text-orange-600'
-                    }`}>
-                      {selectedNode.riskLevel}
-                    </Badge>
-                  )}
-                  <button onClick={() => setSelectedNode(null)} className="ml-auto text-muted-foreground hover:text-foreground">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <p className="font-semibold text-sm">{selectedNode.label}</p>
-                {selectedNode.metadata && (
-                  <div className="mt-3 space-y-1.5">
-                    {Object.entries(selectedNode.metadata).map(([key, val]) => (
-                      <div key={key} className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
-                        <span className="font-medium">{String(val)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="mt-3 pt-3 border-t border-border/50">
-                  <p className="text-xs text-muted-foreground">
-                    Connected to {edges.filter(e => e.from === selectedNode.id || e.to === selectedNode.id).length} entities
-                  </p>
-                  <div className="mt-1.5 space-y-1">
-                    {edges
-                      .filter(e => e.from === selectedNode.id || e.to === selectedNode.id)
-                      .slice(0, 5)
-                      .map((edge, i) => {
-                        const otherId = edge.from === selectedNode.id ? edge.to : edge.from;
-                        const other = nodes.find(n => n.id === otherId);
-                        if (!other) return null;
-                        return (
-                          <button key={i} onClick={() => handleNodeClick(other)}
-                            className="w-full flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground py-0.5"
-                          >
-                            <div className="w-1.5 h-1.5 rounded-full" style={{ background: other.color }} />
-                            <span className="truncate">{other.label}</span>
-                            <ArrowRight className="w-3 h-3 ml-auto shrink-0" />
-                          </button>
-                        );
-                      })}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+          {selectedNode && (
+            <NodeDrawer
+              node={selectedNode}
+              edges={activeEdges}
+              allNodes={activeNodes}
+              onClose={() => setSelectedNodeId(null)}
+              onSelectNode={setSelectedNodeId}
+            />
           )}
         </AnimatePresence>
       </div>
