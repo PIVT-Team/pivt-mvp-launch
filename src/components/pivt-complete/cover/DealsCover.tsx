@@ -214,11 +214,14 @@ export const DealsCover: React.FC = () => {
       deal_value: Number(form.deal_value),
       closing_date: form.closing_date || null,
       escrow_amount: Number(form.escrow_amount) || 0,
-      templateId: (form.templateId && form.templateId !== 'none') ? form.templateId : null,
+      buyer: form.buyer || null,
+      seller: form.seller || null,
+      sector: form.sector || null,
+      deal_type: form.deal_type || null,
     });
     if (deal) {
       setShowCreate(false);
-      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', templateId: '' });
+      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', sector: '', deal_type: '' });
       setSelectedDealId(deal.id);
       setActiveSection('workspace');
     }
