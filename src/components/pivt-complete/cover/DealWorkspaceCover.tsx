@@ -9,6 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { DealWorkflowStepper, WorkflowStep, deriveStatus } from './DealWorkflowStepper';
+import { DealProgressRibbon, DealProgressData } from './DealProgressRibbon';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 
@@ -545,6 +546,53 @@ export const DealWorkspaceCover: React.FC = () => {
     return Math.round((done / total) * 100);
   }, [isDemoDeal, dealSummary, demoDeal.readyToPayPercent]);
 
+  // ── Progress Ribbon Data ──
+  const DEMO_PROGRESS: Record<string, DealProgressData> = {
+    atlas: {
+      stakeholdersAdded: 28, stakeholdersRequired: 28,
+      compliancePassed: 24, complianceTotal: 28, complianceBlocked: false,
+      conditionsSatisfied: 6, conditionsTotal: 8, documentsUploaded: 108, documentsRequired: 112,
+      approvalsGranted: 5, approvalsTotal: 7, approvalsBlocked: false,
+      paymentsExecuted: 0, paymentsTotal: 12, paymentsFailed: false,
+    },
+    beacon: {
+      stakeholdersAdded: 25, stakeholdersRequired: 25,
+      compliancePassed: 18, complianceTotal: 25, complianceBlocked: true,
+      conditionsSatisfied: 3, conditionsTotal: 6, documentsUploaded: 75, documentsRequired: 80,
+      approvalsGranted: 2, approvalsTotal: 5, approvalsBlocked: false,
+      paymentsExecuted: 0, paymentsTotal: 8, paymentsFailed: false,
+    },
+    cipher: {
+      stakeholdersAdded: 48, stakeholdersRequired: 48,
+      compliancePassed: 46, complianceTotal: 48, complianceBlocked: false,
+      conditionsSatisfied: 9, conditionsTotal: 10, documentsUploaded: 145, documentsRequired: 145,
+      approvalsGranted: 9, approvalsTotal: 10, approvalsBlocked: false,
+      paymentsExecuted: 0, paymentsTotal: 15, paymentsFailed: false,
+    },
+  };
+
+  const progressData: DealProgressData = useMemo(() => {
+    if (isDemoDeal) return DEMO_PROGRESS[demoDeal.id] || DEMO_PROGRESS.atlas;
+    const s = dealSummary;
+    return {
+      stakeholdersAdded: s ? (s.documentsCount > 0 ? 1 : 0) : 0, // proxy: at least creator
+      stakeholdersRequired: 1,
+      compliancePassed: s?.conditionsSatisfied || 0,
+      complianceTotal: s?.conditionsTotal || 0,
+      complianceBlocked: false,
+      conditionsSatisfied: s?.conditionsSatisfied || 0,
+      conditionsTotal: s?.conditionsTotal || 0,
+      documentsUploaded: s?.documentsCount || 0,
+      documentsRequired: Math.max(s?.documentsCount || 0, 1),
+      approvalsGranted: s?.approvalsApproved || 0,
+      approvalsTotal: s?.approvalsTotal || 0,
+      approvalsBlocked: false,
+      paymentsExecuted: s?.paymentsConfirmed || 0,
+      paymentsTotal: s?.paymentsTotal || 0,
+      paymentsFailed: false,
+    };
+  }, [isDemoDeal, demoDeal.id, dealSummary]);
+
   const workflowSteps: WorkflowStep[] = useMemo(() => {
     if (isDemoDeal) {
       // Static workflow for demo deals
@@ -725,6 +773,22 @@ export const DealWorkspaceCover: React.FC = () => {
           </span>
         </motion.div>
       )}
+
+      {/* ── Deal Progress Ribbon ── */}
+      <DealProgressRibbon
+        progressData={progressData}
+        onStageClick={(stageId) => {
+          const stepMap: Record<string, string> = {
+            stakeholders: 'stakeholders',
+            verification: 'verification',
+            structuring: 'structuring',
+            documents: 'deal-inputs',
+            execution: 'execution',
+            settlement: 'execution',
+          };
+          handleStepClick(stepMap[stageId] || 'overview');
+        }}
+      />
 
       {/* ── Workflow Stepper ── */}
       <DealWorkflowStepper
