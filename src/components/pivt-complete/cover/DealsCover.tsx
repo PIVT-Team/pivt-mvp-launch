@@ -144,13 +144,29 @@ const DealCard: React.FC<{
       {/* Deal details grid */}
       <div className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer</p>
           <p className="font-medium text-foreground text-sm">{buyerBorrower}</p>
         </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Seller</p>
+          <p className="font-medium text-foreground text-sm">{(deal as any).seller || '—'}</p>
+        </div>
+        {(deal as any).target_company && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Target</p>
+            <p className="font-medium text-foreground text-sm">{(deal as any).target_company}</p>
+          </div>
+        )}
         <div>
           <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Sector</p>
           <p className="font-medium text-foreground text-sm">{sector}</p>
         </div>
+        {(deal as any).jurisdiction && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Jurisdiction</p>
+            <p className="font-medium text-foreground text-sm">{(deal as any).jurisdiction}</p>
+          </div>
+        )}
         {tierCount > 0 && (
           <div>
             <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Waterfall Tiers</p>
@@ -189,7 +205,7 @@ export const DealsCover: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', sector: '', deal_type: '' });
+  const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '' });
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
@@ -217,12 +233,15 @@ export const DealsCover: React.FC = () => {
       escrow_amount: Number(form.escrow_amount) || 0,
       buyer: form.buyer || null,
       seller: form.seller || null,
+      target_company: form.target_company || null,
       sector: form.sector || null,
       deal_type: form.deal_type || null,
+      currency: form.currency || 'USD',
+      jurisdiction: form.jurisdiction || null,
     });
     if (deal) {
       setShowCreate(false);
-      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', sector: '', deal_type: '' });
+      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '' });
       setSelectedDealId(deal.id);
       setActiveSection('workspace');
     }
@@ -341,104 +360,124 @@ export const DealsCover: React.FC = () => {
 
       {/* Create Deal Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-[640px]">
+        <DialogContent className="max-w-[640px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Deal</DialogTitle>
             <p className="text-sm text-muted-foreground">Fill in deal metadata to initialize the transaction workspace.</p>
           </DialogHeader>
-          <form onSubmit={handleCreateSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Deal Name</Label>
-              <Input
-                value={form.deal_name}
-                onChange={(e) => setForm({ ...form, deal_name: e.target.value })}
-                placeholder="Project Nimbus Acquisition"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Buyer / Borrower</Label>
-                <Input
-                  value={form.buyer}
-                  onChange={(e) => setForm({ ...form, buyer: e.target.value })}
-                  placeholder="Orion Data Systems LLC"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Seller / Target</Label>
-                <Input
-                  value={form.seller}
-                  onChange={(e) => setForm({ ...form, seller: e.target.value })}
-                  placeholder="Aurora Ventures Fund I, LP"
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Sector</Label>
-                <Select value={form.sector} onValueChange={(v) => setForm({ ...form, sector: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select sector" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Technology">Technology</SelectItem>
-                    <SelectItem value="Healthcare">Healthcare</SelectItem>
-                    <SelectItem value="Financial Services">Financial Services</SelectItem>
-                    <SelectItem value="Energy">Energy</SelectItem>
-                    <SelectItem value="Consumer">Consumer</SelectItem>
-                    <SelectItem value="Industrial">Industrial</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Deal Type</Label>
-                <Select value={form.deal_type} onValueChange={(v) => setForm({ ...form, deal_type: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M&A Acquisition">M&A Acquisition</SelectItem>
-                    <SelectItem value="Asset Purchase">Asset Purchase</SelectItem>
-                    <SelectItem value="Debt Financing">Debt Financing</SelectItem>
-                    <SelectItem value="Secondary Transaction">Secondary Transaction</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+          <form onSubmit={handleCreateSubmit} className="space-y-5">
+            {/* Transaction Overview */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Transaction Overview</p>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Deal Name</Label>
+                  <Input value={form.deal_name} onChange={(e) => setForm({ ...form, deal_name: e.target.value })} placeholder="Project Nimbus Acquisition" required />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label>Deal Type</Label>
+                    <Select value={form.deal_type} onValueChange={(v) => setForm({ ...form, deal_type: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Private Company Share Purchase">Private Company Share Purchase</SelectItem>
+                        <SelectItem value="Asset Acquisition">Asset Acquisition</SelectItem>
+                        <SelectItem value="Merger">Merger</SelectItem>
+                        <SelectItem value="Leveraged Buyout">Leveraged Buyout</SelectItem>
+                        <SelectItem value="Growth Equity">Growth Equity</SelectItem>
+                        <SelectItem value="Venture Investment">Venture Investment</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Sector</Label>
+                    <Select value={form.sector} onValueChange={(v) => setForm({ ...form, sector: v })}>
+                      <SelectTrigger><SelectValue placeholder="Select sector" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Technology">Technology</SelectItem>
+                        <SelectItem value="Healthcare">Healthcare</SelectItem>
+                        <SelectItem value="Financial Services">Financial Services</SelectItem>
+                        <SelectItem value="Energy">Energy</SelectItem>
+                        <SelectItem value="Real Estate">Real Estate</SelectItem>
+                        <SelectItem value="Consumer">Consumer</SelectItem>
+                        <SelectItem value="Industrials">Industrials</SelectItem>
+                        <SelectItem value="Media & Entertainment">Media & Entertainment</SelectItem>
+                        <SelectItem value="Telecommunications">Telecommunications</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Deal Value ($)</Label>
-                <Input
-                  type="number"
-                  value={form.deal_value}
-                  onChange={(e) => setForm({ ...form, deal_value: e.target.value })}
-                  placeholder="12500000"
-                  required
-                  min={0}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Escrow Amount ($)</Label>
-                <Input
-                  type="number"
-                  value={form.escrow_amount}
-                  onChange={(e) => setForm({ ...form, escrow_amount: e.target.value })}
-                  placeholder="200000"
-                  min={0}
-                />
+
+            <div className="border-t border-border" />
+
+            {/* Parties */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Parties</p>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label>Buyer</Label>
+                  <Input value={form.buyer} onChange={(e) => setForm({ ...form, buyer: e.target.value })} placeholder="Orion Data Systems LLC" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Seller</Label>
+                  <Input value={form.seller} onChange={(e) => setForm({ ...form, seller: e.target.value })} placeholder="Aurora Ventures Fund I, LP" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Target Company</Label>
+                  <Input value={form.target_company} onChange={(e) => setForm({ ...form, target_company: e.target.value })} placeholder="Nimbus Analytics Inc." />
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Closing Date</Label>
-              <Input
-                type="date"
-                value={form.closing_date}
-                onChange={(e) => setForm({ ...form, closing_date: e.target.value })}
-              />
+
+            <div className="border-t border-border" />
+
+            {/* Financial Terms */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Financial Terms</p>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Deal Value ($)</Label>
+                  <Input type="number" value={form.deal_value} onChange={(e) => setForm({ ...form, deal_value: e.target.value })} placeholder="12500000" required min={0} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Escrow Amount ($)</Label>
+                  <Input type="number" value={form.escrow_amount} onChange={(e) => setForm({ ...form, escrow_amount: e.target.value })} placeholder="200000" min={0} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Currency</Label>
+                  <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USD">USD</SelectItem>
+                      <SelectItem value="EUR">EUR</SelectItem>
+                      <SelectItem value="GBP">GBP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
             </div>
+
+            <div className="border-t border-border" />
+
+            {/* Jurisdiction & Timing */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Jurisdiction & Timing</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Jurisdiction</Label>
+                  <Input value={form.jurisdiction} onChange={(e) => setForm({ ...form, jurisdiction: e.target.value })} placeholder="Delaware, United States" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Expected Close Date</Label>
+                  <Input type="date" value={form.closing_date} onChange={(e) => setForm({ ...form, closing_date: e.target.value })} />
+                </div>
+              </div>
+            </div>
+
             <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={creating}>
               {creating ? 'Creating...' : 'Create Deal'}
             </Button>

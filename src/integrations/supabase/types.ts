@@ -695,6 +695,7 @@ export type Database = {
           closing_date: string | null
           created_at: string
           created_by: string | null
+          currency: string | null
           deal_kind: Database["public"]["Enums"]["deal_kind"]
           deal_name: string
           deal_number: string
@@ -703,11 +704,13 @@ export type Database = {
           escrow_amount: number | null
           id: string
           is_demo: boolean
+          jurisdiction: string | null
           owner_id: string | null
           sector: string | null
           seed_key: string | null
           seller: string | null
           status: string
+          target_company: string | null
           template_blueprint: Json | null
           updated_at: string
           visibility: string
@@ -717,6 +720,7 @@ export type Database = {
           closing_date?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           deal_kind?: Database["public"]["Enums"]["deal_kind"]
           deal_name: string
           deal_number: string
@@ -725,11 +729,13 @@ export type Database = {
           escrow_amount?: number | null
           id?: string
           is_demo?: boolean
+          jurisdiction?: string | null
           owner_id?: string | null
           sector?: string | null
           seed_key?: string | null
           seller?: string | null
           status?: string
+          target_company?: string | null
           template_blueprint?: Json | null
           updated_at?: string
           visibility?: string
@@ -739,6 +745,7 @@ export type Database = {
           closing_date?: string | null
           created_at?: string
           created_by?: string | null
+          currency?: string | null
           deal_kind?: Database["public"]["Enums"]["deal_kind"]
           deal_name?: string
           deal_number?: string
@@ -747,11 +754,13 @@ export type Database = {
           escrow_amount?: number | null
           id?: string
           is_demo?: boolean
+          jurisdiction?: string | null
           owner_id?: string | null
           sector?: string | null
           seed_key?: string | null
           seller?: string | null
           status?: string
+          target_company?: string | null
           template_blueprint?: Json | null
           updated_at?: string
           visibility?: string

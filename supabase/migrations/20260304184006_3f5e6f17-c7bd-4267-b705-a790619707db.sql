@@ -1,0 +1,4 @@
+ALTER TABLE public.deals
+  ADD COLUMN IF NOT EXISTS target_company text DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS currency text DEFAULT 'USD',
+  ADD COLUMN IF NOT EXISTS jurisdiction text DEFAULT NULL;

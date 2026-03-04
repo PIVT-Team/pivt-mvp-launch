@@ -21,8 +21,11 @@ export interface RealDeal {
   is_demo?: boolean;
   buyer?: string | null;
   seller?: string | null;
+  target_company?: string | null;
   sector?: string | null;
   deal_type?: string | null;
+  currency?: string | null;
+  jurisdiction?: string | null;
 }
 
 export interface DealSummaryCounts {
@@ -55,8 +58,11 @@ export function useDealOperations() {
     templateId?: string | null;
     buyer?: string | null;
     seller?: string | null;
+    target_company?: string | null;
     sector?: string | null;
     deal_type?: string | null;
+    currency?: string | null;
+    jurisdiction?: string | null;
   }): Promise<RealDeal | null> => {
     const { data, error } = await supabase
       .from("deals")
@@ -74,8 +80,11 @@ export function useDealOperations() {
         is_demo: false,
         buyer: params.buyer || null,
         seller: params.seller || null,
+        target_company: params.target_company || null,
         sector: params.sector || null,
         deal_type: params.deal_type || null,
+        currency: params.currency || 'USD',
+        jurisdiction: params.jurisdiction || null,
       } as any)
       .select()
       .single();
