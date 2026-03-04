@@ -336,6 +336,15 @@ const ONTOLOGY_RULES = [
     config: {},
     enabled: true,
   },
+  {
+    rule_key: "compliance_checks_required",
+    name: "Compliance Checks Required",
+    description: "All compliance checks (KYB, sanctions, PEP, tax form validation) must pass before disbursement execution.",
+    severity: "blocker",
+    scope: "deal",
+    config: { applies_to: "DisbursementIntent.execute" },
+    enabled: true,
+  },
 ];
 
 Deno.serve(async (req) => {

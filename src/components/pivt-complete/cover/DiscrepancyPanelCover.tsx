@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useSelectedDeal } from '@/stores/pivtStore';
+import { ClosingReadinessPanel } from './ClosingReadinessPanel';
 
 // Demo binder-grade discrepancy data
 const DEMO_DISCREPANCIES = [
