@@ -689,7 +689,7 @@ export const DealWorkspaceCover: React.FC = () => {
           { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
         ],
       };
-      return DEMO_STEPS[demoDeal.id] || DEMO_STEPS.atlas;
+      return DEMO_STEPS[demoDealSeedKey || ''] || DEMO_STEPS.atlas;
     }
 
     // Dynamic workflow for real deals
