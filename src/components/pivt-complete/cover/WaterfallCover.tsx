@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { useEditGuard } from '@/hooks/useEditGuard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
