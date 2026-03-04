@@ -701,6 +701,8 @@ export type Database = {
           deal_number: string
           deal_type: string | null
           deal_value: number
+          deleted_at: string | null
+          deleted_by: string | null
           escrow_amount: number | null
           id: string
           is_demo: boolean
@@ -727,6 +729,8 @@ export type Database = {
           deal_number: string
           deal_type?: string | null
           deal_value?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
           escrow_amount?: number | null
           id?: string
           is_demo?: boolean
@@ -753,6 +757,8 @@ export type Database = {
           deal_number?: string
           deal_type?: string | null
           deal_value?: number
+          deleted_at?: string | null
+          deleted_by?: string | null
           escrow_amount?: number | null
           id?: string
           is_demo?: boolean
