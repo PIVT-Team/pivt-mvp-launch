@@ -266,7 +266,18 @@ export const DealsCover: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<RealDeal | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '' });
+  const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
+  const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>(['USD']);
+  const [signingDate, setSigningDate] = useState<Date | undefined>();
+
+  const toggleCurrency = (code: string) => {
+    setSelectedCurrencies(prev =>
+      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+    );
+  };
+  const removeCurrency = (code: string) => {
+    setSelectedCurrencies(prev => prev.filter(c => c !== code));
+  };
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
