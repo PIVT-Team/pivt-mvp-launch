@@ -162,31 +162,11 @@ const LoginPage: React.FC = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full h-10 pivt-btn-primary" disabled={loading}>
+          <Button type="submit" className="w-full h-10 pivt-btn-primary" disabled={loading}>
               {isLogin ? <LogIn className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
               {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">or</span></div>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-10 gap-2"
-            onClick={handleDemoLogin}
-            disabled={loading}
-          >
-            <Eye className="w-4 h-4" />
-            Explore Demo
-          </Button>
-
-          <p className="text-[11px] text-muted-foreground/60 text-center">
-            Demo shows pre-configured deals. Your account has separate data.
-          </p>
         </div>
       </motion.div>
     </div>
