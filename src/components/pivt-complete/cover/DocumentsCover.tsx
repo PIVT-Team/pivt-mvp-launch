@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useEditGuard } from '@/hooks/useEditGuard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { useAuditStore } from '@/stores/auditStore';
