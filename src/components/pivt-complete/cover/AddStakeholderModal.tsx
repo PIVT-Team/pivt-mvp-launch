@@ -51,8 +51,8 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     if (!trimName || trimName.length > 200) errs.name = trimName ? 'Name must be under 200 characters' : 'Name is required';
     if (!trimEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) errs.email = 'Valid email is required';
     if (trimEmail.length > 255) errs.email = 'Email must be under 255 characters';
-    if (!ownership || ownershipNum <= 0 || ownershipNum > 100) errs.ownership = 'Must be between 0.01 and 100';
-    if (exceedsMax) errs.ownership = `Would exceed 100% (current total: ${currentTotal}%)`;
+    if (ownership === '' || ownershipNum < 0 || ownershipNum > 100) errs.ownership = 'Must be between 0 and 100';
+    if (ownershipNum > 0 && exceedsMax) errs.ownership = `Would exceed 100% (current total: ${currentTotal}%)`;
     if (!role) errs.role = 'Role is required';
 
     setErrors(errs);
