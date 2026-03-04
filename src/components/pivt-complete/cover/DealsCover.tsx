@@ -65,7 +65,8 @@ const DealCard: React.FC<{
   onView: () => void;
   onDuplicate: () => void;
   duplicating: boolean;
-}> = ({ deal, summary, isDemo, onView, onDuplicate, duplicating }) => {
+  onDelete?: () => void;
+}> = ({ deal, summary, isDemo, onView, onDuplicate, duplicating, onDelete }) => {
   const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
   const letter = deal.deal_name.charAt(0).toUpperCase();
   const seedKey = (deal as any).seed_key as string | null;
