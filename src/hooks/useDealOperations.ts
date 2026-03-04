@@ -58,8 +58,11 @@ export function useDealOperations() {
     templateId?: string | null;
     buyer?: string | null;
     seller?: string | null;
+    target_company?: string | null;
     sector?: string | null;
     deal_type?: string | null;
+    currency?: string | null;
+    jurisdiction?: string | null;
   }): Promise<RealDeal | null> => {
     const { data, error } = await supabase
       .from("deals")
