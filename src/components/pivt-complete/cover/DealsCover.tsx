@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy } from 'lucide-react';
+import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp } from 'lucide-react';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import { useDealOperations, RealDeal, DealTemplate, DealSummaryCounts } from '@/hooks/useDealOperations';
@@ -31,6 +31,31 @@ const fmt = (n: number) => {
 
 const PROGRESS_BAR_STYLE = 'bg-gradient-to-r from-accent to-[hsl(217,100%,55%)]';
 
+// Golden demo summaries — never query DB for these
+const DEMO_GOLDEN_SUMMARIES: Record<string, DealSummaryCounts & { buyerBorrower: string; sector: string; dealKindTags: string[]; funded: number; fundedPct: number; waterfallTiers: number }> = {
+  atlas: {
+    deal_id: '', partiesCount: 28, docsCount: 108, capTableCount: 26, waterfallTiers: 8,
+    conditionsMet: 6, conditionsTotal: 8, approvalsGranted: 5, approvalsTotal: 7,
+    buyerBorrower: 'Apex Capital Partners', sector: 'Enterprise Software / SaaS',
+    dealKindTags: ['M&A', 'Stock Purchase', 'Take Private'],
+    funded: 109_700_000, fundedPct: 77,
+  },
+  beacon: {
+    deal_id: '', partiesCount: 25, docsCount: 75, capTableCount: 0, waterfallTiers: 6,
+    conditionsMet: 3, conditionsTotal: 6, approvalsGranted: 2, approvalsTotal: 5,
+    buyerBorrower: 'Beacon Holdings, LLC', sector: 'Healthcare Services / Healthcare IT',
+    dealKindTags: ['Credit', 'Unitranche Credit Facility'],
+    funded: 89_000_000, fundedPct: 100,
+  },
+  cipher: {
+    deal_id: '', partiesCount: 48, docsCount: 145, capTableCount: 24, waterfallTiers: 10,
+    conditionsMet: 9, conditionsTotal: 10, approvalsGranted: 9, approvalsTotal: 10,
+    buyerBorrower: 'Titan Strategic Group', sector: 'Cybersecurity / Enterprise Software',
+    dealKindTags: ['M&A', 'Stock Purchase', 'Take Private'],
+    funded: 0, fundedPct: 0,
+  },
+};
+
 // ── Deal Card (unified for both demo and private deals) ──
 const DealCard: React.FC<{
   deal: RealDeal;
@@ -42,22 +67,31 @@ const DealCard: React.FC<{
 }> = ({ deal, summary, isDemo, onView, onDuplicate, duplicating }) => {
   const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
   const letter = deal.deal_name.charAt(0).toUpperCase();
-  const blueprint = deal.template_blueprint as any;
-  const sector = blueprint?.sector || '—';
-  const tierCount = summary?.waterfallTiers ?? 0;
-  const partiesCount = summary?.partiesCount ?? 0;
-  const docsCount = summary?.docsCount ?? 0;
-  const capTableCount = summary?.capTableCount ?? 0;
-  const conditionsMet = summary?.conditionsMet ?? 0;
-  const conditionsTotal = summary?.conditionsTotal ?? 0;
-  const executedPercent = conditionsTotal > 0 ? Math.round((conditionsMet / conditionsTotal) * 100) : 0;
+  const seedKey = (deal as any).seed_key as string | null;
+  const goldenDemo = isDemo && seedKey ? DEMO_GOLDEN_SUMMARIES[seedKey] : null;
+
+  const partiesCount = goldenDemo?.partiesCount ?? summary?.partiesCount ?? 0;
+  const docsCount = goldenDemo?.docsCount ?? summary?.docsCount ?? 0;
+  const capTableCount = goldenDemo?.capTableCount ?? summary?.capTableCount ?? 0;
+  const tierCount = goldenDemo?.waterfallTiers ?? summary?.waterfallTiers ?? 0;
+  const sector = goldenDemo?.sector || ((deal.template_blueprint as any)?.sector) || '—';
+  const buyerBorrower = goldenDemo?.buyerBorrower || '—';
+  const dealKindTags = goldenDemo?.dealKindTags || [];
+  const funded = goldenDemo?.funded ?? 0;
+  const fundedPct = goldenDemo?.fundedPct ?? 0;
+
+  // For non-demo deals, use conditions-based progress
+  const conditionsMet = goldenDemo?.conditionsMet ?? summary?.conditionsMet ?? 0;
+  const conditionsTotal = goldenDemo?.conditionsTotal ?? summary?.conditionsTotal ?? 0;
 
   return (
     <motion.div
       {...fadeInUp}
-      className="border border-border rounded-xl bg-card hover:shadow-lg transition-all group"
+      className="border border-border rounded-xl bg-card hover:shadow-lg transition-all group cursor-pointer"
+      onClick={onView}
     >
-      <div className="p-5 pb-3 cursor-pointer" onClick={onView}>
+      {/* Header row */}
+      <div className="p-5 pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0 mt-0.5">
@@ -66,14 +100,18 @@ const DealCard: React.FC<{
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold leading-tight">{deal.deal_name}</h3>
-                {isDemo && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-accent/30 text-accent">DEMO</Badge>
-                )}
               </div>
               <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${sts.bg} ${sts.text}`}>
-                  {sts.label}
-                </span>
+                <span className={`inline-flex items-center w-2 h-2 rounded-full ${
+                  sts.label === 'active' ? 'bg-validated' :
+                  sts.label === 'ready' ? 'bg-validated' :
+                  sts.label === 'setup' ? 'bg-amber-400' :
+                  'bg-muted-foreground/40'
+                }`} />
+                <span className={`text-[11px] font-medium ${sts.text}`}>{sts.label}</span>
+                {dealKindTags.map(tag => (
+                  <span key={tag} className="text-[10px] text-muted-foreground">· {tag}</span>
+                ))}
               </div>
             </div>
           </div>
@@ -84,22 +122,29 @@ const DealCard: React.FC<{
         </div>
       </div>
 
-      <div className="px-5 pb-1">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-accent font-medium">Conditions met</span>
-          <span className="text-[11px] font-mono font-semibold text-right">
-            {conditionsMet}/{conditionsTotal} ({executedPercent}%)
-          </span>
+      {/* Funded progress bar */}
+      {isDemo && (
+        <div className="px-5 pb-1">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[11px] text-accent font-medium">Ready to disburse</span>
+            <span className="text-[11px] font-mono font-semibold text-right">
+              {fmt(funded)} ({fundedPct}%)
+            </span>
+          </div>
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full ${fundedPct >= 100 ? 'bg-validated' : PROGRESS_BAR_STYLE}`}
+              style={{ width: `${Math.max(fundedPct, 1)}%` }}
+            />
+          </div>
         </div>
-        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div className={`h-full rounded-full ${PROGRESS_BAR_STYLE}`} style={{ width: `${Math.max(executedPercent, 1)}%` }} />
-        </div>
-      </div>
+      )}
 
+      {/* Deal details grid */}
       <div className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
-          <p className="font-medium text-foreground text-sm">—</p>
+          <p className="font-medium text-foreground text-sm">{buyerBorrower}</p>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Sector</p>
@@ -113,37 +158,16 @@ const DealCard: React.FC<{
         )}
       </div>
 
+      {/* Footer */}
       <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" />{deal.deal_number}</span>
           <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{deal.closing_date || 'TBD'}</span>
           <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{partiesCount} parties</span>
           <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} docs</span>
           <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{capTableCount} cap table</span>
         </div>
-        <div className="flex items-center gap-2">
-          {isDemo && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1.5 text-xs h-7"
-              onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
-              disabled={duplicating}
-            >
-              <Copy className="w-3 h-3" />
-              {duplicating ? 'Duplicating...' : 'Duplicate to edit'}
-            </Button>
-          )}
-          <Button
-            size="sm"
-            variant="ghost"
-            className="gap-1 text-xs h-7"
-            onClick={(e) => { e.stopPropagation(); onView(); }}
-          >
-            <Eye className="w-3 h-3" />
-            {isDemo ? 'View' : 'Open'}
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Button>
+        <div className="flex items-center gap-1">
+          <ChevronRight className="w-4 h-4" />
         </div>
       </div>
     </motion.div>

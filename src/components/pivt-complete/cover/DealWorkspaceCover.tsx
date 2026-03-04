@@ -186,8 +186,16 @@ const useDealSummary = (dealId: string | undefined) => {
   return { summary, loading };
 };
 
-const DemoOverviewSection: React.FC = () => {
+const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDeal | null }> = ({ seedKey, realDeal }) => {
   const demoDeal = useSelectedDeal();
+  const effectiveKey = seedKey || demoDeal.id;
+
+  // Golden demo metrics keyed by seed
+  const DEMO_METRICS: Record<string, { conditions: string; approvals: string; approvalsPending: number; documents: number; payments: string; paymentsConfirmed: number; escrow: string }> = {
+    atlas: { conditions: '6/8', approvals: '5/7', approvalsPending: 2, documents: 108, payments: '0/12', paymentsConfirmed: 0, escrow: 'Active' },
+    beacon: { conditions: '3/6', approvals: '2/5', approvalsPending: 3, documents: 75, payments: '0/8', paymentsConfirmed: 0, escrow: 'Pending' },
+    cipher: { conditions: '9/10', approvals: '9/10', approvalsPending: 1, documents: 145, payments: '0/15', paymentsConfirmed: 0, escrow: 'Active' },
+  };
 
   const DEMO_NEXT_ACTIONS: Record<string, string> = {
     atlas: '2 approvals pending — Waterfall Schedule v3 & Wire Authorization',
@@ -210,8 +218,15 @@ const DemoOverviewSection: React.FC = () => {
     ],
   };
 
-  const nextAction = DEMO_NEXT_ACTIONS[demoDeal.id] || 'Review deal workspace';
-  const blockers = DEMO_BLOCKERS[demoDeal.id] || [];
+  const nextAction = DEMO_NEXT_ACTIONS[effectiveKey] || 'Review deal workspace';
+  const blockers = DEMO_BLOCKERS[effectiveKey] || [];
+  const metrics = DEMO_METRICS[effectiveKey] || DEMO_METRICS.atlas;
+
+  // Use DB deal value if available, otherwise pivtStore
+  const dealValue = realDeal?.deal_value ?? demoDeal.consideration;
+  const escrowValue = realDeal?.escrow_amount ?? 0;
+  const closingDate = realDeal?.closing_date || demoDeal.closingDate;
+  const status = realDeal?.status || demoDeal.status;
 
   return (
     <div className="space-y-8">
@@ -229,10 +244,10 @@ const DemoOverviewSection: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {[
-          { label: 'Deal Value', value: formatCurrency(demoDeal.consideration) },
-          { label: 'Status', value: demoDeal.status.charAt(0).toUpperCase() + demoDeal.status.slice(1) },
-          { label: 'Recipients', value: `${demoDeal.totalRecipients} parties` },
-          { label: 'Closing', value: demoDeal.closingDate },
+          { label: 'Deal Value', value: formatCurrency(dealValue) },
+          { label: 'Status', value: status.charAt(0).toUpperCase() + status.slice(1) },
+          { label: 'Escrow', value: escrowValue > 0 ? formatCurrency(escrowValue) : 'N/A' },
+          { label: 'Closing', value: closingDate },
         ].map(stat => (
           <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-6">
             <p className="pivt-metric-label">{stat.label}</p>
@@ -243,28 +258,28 @@ const DemoOverviewSection: React.FC = () => {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="pivt-card p-4">
-          <p className="pivt-metric-label">Documents</p>
-          <p className="font-mono text-lg font-medium mt-1">{demoDeal.documentsUploaded}</p>
-          <p className="text-[10px] text-muted-foreground">uploaded</p>
-        </div>
-        <div className="pivt-card p-4">
-          <p className="pivt-metric-label">Discrepancies</p>
-          <p className="font-mono text-lg font-medium mt-1">{demoDeal.discrepanciesFound}</p>
-          <p className="text-[10px] text-muted-foreground">found</p>
+          <p className="pivt-metric-label">Conditions</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics.conditions}</p>
+          <p className="text-[10px] text-muted-foreground">satisfied</p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Approvals</p>
-          <p className="font-mono text-lg font-medium mt-1">{demoDeal.pendingApprovals}</p>
-          <p className="text-[10px] text-muted-foreground">pending</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics.approvals}</p>
+          <p className="text-[10px] text-muted-foreground">{metrics.approvalsPending} pending</p>
         </div>
         <div className="pivt-card p-4">
-          <p className="pivt-metric-label">Readiness</p>
-          <p className="font-mono text-lg font-medium mt-1">{demoDeal.readyToPayPercent}%</p>
-          <p className="text-[10px] text-muted-foreground">ready to pay</p>
+          <p className="pivt-metric-label">Documents</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics.documents}</p>
+          <p className="text-[10px] text-muted-foreground">uploaded</p>
         </div>
         <div className="pivt-card p-4">
-          <p className="pivt-metric-label">Sector</p>
-          <p className="font-mono text-sm font-medium mt-1">{demoDeal.sector}</p>
+          <p className="pivt-metric-label">Payments</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics.payments}</p>
+          <p className="text-[10px] text-muted-foreground">{metrics.paymentsConfirmed} confirmed</p>
+        </div>
+        <div className="pivt-card p-4">
+          <p className="pivt-metric-label">Escrow</p>
+          <p className="font-mono text-lg font-medium mt-1 capitalize">{metrics.escrow}</p>
         </div>
       </div>
 
@@ -356,11 +371,11 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
   );
 };
 
-const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string; isDemoDeal?: boolean }> = ({ realDeal, dealId, isDemoDeal }) => {
-  if (isDemoDeal || !realDeal) {
-    return <DemoOverviewSection />;
+const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string; isDemoDeal?: boolean; seedKey?: string | null }> = ({ realDeal, dealId, isDemoDeal, seedKey }) => {
+  if (isDemoDeal) {
+    return <DemoOverviewSection seedKey={seedKey} realDeal={realDeal} />;
   }
-  return <RealDealOverviewSection realDeal={realDeal} dealId={dealId || ''} />;
+  return <RealDealOverviewSection realDeal={realDeal!} dealId={dealId || ''} />;
 };
 
 const ReconciliationSection: React.FC = () => (
@@ -530,10 +545,18 @@ export const DealWorkspaceCover: React.FC = () => {
   const [realDeal, setRealDeal] = useState<RealDeal | null>(null);
   const [loadingDeal, setLoadingDeal] = useState(false);
 
-  // Demo deals use pivtStore IDs like 'atlas','beacon','cipher'
+  // Demo deals: detect by seed_key or is_demo flag on the fetched real deal
   const isRealDeal = selectedDealId && selectedDealId.includes('-') && selectedDealId.length > 10;
-  const isDemoDeal = !isRealDeal;
-  const { summary: dealSummary } = useDealSummary(isRealDeal ? selectedDealId : undefined);
+  const isDemoDeal = useMemo(() => {
+    if (!isRealDeal) return true; // pivtStore ID like 'atlas'
+    if (realDeal) return !!(realDeal.is_demo || realDeal.seed_key);
+    return false;
+  }, [isRealDeal, realDeal]);
+  const demoDealSeedKey = useMemo(() => {
+    if (!isRealDeal) return selectedDealId; // 'atlas', 'beacon', 'cipher'
+    return realDeal?.seed_key || null;
+  }, [isRealDeal, realDeal, selectedDealId]);
+  const { summary: dealSummary } = useDealSummary(!isDemoDeal && isRealDeal ? selectedDealId : undefined);
   useEffect(() => {
     if (isRealDeal) {
       setLoadingDeal(true);
@@ -584,7 +607,7 @@ export const DealWorkspaceCover: React.FC = () => {
   const dealValue = realDeal ? realDeal.deal_value : demoDeal.consideration;
   const closingDate = realDeal?.closing_date || demoDeal.closingDate;
   const dealStatus = realDeal?.status || demoDeal.status;
-  const hasBlocker = !isRealDeal && demoDeal.hasBlocker;
+  const hasBlocker = isDemoDeal && demoDeal.hasBlocker;
   // Compute readiness from deal summary
   const readyPct = useMemo(() => {
     if (isDemoDeal) return demoDeal.readyToPayPercent;
@@ -621,10 +644,10 @@ export const DealWorkspaceCover: React.FC = () => {
   };
 
   const progressData: DealProgressData = useMemo(() => {
-    if (isDemoDeal) return DEMO_PROGRESS[demoDeal.id] || DEMO_PROGRESS.atlas;
+    if (isDemoDeal) return DEMO_PROGRESS[demoDealSeedKey || ''] || DEMO_PROGRESS.atlas;
     const s = dealSummary;
     return {
-      stakeholdersAdded: s ? (s.documentsCount > 0 ? 1 : 0) : 0, // proxy: at least creator
+      stakeholdersAdded: s ? (s.documentsCount > 0 ? 1 : 0) : 0,
       stakeholdersRequired: 1,
       compliancePassed: s?.conditionsSatisfied || 0,
       complianceTotal: s?.conditionsTotal || 0,
@@ -640,7 +663,7 @@ export const DealWorkspaceCover: React.FC = () => {
       paymentsTotal: s?.paymentsTotal || 0,
       paymentsFailed: false,
     };
-  }, [isDemoDeal, demoDeal.id, dealSummary]);
+  }, [isDemoDeal, demoDealSeedKey, dealSummary]);
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
     if (isDemoDeal) {
@@ -680,7 +703,7 @@ export const DealWorkspaceCover: React.FC = () => {
           { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
         ],
       };
-      return DEMO_STEPS[demoDeal.id] || DEMO_STEPS.atlas;
+      return DEMO_STEPS[demoDealSeedKey || ''] || DEMO_STEPS.atlas;
     }
 
     // Dynamic workflow for real deals
@@ -701,7 +724,7 @@ export const DealWorkspaceCover: React.FC = () => {
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
     ];
-  }, [isDemoDeal, demoDeal.id, dealSummary]);
+  }, [isDemoDeal, demoDealSeedKey, dealSummary]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
@@ -865,10 +888,10 @@ export const DealWorkspaceCover: React.FC = () => {
             stepLabel={currentStep?.label || ''}
             stepStatus={currentStatus}
           >
-            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} /> : <ContentComponent />}
+            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} /> : <ContentComponent />}
           </SectionWithSideTabs>
         ) : (
-          activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} /> : <ContentComponent />
+          activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} /> : <ContentComponent />
         )}
       </motion.div>
     </motion.div>
