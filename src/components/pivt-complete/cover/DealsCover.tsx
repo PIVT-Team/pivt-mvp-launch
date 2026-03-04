@@ -47,7 +47,7 @@ const DEMO_GOLDEN_SUMMARIES: Record<string, DealSummaryCounts & { buyerBorrower:
     dealKindTags: ['Credit', 'Unitranche Credit Facility'],
     funded: 89_000_000, fundedPct: 100,
   },
-  cipher: {
+  cipher_demo: {
     deal_id: '', partiesCount: 48, docsCount: 145, capTableCount: 24, waterfallTiers: 10,
     conditionsMet: 9, conditionsTotal: 10, approvalsGranted: 9, approvalsTotal: 10,
     buyerBorrower: 'Titan Strategic Group', sector: 'Cybersecurity / Enterprise Software',
