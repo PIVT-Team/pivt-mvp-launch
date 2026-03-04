@@ -442,6 +442,11 @@ export const WaterfallCover: React.FC = () => {
   const { toast } = useToast();
   const [addTierOpen, setAddTierOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const { guardEdit } = useEditGuard();
+
+  const guardedSetAddTierOpen = () => {
+    guardEdit('ADD_WATERFALL_TIER', null, () => setAddTierOpen(true));
+  };
 
   const readyTiers = tiers.filter(t => t.status === 'READY');
   const pendingTiers = tiers.filter(t => t.status === 'PENDING');
