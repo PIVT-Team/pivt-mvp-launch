@@ -874,7 +874,7 @@ export const DealWorkspaceCover: React.FC = () => {
             stepLabel={currentStep?.label || ''}
             stepStatus={currentStatus}
           >
-            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} /> : <ContentComponent />}
+            {activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} /> : <ContentComponent />}
           </SectionWithSideTabs>
         ) : (
           activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} /> : <ContentComponent />
