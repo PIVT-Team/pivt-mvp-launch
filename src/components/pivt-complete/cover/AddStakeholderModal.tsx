@@ -209,7 +209,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                         <SelectTrigger className={errors.role ? 'border-blocking' : ''}>
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[70]">
                           {ROLE_GROUPS.map(group => (
                             <SelectGroup key={group.label}>
                               <SelectLabel>{group.label}</SelectLabel>
