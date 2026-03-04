@@ -186,9 +186,16 @@ const useDealSummary = (dealId: string | undefined) => {
   return { summary, loading };
 };
 
-const DemoOverviewSection: React.FC<{ seedKey?: string | null }> = ({ seedKey }) => {
+const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDeal | null }> = ({ seedKey, realDeal }) => {
   const demoDeal = useSelectedDeal();
   const effectiveKey = seedKey || demoDeal.id;
+
+  // Golden demo metrics keyed by seed
+  const DEMO_METRICS: Record<string, { conditions: string; approvals: string; approvalsPending: number; documents: number; payments: string; paymentsConfirmed: number; escrow: string }> = {
+    atlas: { conditions: '6/8', approvals: '5/7', approvalsPending: 2, documents: 108, payments: '0/12', paymentsConfirmed: 0, escrow: 'Active' },
+    beacon: { conditions: '3/6', approvals: '2/5', approvalsPending: 3, documents: 75, payments: '0/8', paymentsConfirmed: 0, escrow: 'Pending' },
+    cipher: { conditions: '9/10', approvals: '9/10', approvalsPending: 1, documents: 145, payments: '0/15', paymentsConfirmed: 0, escrow: 'Active' },
+  };
 
   const DEMO_NEXT_ACTIONS: Record<string, string> = {
     atlas: '2 approvals pending — Waterfall Schedule v3 & Wire Authorization',
@@ -213,6 +220,13 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null }> = ({ seedKey })
 
   const nextAction = DEMO_NEXT_ACTIONS[effectiveKey] || 'Review deal workspace';
   const blockers = DEMO_BLOCKERS[effectiveKey] || [];
+  const metrics = DEMO_METRICS[effectiveKey] || DEMO_METRICS.atlas;
+
+  // Use DB deal value if available, otherwise pivtStore
+  const dealValue = realDeal?.deal_value ?? demoDeal.consideration;
+  const escrowValue = realDeal?.escrow_amount ?? 0;
+  const closingDate = realDeal?.closing_date || demoDeal.closingDate;
+  const status = realDeal?.status || demoDeal.status;
 
   return (
     <div className="space-y-8">
@@ -230,10 +244,10 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null }> = ({ seedKey })
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {[
-          { label: 'Deal Value', value: formatCurrency(demoDeal.consideration) },
-          { label: 'Status', value: demoDeal.status.charAt(0).toUpperCase() + demoDeal.status.slice(1) },
-          { label: 'Recipients', value: `${demoDeal.totalRecipients} parties` },
-          { label: 'Closing', value: demoDeal.closingDate },
+          { label: 'Deal Value', value: formatCurrency(dealValue) },
+          { label: 'Status', value: status.charAt(0).toUpperCase() + status.slice(1) },
+          { label: 'Escrow', value: escrowValue > 0 ? formatCurrency(escrowValue) : 'N/A' },
+          { label: 'Closing', value: closingDate },
         ].map(stat => (
           <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-6">
             <p className="pivt-metric-label">{stat.label}</p>
@@ -244,28 +258,28 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null }> = ({ seedKey })
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="pivt-card p-4">
-          <p className="pivt-metric-label">Documents</p>
-          <p className="font-mono text-lg font-medium mt-1">{demoDeal.documentsUploaded}</p>
-          <p className="text-[10px] text-muted-foreground">uploaded</p>
-        </div>
-        <div className="pivt-card p-4">
-          <p className="pivt-metric-label">Discrepancies</p>
-          <p className="font-mono text-lg font-medium mt-1">{demoDeal.discrepanciesFound}</p>
-          <p className="text-[10px] text-muted-foreground">found</p>
+          <p className="pivt-metric-label">Conditions</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics.conditions}</p>
+          <p className="text-[10px] text-muted-foreground">satisfied</p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Approvals</p>
-          <p className="font-mono text-lg font-medium mt-1">{demoDeal.pendingApprovals}</p>
-          <p className="text-[10px] text-muted-foreground">pending</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics.approvals}</p>
+          <p className="text-[10px] text-muted-foreground">{metrics.approvalsPending} pending</p>
         </div>
         <div className="pivt-card p-4">
-          <p className="pivt-metric-label">Readiness</p>
-          <p className="font-mono text-lg font-medium mt-1">{demoDeal.readyToPayPercent}%</p>
-          <p className="text-[10px] text-muted-foreground">ready to pay</p>
+          <p className="pivt-metric-label">Documents</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics.documents}</p>
+          <p className="text-[10px] text-muted-foreground">uploaded</p>
         </div>
         <div className="pivt-card p-4">
-          <p className="pivt-metric-label">Sector</p>
-          <p className="font-mono text-sm font-medium mt-1">{demoDeal.sector}</p>
+          <p className="pivt-metric-label">Payments</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics.payments}</p>
+          <p className="text-[10px] text-muted-foreground">{metrics.paymentsConfirmed} confirmed</p>
+        </div>
+        <div className="pivt-card p-4">
+          <p className="pivt-metric-label">Escrow</p>
+          <p className="font-mono text-lg font-medium mt-1 capitalize">{metrics.escrow}</p>
         </div>
       </div>
 
