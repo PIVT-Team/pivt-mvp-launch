@@ -145,6 +145,7 @@ export const PaymentsCover: React.FC = () => {
     );
   }
 
+  const filteredPayments = mockPayments.filter((p) => {
     const matchesSearch = p.recipient.toLowerCase().includes(searchQuery.toLowerCase()) || p.details.reference.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDeal = dealFilter === 'all' || p.deal === dealFilter;
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
