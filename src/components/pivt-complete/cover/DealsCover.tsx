@@ -33,7 +33,7 @@ const PROGRESS_BAR_STYLE = 'bg-gradient-to-r from-accent to-[hsl(217,100%,55%)]'
 
 // Golden demo summaries — never query DB for these
 const DEMO_GOLDEN_SUMMARIES: Record<string, DealSummaryCounts & { buyerBorrower: string; sector: string; dealKindTags: string[]; funded: number; fundedPct: number; waterfallTiers: number }> = {
-  atlas: {
+  atlas_demo: {
     deal_id: '', partiesCount: 28, docsCount: 108, capTableCount: 26, waterfallTiers: 8,
     conditionsMet: 6, conditionsTotal: 8, approvalsGranted: 5, approvalsTotal: 7,
     buyerBorrower: 'Apex Capital Partners', sector: 'Enterprise Software / SaaS',
