@@ -531,6 +531,7 @@ export const PaymentsExecutionCover: React.FC = () => {
               { value: 'consideration', label: 'Consideration', icon: <BarChart3 className="w-3.5 h-3.5" /> },
               { value: 'compliance', label: 'Compliance', icon: <Shield className="w-3.5 h-3.5" /> },
               { value: 'esign', label: 'eSignature', icon: <FileSignature className="w-3.5 h-3.5" /> },
+              { value: 'tax', label: 'Tax Forms', icon: <Shield className="w-3.5 h-3.5" /> },
               { value: 'reconciliation', label: 'Reconciliation', icon: <FileText className="w-3.5 h-3.5" /> },
             ].map((tab) => {
               const isActive = activeTab === tab.value;
