@@ -510,7 +510,7 @@ export const DocumentsCover: React.FC = () => {
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={`pivt-card border-2 border-dashed p-10 text-center transition-colors cursor-pointer ${dragOver ? 'border-accent bg-accent/5' : 'border-border'}`}
-        onClick={() => document.getElementById('file-upload-input')?.click()}
+        onClick={() => guardEdit('UPLOAD_DOCUMENT', null, () => document.getElementById('file-upload-input')?.click())}
       >
         <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
         <p className="font-medium text-sm">Drag and drop files here or click to browse</p>
