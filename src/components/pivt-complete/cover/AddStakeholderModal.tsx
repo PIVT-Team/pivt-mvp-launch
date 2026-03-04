@@ -10,11 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 type StakeholderType = 'individual' | 'entity';
 
 const ROLE_GROUPS = [
-  { label: 'Transaction Parties', roles: ['Buyer', 'Seller', 'Target'] },
-  { label: 'Advisors', roles: ['Buyer Counsel', 'Seller Counsel'] },
-  { label: 'Execution', roles: ['Escrow Agent'] },
-  { label: 'Individuals', roles: ['Buyer Signatory', 'Seller Signatory'] },
-  { label: 'Ownership', roles: ['Shareholder', 'Investor', 'Founder'] },
+  { label: 'Transaction Parties', roles: ['Buyer', 'Seller', 'Target', 'Merger Sub'] },
+  { label: 'Advisors & Counsel', roles: ['Buyer Counsel', 'Seller Counsel', 'Paying Agent'] },
+  { label: 'Execution & Custody', roles: ['Escrow Agent', 'Lender', 'Administrative Agent'] },
+  { label: 'Representatives & Signatories', roles: ['Buyer Signatory', 'Seller Signatory', 'Seller Representative', 'Target Signatory'] },
+  { label: 'Ownership', roles: ['Shareholder', 'Investor', 'Founder', 'LP', 'Advisor', 'Employee'] },
 ] as const;
 const SHARE_CLASSES = ['Common', 'Preferred A', 'Preferred B', 'Options', 'Warrants', 'Other'] as const;
 
@@ -51,8 +51,8 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     if (!trimName || trimName.length > 200) errs.name = trimName ? 'Name must be under 200 characters' : 'Name is required';
     if (!trimEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) errs.email = 'Valid email is required';
     if (trimEmail.length > 255) errs.email = 'Email must be under 255 characters';
-    if (!ownership || ownershipNum <= 0 || ownershipNum > 100) errs.ownership = 'Must be between 0.01 and 100';
-    if (exceedsMax) errs.ownership = `Would exceed 100% (current total: ${currentTotal}%)`;
+    if (ownership === '' || ownershipNum < 0 || ownershipNum > 100) errs.ownership = 'Must be between 0 and 100';
+    if (ownershipNum > 0 && exceedsMax) errs.ownership = `Would exceed 100% (current total: ${currentTotal}%)`;
     if (!role) errs.role = 'Role is required';
 
     setErrors(errs);
@@ -193,7 +193,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                       <Input
                         type="number"
                         step="0.01"
-                        min="0.01"
+                        min="0"
                         max="100"
                         value={ownership}
                         onChange={e => setOwnership(e.target.value)}
