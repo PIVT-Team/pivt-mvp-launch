@@ -271,7 +271,7 @@ export const StakeholdersDealTab: React.FC = () => {
         ))}
       </div>
 
-      <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} />
+      <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} dealId={dealId} isDemoDeal={isDemoDeal} />
     </div>
   );
 };
