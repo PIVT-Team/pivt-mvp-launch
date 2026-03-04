@@ -210,8 +210,13 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          {ROLES.map(r => (
-                            <SelectItem key={r} value={r}>{r}</SelectItem>
+                          {ROLE_GROUPS.map(group => (
+                            <SelectGroup key={group.label}>
+                              <SelectLabel>{group.label}</SelectLabel>
+                              {group.roles.map(r => (
+                                <SelectItem key={r} value={r}>{r}</SelectItem>
+                              ))}
+                            </SelectGroup>
                           ))}
                         </SelectContent>
                       </Select>
