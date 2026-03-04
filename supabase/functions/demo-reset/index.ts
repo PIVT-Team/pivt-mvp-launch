@@ -49,6 +49,9 @@ const DEMO_DEALS = [
     seed_key: "cipher_demo",
     deal_kind: "demo",
     created_by: DEMO_USER_ID,
+    owner_id: null,
+    visibility: "global_demo",
+    is_demo: true,
   },
 ];
 
