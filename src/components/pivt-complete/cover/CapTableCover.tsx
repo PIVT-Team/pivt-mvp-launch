@@ -1,23 +1,162 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
-import { Users, PieChart, Download, Filter, ArrowUpDown, CheckCircle2, AlertTriangle, Search } from 'lucide-react';
+import { Users, PieChart, Download, Filter, ArrowUpDown, CheckCircle2, AlertTriangle, Search, Table } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { PieChart as RPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { supabase } from '@/integrations/supabase/client';
 
 const COLORS = ['hsl(262,72%,55%)', 'hsl(262,72%,70%)', 'hsl(160,84%,39%)', 'hsl(45,93%,47%)', 'hsl(217,91%,60%)', 'hsl(0,84%,60%)', 'hsl(280,60%,60%)', 'hsl(190,80%,45%)'];
 
 type SortKey = 'name' | 'ownershipPct' | 'payoutAmount' | 'kycStatus';
 
+interface DbCapEntry {
+  id: string;
+  shareholder_name: string;
+  ownership_pct: number;
+  payout_amount: number;
+  escrow_holdback: number | null;
+  fees: number | null;
+  net_payout: number | null;
+}
+
 export const CapTableCover: React.FC = () => {
+  const { isDemoDeal, dealId } = useDealWorkspace();
   const deal = useSelectedDeal();
   const { stakeholders } = usePIVTStore();
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('ownershipPct');
   const [sortAsc, setSortAsc] = useState(false);
   const [selectedType, setSelectedType] = useState<string>('all');
+  const [dbEntries, setDbEntries] = useState<DbCapEntry[]>([]);
+  const [loading, setLoading] = useState(!isDemoDeal);
 
+  useEffect(() => {
+    if (isDemoDeal || !dealId) return;
+    setLoading(true);
+    supabase
+      .from('cap_table_entries')
+      .select('*')
+      .eq('deal_id', dealId)
+      .then(({ data }) => {
+        setDbEntries((data as DbCapEntry[]) || []);
+        setLoading(false);
+      });
+  }, [isDemoDeal, dealId]);
+
+  // Non-demo empty state
+  if (!isDemoDeal) {
+    if (loading) {
+      return (
+        <div className="flex justify-center py-20">
+          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        </div>
+      );
+    }
+
+    if (dbEntries.length === 0) {
+      return (
+        <motion.div {...staggerChildren} className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">Cap Table</h1>
+              <p className="text-muted-foreground mt-1">0 shareholders · $0 consideration</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Shareholders', value: '0', icon: Users },
+              { label: 'Total Ownership', value: '0%', icon: PieChart },
+              { label: 'Total Payout', value: '$0', icon: PieChart },
+              { label: 'KYC Verified', value: '0/0', icon: CheckCircle2 },
+            ].map(stat => (
+              <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <stat.icon className="w-4 h-4 text-accent" />
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</span>
+                </div>
+                <p className="pivt-stat text-xl">{stat.value}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+              <Table className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold">No shareholders added yet</h3>
+              <p className="text-sm text-muted-foreground mt-1">Add stakeholders to populate the cap table with ownership and payout data.</p>
+            </div>
+          </motion.div>
+        </motion.div>
+      );
+    }
+
+    // Render DB entries
+    const totalPayout = dbEntries.reduce((s, e) => s + e.payout_amount, 0);
+    const totalPct = dbEntries.reduce((s, e) => s + e.ownership_pct, 0);
+    const pieData = dbEntries.map(e => ({ name: e.shareholder_name, value: e.ownership_pct }));
+
+    return (
+      <motion.div {...staggerChildren} className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">Cap Table</h1>
+            <p className="text-muted-foreground mt-1">{dbEntries.length} shareholders · ${(totalPayout / 1e6).toFixed(1)}M consideration</p>
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors">
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Total Shareholders', value: dbEntries.length, icon: Users },
+            { label: 'Total Ownership', value: `${totalPct}%`, icon: PieChart },
+            { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: PieChart },
+            { label: 'Entries', value: `${dbEntries.length}`, icon: CheckCircle2 },
+          ].map(stat => (
+            <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <stat.icon className="w-4 h-4 text-accent" />
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</span>
+              </div>
+              <p className="pivt-stat text-xl">{stat.value}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="pivt-card overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30">
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Shareholder</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Ownership %</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Gross Payout</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Net Payout</th>
+              </tr>
+            </thead>
+            <tbody>
+              {dbEntries.map(e => (
+                <tr key={e.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-3 font-medium">{e.shareholder_name}</td>
+                  <td className="px-4 py-3 font-mono">{e.ownership_pct}%</td>
+                  <td className="px-4 py-3 font-mono">${(e.payout_amount / 1e6).toFixed(1)}M</td>
+                  <td className="px-4 py-3 font-mono text-validated">${((e.net_payout || 0) / 1e6).toFixed(1)}M</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
+    );
+  }
+
+  // Demo deal — existing behavior
   const totalPayout = stakeholders.reduce((s, sh) => s + sh.payoutAmount, 0);
   const totalPct = stakeholders.reduce((s, sh) => s + sh.ownershipPct, 0);
 
@@ -58,7 +197,6 @@ export const CapTableCover: React.FC = () => {
         </button>
       </div>
 
-      {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total Shareholders', value: stakeholders.length, icon: Users },
@@ -77,7 +215,6 @@ export const CapTableCover: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Pie Chart */}
         <motion.div {...fadeInUp} className="pivt-card p-5">
           <h3 className="text-sm font-medium mb-3">Ownership Distribution</h3>
           <ResponsiveContainer width="100%" height={240}>
@@ -99,7 +236,6 @@ export const CapTableCover: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Table */}
         <motion.div {...fadeInUp} className="pivt-card overflow-hidden lg:col-span-2">
           <div className="p-4 border-b border-border flex items-center gap-3">
             <div className="relative flex-1">
