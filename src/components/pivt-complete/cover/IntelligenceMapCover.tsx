@@ -96,13 +96,13 @@ function layoutNodes(nodes: DbNode[], viewMode: ViewMode): PositionedNode[] {
   }
 
   const typeOrder = ['deal', 'stakeholder', 'document', 'obligation', 'compliance_check', 'approval', 'payment_intent', 'settlement', 'waterfall', 'discrepancy'];
-  const orderedTypes = typeOrder.filter(t => groups.has(t));
+  const orderedTypes = typeOrder.filter(t => groups[t]);
 
   const positioned: PositionedNode[] = [];
 
   for (let gi = 0; gi < orderedTypes.length; gi++) {
     const type = orderedTypes[gi];
-    const group = groups.get(type)!;
+    const group = groups[type];
 
     if (type === 'deal') {
       // Center
