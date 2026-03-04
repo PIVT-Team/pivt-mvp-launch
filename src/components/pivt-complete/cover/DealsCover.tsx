@@ -186,7 +186,16 @@ const DealCard: React.FC<{
           <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} docs</span>
           <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{capTableCount} cap table</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {!isDemo && onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+              title="Delete deal"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
           <ChevronRight className="w-4 h-4" />
         </div>
       </div>
