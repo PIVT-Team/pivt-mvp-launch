@@ -709,6 +709,7 @@ export type Database = {
           sector: string | null
           seed_key: string | null
           seller: string | null
+          signing_date: string | null
           status: string
           target_company: string | null
           template_blueprint: Json | null
@@ -734,6 +735,7 @@ export type Database = {
           sector?: string | null
           seed_key?: string | null
           seller?: string | null
+          signing_date?: string | null
           status?: string
           target_company?: string | null
           template_blueprint?: Json | null
@@ -759,6 +761,7 @@ export type Database = {
           sector?: string | null
           seed_key?: string | null
           seller?: string | null
+          signing_date?: string | null
           status?: string
           target_company?: string | null
           template_blueprint?: Json | null

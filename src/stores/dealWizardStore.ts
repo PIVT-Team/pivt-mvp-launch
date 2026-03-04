@@ -65,9 +65,11 @@ export interface Beneficiary {
 
 export interface DealBasicsData {
   dealName: string;
+  dealType: string;
   buyerLegalName: string;
   sellerLegalName: string;
   transactionValue: string;
+  signingDate: string;
   targetCloseDate: string;
   currency: string;
 }
@@ -188,7 +190,7 @@ interface DealWizardStore {
 
 const initialAccount: AccountData = { fullName: '', role: '', organization: '', jurisdiction: '', email: '', phone: '' };
 const initialKyc: KycData = { govIdUploaded: false, proofOfAddressUploaded: false, corpDocUploaded: false, attestation: false, status: 'not_started' };
-const initialDealBasics: DealBasicsData = { dealName: '', buyerLegalName: '', sellerLegalName: '', transactionValue: '', targetCloseDate: '', currency: 'USD' };
+const initialDealBasics: DealBasicsData = { dealName: '', dealType: '', buyerLegalName: '', sellerLegalName: '', transactionValue: '', signingDate: '', targetCloseDate: '', currency: 'USD' };
 const initialParties: PartiesData = {
   buyerCounsel: { name: '', email: '' },
   sellerCounsel: { name: '', email: '' },
@@ -395,9 +397,11 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
       },
       dealBasics: {
         dealName: 'Project ATLAS',
+        dealType: 'Private Equity Acquisition',
         buyerLegalName: 'Apex Capital Partners LLC',
         sellerLegalName: 'Northbridge Software Inc.',
         transactionValue: '185,000,000',
+        signingDate: '2026-03-01',
         targetCloseDate: '2026-03-15',
         currency: 'USD',
       },
