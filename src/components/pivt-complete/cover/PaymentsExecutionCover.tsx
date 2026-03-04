@@ -6,6 +6,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
+import { TaxFormsTab } from '@/components/pivt-complete/cover/TaxFormsCover';
 import { usePIVTStore } from '@/stores/pivtStore';
 import {
   Banknote, ArrowRight, CheckCircle2, Clock, XCircle, Lock, Unlock,
@@ -531,6 +532,7 @@ export const PaymentsExecutionCover: React.FC = () => {
               { value: 'consideration', label: 'Consideration', icon: <BarChart3 className="w-3.5 h-3.5" /> },
               { value: 'compliance', label: 'Compliance', icon: <Shield className="w-3.5 h-3.5" /> },
               { value: 'esign', label: 'eSignature', icon: <FileSignature className="w-3.5 h-3.5" /> },
+              { value: 'tax', label: 'Tax Forms', icon: <Shield className="w-3.5 h-3.5" /> },
               { value: 'reconciliation', label: 'Reconciliation', icon: <FileText className="w-3.5 h-3.5" /> },
             ].map((tab) => {
               const isActive = activeTab === tab.value;
@@ -956,6 +958,11 @@ export const PaymentsExecutionCover: React.FC = () => {
         </TabsContent>
 
         {/* ── Reconciliation ── */}
+        {/* ── Tax Forms ── */}
+        <TabsContent value="tax" className="mt-4 space-y-4">
+          <TaxFormsTab />
+        </TabsContent>
+
         <TabsContent value="reconciliation" className="mt-4 space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -974,7 +981,7 @@ export const PaymentsExecutionCover: React.FC = () => {
               <motion.div key={event.id} {...fadeInUp} className="pivt-card p-5 flex items-start gap-3">
                 <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0 mt-0.5">
                   {event.eventType === 'webhook_received' && <Zap className="w-4 h-4 text-validated" />}
-                  {event.eventType === 'execution_initiated' && <Send className="w-4 h-4 text-blue-500" />}
+                  {event.eventType === 'execution_initiated' && <Send className="w-4 h-4 text-accent" />}
                   {event.eventType === 'condition_auto_flipped' && <FileSignature className="w-4 h-4 text-accent" />}
                   {event.eventType === 'status_changed' && <RefreshCw className="w-4 h-4 text-accent" />}
                   {event.eventType === 'locked' && <Lock className="w-4 h-4 text-validated" />}

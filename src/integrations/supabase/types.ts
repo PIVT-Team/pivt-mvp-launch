@@ -1551,6 +1551,110 @@ export type Database = {
         }
         Relationships: []
       }
+      tax_forms: {
+        Row: {
+          created_at: string
+          deal_id: string
+          document_id: string | null
+          expires_on: string | null
+          form_type: string
+          id: string
+          notes: string | null
+          recipient_id: string
+          signed_date: string | null
+          status: string
+          tin_last4: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          document_id?: string | null
+          expires_on?: string | null
+          form_type: string
+          id?: string
+          notes?: string | null
+          recipient_id: string
+          signed_date?: string | null
+          status?: string
+          tin_last4?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          document_id?: string | null
+          expires_on?: string | null
+          form_type?: string
+          id?: string
+          notes?: string | null
+          recipient_id?: string
+          signed_date?: string | null
+          status?: string
+          tin_last4?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_forms_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tax_forms_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "tax_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tax_recipients: {
+        Row: {
+          created_at: string
+          deal_id: string
+          email: string | null
+          id: string
+          linked_stakeholder_id: string | null
+          name: string
+          recipient_type: string
+          tax_residency: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          email?: string | null
+          id?: string
+          linked_stakeholder_id?: string | null
+          name: string
+          recipient_type?: string
+          tax_residency?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          email?: string | null
+          id?: string
+          linked_stakeholder_id?: string | null
+          name?: string
+          recipient_type?: string
+          tax_residency?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tax_recipients_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_kyc: {
         Row: {
           account_holder_name: string | null

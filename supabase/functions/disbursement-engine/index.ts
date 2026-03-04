@@ -202,6 +202,36 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ error: "Intent not eligible for execution", status: intent.status }), { status: 400, headers: corsHeaders });
         }
 
+        // Tax form gate — check all recipients have satisfied forms
+        const { data: taxRecipients } = await supabase
+          .from("tax_recipients")
+          .select("id, name, recipient_type, tax_residency")
+          .eq("deal_id", intent.deal_id);
+
+        if (taxRecipients && taxRecipients.length > 0) {
+          const { data: taxForms } = await supabase.from("tax_forms").select("*").eq("deal_id", intent.deal_id);
+          const allForms = taxForms || [];
+          const today = new Date().toISOString().slice(0, 10);
+          const missing: string[] = [];
+
+          for (const tr of taxRecipients) {
+            const rf = tr.tax_residency === "us" ? "W9" : (tr.recipient_type === "individual" ? "W8BEN" : "W8BENE");
+            const satisfied = allForms.some((f: any) =>
+              f.recipient_id === tr.id && f.form_type === rf &&
+              ["received", "verified"].includes(f.status) &&
+              (f.expires_on === null || f.expires_on >= today)
+            );
+            if (!satisfied) missing.push(`${tr.name} (${rf})`);
+          }
+
+          if (missing.length > 0) {
+            return new Response(JSON.stringify({
+              error: "Execution blocked: missing tax forms",
+              missing_forms: missing,
+            }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+        }
+
         const result = MockProvider.initiateDisbursement(intent);
         await supabase.from("disbursement_intents").update({
           status: "executing",

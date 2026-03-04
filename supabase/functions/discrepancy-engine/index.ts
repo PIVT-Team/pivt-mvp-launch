@@ -219,6 +219,58 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Tax Form validation ──
+    if (rules.some((r) => r.rule_key === "missing_tax_form")) {
+      const { data: taxRecipients } = await supabase
+        .from("tax_recipients")
+        .select("id, name, recipient_type, tax_residency")
+        .eq("deal_id", deal_id);
+
+      if (taxRecipients && taxRecipients.length > 0) {
+        const { data: taxForms } = await supabase
+          .from("tax_forms")
+          .select("*")
+          .eq("deal_id", deal_id);
+
+        const forms = taxForms || [];
+        const today = new Date().toISOString().slice(0, 10);
+
+        for (const recipient of taxRecipients) {
+          // Determine required form
+          let requiredForm = "W9";
+          if (recipient.tax_residency === "non_us") {
+            requiredForm = recipient.recipient_type === "individual" ? "W8BEN" : "W8BENE";
+          }
+
+          // Check if satisfied
+          const satisfied = forms.some(
+            (f: any) =>
+              f.recipient_id === recipient.id &&
+              f.form_type === requiredForm &&
+              ["received", "verified"].includes(f.status) &&
+              (f.expires_on === null || f.expires_on >= today)
+          );
+
+          if (!satisfied) {
+            newDiscrepancies.push({
+              deal_id,
+              object_type: "tax_recipient",
+              object_id: recipient.id,
+              rule_key: "missing_tax_form",
+              severity: "blocker",
+              message: `Tax form missing: ${recipient.name} requires ${requiredForm === "W8BENE" ? "W-8BEN-E" : requiredForm === "W8BEN" ? "W-8BEN" : "W-9"}.`,
+              details: {
+                recipient_name: recipient.name,
+                required_form: requiredForm,
+                recipient_type: recipient.recipient_type,
+                tax_residency: recipient.tax_residency,
+              },
+            });
+          }
+        }
+      }
+    }
+
     // ── Obligation-based validation (against CONFIRMED obligations) ──
     if (confirmedObligations.length > 0) {
       for (const intent of intents) {

@@ -96,6 +96,8 @@ Deno.serve(async (req) => {
     "audit_events",
     "audit_log",
     "validation_results",
+    "tax_forms",
+    "tax_recipients",
   ];
 
   for (const table of childTables) {
@@ -136,6 +138,38 @@ Deno.serve(async (req) => {
       title,
       status: "MET",
     } as any);
+  }
+
+  // Seed tax recipients for ATLAS demo
+  const taxRecipients = [
+    { deal_id: DEMO_DEALS[0].id, name: "David Patel", recipient_type: "individual", tax_residency: "us" },
+    { deal_id: DEMO_DEALS[0].id, name: "Emily Chen", recipient_type: "individual", tax_residency: "us" },
+    { deal_id: DEMO_DEALS[0].id, name: "Seed Fund I LP", recipient_type: "entity", tax_residency: "us" },
+    { deal_id: DEMO_DEALS[0].id, name: "Angel Investors", recipient_type: "entity", tax_residency: "us" },
+    { deal_id: DEMO_DEALS[0].id, name: "Employee Option Pool", recipient_type: "entity", tax_residency: "us" },
+    { deal_id: DEMO_DEALS[0].id, name: "Cooley LLP", recipient_type: "entity", tax_residency: "us" },
+    { deal_id: DEMO_DEALS[0].id, name: "WSGR", recipient_type: "entity", tax_residency: "us" },
+  ];
+
+  const insertedRecipients: { id: string; name: string }[] = [];
+  for (const tr of taxRecipients) {
+    const { data } = await supabaseAdmin.from("tax_recipients").insert(tr as any).select("id, name").single();
+    if (data) insertedRecipients.push(data);
+  }
+
+  // Seed tax forms — most have W-9s on file, but David Patel and Seed Fund I are MISSING
+  for (const r of insertedRecipients) {
+    const isMissing = r.name === "David Patel" || r.name === "Seed Fund I LP";
+    if (!isMissing) {
+      await supabaseAdmin.from("tax_forms").insert({
+        deal_id: DEMO_DEALS[0].id,
+        recipient_id: r.id,
+        form_type: "W9",
+        status: "verified",
+        signed_date: "2026-01-10",
+        tin_last4: String(1000 + Math.floor(Math.random() * 9000)),
+      } as any);
+    }
   }
 
   return new Response(
