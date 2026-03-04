@@ -250,9 +250,14 @@ export type Database = {
           created_at: string
           deal_id: string
           doc_type: Database["public"]["Enums"]["contract_doc_type"]
+          document_role: string | null
+          extracted_fields: Json | null
+          extraction_confidence: number | null
           file_url: string | null
           filename: string
           id: string
+          is_required: boolean | null
+          requirement_group: string | null
           status: Database["public"]["Enums"]["contract_doc_status"]
           text_content: string | null
           updated_at: string
@@ -263,9 +268,14 @@ export type Database = {
           created_at?: string
           deal_id: string
           doc_type?: Database["public"]["Enums"]["contract_doc_type"]
+          document_role?: string | null
+          extracted_fields?: Json | null
+          extraction_confidence?: number | null
           file_url?: string | null
           filename: string
           id?: string
+          is_required?: boolean | null
+          requirement_group?: string | null
           status?: Database["public"]["Enums"]["contract_doc_status"]
           text_content?: string | null
           updated_at?: string
@@ -276,9 +286,14 @@ export type Database = {
           created_at?: string
           deal_id?: string
           doc_type?: Database["public"]["Enums"]["contract_doc_type"]
+          document_role?: string | null
+          extracted_fields?: Json | null
+          extraction_confidence?: number | null
           file_url?: string | null
           filename?: string
           id?: string
+          is_required?: boolean | null
+          requirement_group?: string | null
           status?: Database["public"]["Enums"]["contract_doc_status"]
           text_content?: string | null
           updated_at?: string
@@ -1515,6 +1530,36 @@ export type Database = {
         }
         Relationships: []
       }
+      required_document_matrix: {
+        Row: {
+          condition_expression: string | null
+          created_at: string
+          deal_type: string
+          doc_type: string
+          id: string
+          is_required: boolean
+          requirement_group: string
+        }
+        Insert: {
+          condition_expression?: string | null
+          created_at?: string
+          deal_type: string
+          doc_type: string
+          id?: string
+          is_required?: boolean
+          requirement_group?: string
+        }
+        Update: {
+          condition_expression?: string | null
+          created_at?: string
+          deal_type?: string
+          doc_type?: string
+          id?: string
+          is_required?: boolean
+          requirement_group?: string
+        }
+        Relationships: []
+      }
       support_tickets: {
         Row: {
           affected_area: string
@@ -2003,6 +2048,23 @@ export type Database = {
         | "PAYOFF_LETTER"
         | "FEE_LETTER"
         | "OTHER"
+        | "DISCLOSURE_SCHEDULES"
+        | "WIRE_AUTHORIZATION"
+        | "WIRE_INSTRUCTIONS"
+        | "BOARD_CONSENT"
+        | "SECRETARY_CERTIFICATE"
+        | "OFFICER_CERTIFICATE"
+        | "BRING_DOWN_CERTIFICATE"
+        | "CAP_TABLE"
+        | "WORKING_CAPITAL_STATEMENT"
+        | "LEGAL_OPINION"
+        | "EMPLOYMENT_AGREEMENT"
+        | "IP_ASSIGNMENT"
+        | "NON_COMPETE"
+        | "TSA"
+        | "THIRD_PARTY_CONSENT"
+        | "W9"
+        | "GOOD_STANDING"
       deal_execution_role: "VIEWER" | "EDITOR" | "APPROVER" | "EXECUTOR"
       deal_kind: "demo" | "template" | "live"
       deal_member_role:
@@ -2244,6 +2306,23 @@ export const Constants = {
         "PAYOFF_LETTER",
         "FEE_LETTER",
         "OTHER",
+        "DISCLOSURE_SCHEDULES",
+        "WIRE_AUTHORIZATION",
+        "WIRE_INSTRUCTIONS",
+        "BOARD_CONSENT",
+        "SECRETARY_CERTIFICATE",
+        "OFFICER_CERTIFICATE",
+        "BRING_DOWN_CERTIFICATE",
+        "CAP_TABLE",
+        "WORKING_CAPITAL_STATEMENT",
+        "LEGAL_OPINION",
+        "EMPLOYMENT_AGREEMENT",
+        "IP_ASSIGNMENT",
+        "NON_COMPETE",
+        "TSA",
+        "THIRD_PARTY_CONSENT",
+        "W9",
+        "GOOD_STANDING",
       ],
       deal_execution_role: ["VIEWER", "EDITOR", "APPROVER", "EXECUTOR"],
       deal_kind: ["demo", "template", "live"],
