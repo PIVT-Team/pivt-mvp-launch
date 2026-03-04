@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.generate-ontology-rules]
 verify_jwt = false
+
+[functions.build-deal-graph]
+verify_jwt = false
