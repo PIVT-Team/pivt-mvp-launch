@@ -193,7 +193,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                       <Input
                         type="number"
                         step="0.01"
-                        min="0.01"
+                        min="0"
                         max="100"
                         value={ownership}
                         onChange={e => setOwnership(e.target.value)}
