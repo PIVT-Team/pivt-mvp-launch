@@ -199,6 +199,9 @@ export const DiscrepancyPanelCover: React.FC = () => {
         </div>
       </div>
 
+      {/* Closing Readiness Score */}
+      <ClosingReadinessPanel />
+
       {/* Summary Badges with filter */}
       <div className="flex gap-3">
         {[
