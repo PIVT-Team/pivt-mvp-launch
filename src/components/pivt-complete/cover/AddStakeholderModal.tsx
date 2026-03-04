@@ -284,16 +284,20 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-xs font-medium mb-1.5 block">Ownership % *</Label>
+                      <Label className="text-xs font-medium mb-1.5 block">
+                        Ownership % {isOwnershipDisabled ? '' : '*'}
+                        {isOwnershipDisabled && <span className="text-muted-foreground ml-1">(N/A for this role)</span>}
+                      </Label>
                       <Input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
-                        value={ownership}
+                        value={isOwnershipDisabled ? '0' : ownership}
                         onChange={e => setOwnership(e.target.value)}
-                        placeholder="e.g. 15"
-                        className={errors.ownership ? 'border-blocking' : ''}
+                        placeholder={isOwnershipDisabled ? 'N/A' : 'e.g. 15'}
+                        disabled={isOwnershipDisabled}
+                        className={`${errors.ownership ? 'border-blocking' : ''} ${isOwnershipDisabled ? 'opacity-50' : ''}`}
                       />
                       {errors.ownership && <p className="text-[11px] text-blocking mt-1">{errors.ownership}</p>}
                     </div>
