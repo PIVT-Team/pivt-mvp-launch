@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogIn, AlertCircle, UserPlus, Eye } from 'lucide-react';
+import { LogIn, AlertCircle, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,9 +9,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import pivtLogo from '@/assets/pivt-logo.png';
-
-const DEMO_EMAIL = 'demo@pivt.app';
-const DEMO_PASSWORD = 'Pivt2026!';
 
 const LoginPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -57,17 +54,6 @@ const LoginPage: React.FC = () => {
     setLoading(false);
   };
 
-  const handleDemoLogin = async () => {
-    setError('');
-    setLoading(true);
-    const { error: err } = await supabase.auth.signInWithPassword({
-      email: DEMO_EMAIL,
-      password: DEMO_PASSWORD,
-    });
-    if (err) setError('Demo login failed. Please try again.');
-    else toast.success('Welcome to PIVT Demo');
-    setLoading(false);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center pivt-ambient-bg px-4">
@@ -162,31 +148,11 @@ const LoginPage: React.FC = () => {
               />
             </div>
 
-            <Button type="submit" className="w-full h-10 pivt-btn-primary" disabled={loading}>
+          <Button type="submit" className="w-full h-10 pivt-btn-primary" disabled={loading}>
               {isLogin ? <LogIn className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
               {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
-
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border" /></div>
-            <div className="relative flex justify-center text-xs"><span className="bg-card px-2 text-muted-foreground">or</span></div>
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full h-10 gap-2"
-            onClick={handleDemoLogin}
-            disabled={loading}
-          >
-            <Eye className="w-4 h-4" />
-            Explore Demo
-          </Button>
-
-          <p className="text-[11px] text-muted-foreground/60 text-center">
-            Demo shows pre-configured deals. Your account has separate data.
-          </p>
         </div>
       </motion.div>
     </div>
