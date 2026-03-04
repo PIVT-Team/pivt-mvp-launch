@@ -821,5 +821,6 @@ export const DealWorkspaceCover: React.FC = () => {
         )}
       </motion.div>
     </motion.div>
+    </EditGuardProvider>
   );
 };

@@ -60,11 +60,11 @@ export const StakeholdersDealTab: React.FC = () => {
           <p className="text-sm text-muted-foreground mt-0.5">Manage deal participants, ownership, and payout details.</p>
         </div>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={handleAddClick}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
         >
-          <Plus className="w-4 h-4" />
-          Add Stakeholder
+          {isProtected ? <Lock className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          {isProtected ? 'Duplicate to edit' : 'Add Stakeholder'}
         </button>
       </div>
 
