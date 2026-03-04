@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 type StakeholderType = 'individual' | 'entity';
+type OwnershipBasis = 'SELLER_EQUITY' | 'BUYER_EQUITY' | 'NOT_APPLICABLE';
 
 const ROLE_GROUPS = [
   { label: 'Transaction Parties', roles: ['Buyer', 'Seller', 'Target', 'Merger Sub'] },
@@ -18,6 +19,40 @@ const ROLE_GROUPS = [
   { label: 'Representatives & Signatories', roles: ['Buyer Signatory', 'Seller Signatory', 'Seller Representative', 'Target Signatory'] },
   { label: 'Ownership', roles: ['Shareholder', 'Investor', 'Founder', 'LP', 'Advisor', 'Employee'] },
 ] as const;
+
+const ROLE_TO_BASIS: Record<string, OwnershipBasis> = {
+  Buyer: 'BUYER_EQUITY',
+  'Merger Sub': 'BUYER_EQUITY',
+  'Buyer Signatory': 'NOT_APPLICABLE',
+  Investor: 'BUYER_EQUITY',
+  LP: 'BUYER_EQUITY',
+
+  Seller: 'SELLER_EQUITY',
+  Target: 'SELLER_EQUITY',
+  'Target Signatory': 'NOT_APPLICABLE',
+  Shareholder: 'SELLER_EQUITY',
+  Founder: 'SELLER_EQUITY',
+  Employee: 'SELLER_EQUITY',
+  Advisor: 'SELLER_EQUITY',
+  'Seller Representative': 'NOT_APPLICABLE',
+  'Seller Signatory': 'NOT_APPLICABLE',
+
+  'Buyer Counsel': 'NOT_APPLICABLE',
+  'Seller Counsel': 'NOT_APPLICABLE',
+  'Paying Agent': 'NOT_APPLICABLE',
+  'Escrow Agent': 'NOT_APPLICABLE',
+  Lender: 'NOT_APPLICABLE',
+  'Administrative Agent': 'NOT_APPLICABLE',
+};
+
+const getBasis = (r: string): OwnershipBasis => ROLE_TO_BASIS[r] || 'SELLER_EQUITY';
+
+const BASIS_LABELS: Record<OwnershipBasis, string> = {
+  SELLER_EQUITY: 'Seller-side',
+  BUYER_EQUITY: 'Buyer-side',
+  NOT_APPLICABLE: '',
+};
+
 const SHARE_CLASSES = ['Common', 'Preferred A', 'Preferred B', 'Options', 'Warrants', 'Other'] as const;
 
 interface AddStakeholderModalProps {
