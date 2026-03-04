@@ -4,12 +4,18 @@ import { usePIVTStore, DemoStakeholder } from '@/stores/pivtStore';
 import { X, User, Building2, AlertTriangle, Send, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 
 type StakeholderType = 'individual' | 'entity';
 
-const ROLES = ['Seller', 'Investor', 'Employee', 'LP', 'Advisor', 'Other'] as const;
+const ROLE_GROUPS = [
+  { label: 'Transaction Parties', roles: ['Buyer', 'Seller', 'Target'] },
+  { label: 'Advisors', roles: ['Buyer Counsel', 'Seller Counsel'] },
+  { label: 'Execution', roles: ['Escrow Agent'] },
+  { label: 'Individuals', roles: ['Buyer Signatory', 'Seller Signatory'] },
+  { label: 'Ownership', roles: ['Shareholder', 'Investor', 'Founder'] },
+] as const;
 const SHARE_CLASSES = ['Common', 'Preferred A', 'Preferred B', 'Options', 'Warrants', 'Other'] as const;
 
 interface AddStakeholderModalProps {
@@ -204,8 +210,13 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
                         <SelectContent>
-                          {ROLES.map(r => (
-                            <SelectItem key={r} value={r}>{r}</SelectItem>
+                          {ROLE_GROUPS.map(group => (
+                            <SelectGroup key={group.label}>
+                              <SelectLabel>{group.label}</SelectLabel>
+                              {group.roles.map(r => (
+                                <SelectItem key={r} value={r}>{r}</SelectItem>
+                              ))}
+                            </SelectGroup>
                           ))}
                         </SelectContent>
                       </Select>
