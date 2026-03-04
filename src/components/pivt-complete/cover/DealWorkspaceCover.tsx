@@ -592,7 +592,7 @@ export const DealWorkspaceCover: React.FC = () => {
   const dealValue = realDeal ? realDeal.deal_value : demoDeal.consideration;
   const closingDate = realDeal?.closing_date || demoDeal.closingDate;
   const dealStatus = realDeal?.status || demoDeal.status;
-  const hasBlocker = !isRealDeal && demoDeal.hasBlocker;
+  const hasBlocker = isDemoDeal && demoDeal.hasBlocker;
   // Compute readiness from deal summary
   const readyPct = useMemo(() => {
     if (isDemoDeal) return demoDeal.readyToPayPercent;
