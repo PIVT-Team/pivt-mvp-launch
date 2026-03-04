@@ -63,6 +63,7 @@ export function useDealOperations() {
     deal_type?: string | null;
     currency?: string | null;
     jurisdiction?: string | null;
+    signing_date?: string | null;
   }): Promise<RealDeal | null> => {
     const { data, error } = await supabase
       .from("deals")
@@ -85,6 +86,7 @@ export function useDealOperations() {
         deal_type: params.deal_type || null,
         currency: params.currency || 'USD',
         jurisdiction: params.jurisdiction || null,
+        signing_date: params.signing_date || null,
       } as any)
       .select()
       .single();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X } from 'lucide-react';
+import { format } from 'date-fns';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import { useDealOperations, RealDeal, DealTemplate, DealSummaryCounts } from '@/hooks/useDealOperations';
@@ -9,9 +10,55 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
+const DEAL_TYPES = [
+  'Private Company Share Purchase',
+  'Private Equity Acquisition',
+  'Asset Acquisition',
+  'Merger',
+  'Leveraged Buyout',
+  'Growth Equity',
+  'Venture Investment',
+  'Secondary Transaction',
+  'Other',
+];
+
+const CURRENCY_GROUPS = [
+  { label: 'Major Currencies', items: [
+    { value: 'USD', label: 'USD — US Dollar (United States)' },
+    { value: 'EUR', label: 'EUR — Euro (European Union)' },
+    { value: 'GBP', label: 'GBP — British Pound (United Kingdom)' },
+  ]},
+  { label: 'Asia-Pacific', items: [
+    { value: 'JPY', label: 'JPY — Japanese Yen (Japan)' },
+    { value: 'CNY', label: 'CNY — Chinese Yuan (China)' },
+    { value: 'AUD', label: 'AUD — Australian Dollar (Australia)' },
+    { value: 'SGD', label: 'SGD — Singapore Dollar (Singapore)' },
+    { value: 'HKD', label: 'HKD — Hong Kong Dollar (Hong Kong)' },
+    { value: 'KRW', label: 'KRW — South Korean Won (South Korea)' },
+    { value: 'INR', label: 'INR — Indian Rupee (India)' },
+  ]},
+  { label: 'Americas', items: [
+    { value: 'CAD', label: 'CAD — Canadian Dollar (Canada)' },
+    { value: 'BRL', label: 'BRL — Brazilian Real (Brazil)' },
+    { value: 'MXN', label: 'MXN — Mexican Peso (Mexico)' },
+  ]},
+  { label: 'Europe & Other', items: [
+    { value: 'CHF', label: 'CHF — Swiss Franc (Switzerland)' },
+    { value: 'SEK', label: 'SEK — Swedish Krona (Sweden)' },
+    { value: 'NOK', label: 'NOK — Norwegian Krone (Norway)' },
+    { value: 'DKK', label: 'DKK — Danish Krone (Denmark)' },
+    { value: 'PLN', label: 'PLN — Polish Zloty (Poland)' },
+    { value: 'AED', label: 'AED — UAE Dirham (UAE)' },
+    { value: 'ZAR', label: 'ZAR — South African Rand (South Africa)' },
+  ]},
+];
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; text: string }> = {
   active: { label: 'active', bg: 'bg-accent/10', text: 'text-accent' },
@@ -180,7 +227,7 @@ const DealCard: React.FC<{
       {/* Footer */}
       <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{deal.closing_date || 'TBD'}</span>
+          <span className="flex items-center gap-1"><CalendarIconLucide className="w-3.5 h-3.5" />{deal.closing_date || 'TBD'}</span>
           <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" />{deal.deal_number}</span>
           <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{partiesCount} parties</span>
           <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} docs</span>
@@ -219,7 +266,18 @@ export const DealsCover: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<RealDeal | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '' });
+  const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
+  const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>(['USD']);
+  const [signingDate, setSigningDate] = useState<Date | undefined>();
+
+  const toggleCurrency = (code: string) => {
+    setSelectedCurrencies(prev =>
+      prev.includes(code) ? prev.filter(c => c !== code) : [...prev, code]
+    );
+  };
+  const removeCurrency = (code: string) => {
+    setSelectedCurrencies(prev => prev.filter(c => c !== code));
+  };
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
@@ -250,12 +308,15 @@ export const DealsCover: React.FC = () => {
       target_company: form.target_company || null,
       sector: form.sector || null,
       deal_type: form.deal_type || null,
-      currency: form.currency || 'USD',
+      currency: selectedCurrencies.join(',') || 'USD',
       jurisdiction: form.jurisdiction || null,
+      signing_date: signingDate ? format(signingDate, 'yyyy-MM-dd') : null,
     });
     if (deal) {
       setShowCreate(false);
-      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '' });
+      setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
+      setSelectedCurrencies(['USD']);
+      setSigningDate(undefined);
       setSelectedDealId(deal.id);
       setActiveSection('workspace');
     }
@@ -407,13 +468,9 @@ export const DealsCover: React.FC = () => {
                     <Select value={form.deal_type} onValueChange={(v) => setForm({ ...form, deal_type: v })}>
                       <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Private Company Share Purchase">Private Company Share Purchase</SelectItem>
-                        <SelectItem value="Asset Acquisition">Asset Acquisition</SelectItem>
-                        <SelectItem value="Merger">Merger</SelectItem>
-                        <SelectItem value="Leveraged Buyout">Leveraged Buyout</SelectItem>
-                        <SelectItem value="Growth Equity">Growth Equity</SelectItem>
-                        <SelectItem value="Venture Investment">Venture Investment</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        {DEAL_TYPES.map(dt => (
+                          <SelectItem key={dt} value={dt}>{dt}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -474,14 +531,31 @@ export const DealsCover: React.FC = () => {
                   <Label>Escrow Amount ($)</Label>
                   <Input type="number" value={form.escrow_amount} onChange={(e) => setForm({ ...form, escrow_amount: e.target.value })} placeholder="200000" min={0} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Currency</Label>
-                  <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                <div className="space-y-1.5 col-span-3">
+                  <Label>Currencies</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {selectedCurrencies.map(code => (
+                      <Badge key={code} variant="secondary" className="gap-1 pr-1">
+                        {code}
+                        <button type="button" onClick={() => removeCurrency(code)} className="hover:text-destructive">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <Select onValueChange={(v) => { if (!selectedCurrencies.includes(v)) toggleCurrency(v); }} value="">
+                    <SelectTrigger><SelectValue placeholder="Add currency…" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
+                      {CURRENCY_GROUPS.map(group => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.items.map(c => (
+                            <SelectItem key={c.value} value={c.value} disabled={selectedCurrencies.includes(c.value)}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -493,10 +567,24 @@ export const DealsCover: React.FC = () => {
             {/* Jurisdiction & Timing */}
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Jurisdiction & Timing</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="space-y-1.5">
                   <Label>Jurisdiction</Label>
                   <Input value={form.jurisdiction} onChange={(e) => setForm({ ...form, jurisdiction: e.target.value })} placeholder="Delaware, United States" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Signing Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !signingDate && "text-muted-foreground")}>
+                        <CalendarIconLucide className="mr-2 h-4 w-4" />
+                        {signingDate ? format(signingDate, 'PPP') : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar mode="single" selected={signingDate} onSelect={setSigningDate} initialFocus className={cn("p-3 pointer-events-auto")} />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 <div className="space-y-1.5">
                   <Label>Expected Close Date</Label>
