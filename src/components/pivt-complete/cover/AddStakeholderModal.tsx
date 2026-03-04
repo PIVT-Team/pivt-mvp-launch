@@ -264,7 +264,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                         <SelectTrigger>
                           <SelectValue placeholder="Select share class" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[70]">
                           {SHARE_CLASSES.map(sc => (
                             <SelectItem key={sc} value={sc}>{sc}</SelectItem>
                           ))}
