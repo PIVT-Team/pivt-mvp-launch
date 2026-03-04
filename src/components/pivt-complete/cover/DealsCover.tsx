@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp } from 'lucide-react';
+import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2 } from 'lucide-react';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import { useDealOperations, RealDeal, DealTemplate, DealSummaryCounts } from '@/hooks/useDealOperations';
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; text: string }> = {
   active: { label: 'active', bg: 'bg-accent/10', text: 'text-accent' },
@@ -64,7 +65,8 @@ const DealCard: React.FC<{
   onView: () => void;
   onDuplicate: () => void;
   duplicating: boolean;
-}> = ({ deal, summary, isDemo, onView, onDuplicate, duplicating }) => {
+  onDelete?: () => void;
+}> = ({ deal, summary, isDemo, onView, onDuplicate, duplicating, onDelete }) => {
   const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
   const letter = deal.deal_name.charAt(0).toUpperCase();
   const seedKey = (deal as any).seed_key as string | null;
@@ -184,7 +186,16 @@ const DealCard: React.FC<{
           <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} docs</span>
           <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{capTableCount} cap table</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
+          {!isDemo && onDelete && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onDelete(); }}
+              className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+              title="Delete deal"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
           <ChevronRight className="w-4 h-4" />
         </div>
       </div>
@@ -195,7 +206,7 @@ const DealCard: React.FC<{
 // ── Main component ──
 export const DealsCover: React.FC = () => {
   const { setSelectedDealId, setActiveSection } = usePIVTStore();
-  const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries, duplicateDeal } = useDealOperations();
+  const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries, duplicateDeal, softDeleteDeal } = useDealOperations();
   const { user } = useAuth();
 
   const [allDeals, setAllDeals] = useState<RealDeal[]>([]);
@@ -205,6 +216,9 @@ export const DealsCover: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<RealDeal | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '' });
 
   const loadDeals = useCallback(async () => {
@@ -261,6 +275,18 @@ export const DealsCover: React.FC = () => {
   const openDeal = (id: string) => {
     setSelectedDealId(id);
     setActiveSection('workspace');
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    const success = await softDeleteDeal(deleteTarget.id);
+    setDeleting(false);
+    if (success) {
+      setAllDeals((prev) => prev.filter((d) => d.id !== deleteTarget.id));
+    }
+    setDeleteTarget(null);
+    setDeleteConfirmText('');
   };
 
   // Separate demo deals from user's private deals
@@ -327,6 +353,7 @@ export const DealsCover: React.FC = () => {
                     onView={() => openDeal(deal.id)}
                     onDuplicate={() => {}}
                     duplicating={false}
+                    onDelete={() => setDeleteTarget(deal)}
                   />
                 ))}
               </div>
@@ -484,6 +511,38 @@ export const DealsCover: React.FC = () => {
           </form>
         </DialogContent>
       </Dialog>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) { setDeleteTarget(null); setDeleteConfirmText(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Deal</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes <strong>{deleteTarget?.deal_name}</strong> and all associated data from your workspace. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label className="text-sm text-muted-foreground">
+              Type <span className="font-mono font-bold text-foreground">DELETE</span> to confirm
+            </Label>
+            <Input
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              autoFocus
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteConfirmText !== 'DELETE' || deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Deleting...' : 'Delete Deal'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

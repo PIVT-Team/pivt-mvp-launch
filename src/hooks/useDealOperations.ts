@@ -214,5 +214,34 @@ export function useDealOperations() {
     return result;
   };
 
-  return { createDeal, fetchTemplates, fetchDeals, fetchDeal, fetchDealSummaries, duplicateDeal };
+  const softDeleteDeal = async (dealId: string): Promise<boolean> => {
+    if (!user) return false;
+
+    // Verify it's not a demo deal
+    const { data: deal } = await supabase
+      .from("deals")
+      .select("is_demo, owner_id")
+      .eq("id", dealId)
+      .single();
+
+    if (!deal || deal.is_demo || deal.owner_id !== user.id) {
+      toast({ title: "Cannot delete this deal", description: "You can only delete deals you created.", variant: "destructive" });
+      return false;
+    }
+
+    const { error } = await (supabase
+      .from("deals")
+      .update({ deleted_at: new Date().toISOString(), deleted_by: user.id } as any) as any)
+      .eq("id", dealId);
+
+    if (error) {
+      toast({ title: "Error deleting deal", description: error.message, variant: "destructive" });
+      return false;
+    }
+
+    toast({ title: "Deal deleted", description: "The deal has been removed from your workspace." });
+    return true;
+  };
+
+  return { createDeal, fetchTemplates, fetchDeals, fetchDeal, fetchDealSummaries, duplicateDeal, softDeleteDeal };
 }
