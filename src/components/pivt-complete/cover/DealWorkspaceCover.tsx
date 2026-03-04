@@ -827,6 +827,20 @@ export const DealWorkspaceCover: React.FC = () => {
               <Progress value={readyPct} className="h-1.5" />
             </div>
             <div className="h-10 w-px bg-border/20 hidden lg:block" />
+            {!isDemoDeal && realDeal && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs shrink-0"
+                onClick={() => setEditDrawerOpen(true)}
+              >
+                <Pencil className="w-3 h-3" />
+                Edit Deal
+              </Button>
+            )}
+            {isDemoDeal && (
+              <Badge variant="secondary" className="text-[10px] shrink-0">Read-only demo</Badge>
+            )}
             <button className="pivt-ai-btn flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium text-accent whitespace-nowrap">
               <Sparkles className="w-3.5 h-3.5 pivt-spark" />
               What's blocking close?
