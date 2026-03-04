@@ -12,6 +12,7 @@ import { DealWorkflowStepper, WorkflowStep, deriveStatus } from './DealWorkflowS
 import { DealProgressRibbon, DealProgressData } from './DealProgressRibbon';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
+import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
 
 // Import existing cover pages
 import { StakeholdersDealTab } from './StakeholdersDealTab';
