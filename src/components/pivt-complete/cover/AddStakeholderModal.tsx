@@ -9,7 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 
 type StakeholderType = 'individual' | 'entity';
 
-const ROLES = ['Seller', 'Investor', 'Employee', 'LP', 'Advisor', 'Other'] as const;
+const ROLE_GROUPS = [
+  { label: 'Transaction Parties', roles: ['Buyer', 'Seller', 'Target'] },
+  { label: 'Advisors', roles: ['Buyer Counsel', 'Seller Counsel'] },
+  { label: 'Execution', roles: ['Escrow Agent'] },
+  { label: 'Individuals', roles: ['Buyer Signatory', 'Seller Signatory'] },
+  { label: 'Ownership', roles: ['Shareholder', 'Investor', 'Founder'] },
+] as const;
 const SHARE_CLASSES = ['Common', 'Preferred A', 'Preferred B', 'Options', 'Warrants', 'Other'] as const;
 
 interface AddStakeholderModalProps {
