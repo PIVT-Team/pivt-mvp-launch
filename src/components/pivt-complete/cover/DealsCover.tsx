@@ -340,9 +340,10 @@ export const DealsCover: React.FC = () => {
 
       {/* Create Deal Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[640px]">
           <DialogHeader>
             <DialogTitle>Create New Deal</DialogTitle>
+            <p className="text-sm text-muted-foreground">Fill in deal metadata to initialize the transaction workspace.</p>
           </DialogHeader>
           <form onSubmit={handleCreateSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -350,9 +351,61 @@ export const DealsCover: React.FC = () => {
               <Input
                 value={form.deal_name}
                 onChange={(e) => setForm({ ...form, deal_name: e.target.value })}
-                placeholder="Project Delta Acquisition"
+                placeholder="Project Nimbus Acquisition"
                 required
               />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Buyer / Borrower</Label>
+                <Input
+                  value={form.buyer}
+                  onChange={(e) => setForm({ ...form, buyer: e.target.value })}
+                  placeholder="Orion Data Systems LLC"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Seller / Target</Label>
+                <Input
+                  value={form.seller}
+                  onChange={(e) => setForm({ ...form, seller: e.target.value })}
+                  placeholder="Aurora Ventures Fund I, LP"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Sector</Label>
+                <Select value={form.sector} onValueChange={(v) => setForm({ ...form, sector: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sector" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Technology">Technology</SelectItem>
+                    <SelectItem value="Healthcare">Healthcare</SelectItem>
+                    <SelectItem value="Financial Services">Financial Services</SelectItem>
+                    <SelectItem value="Energy">Energy</SelectItem>
+                    <SelectItem value="Consumer">Consumer</SelectItem>
+                    <SelectItem value="Industrial">Industrial</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Deal Type</Label>
+                <Select value={form.deal_type} onValueChange={(v) => setForm({ ...form, deal_type: v })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="M&A Acquisition">M&A Acquisition</SelectItem>
+                    <SelectItem value="Asset Purchase">Asset Purchase</SelectItem>
+                    <SelectItem value="Debt Financing">Debt Financing</SelectItem>
+                    <SelectItem value="Secondary Transaction">Secondary Transaction</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -361,7 +414,7 @@ export const DealsCover: React.FC = () => {
                   type="number"
                   value={form.deal_value}
                   onChange={(e) => setForm({ ...form, deal_value: e.target.value })}
-                  placeholder="50000000"
+                  placeholder="12500000"
                   required
                   min={0}
                 />
@@ -372,7 +425,7 @@ export const DealsCover: React.FC = () => {
                   type="number"
                   value={form.escrow_amount}
                   onChange={(e) => setForm({ ...form, escrow_amount: e.target.value })}
-                  placeholder="5000000"
+                  placeholder="200000"
                   min={0}
                 />
               </div>
@@ -384,21 +437,6 @@ export const DealsCover: React.FC = () => {
                 value={form.closing_date}
                 onChange={(e) => setForm({ ...form, closing_date: e.target.value })}
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Deal Template</Label>
-              <Select value={form.templateId} onValueChange={(v) => setForm({ ...form, templateId: v })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="No template (blank deal)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No template (blank deal)</SelectItem>
-                  {templates.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.deal_name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground">Templates pre-load conditions and checklists only — no stakeholders or documents.</p>
             </div>
             <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={creating}>
               {creating ? 'Creating...' : 'Create Deal'}
