@@ -531,14 +531,31 @@ export const DealsCover: React.FC = () => {
                   <Label>Escrow Amount ($)</Label>
                   <Input type="number" value={form.escrow_amount} onChange={(e) => setForm({ ...form, escrow_amount: e.target.value })} placeholder="200000" min={0} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Currency</Label>
-                  <Select value={form.currency} onValueChange={(v) => setForm({ ...form, currency: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                <div className="space-y-1.5 col-span-3">
+                  <Label>Currencies</Label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {selectedCurrencies.map(code => (
+                      <Badge key={code} variant="secondary" className="gap-1 pr-1">
+                        {code}
+                        <button type="button" onClick={() => removeCurrency(code)} className="hover:text-destructive">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                  <Select onValueChange={(v) => { if (!selectedCurrencies.includes(v)) toggleCurrency(v); }} value="">
+                    <SelectTrigger><SelectValue placeholder="Add currency…" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                      <SelectItem value="GBP">GBP</SelectItem>
+                      {CURRENCY_GROUPS.map(group => (
+                        <SelectGroup key={group.label}>
+                          <SelectLabel>{group.label}</SelectLabel>
+                          {group.items.map(c => (
+                            <SelectItem key={c.value} value={c.value} disabled={selectedCurrencies.includes(c.value)}>
+                              {c.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
