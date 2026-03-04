@@ -912,6 +912,16 @@ export const DealWorkspaceCover: React.FC = () => {
           activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} /> : <ContentComponent />
         )}
       </motion.div>
+
+      {/* Edit Deal Drawer */}
+      {realDeal && !isDemoDeal && (
+        <EditDealDrawer
+          open={editDrawerOpen}
+          onOpenChange={setEditDrawerOpen}
+          deal={realDeal}
+          onSaved={(updated) => setRealDeal(updated)}
+        />
+      )}
     </motion.div>
     </DealWorkspaceProvider>
     </EditGuardProvider>
