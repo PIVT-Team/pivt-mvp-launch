@@ -74,8 +74,9 @@ const DealCard: React.FC<{
   const docsCount = goldenDemo?.docsCount ?? summary?.docsCount ?? 0;
   const capTableCount = goldenDemo?.capTableCount ?? summary?.capTableCount ?? 0;
   const tierCount = goldenDemo?.waterfallTiers ?? summary?.waterfallTiers ?? 0;
-  const sector = goldenDemo?.sector || ((deal.template_blueprint as any)?.sector) || '—';
-  const buyerBorrower = goldenDemo?.buyerBorrower || '—';
+  const sector = goldenDemo?.sector || (deal as any).sector || '—';
+  const buyerBorrower = goldenDemo?.buyerBorrower || (deal as any).buyer || '—';
+  const dealType = (deal as any).deal_type || '';
   const dealKindTags = goldenDemo?.dealKindTags || [];
   const funded = goldenDemo?.funded ?? 0;
   const fundedPct = goldenDemo?.fundedPct ?? 0;
