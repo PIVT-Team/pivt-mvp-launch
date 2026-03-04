@@ -628,10 +628,13 @@ export type Database = {
           deal_value: number
           escrow_amount: number | null
           id: string
+          is_demo: boolean
+          owner_id: string | null
           seed_key: string | null
           status: string
           template_blueprint: Json | null
           updated_at: string
+          visibility: string
         }
         Insert: {
           closing_date?: string | null
@@ -643,10 +646,13 @@ export type Database = {
           deal_value?: number
           escrow_amount?: number | null
           id?: string
+          is_demo?: boolean
+          owner_id?: string | null
           seed_key?: string | null
           status?: string
           template_blueprint?: Json | null
           updated_at?: string
+          visibility?: string
         }
         Update: {
           closing_date?: string | null
@@ -658,10 +664,13 @@ export type Database = {
           deal_value?: number
           escrow_amount?: number | null
           id?: string
+          is_demo?: boolean
+          owner_id?: string | null
           seed_key?: string | null
           status?: string
           template_blueprint?: Json | null
           updated_at?: string
+          visibility?: string
         }
         Relationships: []
       }
@@ -1819,6 +1828,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_deal: {
+        Args: { _deal_id: string; _user_id: string }
+        Returns: boolean
+      }
+      can_write_deal: {
+        Args: { _deal_id: string; _user_id: string }
+        Returns: boolean
+      }
       has_deal_role: {
         Args: {
           _deal_id: string
