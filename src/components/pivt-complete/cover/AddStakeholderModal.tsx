@@ -321,19 +321,19 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                 </div>
 
                 {/* Ownership Warning */}
-                {ownershipNum > 0 && (
+                {ownershipNum > 0 && !isOwnershipDisabled && (
                   <div className={`flex items-center gap-2 p-3 rounded-lg text-xs ${
                     exceedsMax ? 'bg-blocking/10 text-blocking' :
-                    newTotal < 100 ? 'bg-discrepancy/10 text-discrepancy' :
+                    newBasisTotal < 100 ? 'bg-discrepancy/10 text-discrepancy' :
                     'bg-validated/10 text-validated'
                   }`}>
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                     <span>
                       {exceedsMax
-                        ? `Total ownership would be ${newTotal.toFixed(2)}% — exceeds 100%`
-                        : newTotal < 100
-                        ? `Total ownership will be ${newTotal.toFixed(2)}% — ${(100 - newTotal).toFixed(2)}% unallocated`
-                        : `Total ownership will be exactly 100%`}
+                        ? `${BASIS_LABELS[basis]} ownership would be ${newBasisTotal.toFixed(1)}% — exceeds 100%`
+                        : newBasisTotal < 100
+                        ? `${BASIS_LABELS[basis]} ownership will be ${newBasisTotal.toFixed(1)}% — ${(100 - newBasisTotal).toFixed(1)}% unallocated`
+                        : `${BASIS_LABELS[basis]} ownership will be exactly 100%`}
                     </span>
                   </div>
                 )}
