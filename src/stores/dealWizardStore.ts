@@ -190,7 +190,7 @@ interface DealWizardStore {
 
 const initialAccount: AccountData = { fullName: '', role: '', organization: '', jurisdiction: '', email: '', phone: '' };
 const initialKyc: KycData = { govIdUploaded: false, proofOfAddressUploaded: false, corpDocUploaded: false, attestation: false, status: 'not_started' };
-const initialDealBasics: DealBasicsData = { dealName: '', buyerLegalName: '', sellerLegalName: '', transactionValue: '', targetCloseDate: '', currency: 'USD' };
+const initialDealBasics: DealBasicsData = { dealName: '', dealType: '', buyerLegalName: '', sellerLegalName: '', transactionValue: '', signingDate: '', targetCloseDate: '', currency: 'USD' };
 const initialParties: PartiesData = {
   buyerCounsel: { name: '', email: '' },
   sellerCounsel: { name: '', email: '' },
