@@ -54,17 +54,6 @@ const LoginPage: React.FC = () => {
     setLoading(false);
   };
 
-  const handleDemoLogin = async () => {
-    setError('');
-    setLoading(true);
-    const { error: err } = await supabase.auth.signInWithPassword({
-      email: DEMO_EMAIL,
-      password: DEMO_PASSWORD,
-    });
-    if (err) setError('Demo login failed. Please try again.');
-    else toast.success('Welcome to PIVT Demo');
-    setLoading(false);
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center pivt-ambient-bg px-4">
