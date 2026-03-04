@@ -166,6 +166,63 @@ export type Database = {
           },
         ]
       }
+      compliance_checks: {
+        Row: {
+          check_type: Database["public"]["Enums"]["compliance_check_type"]
+          created_at: string
+          deal_id: string
+          document_id: string | null
+          id: string
+          notes: string | null
+          party_id: string
+          review_timestamp: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["compliance_check_status"]
+          updated_at: string
+        }
+        Insert: {
+          check_type: Database["public"]["Enums"]["compliance_check_type"]
+          created_at?: string
+          deal_id: string
+          document_id?: string | null
+          id?: string
+          notes?: string | null
+          party_id: string
+          review_timestamp?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["compliance_check_status"]
+          updated_at?: string
+        }
+        Update: {
+          check_type?: Database["public"]["Enums"]["compliance_check_type"]
+          created_at?: string
+          deal_id?: string
+          document_id?: string | null
+          id?: string
+          notes?: string | null
+          party_id?: string
+          review_timestamp?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["compliance_check_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compliance_checks_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "compliance_checks_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conditions: {
         Row: {
           created_at: string
@@ -2020,6 +2077,18 @@ export type Database = {
     Enums: {
       allocation_logic_type: "fixed" | "percentage" | "pro_rata" | "threshold"
       app_role: "admin" | "participant"
+      compliance_check_status:
+        | "pending"
+        | "submitted"
+        | "under_review"
+        | "passed"
+        | "failed"
+      compliance_check_type:
+        | "kyb_entity_verification"
+        | "ubo_verification"
+        | "sanctions_screening"
+        | "pep_screening"
+        | "tax_form_validation"
       condition_status:
         | "NOT_STARTED"
         | "IN_PROGRESS"
@@ -2275,6 +2344,20 @@ export const Constants = {
     Enums: {
       allocation_logic_type: ["fixed", "percentage", "pro_rata", "threshold"],
       app_role: ["admin", "participant"],
+      compliance_check_status: [
+        "pending",
+        "submitted",
+        "under_review",
+        "passed",
+        "failed",
+      ],
+      compliance_check_type: [
+        "kyb_entity_verification",
+        "ubo_verification",
+        "sanctions_screening",
+        "pep_screening",
+        "tax_form_validation",
+      ],
       condition_status: [
         "NOT_STARTED",
         "IN_PROGRESS",

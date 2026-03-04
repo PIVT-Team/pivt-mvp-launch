@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useSelectedDeal } from '@/stores/pivtStore';
+import { ClosingReadinessPanel } from './ClosingReadinessPanel';
 
 // Demo binder-grade discrepancy data
 const DEMO_DISCREPANCIES = [
@@ -197,6 +198,9 @@ export const DiscrepancyPanelCover: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Closing Readiness Score */}
+      <ClosingReadinessPanel />
 
       {/* Summary Badges with filter */}
       <div className="flex gap-3">
