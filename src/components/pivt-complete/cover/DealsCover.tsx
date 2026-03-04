@@ -77,7 +77,7 @@ const DealCard: React.FC<{
   const sector = goldenDemo?.sector || (deal as any).sector || '—';
   const buyerBorrower = goldenDemo?.buyerBorrower || (deal as any).buyer || '—';
   const dealType = (deal as any).deal_type || '';
-  const dealKindTags = goldenDemo?.dealKindTags || [];
+  const dealKindTags = goldenDemo?.dealKindTags || (dealType ? [dealType] : []);
   const funded = goldenDemo?.funded ?? 0;
   const fundedPct = goldenDemo?.fundedPct ?? 0;
 
