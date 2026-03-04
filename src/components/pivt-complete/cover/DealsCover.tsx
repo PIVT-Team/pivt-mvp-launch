@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X, CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import { useDealOperations, RealDeal, DealTemplate, DealSummaryCounts } from '@/hooks/useDealOperations';
@@ -9,9 +10,55 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+
+const DEAL_TYPES = [
+  'Private Company Share Purchase',
+  'Private Equity Acquisition',
+  'Asset Acquisition',
+  'Merger',
+  'Leveraged Buyout',
+  'Growth Equity',
+  'Venture Investment',
+  'Secondary Transaction',
+  'Other',
+];
+
+const CURRENCY_GROUPS = [
+  { label: 'Major Currencies', items: [
+    { value: 'USD', label: 'USD — US Dollar (United States)' },
+    { value: 'EUR', label: 'EUR — Euro (European Union)' },
+    { value: 'GBP', label: 'GBP — British Pound (United Kingdom)' },
+  ]},
+  { label: 'Asia-Pacific', items: [
+    { value: 'JPY', label: 'JPY — Japanese Yen (Japan)' },
+    { value: 'CNY', label: 'CNY — Chinese Yuan (China)' },
+    { value: 'AUD', label: 'AUD — Australian Dollar (Australia)' },
+    { value: 'SGD', label: 'SGD — Singapore Dollar (Singapore)' },
+    { value: 'HKD', label: 'HKD — Hong Kong Dollar (Hong Kong)' },
+    { value: 'KRW', label: 'KRW — South Korean Won (South Korea)' },
+    { value: 'INR', label: 'INR — Indian Rupee (India)' },
+  ]},
+  { label: 'Americas', items: [
+    { value: 'CAD', label: 'CAD — Canadian Dollar (Canada)' },
+    { value: 'BRL', label: 'BRL — Brazilian Real (Brazil)' },
+    { value: 'MXN', label: 'MXN — Mexican Peso (Mexico)' },
+  ]},
+  { label: 'Europe & Other', items: [
+    { value: 'CHF', label: 'CHF — Swiss Franc (Switzerland)' },
+    { value: 'SEK', label: 'SEK — Swedish Krona (Sweden)' },
+    { value: 'NOK', label: 'NOK — Norwegian Krone (Norway)' },
+    { value: 'DKK', label: 'DKK — Danish Krone (Denmark)' },
+    { value: 'PLN', label: 'PLN — Polish Zloty (Poland)' },
+    { value: 'AED', label: 'AED — UAE Dirham (UAE)' },
+    { value: 'ZAR', label: 'ZAR — South African Rand (South Africa)' },
+  ]},
+];
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; text: string }> = {
   active: { label: 'active', bg: 'bg-accent/10', text: 'text-accent' },
