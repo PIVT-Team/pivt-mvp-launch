@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePIVTStore, DemoStakeholder } from '@/stores/pivtStore';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp } from '@/lib/animations';
 import {
   Shield, CheckCircle2, Clock, XCircle, AlertTriangle, Send, Upload, Eye,
