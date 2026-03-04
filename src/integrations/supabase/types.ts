@@ -1160,6 +1160,99 @@ export type Database = {
           },
         ]
       }
+      graph_edges: {
+        Row: {
+          created_at: string
+          deal_id: string
+          edge_type: Database["public"]["Enums"]["graph_edge_type"]
+          from_node_id: string
+          id: string
+          metadata: Json | null
+          to_node_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          edge_type: Database["public"]["Enums"]["graph_edge_type"]
+          from_node_id: string
+          id?: string
+          metadata?: Json | null
+          to_node_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          edge_type?: Database["public"]["Enums"]["graph_edge_type"]
+          from_node_id?: string
+          id?: string
+          metadata?: Json | null
+          to_node_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "graph_edges_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "graph_edges_from_node_id_fkey"
+            columns: ["from_node_id"]
+            isOneToOne: false
+            referencedRelation: "graph_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "graph_edges_to_node_id_fkey"
+            columns: ["to_node_id"]
+            isOneToOne: false
+            referencedRelation: "graph_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      graph_nodes: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          label: string
+          metadata: Json | null
+          node_type: Database["public"]["Enums"]["graph_node_type"]
+          source_entity_id: string | null
+          status: Database["public"]["Enums"]["graph_node_status"]
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          label: string
+          metadata?: Json | null
+          node_type: Database["public"]["Enums"]["graph_node_type"]
+          source_entity_id?: string | null
+          status?: Database["public"]["Enums"]["graph_node_status"]
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          label?: string
+          metadata?: Json | null
+          node_type?: Database["public"]["Enums"]["graph_node_type"]
+          source_entity_id?: string | null
+          status?: Database["public"]["Enums"]["graph_node_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "graph_nodes_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_uploads: {
         Row: {
           doc_type: string
@@ -2166,6 +2259,32 @@ export type Database = {
       discrepancy_severity: "blocker" | "warn" | "info"
       discrepancy_status: "open" | "acknowledged" | "resolved" | "suppressed"
       fx_risk_bearer: "buyer" | "seller" | "shared"
+      graph_edge_type:
+        | "HAS_PARTY"
+        | "HAS_DOCUMENT"
+        | "REQUIRES"
+        | "SATISFIES"
+        | "BLOCKS"
+        | "PAYS"
+        | "DERIVED_FROM"
+        | "RESULTS_IN"
+      graph_node_status:
+        | "not_started"
+        | "in_progress"
+        | "complete"
+        | "blocked"
+        | "failed"
+      graph_node_type:
+        | "deal"
+        | "stakeholder"
+        | "document"
+        | "obligation"
+        | "compliance_check"
+        | "approval"
+        | "payment_intent"
+        | "settlement"
+        | "waterfall"
+        | "discrepancy"
       kyc_status:
         | "not_started"
         | "draft"
@@ -2441,6 +2560,35 @@ export const Constants = {
       discrepancy_severity: ["blocker", "warn", "info"],
       discrepancy_status: ["open", "acknowledged", "resolved", "suppressed"],
       fx_risk_bearer: ["buyer", "seller", "shared"],
+      graph_edge_type: [
+        "HAS_PARTY",
+        "HAS_DOCUMENT",
+        "REQUIRES",
+        "SATISFIES",
+        "BLOCKS",
+        "PAYS",
+        "DERIVED_FROM",
+        "RESULTS_IN",
+      ],
+      graph_node_status: [
+        "not_started",
+        "in_progress",
+        "complete",
+        "blocked",
+        "failed",
+      ],
+      graph_node_type: [
+        "deal",
+        "stakeholder",
+        "document",
+        "obligation",
+        "compliance_check",
+        "approval",
+        "payment_intent",
+        "settlement",
+        "waterfall",
+        "discrepancy",
+      ],
       kyc_status: [
         "not_started",
         "draft",
