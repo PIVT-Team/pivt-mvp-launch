@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight } from 'lucide-react';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
-import { useDealOperations, RealDeal, DealTemplate } from '@/hooks/useDealOperations';
+import { useDealOperations, RealDeal, DealTemplate, DealSummaryCounts } from '@/hooks/useDealOperations';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -157,9 +157,18 @@ const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ d
 };
 
 // ── Live Deal Card ──
-const LiveDealCard: React.FC<{ deal: RealDeal; onClick: () => void }> = ({ deal, onClick }) => {
+const LiveDealCard: React.FC<{ deal: RealDeal; summary?: DealSummaryCounts; onClick: () => void }> = ({ deal, summary, onClick }) => {
   const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
   const letter = deal.deal_name.charAt(0).toUpperCase();
+  const blueprint = deal.template_blueprint as any;
+  const sector = blueprint?.sector || '—';
+  const tierCount = summary?.waterfallTiers ?? 0;
+  const partiesCount = summary?.partiesCount ?? 0;
+  const docsCount = summary?.docsCount ?? 0;
+  const capTableCount = summary?.capTableCount ?? 0;
+  const conditionsMet = summary?.conditionsMet ?? 0;
+  const conditionsTotal = summary?.conditionsTotal ?? 0;
+  const executedPercent = conditionsTotal > 0 ? Math.round((conditionsMet / conditionsTotal) * 100) : 0;
 
   return (
     <motion.div
@@ -191,31 +200,40 @@ const LiveDealCard: React.FC<{ deal: RealDeal; onClick: () => void }> = ({ deal,
 
       <div className="px-5 pb-1">
         <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-accent font-medium">Ready to disburse</span>
-          <span className="text-[11px] font-mono font-semibold text-right">$0 (0%)</span>
+          <span className="text-[11px] text-accent font-medium">Conditions met</span>
+          <span className="text-[11px] font-mono font-semibold text-right">
+            {conditionsMet}/{conditionsTotal} ({executedPercent}%)
+          </span>
         </div>
         <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div className={`h-full rounded-full ${PROGRESS_BAR_STYLE}`} style={{ width: '1%' }} />
+          <div className={`h-full rounded-full ${PROGRESS_BAR_STYLE}`} style={{ width: `${Math.max(executedPercent, 1)}%` }} />
         </div>
       </div>
 
-      <div className="px-5 py-3 grid grid-cols-2 gap-x-8 text-sm">
+      <div className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
         <div>
           <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
           <p className="font-medium text-foreground text-sm">—</p>
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Sector</p>
-          <p className="font-medium text-foreground text-sm">—</p>
+          <p className="font-medium text-foreground text-sm">{sector}</p>
         </div>
+        {tierCount > 0 && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Waterfall Tiers</p>
+            <p className="font-medium text-foreground text-sm">{tierCount} tiers</p>
+          </div>
+        )}
       </div>
 
       <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4 flex-wrap">
-          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{deal.closing_date || 'TBD'}</span>
           <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" />{deal.deal_number}</span>
-          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />0 parties</span>
-          <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />0 docs</span>
+          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{deal.closing_date || 'TBD'}</span>
+          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{partiesCount} parties</span>
+          <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} docs</span>
+          <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{capTableCount} cap table</span>
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
       </div>
@@ -226,10 +244,11 @@ const LiveDealCard: React.FC<{ deal: RealDeal; onClick: () => void }> = ({ deal,
 // ── Main component ──
 export const DealsCover: React.FC = () => {
   const { setSelectedDealId, setActiveSection } = usePIVTStore();
-  const { createDeal, fetchDeals, fetchTemplates } = useDealOperations();
+  const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries } = useDealOperations();
   const { user } = useAuth();
 
   const [realDeals, setRealDeals] = useState<RealDeal[]>([]);
+  const [summaries, setSummaries] = useState<Record<string, DealSummaryCounts>>({});
   const [templates, setTemplates] = useState<DealTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -239,9 +258,13 @@ export const DealsCover: React.FC = () => {
   const loadDeals = useCallback(async () => {
     setLoading(true);
     const data = await fetchDeals();
-    // Filter: show only live deals (demo deals are rendered from DEMO_CARDS)
     const liveDeals = data.filter(d => d.deal_kind === 'live' || (!d.deal_kind && !d.seed_key));
     setRealDeals(liveDeals);
+    // Fetch summary counts for live deals
+    if (liveDeals.length > 0) {
+      const sums = await fetchDealSummaries(liveDeals.map(d => d.id));
+      setSummaries(sums);
+    }
     setLoading(false);
   }, []);
 
@@ -304,7 +327,7 @@ export const DealsCover: React.FC = () => {
         <div className="grid gap-4">
           {/* Live deals first */}
           {sortedReal.map((deal) => (
-            <LiveDealCard key={deal.id} deal={deal} onClick={() => openDeal(deal.id)} />
+            <LiveDealCard key={deal.id} deal={deal} summary={summaries[deal.id]} onClick={() => openDeal(deal.id)} />
           ))}
           {/* Demo deals */}
           {sortedDemos.map((deal) => (

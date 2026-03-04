@@ -15,6 +15,19 @@ export interface RealDeal {
   updated_at: string;
   seed_key: string | null;
   deal_kind?: string;
+  template_blueprint?: any;
+}
+
+export interface DealSummaryCounts {
+  deal_id: string;
+  partiesCount: number;
+  docsCount: number;
+  capTableCount: number;
+  waterfallTiers: number;
+  conditionsMet: number;
+  conditionsTotal: number;
+  approvalsGranted: number;
+  approvalsTotal: number;
 }
 
 export interface DealTemplate {
@@ -130,5 +143,38 @@ export function useDealOperations() {
     return data as RealDeal | null;
   };
 
-  return { createDeal, fetchTemplates, fetchDeals, fetchDeal };
+  const fetchDealSummaries = async (dealIds: string[]): Promise<Record<string, DealSummaryCounts>> => {
+    if (dealIds.length === 0) return {};
+
+    const [parties, docs, capTable, tiers, conditions, approvals] = await Promise.all([
+      supabase.from("deal_participants").select("deal_id", { count: "exact", head: false }).in("deal_id", dealIds),
+      supabase.from("contract_documents").select("deal_id", { count: "exact", head: false }).in("deal_id", dealIds),
+      supabase.from("cap_table_entries").select("deal_id", { count: "exact", head: false }).in("deal_id", dealIds),
+      supabase.from("waterfall_tiers").select("deal_id", { count: "exact", head: false }).in("deal_id", dealIds),
+      supabase.from("conditions").select("deal_id, status").in("deal_id", dealIds),
+      supabase.from("deal_approvals").select("deal_id, status").in("deal_id", dealIds),
+    ]);
+
+    const count = (rows: any[] | null, id: string) => (rows || []).filter((r: any) => r.deal_id === id).length;
+
+    const result: Record<string, DealSummaryCounts> = {};
+    for (const id of dealIds) {
+      const condRows = (conditions.data || []).filter((r: any) => r.deal_id === id);
+      const appRows = (approvals.data || []).filter((r: any) => r.deal_id === id);
+      result[id] = {
+        deal_id: id,
+        partiesCount: count(parties.data, id),
+        docsCount: count(docs.data, id),
+        capTableCount: count(capTable.data, id),
+        waterfallTiers: count(tiers.data, id),
+        conditionsMet: condRows.filter((c: any) => c.status === 'MET').length,
+        conditionsTotal: condRows.length,
+        approvalsGranted: appRows.filter((a: any) => a.status === 'approved').length,
+        approvalsTotal: appRows.length,
+      };
+    }
+    return result;
+  };
+
+  return { createDeal, fetchTemplates, fetchDeals, fetchDeal, fetchDealSummaries };
 }
