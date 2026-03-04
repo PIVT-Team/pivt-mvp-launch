@@ -4,9 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { DemoAuthProvider, useDemoAuth } from "@/contexts/DemoAuthContext";
-import AuthPage from "@/pages/AuthPage";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Dashboard from "@/pages/Dashboard";
 import DealDetail from "@/pages/DealDetail";
 import AppLayout from "@/components/AppLayout";
@@ -14,7 +12,6 @@ import NotFound from "./pages/NotFound";
 
 const PIVTCompletePage = lazy(() =>
   import("./pages/PIVTCompletePage").catch(() => {
-    // Retry once on dynamic import failure (stale HMR cache)
     return new Promise<typeof import("./pages/PIVTCompletePage")>(resolve => {
       setTimeout(() => resolve(import("./pages/PIVTCompletePage")), 1000);
     });
@@ -28,7 +25,6 @@ const LoginPageLazy = lazy(() =>
   })
 );
 
-
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
@@ -37,9 +33,10 @@ const PageLoader = () => (
   </div>
 );
 
-const DemoGuard = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated } = useDemoAuth();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+const AuthGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  if (loading) return <PageLoader />;
+  if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 
@@ -48,26 +45,23 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <DemoAuthProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/login" element={<LoginPageLazy />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/" element={<DemoGuard><PIVTCompletePage /></DemoGuard>} />
-                <Route path="/pivt" element={<Navigate to="/" replace />} />
-                <Route path="/pivt/:section" element={<DemoGuard><PIVTCompletePage /></DemoGuard>} />
-                <Route element={<DemoGuard><AppLayout /></DemoGuard>}>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/deals/:id" element={<DealDetail />} />
-                </Route>
-                <Route path="*" element={<DemoGuard><NotFound /></DemoGuard>} />
-              </Routes>
-            </Suspense>
-          </BrowserRouter>
-        </AuthProvider>
-      </DemoAuthProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login" element={<LoginPageLazy />} />
+              <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
+              <Route path="/pivt" element={<Navigate to="/" replace />} />
+              <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
+              <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/deals/:id" element={<DealDetail />} />
+              </Route>
+              <Route path="*" element={<AuthGuard><NotFound /></AuthGuard>} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
