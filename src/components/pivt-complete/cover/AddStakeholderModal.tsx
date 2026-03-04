@@ -45,7 +45,7 @@ const ROLE_TO_BASIS: Record<string, OwnershipBasis> = {
   'Administrative Agent': 'NOT_APPLICABLE',
 };
 
-const getBasis = (r: string): OwnershipBasis => ROLE_TO_BASIS[r] || 'SELLER_EQUITY';
+const getBasis = (r: string): OwnershipBasis => ROLE_TO_BASIS[r] || 'NOT_APPLICABLE';
 
 const BASIS_LABELS: Record<OwnershipBasis, string> = {
   SELLER_EQUITY: 'Seller-side',
