@@ -255,12 +255,13 @@ export const DealsCover: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', templateId: '' });
 
+  const isDemoUser = user?.email === 'demo@pivt.app';
+
   const loadDeals = useCallback(async () => {
     setLoading(true);
     const data = await fetchDeals();
     const liveDeals = data.filter(d => d.deal_kind === 'live' || (!d.deal_kind && !d.seed_key));
     setRealDeals(liveDeals);
-    // Fetch summary counts for live deals
     if (liveDeals.length > 0) {
       const sums = await fetchDealSummaries(liveDeals.map(d => d.id));
       setSummaries(sums);
@@ -297,7 +298,7 @@ export const DealsCover: React.FC = () => {
     setActiveSection('workspace');
   };
 
-  const sortedDemos = [...DEMO_CARDS].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  const sortedDemos = isDemoUser ? [...DEMO_CARDS].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })) : [];
   const sortedReal = [...realDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
   const totalDeals = sortedDemos.length + sortedReal.length;
 
@@ -307,7 +308,7 @@ export const DealsCover: React.FC = () => {
         <div>
           <h2 className="text-xl font-semibold">Deals</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalDeals} deal{totalDeals !== 1 ? 's' : ''} · {sortedReal.length} live · {sortedDemos.length} demo
+            {totalDeals} deal{totalDeals !== 1 ? 's' : ''}{isDemoUser ? ` · ${sortedReal.length} live · ${sortedDemos.length} demo` : ''}
           </p>
         </div>
         <button
