@@ -353,6 +353,7 @@ export const DealsCover: React.FC = () => {
                     onView={() => openDeal(deal.id)}
                     onDuplicate={() => {}}
                     duplicating={false}
+                    onDelete={() => setDeleteTarget(deal)}
                   />
                 ))}
               </div>
