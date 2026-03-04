@@ -32,6 +32,7 @@ import { CommentsCover } from './CommentsCover';
 import { DealInputsCover } from './DealInputsCover';
 import { DiscrepancyPanelCover } from './DiscrepancyPanelCover';
 import { ExecutionAuthorityPanel } from './ExecutionAuthorityPanel';
+import { EditDealDrawer } from './EditDealDrawer';
 
 // ── Workflow helpers ──
 const DISCREPANCIES = [
