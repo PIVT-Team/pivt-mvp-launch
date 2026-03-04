@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 type StakeholderType = 'individual' | 'entity';
+type OwnershipBasis = 'SELLER_EQUITY' | 'BUYER_EQUITY' | 'NOT_APPLICABLE';
 
 const ROLE_GROUPS = [
   { label: 'Transaction Parties', roles: ['Buyer', 'Seller', 'Target', 'Merger Sub'] },
@@ -18,6 +19,40 @@ const ROLE_GROUPS = [
   { label: 'Representatives & Signatories', roles: ['Buyer Signatory', 'Seller Signatory', 'Seller Representative', 'Target Signatory'] },
   { label: 'Ownership', roles: ['Shareholder', 'Investor', 'Founder', 'LP', 'Advisor', 'Employee'] },
 ] as const;
+
+const ROLE_TO_BASIS: Record<string, OwnershipBasis> = {
+  Buyer: 'BUYER_EQUITY',
+  'Merger Sub': 'BUYER_EQUITY',
+  'Buyer Signatory': 'NOT_APPLICABLE',
+  Investor: 'BUYER_EQUITY',
+  LP: 'BUYER_EQUITY',
+
+  Seller: 'SELLER_EQUITY',
+  Target: 'SELLER_EQUITY',
+  'Target Signatory': 'NOT_APPLICABLE',
+  Shareholder: 'SELLER_EQUITY',
+  Founder: 'SELLER_EQUITY',
+  Employee: 'SELLER_EQUITY',
+  Advisor: 'SELLER_EQUITY',
+  'Seller Representative': 'NOT_APPLICABLE',
+  'Seller Signatory': 'NOT_APPLICABLE',
+
+  'Buyer Counsel': 'NOT_APPLICABLE',
+  'Seller Counsel': 'NOT_APPLICABLE',
+  'Paying Agent': 'NOT_APPLICABLE',
+  'Escrow Agent': 'NOT_APPLICABLE',
+  Lender: 'NOT_APPLICABLE',
+  'Administrative Agent': 'NOT_APPLICABLE',
+};
+
+const getBasis = (r: string): OwnershipBasis => ROLE_TO_BASIS[r] || 'SELLER_EQUITY';
+
+const BASIS_LABELS: Record<OwnershipBasis, string> = {
+  SELLER_EQUITY: 'Seller-side',
+  BUYER_EQUITY: 'Buyer-side',
+  NOT_APPLICABLE: '',
+};
+
 const SHARE_CLASSES = ['Common', 'Preferred A', 'Preferred B', 'Options', 'Warrants', 'Other'] as const;
 
 interface AddStakeholderModalProps {
@@ -44,10 +79,24 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
-  const currentTotal = stakeholders.reduce((s, x) => s + x.ownershipPct, 0);
+  const basis = getBasis(role);
+  const isOwnershipDisabled = basis === 'NOT_APPLICABLE';
+
+  // Compute basis-specific total (demo stakeholders don't have role-basis mapping, so fallback to SELLER_EQUITY)
+  const sameBasisTotal = stakeholders
+    .filter(s => getBasis(s.role) === basis)
+    .reduce((s, x) => s + x.ownershipPct, 0);
   const ownershipNum = parseFloat(ownership) || 0;
-  const newTotal = currentTotal + ownershipNum;
-  const exceedsMax = newTotal > 100;
+  const newBasisTotal = sameBasisTotal + ownershipNum;
+  const exceedsMax = basis !== 'NOT_APPLICABLE' && newBasisTotal > 100;
+
+  // Auto-clear ownership when role switches to NOT_APPLICABLE
+  const handleRoleChange = (newRole: string) => {
+    setRole(newRole);
+    if (getBasis(newRole) === 'NOT_APPLICABLE') {
+      setOwnership('0');
+    }
+  };
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
@@ -57,8 +106,11 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     if (!trimName || trimName.length > 200) errs.name = trimName ? 'Name must be under 200 characters' : 'Name is required';
     if (!trimEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimEmail)) errs.email = 'Valid email is required';
     if (trimEmail.length > 255) errs.email = 'Email must be under 255 characters';
-    if (ownership === '' || ownershipNum < 0 || ownershipNum > 100) errs.ownership = 'Must be between 0 and 100';
-    if (ownershipNum > 0 && exceedsMax) errs.ownership = `Would exceed 100% (current total: ${currentTotal}%)`;
+    if (!isOwnershipDisabled && (ownership === '' || ownershipNum < 0 || ownershipNum > 100)) errs.ownership = 'Must be between 0 and 100';
+    if (!isOwnershipDisabled && ownershipNum > 0 && exceedsMax) {
+      const basisLabel = BASIS_LABELS[basis] || 'Total';
+      errs.ownership = `${basisLabel} ownership totals would be ${newBasisTotal.toFixed(1)}% — exceeds 100%`;
+    }
     if (!role) errs.role = 'Role is required';
 
     if (!isDemoDeal && !dealId) {
@@ -232,23 +284,27 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label className="text-xs font-medium mb-1.5 block">Ownership % *</Label>
+                      <Label className="text-xs font-medium mb-1.5 block">
+                        Ownership % {isOwnershipDisabled ? '' : '*'}
+                        {isOwnershipDisabled && <span className="text-muted-foreground ml-1">(N/A for this role)</span>}
+                      </Label>
                       <Input
                         type="number"
                         step="0.01"
                         min="0"
                         max="100"
-                        value={ownership}
+                        value={isOwnershipDisabled ? '0' : ownership}
                         onChange={e => setOwnership(e.target.value)}
-                        placeholder="e.g. 15"
-                        className={errors.ownership ? 'border-blocking' : ''}
+                        placeholder={isOwnershipDisabled ? 'N/A' : 'e.g. 15'}
+                        disabled={isOwnershipDisabled}
+                        className={`${errors.ownership ? 'border-blocking' : ''} ${isOwnershipDisabled ? 'opacity-50' : ''}`}
                       />
                       {errors.ownership && <p className="text-[11px] text-blocking mt-1">{errors.ownership}</p>}
                     </div>
 
                     <div>
                       <Label className="text-xs font-medium mb-1.5 block">Role *</Label>
-                      <Select value={role} onValueChange={setRole}>
+                      <Select value={role} onValueChange={handleRoleChange}>
                         <SelectTrigger className={errors.role ? 'border-blocking' : ''}>
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
@@ -269,19 +325,19 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
                 </div>
 
                 {/* Ownership Warning */}
-                {ownershipNum > 0 && (
+                {ownershipNum > 0 && !isOwnershipDisabled && (
                   <div className={`flex items-center gap-2 p-3 rounded-lg text-xs ${
                     exceedsMax ? 'bg-blocking/10 text-blocking' :
-                    newTotal < 100 ? 'bg-discrepancy/10 text-discrepancy' :
+                    newBasisTotal < 100 ? 'bg-discrepancy/10 text-discrepancy' :
                     'bg-validated/10 text-validated'
                   }`}>
                     <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
                     <span>
                       {exceedsMax
-                        ? `Total ownership would be ${newTotal.toFixed(2)}% — exceeds 100%`
-                        : newTotal < 100
-                        ? `Total ownership will be ${newTotal.toFixed(2)}% — ${(100 - newTotal).toFixed(2)}% unallocated`
-                        : `Total ownership will be exactly 100%`}
+                        ? `${BASIS_LABELS[basis]} ownership would be ${newBasisTotal.toFixed(1)}% — exceeds 100%`
+                        : newBasisTotal < 100
+                        ? `${BASIS_LABELS[basis]} ownership will be ${newBasisTotal.toFixed(1)}% — ${(100 - newBasisTotal).toFixed(1)}% unallocated`
+                        : `${BASIS_LABELS[basis]} ownership will be exactly 100%`}
                     </span>
                   </div>
                 )}
