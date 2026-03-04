@@ -240,7 +240,7 @@ export const IntelligenceMapCover: React.FC = () => {
     });
 
     payments.forEach(p => {
-      const st = p.status === 'completed' ? 'complete' : p.status === 'failed' ? 'failed' : 'in_progress';
+      const st = p.status === 'executed' ? 'complete' : p.status === 'failed' ? 'failed' : 'in_progress';
       ns.push({ id: p.id, deal_id: deal.id, node_type: 'payment_intent', label: `${p.recipientName.split(' ')[0]} $${(p.amount / 1e6).toFixed(0)}M`, status: st, metadata: { amount: `$${(p.amount / 1e6).toFixed(0)}M`, method: p.method }, source_entity_id: p.id });
       es.push({ id: `e-${deal.id}-${p.id}`, deal_id: deal.id, from_node_id: deal.id, to_node_id: p.id, edge_type: 'REQUIRES', metadata: {} });
     });
