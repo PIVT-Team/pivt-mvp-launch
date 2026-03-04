@@ -31,6 +31,31 @@ const fmt = (n: number) => {
 
 const PROGRESS_BAR_STYLE = 'bg-gradient-to-r from-accent to-[hsl(217,100%,55%)]';
 
+// Golden demo summaries — never query DB for these
+const DEMO_GOLDEN_SUMMARIES: Record<string, DealSummaryCounts & { buyerBorrower: string; sector: string; dealKindTags: string[]; funded: number; fundedPct: number; waterfallTiers: number }> = {
+  atlas: {
+    deal_id: '', partiesCount: 28, docsCount: 108, capTableCount: 26, waterfallTiers: 8,
+    conditionsMet: 6, conditionsTotal: 8, approvalsGranted: 5, approvalsTotal: 7,
+    buyerBorrower: 'Apex Capital Partners', sector: 'Enterprise Software / SaaS',
+    dealKindTags: ['M&A', 'Stock Purchase', 'Take Private'],
+    funded: 109_700_000, fundedPct: 77,
+  },
+  beacon: {
+    deal_id: '', partiesCount: 25, docsCount: 75, capTableCount: 0, waterfallTiers: 6,
+    conditionsMet: 3, conditionsTotal: 6, approvalsGranted: 2, approvalsTotal: 5,
+    buyerBorrower: 'Beacon Holdings, LLC', sector: 'Healthcare Services / Healthcare IT',
+    dealKindTags: ['Credit', 'Unitranche Credit Facility'],
+    funded: 89_000_000, fundedPct: 100,
+  },
+  cipher: {
+    deal_id: '', partiesCount: 48, docsCount: 145, capTableCount: 24, waterfallTiers: 10,
+    conditionsMet: 9, conditionsTotal: 10, approvalsGranted: 9, approvalsTotal: 10,
+    buyerBorrower: 'Titan Strategic Group', sector: 'Cybersecurity / Enterprise Software',
+    dealKindTags: ['M&A', 'Stock Purchase', 'Take Private'],
+    funded: 0, fundedPct: 0,
+  },
+};
+
 // ── Deal Card (unified for both demo and private deals) ──
 const DealCard: React.FC<{
   deal: RealDeal;
