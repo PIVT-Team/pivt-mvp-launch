@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
+import { useEditGuard } from '@/hooks/useEditGuard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
@@ -441,6 +442,11 @@ export const WaterfallCover: React.FC = () => {
   const { toast } = useToast();
   const [addTierOpen, setAddTierOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const { guardEdit } = useEditGuard();
+
+  const guardedSetAddTierOpen = () => {
+    guardEdit('ADD_WATERFALL_TIER', null, () => setAddTierOpen(true));
+  };
 
   const readyTiers = tiers.filter(t => t.status === 'READY');
   const pendingTiers = tiers.filter(t => t.status === 'PENDING');
@@ -510,7 +516,7 @@ export const WaterfallCover: React.FC = () => {
 
       {/* ── Action Buttons ── */}
       <div className="flex flex-wrap gap-2">
-        <Button variant="outline" size="sm" onClick={() => setAddTierOpen(true)} className="gap-1.5">
+        <Button variant="outline" size="sm" onClick={guardedSetAddTierOpen} className="gap-1.5">
           <Plus className="w-3.5 h-3.5" /> Add Tier
         </Button>
         <Button variant="outline" size="sm" onClick={recalculate} className="gap-1.5">

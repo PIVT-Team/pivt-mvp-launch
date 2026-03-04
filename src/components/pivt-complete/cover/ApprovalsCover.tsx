@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useEditGuard } from '@/hooks/useEditGuard';
 
 // Extended approval data
 const MOCK_APPROVALS = [
@@ -42,11 +43,15 @@ export const ApprovalsCover: React.FC = () => {
   const pendingCount = MOCK_APPROVALS.filter(a => !(a.buyerApproved && a.sellerApproved)).length;
   const criticalCount = MOCK_APPROVALS.filter(a => a.urgency === 'critical').length;
 
+  const { guardEdit } = useEditGuard();
+
   const handleAction = (approval: typeof MOCK_APPROVALS[0], type: 'approve' | 'reject') => {
-    setSelectedApproval(approval);
-    setActionType(type);
-    setComment('');
-    setActionDialogOpen(true);
+    guardEdit(`APPROVAL_${type.toUpperCase()}`, { approvalId: approval.id }, () => {
+      setSelectedApproval(approval);
+      setActionType(type);
+      setComment('');
+      setActionDialogOpen(true);
+    });
   };
 
   const confirmAction = () => {

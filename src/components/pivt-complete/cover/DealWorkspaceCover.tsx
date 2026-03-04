@@ -4,14 +4,16 @@ import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
   ArrowLeft, AlertTriangle, Ban,
-  FileText, Users, Search, Sparkles, Calendar, Brain,
+  FileText, Users, Search, Sparkles, Calendar, Brain, ShieldAlert, Copy,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { DealWorkflowStepper, WorkflowStep, deriveStatus } from './DealWorkflowStepper';
 import { DealProgressRibbon, DealProgressData } from './DealProgressRibbon';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
+import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
 
 // Import existing cover pages
 import { StakeholdersDealTab } from './StakeholdersDealTab';
@@ -386,6 +388,35 @@ const ReconciliationSection: React.FC = () => (
   </div>
 );
 
+// ── Protected deal banner ──
+const ProtectedDealBanner: React.FC = () => {
+  const { isProtected, guardEdit } = useEditGuard();
+  if (!isProtected) return null;
+
+  return (
+    <motion.div
+      {...fadeInUp}
+      className="flex items-center justify-between gap-3 px-5 py-3 rounded-2xl border border-accent/20 bg-accent/5"
+    >
+      <div className="flex items-center gap-3">
+        <ShieldAlert className="w-4 h-4 text-accent shrink-0" />
+        <span className="text-sm text-foreground/80">
+          <span className="font-semibold">Read-only.</span> This is a shared demo deal. Duplicate it to make changes.
+        </span>
+      </div>
+      <Button
+        size="sm"
+        variant="outline"
+        className="gap-1.5 text-xs shrink-0 border-accent/30 text-accent hover:bg-accent/10"
+        onClick={() => guardEdit('DUPLICATE', null, () => {})}
+      >
+        <Copy className="w-3 h-3" />
+        Duplicate to edit
+      </Button>
+    </motion.div>
+  );
+};
+
 const DealAuditSection: React.FC = () => (
   <div className="space-y-4">
     <div className="flex items-center gap-2 mb-3">
@@ -522,6 +553,24 @@ export const DealWorkspaceCover: React.FC = () => {
       setActiveSection('deals');
     }
   }, [selectedDealId]);
+
+  // Replay pending action after duplication redirect
+  useEffect(() => {
+    if (!loadingDeal && realDeal && !isDemoDeal) {
+      const pending = consumePendingAction();
+      if (pending) {
+        // Navigate to the relevant step based on the action type
+        if (pending.type === 'ADD_STAKEHOLDER') {
+          setActiveStepId('stakeholders');
+        } else if (pending.type === 'ADD_WATERFALL_TIER') {
+          setActiveStepId('structuring');
+          setActiveSubNav('waterfall');
+        } else if (pending.type === 'UPLOAD_DOCUMENT') {
+          setActiveStepId('deal-inputs');
+        }
+      }
+    }
+  }, [loadingDeal, realDeal, isDemoDeal]);
 
   const handleStepClick = (id: string) => {
     setActiveStepId(id as StepId);
@@ -685,6 +734,7 @@ export const DealWorkspaceCover: React.FC = () => {
   }
 
   return (
+    <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
     <motion.div {...staggerChildren} className="space-y-8">
       {/* Back */}
       <button
@@ -694,6 +744,9 @@ export const DealWorkspaceCover: React.FC = () => {
         <ArrowLeft className="w-4 h-4" />
         Back to Deals
       </button>
+
+      {/* ── Read-only banner for protected deals ── */}
+      <ProtectedDealBanner />
 
       {/* ── Deal Header ── */}
       <div className="pivt-panel p-8 lg:p-10">
@@ -819,5 +872,6 @@ export const DealWorkspaceCover: React.FC = () => {
         )}
       </motion.div>
     </motion.div>
+    </EditGuardProvider>
   );
 };

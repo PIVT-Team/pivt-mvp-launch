@@ -2,13 +2,19 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
-import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AddStakeholderModal } from './AddStakeholderModal';
+import { useEditGuard } from '@/hooks/useEditGuard';
 
 export const StakeholdersDealTab: React.FC = () => {
   const { stakeholders } = usePIVTStore();
   const [modalOpen, setModalOpen] = useState(false);
+  const { isProtected, guardEdit } = useEditGuard();
+
+  const handleAddClick = () => {
+    guardEdit('ADD_STAKEHOLDER', null, () => setModalOpen(true));
+  };
 
   const verified = stakeholders.filter(s => s.kycStatus === 'verified').length;
   const total = stakeholders.length;
@@ -54,11 +60,11 @@ export const StakeholdersDealTab: React.FC = () => {
           <p className="text-sm text-muted-foreground mt-0.5">Manage deal participants, ownership, and payout details.</p>
         </div>
         <button
-          onClick={() => setModalOpen(true)}
+          onClick={handleAddClick}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
         >
-          <Plus className="w-4 h-4" />
-          Add Stakeholder
+          {isProtected ? <Lock className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          {isProtected ? 'Duplicate to edit' : 'Add Stakeholder'}
         </button>
       </div>
 
