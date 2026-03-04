@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.discrepancy-engine]
 verify_jwt = false
+
+[functions.generate-ontology-rules]
+verify_jwt = false
