@@ -630,6 +630,7 @@ export type Database = {
           id: string
           seed_key: string | null
           status: string
+          template_blueprint: Json | null
           updated_at: string
         }
         Insert: {
@@ -644,6 +645,7 @@ export type Database = {
           id?: string
           seed_key?: string | null
           status?: string
+          template_blueprint?: Json | null
           updated_at?: string
         }
         Update: {
@@ -658,6 +660,7 @@ export type Database = {
           id?: string
           seed_key?: string | null
           status?: string
+          template_blueprint?: Json | null
           updated_at?: string
         }
         Relationships: []
