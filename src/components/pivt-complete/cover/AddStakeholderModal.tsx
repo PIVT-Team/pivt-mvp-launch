@@ -300,7 +300,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
 
                     <div>
                       <Label className="text-xs font-medium mb-1.5 block">Role *</Label>
-                      <Select value={role} onValueChange={setRole}>
+                      <Select value={role} onValueChange={handleRoleChange}>
                         <SelectTrigger className={errors.role ? 'border-blocking' : ''}>
                           <SelectValue placeholder="Select role" />
                         </SelectTrigger>
