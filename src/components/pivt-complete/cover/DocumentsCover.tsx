@@ -299,11 +299,15 @@ export const DocumentsCover: React.FC = () => {
   }, [selectedDealId, addEvent]);
 
   // ── Drop handler ──
+  const { guardEdit } = useEditGuard();
+
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setDragOver(false);
-    Array.from(e.dataTransfer.files).forEach(uploadFile);
-  }, [uploadFile]);
+    guardEdit('UPLOAD_DOCUMENT', null, () => {
+      Array.from(e.dataTransfer.files).forEach(uploadFile);
+    });
+  }, [uploadFile, guardEdit]);
 
   // ── Demo upload ──
   const handleDemoUpload = useCallback(async () => {
