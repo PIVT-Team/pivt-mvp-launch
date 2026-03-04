@@ -93,8 +93,32 @@ const mockRecipientData = {
 };
 
 export const PaymentsCover: React.FC = () => {
+  const { isDemoDeal } = useDealWorkspace();
   const { stakeholders } = usePIVTStore();
-  const pendingKyc = stakeholders.filter(s => s.kycStatus !== 'verified').length;
+  const pendingKyc = isDemoDeal ? stakeholders.filter(s => s.kycStatus !== 'verified').length : 0;
+
+  // Non-demo empty state
+  if (!isDemoDeal) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Disbursement Intents</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Payment execution and settlement operations.</p>
+          </div>
+        </div>
+        <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+            <DollarSign className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold">No disbursement intents</h3>
+            <p className="text-sm text-muted-foreground mt-1">Disbursement intents will appear here once the deal's waterfall and payment structure are configured.</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   const [activeTab, setActiveTab] = useState('all-payments');
   const [selectedPayment, setSelectedPayment] = useState<typeof mockPayments[0] | null>(null);
