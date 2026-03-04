@@ -49,6 +49,10 @@ export function useDealOperations() {
     closing_date?: string | null;
     escrow_amount?: number;
     templateId?: string | null;
+    buyer?: string | null;
+    seller?: string | null;
+    sector?: string | null;
+    deal_type?: string | null;
   }): Promise<RealDeal | null> => {
     const { data, error } = await supabase
       .from("deals")
@@ -64,6 +68,10 @@ export function useDealOperations() {
         owner_id: user?.id || null,
         visibility: "private",
         is_demo: false,
+        buyer: params.buyer || null,
+        seller: params.seller || null,
+        sector: params.sector || null,
+        deal_type: params.deal_type || null,
       } as any)
       .select()
       .single();
