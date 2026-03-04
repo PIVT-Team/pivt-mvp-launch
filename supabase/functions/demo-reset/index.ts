@@ -96,6 +96,8 @@ Deno.serve(async (req) => {
     "audit_events",
     "audit_log",
     "validation_results",
+    "tax_forms",
+    "tax_recipients",
   ];
 
   for (const table of childTables) {
