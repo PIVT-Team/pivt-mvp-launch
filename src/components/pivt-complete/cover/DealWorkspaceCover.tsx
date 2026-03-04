@@ -546,6 +546,7 @@ export const DealWorkspaceCover: React.FC = () => {
   const [activeSubNav, setActiveSubNav] = useState<string | undefined>();
   const [realDeal, setRealDeal] = useState<RealDeal | null>(null);
   const [loadingDeal, setLoadingDeal] = useState(false);
+  const [editDrawerOpen, setEditDrawerOpen] = useState(false);
 
   // Demo deals: detect by seed_key or is_demo flag on the fetched real deal
   const isRealDeal = selectedDealId && selectedDealId.includes('-') && selectedDealId.length > 10;
