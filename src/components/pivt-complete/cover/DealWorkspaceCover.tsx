@@ -373,7 +373,7 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
 
 const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string; isDemoDeal?: boolean; seedKey?: string | null }> = ({ realDeal, dealId, isDemoDeal, seedKey }) => {
   if (isDemoDeal) {
-    return <DemoOverviewSection seedKey={seedKey} />;
+    return <DemoOverviewSection seedKey={seedKey} realDeal={realDeal} />;
   }
   return <RealDealOverviewSection realDeal={realDeal!} dealId={dealId || ''} />;
 };
