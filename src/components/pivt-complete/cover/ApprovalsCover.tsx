@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
+import { useEditGuard } from '@/hooks/useEditGuard';
 
 // Extended approval data
 const MOCK_APPROVALS = [
