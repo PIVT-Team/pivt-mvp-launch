@@ -357,11 +357,11 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
   );
 };
 
-const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string; isDemoDeal?: boolean }> = ({ realDeal, dealId, isDemoDeal }) => {
-  if (isDemoDeal || !realDeal) {
-    return <DemoOverviewSection />;
+const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string; isDemoDeal?: boolean; seedKey?: string | null }> = ({ realDeal, dealId, isDemoDeal, seedKey }) => {
+  if (isDemoDeal) {
+    return <DemoOverviewSection seedKey={seedKey} />;
   }
-  return <RealDealOverviewSection realDeal={realDeal} dealId={dealId || ''} />;
+  return <RealDealOverviewSection realDeal={realDeal!} dealId={dealId || ''} />;
 };
 
 const ReconciliationSection: React.FC = () => (
