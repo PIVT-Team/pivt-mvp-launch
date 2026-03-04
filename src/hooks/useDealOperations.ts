@@ -21,8 +21,11 @@ export interface RealDeal {
   is_demo?: boolean;
   buyer?: string | null;
   seller?: string | null;
+  target_company?: string | null;
   sector?: string | null;
   deal_type?: string | null;
+  currency?: string | null;
+  jurisdiction?: string | null;
 }
 
 export interface DealSummaryCounts {
