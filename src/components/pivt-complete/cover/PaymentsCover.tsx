@@ -122,7 +122,29 @@ export const PaymentsCover: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredPayments = mockPayments.filter((p) => {
+  // Non-demo empty state (after all hooks)
+  if (!isDemoDeal) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Disbursement Intents</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Payment execution and settlement operations.</p>
+          </div>
+        </div>
+        <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+            <DollarSign className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold">No disbursement intents</h3>
+            <p className="text-sm text-muted-foreground mt-1">Disbursement intents will appear here once the deal's waterfall and payment structure are configured.</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
     const matchesSearch = p.recipient.toLowerCase().includes(searchQuery.toLowerCase()) || p.details.reference.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesDeal = dealFilter === 'all' || p.deal === dealFilter;
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
