@@ -6,6 +6,7 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
+import { TaxFormsTab } from '@/components/pivt-complete/cover/TaxFormsCover';
 import { usePIVTStore } from '@/stores/pivtStore';
 import {
   Banknote, ArrowRight, CheckCircle2, Clock, XCircle, Lock, Unlock,
