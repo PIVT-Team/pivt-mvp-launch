@@ -33,21 +33,21 @@ const PROGRESS_BAR_STYLE = 'bg-gradient-to-r from-accent to-[hsl(217,100%,55%)]'
 
 // Golden demo summaries — never query DB for these
 const DEMO_GOLDEN_SUMMARIES: Record<string, DealSummaryCounts & { buyerBorrower: string; sector: string; dealKindTags: string[]; funded: number; fundedPct: number; waterfallTiers: number }> = {
-  atlas: {
+  atlas_demo: {
     deal_id: '', partiesCount: 28, docsCount: 108, capTableCount: 26, waterfallTiers: 8,
     conditionsMet: 6, conditionsTotal: 8, approvalsGranted: 5, approvalsTotal: 7,
     buyerBorrower: 'Apex Capital Partners', sector: 'Enterprise Software / SaaS',
     dealKindTags: ['M&A', 'Stock Purchase', 'Take Private'],
     funded: 109_700_000, fundedPct: 77,
   },
-  beacon: {
+  beacon_demo: {
     deal_id: '', partiesCount: 25, docsCount: 75, capTableCount: 0, waterfallTiers: 6,
     conditionsMet: 3, conditionsTotal: 6, approvalsGranted: 2, approvalsTotal: 5,
     buyerBorrower: 'Beacon Holdings, LLC', sector: 'Healthcare Services / Healthcare IT',
     dealKindTags: ['Credit', 'Unitranche Credit Facility'],
     funded: 89_000_000, fundedPct: 100,
   },
-  cipher: {
+  cipher_demo: {
     deal_id: '', partiesCount: 48, docsCount: 145, capTableCount: 24, waterfallTiers: 10,
     conditionsMet: 9, conditionsTotal: 10, approvalsGranted: 9, approvalsTotal: 10,
     buyerBorrower: 'Titan Strategic Group', sector: 'Cybersecurity / Enterprise Software',
@@ -162,6 +162,7 @@ const DealCard: React.FC<{
       <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <div className="flex items-center gap-4 flex-wrap">
           <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{deal.closing_date || 'TBD'}</span>
+          <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" />{deal.deal_number}</span>
           <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{partiesCount} parties</span>
           <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} docs</span>
           <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{capTableCount} cap table</span>
