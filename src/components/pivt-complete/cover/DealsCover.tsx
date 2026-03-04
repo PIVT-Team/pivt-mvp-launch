@@ -1,61 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase } from 'lucide-react';
+import { Plus, Calendar, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy } from 'lucide-react';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import { useDealOperations, RealDeal, DealTemplate, DealSummaryCounts } from '@/hooks/useDealOperations';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-
-// ── Rich demo deal data ──
-interface DemoCardData {
-  id: string;
-  name: string;
-  letter: string;
-  dealNumber: string;
-  status: string;
-  tags: string[];
-  totalValue: number;
-  executedAmount: number;
-  executedPercent: number;
-  buyerBorrower: string;
-  sector: string;
-  waterfallTiers: number;
-  closingDate: string;
-  partiesCount: number;
-  docsCount: number;
-  capTableCount: number;
-}
-
-const DEMO_CARDS: DemoCardData[] = [
-  {
-    id: 'atlas', name: 'Project ATLAS', letter: 'A', dealNumber: 'PIVT-2026-000142',
-    status: 'active', tags: ['M&A', 'Stock Purchase – Take Private'],
-    totalValue: 142_500_000, executedAmount: 109_700_000, executedPercent: 77,
-    buyerBorrower: 'N/A', sector: 'Enterprise Software / SaaS', waterfallTiers: 8,
-    closingDate: '2025-01-15', partiesCount: 28, docsCount: 108, capTableCount: 26,
-  },
-  {
-    id: 'beacon', name: 'Project BEACON', letter: 'B', dealNumber: 'PIVT-2026-000143',
-    status: 'ready', tags: ['Credit', 'Unitranche Credit Facility'],
-    totalValue: 89_000_000, executedAmount: 89_000_000, executedPercent: 100,
-    buyerBorrower: 'Beacon Holdings, LLC', sector: 'Healthcare Services / Healthcare IT', waterfallTiers: 6,
-    closingDate: '2025-01-18', partiesCount: 25, docsCount: 75, capTableCount: 0,
-  },
-  {
-    id: 'cipher', name: 'Project CIPHER', letter: 'C', dealNumber: 'PIVT-2026-000144',
-    status: 'setup', tags: ['M&A', 'Stock Purchase – Take Private'],
-    totalValue: 215_000_000, executedAmount: 0, executedPercent: 0,
-    buyerBorrower: 'N/A', sector: 'Cybersecurity / Enterprise Software', waterfallTiers: 10,
-    closingDate: '2025-01-22', partiesCount: 48, docsCount: 145, capTableCount: 24,
-  },
-];
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; text: string }> = {
   active: { label: 'active', bg: 'bg-accent/10', text: 'text-accent' },
@@ -76,89 +31,15 @@ const fmt = (n: number) => {
 
 const PROGRESS_BAR_STYLE = 'bg-gradient-to-r from-accent to-[hsl(217,100%,55%)]';
 
-// ── Demo Deal Card ──
-const DemoDealCard: React.FC<{ deal: DemoCardData; onClick: () => void }> = ({ deal, onClick }) => {
-  const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
-
-  return (
-    <motion.div
-      {...fadeInUp}
-      onClick={onClick}
-      className="border border-border rounded-xl bg-card hover:shadow-lg transition-all cursor-pointer group"
-    >
-      <div className="p-5 pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0 mt-0.5">
-              {deal.letter}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold leading-tight">{deal.name}</h3>
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-accent/30 text-accent">DEMO</Badge>
-              </div>
-              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
-                <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${sts.bg} ${sts.text}`}>
-                  {sts.label}
-                </span>
-                {deal.tags.map((tag) => (
-                  <span key={tag} className="inline-flex px-2 py-0.5 rounded text-[10px] font-medium bg-muted text-muted-foreground">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="text-right shrink-0">
-            <p className="text-xl font-bold font-mono">{fmt(deal.totalValue)}</p>
-            <p className="text-[11px] text-muted-foreground">Total Value</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-5 pb-1">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[11px] text-accent font-medium">Ready to disburse</span>
-          <span className="text-[11px] font-mono font-semibold text-right">
-            {fmt(deal.executedAmount)} ({deal.executedPercent}%)
-          </span>
-        </div>
-        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-          <div className={`h-full rounded-full transition-all ${PROGRESS_BAR_STYLE}`} style={{ width: `${Math.max(deal.executedPercent, 1)}%` }} />
-        </div>
-      </div>
-
-      <div className="px-5 py-3 grid grid-cols-2 gap-x-8 gap-y-2 text-sm">
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Buyer/Borrower</p>
-          <p className="font-medium text-foreground text-sm">{deal.buyerBorrower}</p>
-        </div>
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Sector</p>
-          <p className="font-medium text-foreground text-sm">{deal.sector}</p>
-        </div>
-        <div>
-          <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-0.5">Waterfall Tiers</p>
-          <p className="font-medium text-foreground text-sm">{deal.waterfallTiers} tiers</p>
-        </div>
-      </div>
-
-      <div className="px-5 py-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-4 flex-wrap">
-          <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" />{deal.dealNumber}</span>
-          <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{deal.closingDate}</span>
-          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{deal.partiesCount} parties</span>
-          <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{deal.docsCount} docs</span>
-          <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{deal.capTableCount} cap table</span>
-        </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-      </div>
-    </motion.div>
-  );
-};
-
-// ── Live Deal Card ──
-const LiveDealCard: React.FC<{ deal: RealDeal; summary?: DealSummaryCounts; onClick: () => void }> = ({ deal, summary, onClick }) => {
+// ── Deal Card (unified for both demo and private deals) ──
+const DealCard: React.FC<{
+  deal: RealDeal;
+  summary?: DealSummaryCounts;
+  isDemo: boolean;
+  onView: () => void;
+  onDuplicate: () => void;
+  duplicating: boolean;
+}> = ({ deal, summary, isDemo, onView, onDuplicate, duplicating }) => {
   const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
   const letter = deal.deal_name.charAt(0).toUpperCase();
   const blueprint = deal.template_blueprint as any;
@@ -174,18 +55,22 @@ const LiveDealCard: React.FC<{ deal: RealDeal; summary?: DealSummaryCounts; onCl
   return (
     <motion.div
       {...fadeInUp}
-      onClick={onClick}
-      className="border border-border rounded-xl bg-card hover:shadow-lg transition-all cursor-pointer group"
+      className="border border-border rounded-xl bg-card hover:shadow-lg transition-all group"
     >
-      <div className="p-5 pb-3">
+      <div className="p-5 pb-3 cursor-pointer" onClick={onView}>
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-sm font-bold text-muted-foreground shrink-0 mt-0.5">
               {letter}
             </div>
             <div>
-              <h3 className="text-base font-bold leading-tight">{deal.deal_name}</h3>
-              <div className="flex items-center gap-1.5 mt-1.5">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold leading-tight">{deal.deal_name}</h3>
+                {isDemo && (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-accent/30 text-accent">DEMO</Badge>
+                )}
+              </div>
+              <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                 <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold uppercase ${sts.bg} ${sts.text}`}>
                   {sts.label}
                 </span>
@@ -236,7 +121,30 @@ const LiveDealCard: React.FC<{ deal: RealDeal; summary?: DealSummaryCounts; onCl
           <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} docs</span>
           <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{capTableCount} cap table</span>
         </div>
-        <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+        <div className="flex items-center gap-2">
+          {isDemo && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs h-7"
+              onClick={(e) => { e.stopPropagation(); onDuplicate(); }}
+              disabled={duplicating}
+            >
+              <Copy className="w-3 h-3" />
+              {duplicating ? 'Duplicating...' : 'Duplicate to edit'}
+            </Button>
+          )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className="gap-1 text-xs h-7"
+            onClick={(e) => { e.stopPropagation(); onView(); }}
+          >
+            <Eye className="w-3 h-3" />
+            {isDemo ? 'View' : 'Open'}
+            <ChevronRight className="w-3.5 h-3.5" />
+          </Button>
+        </div>
       </div>
     </motion.div>
   );
@@ -245,43 +153,28 @@ const LiveDealCard: React.FC<{ deal: RealDeal; summary?: DealSummaryCounts; onCl
 // ── Main component ──
 export const DealsCover: React.FC = () => {
   const { setSelectedDealId, setActiveSection } = usePIVTStore();
-  const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries } = useDealOperations();
+  const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries, duplicateDeal } = useDealOperations();
   const { user } = useAuth();
 
-  const [realDeals, setRealDeals] = useState<RealDeal[]>([]);
+  const [allDeals, setAllDeals] = useState<RealDeal[]>([]);
   const [summaries, setSummaries] = useState<Record<string, DealSummaryCounts>>({});
   const [templates, setTemplates] = useState<DealTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', templateId: '' });
-
-  const isDemoUser = user?.email === 'demo@pivt.app';
-  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
     const data = await fetchDeals();
-    // For demo user, separate demo vs live; for normal user all are live
-    if (isDemoUser) {
-      const liveDeals = data.filter(d => d.deal_kind === 'live' || (!d.deal_kind && !d.seed_key));
-      setRealDeals(liveDeals);
-      if (liveDeals.length > 0) {
-        const sums = await fetchDealSummaries(liveDeals.map(d => d.id));
-        setSummaries(sums);
-      }
-    } else {
-      setRealDeals(data);
-      if (data.length === 0) {
-        setShowOnboarding(true);
-      }
-      if (data.length > 0) {
-        const sums = await fetchDealSummaries(data.map(d => d.id));
-        setSummaries(sums);
-      }
+    setAllDeals(data);
+    if (data.length > 0) {
+      const sums = await fetchDealSummaries(data.map(d => d.id));
+      setSummaries(sums);
     }
     setLoading(false);
-  }, [isDemoUser]);
+  }, []);
 
   useEffect(() => {
     loadDeals();
@@ -307,14 +200,29 @@ export const DealsCover: React.FC = () => {
     setCreating(false);
   };
 
+  const handleDuplicate = async (dealId: string) => {
+    setDuplicatingId(dealId);
+    const newDeal = await duplicateDeal(dealId);
+    setDuplicatingId(null);
+    if (newDeal) {
+      setSelectedDealId(newDeal.id);
+      setActiveSection('workspace');
+    }
+  };
+
   const openDeal = (id: string) => {
     setSelectedDealId(id);
     setActiveSection('workspace');
   };
 
-  const sortedDemos = isDemoUser ? [...DEMO_CARDS].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })) : [];
-  const sortedReal = [...realDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
-  const totalDeals = sortedDemos.length + sortedReal.length;
+  // Separate demo deals from user's private deals
+  const demoDeals = allDeals.filter(d => d.is_demo || d.visibility === 'global_demo');
+  const privateDeals = allDeals.filter(d => !d.is_demo && d.visibility !== 'global_demo');
+
+  const sortedPrivate = [...privateDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
+  const sortedDemo = [...demoDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
+  const totalDeals = sortedPrivate.length + sortedDemo.length;
+  const showOnboarding = !loading && privateDeals.length === 0 && demoDeals.length === 0;
 
   return (
     <div className="space-y-6">
@@ -322,7 +230,8 @@ export const DealsCover: React.FC = () => {
         <div>
           <h2 className="text-xl font-semibold">Deals</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalDeals} deal{totalDeals !== 1 ? 's' : ''}{isDemoUser ? ` · ${sortedReal.length} live · ${sortedDemos.length} demo` : ''}
+            {totalDeals} deal{totalDeals !== 1 ? 's' : ''}
+            {sortedDemo.length > 0 ? ` · ${sortedPrivate.length} mine · ${sortedDemo.length} demo` : ''}
           </p>
         </div>
         <button
@@ -338,49 +247,70 @@ export const DealsCover: React.FC = () => {
         <div className="flex justify-center py-20">
           <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : showOnboarding && totalDeals === 0 ? (
+      ) : showOnboarding ? (
         <motion.div {...fadeInUp} className="border border-border rounded-xl bg-card p-10 text-center space-y-6">
           <h3 className="text-lg font-semibold">Welcome to PIVT</h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Get started by creating your first deal, or explore pre-configured demo deals to see how the platform works.
+            Get started by creating your first deal to see how the platform works.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Button
-              onClick={() => { setShowOnboarding(false); setShowCreate(true); }}
+              onClick={() => setShowCreate(true)}
               className="pivt-btn-primary gap-2 px-6 py-3 rounded-xl"
             >
               <Briefcase className="w-4 h-4" />
               Create Your First Deal
             </Button>
-            <Button
-              variant="outline"
-              className="gap-2 px-6 py-3 rounded-xl"
-              onClick={async () => {
-                // Sign out and redirect to login so user can use demo
-                await supabase.auth.signOut();
-                window.location.href = '/login';
-              }}
-            >
-              <Eye className="w-4 h-4" />
-              Explore Demo Deals
-            </Button>
           </div>
-          <p className="text-[11px] text-muted-foreground/60">
-            Demo mode uses a shared account with pre-loaded deal data.
-          </p>
         </motion.div>
       ) : (
-        <div className="grid gap-4">
-          {sortedReal.map((deal) => (
-            <LiveDealCard key={deal.id} deal={deal} summary={summaries[deal.id]} onClick={() => openDeal(deal.id)} />
-          ))}
-          {sortedDemos.map((deal) => (
-            <DemoDealCard key={deal.id} deal={deal} onClick={() => openDeal(deal.id)} />
-          ))}
+        <div className="space-y-6">
+          {/* User's private deals */}
+          {sortedPrivate.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Deals</h3>
+              <div className="grid gap-4">
+                {sortedPrivate.map((deal) => (
+                  <DealCard
+                    key={deal.id}
+                    deal={deal}
+                    summary={summaries[deal.id]}
+                    isDemo={false}
+                    onView={() => openDeal(deal.id)}
+                    onDuplicate={() => {}}
+                    duplicating={false}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Demo deals */}
+          {sortedDemo.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Demo Deals</h3>
+              <p className="text-[11px] text-muted-foreground">
+                These are read-only demo deals. Duplicate one to create your own editable copy.
+              </p>
+              <div className="grid gap-4">
+                {sortedDemo.map((deal) => (
+                  <DealCard
+                    key={deal.id}
+                    deal={deal}
+                    summary={summaries[deal.id]}
+                    isDemo={true}
+                    onView={() => openDeal(deal.id)}
+                    onDuplicate={() => handleDuplicate(deal.id)}
+                    duplicating={duplicatingId === deal.id}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Create Deal Dialog with Template Selector */}
+      {/* Create Deal Dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="max-w-md">
           <DialogHeader>

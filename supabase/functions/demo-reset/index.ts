@@ -19,6 +19,9 @@ const DEMO_DEALS = [
     seed_key: "atlas_demo",
     deal_kind: "demo",
     created_by: DEMO_USER_ID,
+    owner_id: null,
+    visibility: "global_demo",
+    is_demo: true,
   },
   {
     id: "b0000000-0000-0000-0000-000000000002",
@@ -31,6 +34,9 @@ const DEMO_DEALS = [
     seed_key: "beacon_demo",
     deal_kind: "demo",
     created_by: DEMO_USER_ID,
+    owner_id: null,
+    visibility: "global_demo",
+    is_demo: true,
   },
   {
     id: "c0000000-0000-0000-0000-000000000003",
@@ -43,6 +49,9 @@ const DEMO_DEALS = [
     seed_key: "cipher_demo",
     deal_kind: "demo",
     created_by: DEMO_USER_ID,
+    owner_id: null,
+    visibility: "global_demo",
+    is_demo: true,
   },
 ];
 
