@@ -65,9 +65,11 @@ export interface Beneficiary {
 
 export interface DealBasicsData {
   dealName: string;
+  dealType: string;
   buyerLegalName: string;
   sellerLegalName: string;
   transactionValue: string;
+  signingDate: string;
   targetCloseDate: string;
   currency: string;
 }
