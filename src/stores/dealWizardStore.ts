@@ -397,9 +397,11 @@ export const useDealWizardStore = create<DealWizardStore>((set, get) => ({
       },
       dealBasics: {
         dealName: 'Project ATLAS',
+        dealType: 'Private Equity Acquisition',
         buyerLegalName: 'Apex Capital Partners LLC',
         sellerLegalName: 'Northbridge Software Inc.',
         transactionValue: '185,000,000',
+        signingDate: '2026-03-01',
         targetCloseDate: '2026-03-15',
         currency: 'USD',
       },
