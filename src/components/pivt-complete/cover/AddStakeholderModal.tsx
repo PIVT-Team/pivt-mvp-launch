@@ -10,11 +10,11 @@ import { Textarea } from '@/components/ui/textarea';
 type StakeholderType = 'individual' | 'entity';
 
 const ROLE_GROUPS = [
-  { label: 'Transaction Parties', roles: ['Buyer', 'Seller', 'Target'] },
-  { label: 'Advisors', roles: ['Buyer Counsel', 'Seller Counsel'] },
-  { label: 'Execution', roles: ['Escrow Agent'] },
-  { label: 'Individuals', roles: ['Buyer Signatory', 'Seller Signatory'] },
-  { label: 'Ownership', roles: ['Shareholder', 'Investor', 'Founder'] },
+  { label: 'Transaction Parties', roles: ['Buyer', 'Seller', 'Target', 'Merger Sub'] },
+  { label: 'Advisors & Counsel', roles: ['Buyer Counsel', 'Seller Counsel', 'Paying Agent'] },
+  { label: 'Execution & Custody', roles: ['Escrow Agent', 'Lender', 'Administrative Agent'] },
+  { label: 'Representatives & Signatories', roles: ['Buyer Signatory', 'Seller Signatory', 'Seller Representative', 'Target Signatory'] },
+  { label: 'Ownership', roles: ['Shareholder', 'Investor', 'Founder', 'LP', 'Advisor', 'Employee'] },
 ] as const;
 const SHARE_CLASSES = ['Common', 'Preferred A', 'Preferred B', 'Options', 'Warrants', 'Other'] as const;
 
