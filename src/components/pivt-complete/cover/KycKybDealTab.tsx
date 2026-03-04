@@ -364,9 +364,61 @@ const KycOnboardingWizard: React.FC<KycWizardProps> = ({ open, onClose, stakehol
 
 // ── Main KYC / KYB Tab ──
 export const KycKybDealTab: React.FC = () => {
+  const { isDemoDeal } = useDealWorkspace();
   const { stakeholders } = usePIVTStore();
   const [filter, setFilter] = useState<KycFilter>('all');
   const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Non-demo empty state
+  if (!isDemoDeal) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold flex items-center gap-2">
+              <Shield className="w-5 h-5 text-accent" />
+              KYC / KYB
+            </h2>
+            <p className="text-sm text-muted-foreground mt-0.5">Compliance verification operations console for this deal.</p>
+          </div>
+        </div>
+
+        <motion.div {...fadeInUp} className="pivt-card p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-sm font-medium">KYC Completion</span>
+            <span className="font-mono text-sm font-semibold">0%</span>
+          </div>
+          <Progress value={0} className="h-2.5 mb-4" />
+          <div className="grid grid-cols-4 gap-4">
+            {[
+              { label: 'Complete', value: 0, icon: CheckCircle2, color: 'text-validated' },
+              { label: 'Pending', value: 0, icon: Clock, color: 'text-discrepancy' },
+              { label: 'Failed', value: 0, icon: XCircle, color: 'text-blocking' },
+              { label: 'Expiring Soon', value: 0, icon: AlertTriangle, color: 'text-discrepancy' },
+            ].map(stat => (
+              <div key={stat.label} className="flex items-center gap-2">
+                <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                <div>
+                  <p className="text-lg font-semibold">{stat.value}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+            <Shield className="w-6 h-6 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold">KYC not started</h3>
+            <p className="text-sm text-muted-foreground mt-1">Add stakeholders first, then initiate KYC verification for each party.</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   const verified = stakeholders.filter(s => s.kycStatus === 'verified').length;
   const pending = stakeholders.filter(s => s.kycStatus === 'pending').length;
