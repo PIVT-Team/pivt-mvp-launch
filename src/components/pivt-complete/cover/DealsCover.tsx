@@ -184,7 +184,7 @@ export const DealsCover: React.FC = () => {
 
   const [allDeals, setAllDeals] = useState<RealDeal[]>([]);
   const [summaries, setSummaries] = useState<Record<string, DealSummaryCounts>>({});
-  const [templates, setTemplates] = useState<DealTemplate[]>([]);
+  const [_templates, setTemplates] = useState<DealTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
