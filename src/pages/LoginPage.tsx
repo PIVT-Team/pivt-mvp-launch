@@ -78,11 +78,7 @@ const LoginPage: React.FC = () => {
         className="w-full max-w-sm"
       >
         <div className="flex flex-col items-center mb-8">
-          <img src={pivtLogo} alt="PIVT" className="h-16 w-auto mb-3" />
-          <h1 className="text-xl font-semibold text-foreground" style={{ letterSpacing: '-0.03em' }}>
-            PIVT
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">The intelligence layer behind every close</p>
+          <img src={pivtLogo} alt="PIVT" className="h-16 w-auto" />
         </div>
 
         <div className="pivt-card p-6 space-y-5">
