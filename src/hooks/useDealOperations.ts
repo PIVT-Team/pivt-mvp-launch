@@ -80,8 +80,11 @@ export function useDealOperations() {
         is_demo: false,
         buyer: params.buyer || null,
         seller: params.seller || null,
+        target_company: params.target_company || null,
         sector: params.sector || null,
         deal_type: params.deal_type || null,
+        currency: params.currency || 'USD',
+        jurisdiction: params.jurisdiction || null,
       } as any)
       .select()
       .single();

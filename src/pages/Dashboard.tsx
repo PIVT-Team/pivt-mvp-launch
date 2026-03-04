@@ -99,6 +99,19 @@ export default function Dashboard() {
                     <span className="font-mono text-accent/80">{(deal as any).deal_number}</span>
                     {" • "}{cfg.label} • Closing {deal.closing_date || "TBD"}
                   </p>
+                  {((deal as any).buyer || (deal as any).seller || (deal as any).target_company) && (
+                    <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                      {(deal as any).buyer && <>Buyer: {(deal as any).buyer}</>}
+                      {(deal as any).seller && <>{(deal as any).buyer ? ' · ' : ''}Seller: {(deal as any).seller}</>}
+                      {(deal as any).target_company && <> · Target: {(deal as any).target_company}</>}
+                    </p>
+                  )}
+                  {((deal as any).sector || (deal as any).jurisdiction) && (
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {(deal as any).sector && <>Sector: {(deal as any).sector}</>}
+                      {(deal as any).jurisdiction && <>{(deal as any).sector ? ' · ' : ''}Jurisdiction: {(deal as any).jurisdiction}</>}
+                    </p>
+                  )}
                 </div>
                 <p className="font-mono text-sm font-medium">{formatCurrency(Number(deal.deal_value))}</p>
                 <ArrowRight className="w-4 h-4 text-muted-foreground group-hover:text-accent transition-colors" />
