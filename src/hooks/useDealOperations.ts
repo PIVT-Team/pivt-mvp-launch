@@ -68,8 +68,9 @@ export function useDealOperations() {
       deal_id: data.id,
     });
 
-    // Apply template: copy conditions from template deal
+    // Apply template: copy conditions + store blueprint metadata
     if (params.templateId) {
+      // Copy closing conditions
       const { data: templateConditions } = await supabase
         .from("conditions")
         .select("title")
@@ -82,6 +83,20 @@ export function useDealOperations() {
           status: "NOT_STARTED" as any,
         }));
         await supabase.from("conditions").insert(conditionRows as any);
+      }
+
+      // Copy blueprint metadata (role slots, compliance checks, doc categories, approvals)
+      const { data: templateDeal } = await (supabase
+        .from("deals")
+        .select("template_blueprint") as any)
+        .eq("id", params.templateId)
+        .single();
+
+      if (templateDeal?.template_blueprint) {
+        await (supabase
+          .from("deals")
+          .update({ template_blueprint: templateDeal.template_blueprint } as any) as any)
+          .eq("id", data.id);
       }
     }
 
