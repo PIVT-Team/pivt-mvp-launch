@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LogIn, AlertCircle, UserPlus, Eye } from 'lucide-react';
+import { LogIn, AlertCircle, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -9,9 +9,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import pivtLogo from '@/assets/pivt-logo.png';
-
-const DEMO_EMAIL = 'demo@pivt.app';
-const DEMO_PASSWORD = 'Pivt2026!';
 
 const LoginPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
