@@ -630,10 +630,10 @@ export const DealWorkspaceCover: React.FC = () => {
   };
 
   const progressData: DealProgressData = useMemo(() => {
-    if (isDemoDeal) return DEMO_PROGRESS[demoDeal.id] || DEMO_PROGRESS.atlas;
+    if (isDemoDeal) return DEMO_PROGRESS[demoDealSeedKey || ''] || DEMO_PROGRESS.atlas;
     const s = dealSummary;
     return {
-      stakeholdersAdded: s ? (s.documentsCount > 0 ? 1 : 0) : 0, // proxy: at least creator
+      stakeholdersAdded: s ? (s.documentsCount > 0 ? 1 : 0) : 0,
       stakeholdersRequired: 1,
       compliancePassed: s?.conditionsSatisfied || 0,
       complianceTotal: s?.conditionsTotal || 0,
@@ -649,7 +649,7 @@ export const DealWorkspaceCover: React.FC = () => {
       paymentsTotal: s?.paymentsTotal || 0,
       paymentsFailed: false,
     };
-  }, [isDemoDeal, demoDeal.id, dealSummary]);
+  }, [isDemoDeal, demoDealSeedKey, dealSummary]);
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
     if (isDemoDeal) {
