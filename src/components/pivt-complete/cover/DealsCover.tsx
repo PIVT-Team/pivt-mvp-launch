@@ -468,13 +468,9 @@ export const DealsCover: React.FC = () => {
                     <Select value={form.deal_type} onValueChange={(v) => setForm({ ...form, deal_type: v })}>
                       <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Private Company Share Purchase">Private Company Share Purchase</SelectItem>
-                        <SelectItem value="Asset Acquisition">Asset Acquisition</SelectItem>
-                        <SelectItem value="Merger">Merger</SelectItem>
-                        <SelectItem value="Leveraged Buyout">Leveraged Buyout</SelectItem>
-                        <SelectItem value="Growth Equity">Growth Equity</SelectItem>
-                        <SelectItem value="Venture Investment">Venture Investment</SelectItem>
-                        <SelectItem value="Other">Other</SelectItem>
+                        {DEAL_TYPES.map(dt => (
+                          <SelectItem key={dt} value={dt}>{dt}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
