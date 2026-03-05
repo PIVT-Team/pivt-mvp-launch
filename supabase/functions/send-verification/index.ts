@@ -149,7 +149,7 @@ Deno.serve(async (req) => {
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) return fail("Email provider not configured: missing RESEND_API_KEY");
 
-    const siteUrl = Deno.env.get("SITE_URL") || `https://id-preview--7a07f5f2-4b1d-47b9-b6b9-ed69164d12f6.lovable.app`;
+    const siteUrl = Deno.env.get("SITE_URL") || `https://pivt.tools`;
     const verifyUrl = `${siteUrl}/verify?token=${rawToken}`;
     const logoUrl = `https://hipjywloeveadfndzary.supabase.co/storage/v1/object/public/email-assets/pivt-logo.png`;
 
