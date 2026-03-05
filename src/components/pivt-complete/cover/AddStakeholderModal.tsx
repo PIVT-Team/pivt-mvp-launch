@@ -142,11 +142,16 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     }
 
     // Real deal: insert into cap_table_entries
+    if (!dealId) {
+      toast.error('Deal not loaded yet. Please try again.');
+      return;
+    }
+
     setSaving(true);
     const { data, error } = await supabase
       .from('cap_table_entries')
       .insert({
-        deal_id: dealId!,
+        deal_id: dealId,
         shareholder_name: name.trim(),
         ownership_pct: ownershipNum,
         payout_amount: 0,
@@ -155,13 +160,19 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
         net_payout: 0,
       })
       .select()
-      .single();
+      .maybeSingle();
 
     setSaving(false);
 
     if (error) {
-      console.error('Stakeholder insert failed', error);
-      toast.error('Failed to add stakeholder. Please try again.');
+      console.error('Stakeholder insert failed:', error.message, error.details, error.hint, { dealId });
+      toast.error(`Failed to add stakeholder: ${error.message}`);
+      return;
+    }
+
+    if (!data) {
+      console.error('Stakeholder insert returned no data', { dealId });
+      toast.error('Stakeholder was not created. You may not have write access to this deal.');
       return;
     }
 
