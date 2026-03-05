@@ -677,7 +677,7 @@ export const DealWorkspaceCover: React.FC = () => {
   }, [isDemoDeal, demoDealSeedKey, dealSummary]);
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
-    if (isDemoDeal) {
+    if (isDemoDeal && !isRealDeal) {
       // Static workflow for demo deals
       const DEMO_STEPS: Record<string, WorkflowStep[]> = {
         atlas: [
