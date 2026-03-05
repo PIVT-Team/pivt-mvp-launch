@@ -123,7 +123,7 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       Math.round((paysConfirmed / pays.length) * 100);
 
     // ── Compliance (conditions + approvals)
-    const condsMet = conds.filter(c => c.status === 'MET' || c.status === 'SATISFIED' || c.status === 'WAIVED').length;
+    const condsMet = conds.filter(c => c.status === 'SATISFIED' || c.status === 'WAIVED').length;
     const appsApproved = apps.filter(a => a.status === 'approved').length;
     const compTotal = conds.length + apps.length;
     const compDone = condsMet + appsApproved;
