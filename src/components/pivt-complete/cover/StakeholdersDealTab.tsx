@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp } from '@/lib/animations';
-import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck, Eye, AlertTriangle, FileSearch, Mail } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck, Eye, AlertTriangle, FileSearch, Mail, Pencil, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AddStakeholderModal } from './AddStakeholderModal';
+import { EditStakeholderModal } from './EditStakeholderModal';
 import { useEditGuard } from '@/hooks/useEditGuard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,21 +36,22 @@ interface DbStakeholder {
 }
 
 const STATUS_CHIP: Record<string, { label: string; className: string }> = {
-  not_sent: { label: 'Not requested', className: 'bg-muted text-muted-foreground' },
-  not_requested: { label: 'Not requested', className: 'bg-muted text-muted-foreground' },
-  pending: { label: 'Pending', className: 'bg-muted text-muted-foreground' },
-  sent: { label: 'Email sent', className: 'bg-blue-500/10 text-blue-500' },
-  in_progress: { label: 'In progress', className: 'bg-yellow-500/10 text-yellow-600' },
-  submitted: { label: 'Submitted', className: 'bg-accent/10 text-accent' },
-  verified: { label: 'Verified', className: 'bg-validated/10 text-validated' },
-  failed: { label: 'Failed', className: 'bg-destructive/10 text-destructive' },
-  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground' },
+  not_sent: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border' },
+  not_requested: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border' },
+  pending: { label: 'Pending', className: 'bg-muted text-muted-foreground border-border' },
+  sent: { label: 'Email Sent', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
+  in_progress: { label: 'In Progress', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
+  submitted: { label: 'Submitted', className: 'bg-accent/10 text-accent border-accent/20' },
+  verified: { label: 'Verified', className: 'bg-validated/10 text-validated border-validated/20' },
+  failed: { label: 'Failed', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground border-border' },
 };
 
 export const StakeholdersDealTab: React.FC = () => {
   const { isDemoDeal, dealId } = useDealWorkspace();
   const { stakeholders: demoStakeholders } = usePIVTStore();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingStakeholder, setEditingStakeholder] = useState<DbStakeholder | null>(null);
   const { isProtected, guardEdit } = useEditGuard();
   const [dbStakeholders, setDbStakeholders] = useState<DbStakeholder[]>([]);
   const [loading, setLoading] = useState(!isDemoDeal);
@@ -112,7 +114,6 @@ export const StakeholdersDealTab: React.FC = () => {
   };
 
   const copyVerificationLink = async (stakeholderId: string) => {
-    // Query latest verification request for this stakeholder
     const { data } = await supabase
       .from('verification_requests')
       .select('id')
@@ -126,12 +127,10 @@ export const StakeholdersDealTab: React.FC = () => {
       toast.info('No active verification request. Send a verification email first.');
       return;
     }
-    // We can't reconstruct the raw token (it's hashed). Inform user.
     toast.info('Verification links are unique per email send. Use "Send Verification" to email a new link.');
   };
 
   const markVerified = async (stakeholderId: string) => {
-    // Find the latest verification request
     const { data: reqs } = await supabase
       .from('verification_requests')
       .select('id')
@@ -145,7 +144,6 @@ export const StakeholdersDealTab: React.FC = () => {
         body: { request_id: reqs[0].id, verified: true, notes: 'Manually verified by admin' },
       });
     } else {
-      // No verification request — just update cap_table directly
       await supabase
         .from('cap_table_entries')
         .update({ verification_status: 'verified' } as any)
@@ -180,6 +178,19 @@ export const StakeholdersDealTab: React.FC = () => {
     await fetchStakeholders();
   };
 
+  const deleteStakeholder = async (stakeholderId: string) => {
+    const { error } = await supabase
+      .from('cap_table_entries')
+      .delete()
+      .eq('id', stakeholderId);
+    if (error) {
+      toast.error(`Failed to remove stakeholder: ${error.message}`);
+    } else {
+      toast.success('Stakeholder removed');
+      await fetchStakeholders();
+    }
+  };
+
   useEffect(() => {
     fetchStakeholders();
   }, [isDemoDeal, dealId]);
@@ -190,12 +201,21 @@ export const StakeholdersDealTab: React.FC = () => {
 
   const verificationBadge = (status: string) => {
     const cfg = STATUS_CHIP[status] || STATUS_CHIP.not_sent;
-    return <Badge className={`${cfg.className} text-[10px]`}>{cfg.label}</Badge>;
+    return <Badge variant="outline" className={`${cfg.className} text-[10px] whitespace-nowrap`}>{cfg.label}</Badge>;
   };
 
   const getPrimaryAction = (s: DbStakeholder) => {
     const isSending = sendingId === s.id;
     const status = s.verification_status;
+
+    if (status === 'verified') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-validated whitespace-nowrap">
+          <CheckCircle2 className="w-3 h-3" />
+          Verified
+        </span>
+      );
+    }
 
     if (status === 'not_sent' || status === 'not_requested') {
       return (
@@ -205,13 +225,13 @@ export const StakeholdersDealTab: React.FC = () => {
               <button
                 onClick={() => sendVerification(s.id)}
                 disabled={isSending || !s.email}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 <Mail className="w-3 h-3" />
-                {isSending ? 'Sending…' : 'Send KYB/KYC Verification Email'}
+                {isSending ? 'Sending…' : 'Send Verification'}
               </button>
             </TooltipTrigger>
-            <TooltipContent>Sends a verification request to the stakeholder to complete KYB/KYC checks</TooltipContent>
+            <TooltipContent>Send KYB/KYC verification email to this stakeholder</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       );
@@ -225,13 +245,13 @@ export const StakeholdersDealTab: React.FC = () => {
               <button
                 onClick={() => resendVerification(s.id)}
                 disabled={isSending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 <RotateCw className="w-3 h-3" />
-                {isSending ? 'Sending…' : 'Resend Verification Email'}
+                {isSending ? 'Sending…' : 'Resend'}
               </button>
             </TooltipTrigger>
-            <TooltipContent>Resends the KYB/KYC verification request email</TooltipContent>
+            <TooltipContent>Resend KYB/KYC verification email</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       );
@@ -239,19 +259,10 @@ export const StakeholdersDealTab: React.FC = () => {
 
     if (status === 'submitted') {
       return (
-        <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors">
+        <button className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-accent/10 text-accent text-xs font-medium hover:bg-accent/20 transition-colors whitespace-nowrap">
           <FileSearch className="w-3 h-3" />
           Review
         </button>
-      );
-    }
-
-    if (status === 'verified') {
-      return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-validated">
-          <CheckCircle2 className="w-3 h-3" />
-          Verified ✓
-        </span>
       );
     }
 
@@ -263,10 +274,10 @@ export const StakeholdersDealTab: React.FC = () => {
               <button
                 onClick={() => resendVerification(s.id)}
                 disabled={isSending || !s.email}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50 whitespace-nowrap"
               >
                 <RotateCw className="w-3 h-3" />
-                Resend Verification Email
+                Resend
               </button>
             </TooltipTrigger>
             <TooltipContent>Previous verification expired or failed — resend to try again</TooltipContent>
@@ -373,88 +384,109 @@ export const StakeholdersDealTab: React.FC = () => {
           ))}
         </div>
 
+        {/* Table */}
         <div className="pivt-card overflow-hidden">
-          <div className="p-4 border-b border-border bg-muted/50">
-            <div className="grid grid-cols-9 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              <span className="col-span-2">Stakeholder</span>
-              <span>Role</span>
-              <span className="text-right">Ownership %</span>
-              <span className="text-right">Payout</span>
-              <span className="text-center">Verification</span>
-              <span className="text-center">Action</span>
-              <span className="text-right">Net Payout</span>
-              <span className="text-center"></span>
-            </div>
-          </div>
-          {dbStakeholders.map((s) => (
-            <motion.div key={s.id} {...fadeInUp} className="p-4 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-              <div className="grid grid-cols-9 items-center">
-                <div className="col-span-2">
-                  <p className="font-medium text-sm">{s.shareholder_name}</p>
-                  {s.email && <p className="text-xs text-muted-foreground">{s.email}</p>}
-                </div>
-                <span className="text-sm text-muted-foreground">{s.role}</span>
-                <span className="text-right font-mono text-sm">{s.ownership_pct}%</span>
-                <span className="text-right font-mono text-sm">${(s.payout_amount / 1e6).toFixed(1)}M</span>
-                <div className="flex justify-center">{verificationBadge(s.verification_status)}</div>
-                <div className="flex justify-center">{getPrimaryAction(s)}</div>
-                <span className="text-right font-mono text-sm text-validated">${((s.net_payout || 0) / 1e6).toFixed(1)}M</span>
-                <div className="flex justify-center">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
-                        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="z-[70]">
-                      {(s.verification_status === 'not_sent' || s.verification_status === 'not_requested') && (
-                        <DropdownMenuItem onClick={() => sendVerification(s.id)} className="gap-2" disabled={!s.email}>
-                          <Mail className="w-3.5 h-3.5" />
-                          Send KYB/KYC Verification Email
-                        </DropdownMenuItem>
-                      )}
-                      {['sent', 'in_progress', 'pending', 'failed', 'expired'].includes(s.verification_status) && (
-                        <DropdownMenuItem onClick={() => resendVerification(s.id)} className="gap-2" disabled={!s.email}>
-                          <RotateCw className="w-3.5 h-3.5" />
-                          Resend Verification Email
-                        </DropdownMenuItem>
-                      )}
-                      <DropdownMenuItem onClick={() => copyVerificationLink(s.id)} className="gap-2">
-                        <Copy className="w-3.5 h-3.5" />
-                        Copy Verification Link
-                      </DropdownMenuItem>
-                      {s.verification_status === 'submitted' && (
-                        <DropdownMenuItem className="gap-2">
-                          <FileSearch className="w-3.5 h-3.5" />
-                          View Submission
-                        </DropdownMenuItem>
-                      )}
-                      {isAdmin && (
-                        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3 w-[28%]">Stakeholder</th>
+                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[12%]">Role</th>
+                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Ownership</th>
+                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Payout</th>
+                  <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[14%]">Verification</th>
+                  <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[14%]">Action</th>
+                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Net Payout</th>
+                  <th className="w-[2%] px-2 py-3"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {dbStakeholders.map((s) => (
+                  <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-4">
+                      <p className="font-medium text-sm truncate">{s.shareholder_name}</p>
+                      {s.email && <p className="text-xs text-muted-foreground truncate mt-0.5">{s.email}</p>}
+                    </td>
+                    <td className="px-3 py-4 text-sm text-muted-foreground whitespace-nowrap">{s.role}</td>
+                    <td className="px-3 py-4 text-right font-mono text-sm whitespace-nowrap">{s.ownership_pct}%</td>
+                    <td className="px-3 py-4 text-right font-mono text-sm whitespace-nowrap">${(s.payout_amount / 1e6).toFixed(1)}M</td>
+                    <td className="px-3 py-4 text-center">{verificationBadge(s.verification_status)}</td>
+                    <td className="px-3 py-4 text-center">{getPrimaryAction(s)}</td>
+                    <td className="px-3 py-4 text-right font-mono text-sm text-validated whitespace-nowrap">${((s.net_payout || 0) / 1e6).toFixed(1)}M</td>
+                    <td className="px-2 py-4">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                            <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="z-[70]">
+                          <DropdownMenuItem onClick={() => setEditingStakeholder(s)} className="gap-2">
+                            <Pencil className="w-3.5 h-3.5" />
+                            Edit Stakeholder
+                          </DropdownMenuItem>
+                          {(s.verification_status === 'not_sent' || s.verification_status === 'not_requested') && (
+                            <DropdownMenuItem onClick={() => sendVerification(s.id)} className="gap-2" disabled={!s.email}>
+                              <Mail className="w-3.5 h-3.5" />
+                              Send Verification
+                            </DropdownMenuItem>
+                          )}
+                          {['sent', 'in_progress', 'pending', 'failed', 'expired'].includes(s.verification_status) && (
+                            <DropdownMenuItem onClick={() => resendVerification(s.id)} className="gap-2" disabled={!s.email}>
+                              <RotateCw className="w-3.5 h-3.5" />
+                              Resend Verification
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem onClick={() => copyVerificationLink(s.id)} className="gap-2">
+                            <Copy className="w-3.5 h-3.5" />
+                            Copy Verification Link
+                          </DropdownMenuItem>
+                          {s.verification_status === 'submitted' && (
+                            <DropdownMenuItem className="gap-2">
+                              <FileSearch className="w-3.5 h-3.5" />
+                              View Submission
+                            </DropdownMenuItem>
+                          )}
+                          {isAdmin && (
+                            <>
+                              <DropdownMenuSeparator />
+                              {s.verification_status !== 'verified' && (
+                                <DropdownMenuItem onClick={() => markVerified(s.id)} className="gap-2">
+                                  <BadgeCheck className="w-3.5 h-3.5" />
+                                  Mark Verified (Admin)
+                                </DropdownMenuItem>
+                              )}
+                              {s.verification_status !== 'failed' && (
+                                <DropdownMenuItem onClick={() => markFailed(s.id)} className="gap-2 text-destructive">
+                                  <XCircle className="w-3.5 h-3.5" />
+                                  Mark Failed (Admin)
+                                </DropdownMenuItem>
+                              )}
+                            </>
+                          )}
                           <DropdownMenuSeparator />
-                          {s.verification_status !== 'verified' && (
-                            <DropdownMenuItem onClick={() => markVerified(s.id)} className="gap-2">
-                              <BadgeCheck className="w-3.5 h-3.5" />
-                              Mark Verified (Admin)
-                            </DropdownMenuItem>
-                          )}
-                          {s.verification_status !== 'failed' && (
-                            <DropdownMenuItem onClick={() => markFailed(s.id)} className="gap-2 text-destructive">
-                              <XCircle className="w-3.5 h-3.5" />
-                              Mark Failed (Admin)
-                            </DropdownMenuItem>
-                          )}
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+                          <DropdownMenuItem onClick={() => deleteStakeholder(s.id)} className="gap-2 text-destructive">
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Remove Stakeholder
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <AddStakeholderModal open={modalOpen} onClose={() => setModalOpen(false)} dealId={dealId} isDemoDeal={false} onAdded={fetchStakeholders} />
+        <EditStakeholderModal
+          open={!!editingStakeholder}
+          onClose={() => setEditingStakeholder(null)}
+          stakeholder={editingStakeholder}
+          dealId={dealId}
+          onUpdated={fetchStakeholders}
+        />
       </div>
     );
   }
