@@ -103,8 +103,12 @@ const STATE_GATES: Partial<Record<DealState, GateDefinition[]>> = {
   draft: [
     {
       key: 'has_stakeholders',
-      label: 'Stakeholders added',
-      check: (ctx) => ctx.stakeholders.length >= 2,
+      label: 'Stakeholders configured',
+      check: (ctx) => {
+        const hasSeller = ctx.stakeholders.some(s => SELLER_ROLES.includes(s.role));
+        const hasBuyer = ctx.stakeholders.some(s => BUYER_ROLES.includes(s.role));
+        return hasSeller && hasBuyer;
+      },
       detail: (ctx) => `${ctx.stakeholders.length} stakeholders`,
     },
   ],
@@ -173,6 +177,18 @@ const STATE_GATES: Partial<Record<DealState, GateDefinition[]>> = {
           const s = (p.status as string).toUpperCase();
           return s === 'CONFIRMED' || s === 'APPROVED';
         });
+      },
+    },
+    {
+      key: 'approvals_complete',
+      label: 'All approvals granted',
+      check: (ctx) => {
+        if (ctx.approvals.length === 0) return true;
+        return ctx.approvals.every(a => a.status === 'approved');
+      },
+      detail: (ctx) => {
+        const granted = ctx.approvals.filter(a => a.status === 'approved').length;
+        return `${granted}/${ctx.approvals.length} approvals`;
       },
     },
   ],

@@ -11,6 +11,7 @@ import {
   Shield, Search, FolderOpen, Send, Link2, RefreshCw,
   MessageSquare, X,
 } from 'lucide-react';
+import { dealStateMachineService } from '@/services/dealStateMachineService';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -290,6 +291,15 @@ export const DocumentsCover: React.FC = () => {
       });
 
       toast.success(`"${file.name}" uploaded and classified`);
+
+      // Trigger state machine event
+      if (selectedDealId) {
+        dealStateMachineService.applyEvent(selectedDealId, 'DOCUMENT_UPLOADED', {
+          documentId: inserted.id,
+          fileName: file.name,
+        }).catch(console.error);
+      }
+
       loadDocuments(); // Refresh from DB
     } catch (err: any) {
       console.error('Upload error:', err);

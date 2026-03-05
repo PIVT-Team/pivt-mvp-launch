@@ -1,7 +1,8 @@
 import React from 'react';
-import { Shield, FileText, Users, CreditCard, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Shield, FileText, Users, CreditCard, CheckCircle2, AlertTriangle, ArrowRight, ClipboardCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { useClosingReadiness, ClosingReadinessResult } from '@/hooks/useClosingReadiness';
 
 interface PillarScore {
   label: string;
@@ -13,15 +14,6 @@ interface PillarScore {
 interface NextStep {
   label: string;
   severity: 'blocker' | 'warning';
-}
-
-interface ClosingReadinessProps {
-  documents?: { uploaded: number; required: number };
-  approvals?: { approved: number; required: number };
-  compliance?: { passed: number; total: number };
-  payments?: { ready: number; total: number };
-  nextSteps?: NextStep[];
-  onNavigate?: (section: string) => void;
 }
 
 const getScoreColor = (score: number) => {
@@ -42,57 +34,71 @@ const getOverallBg = (score: number) => {
   return 'border-red-500/20 bg-red-500/5';
 };
 
-// Demo data for the Nimbus deal
-const DEMO_DOCUMENTS = { uploaded: 5, required: 8 };
-const DEMO_APPROVALS = { approved: 5, required: 7 };
-const DEMO_COMPLIANCE = { passed: 7, total: 10 };
-const DEMO_PAYMENTS = { ready: 3, total: 4 };
+function deriveNextSteps(r: ClosingReadinessResult): NextStep[] {
+  const steps: NextStep[] = [];
+  if (!r.stakeholdersConfigured) steps.push({ label: 'Add buyer and seller stakeholders', severity: 'blocker' });
+  if (!r.sellerVerified) steps.push({ label: 'Complete seller-side verification', severity: 'blocker' });
+  if (!r.buyerVerified) steps.push({ label: 'Complete buyer-side verification', severity: 'blocker' });
+  if (!r.spaUploaded) steps.push({ label: 'Upload SPA / Purchase Agreement', severity: 'blocker' });
+  if (!r.wireInstructionsUploaded) steps.push({ label: 'Upload wire instructions', severity: 'blocker' });
+  if (!r.paymentApproved) steps.push({ label: 'Approve all payment instructions', severity: 'warning' });
+  if (!r.approvalsComplete) steps.push({ label: 'Complete required approvals', severity: 'warning' });
+  return steps;
+}
 
-const DEMO_NEXT_STEPS: NextStep[] = [
-  { label: 'Upload Seller W-9', severity: 'blocker' },
-  { label: 'Complete sanctions screening for Buyer', severity: 'blocker' },
-  { label: 'Approve disbursement for escrow agent', severity: 'warning' },
-  { label: 'Upload Escrow Agreement', severity: 'blocker' },
-];
+interface ClosingReadinessPanelProps {
+  dealId?: string;
+}
 
-export const ClosingReadinessPanel: React.FC<ClosingReadinessProps> = ({
-  documents = DEMO_DOCUMENTS,
-  approvals = DEMO_APPROVALS,
-  compliance = DEMO_COMPLIANCE,
-  payments = DEMO_PAYMENTS,
-  nextSteps = DEMO_NEXT_STEPS,
-  onNavigate,
-}) => {
-  const calcPct = (num: number, den: number) => den > 0 ? Math.round((num / den) * 100) : 0;
+export const ClosingReadinessPanel: React.FC<ClosingReadinessPanelProps> = ({ dealId }) => {
+  const readiness = useClosingReadiness(dealId);
+
+  if (readiness.loading) {
+    return (
+      <div className="pivt-card border border-border/50 p-5 flex items-center justify-center h-32">
+        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const stakeholderScore = readiness.stakeholdersTotal > 0
+    ? Math.round((readiness.stakeholdersVerified / readiness.stakeholdersTotal) * 100) : 0;
+  const docScore = readiness.spaUploaded && readiness.wireInstructionsUploaded ? 100
+    : readiness.spaUploaded || readiness.wireInstructionsUploaded ? 50 : 0;
+  const approvalScore = readiness.approvalsTotal > 0
+    ? Math.round((readiness.approvalsGranted / readiness.approvalsTotal) * 100) : 0;
+  const paymentScore = readiness.paymentsTotal > 0
+    ? Math.round((readiness.paymentsConfigured / readiness.paymentsTotal) * 100) : 0;
 
   const pillars: PillarScore[] = [
     {
+      label: 'Stakeholders',
+      icon: Users,
+      score: readiness.stakeholdersConfigured ? Math.max(stakeholderScore, 25) : 0,
+      detail: `${readiness.stakeholdersVerified}/${readiness.stakeholdersTotal}`,
+    },
+    {
       label: 'Documents',
       icon: FileText,
-      score: calcPct(documents.uploaded, documents.required),
-      detail: `${documents.uploaded}/${documents.required}`,
+      score: docScore,
+      detail: `${readiness.documentsUploaded} uploaded`,
     },
     {
       label: 'Approvals',
-      icon: Users,
-      score: calcPct(approvals.approved, approvals.required),
-      detail: `${approvals.approved}/${approvals.required}`,
-    },
-    {
-      label: 'Compliance',
-      icon: Shield,
-      score: calcPct(compliance.passed, compliance.total),
-      detail: `${compliance.passed}/${compliance.total}`,
+      icon: ClipboardCheck,
+      score: approvalScore,
+      detail: `${readiness.approvalsGranted}/${readiness.approvalsTotal}`,
     },
     {
       label: 'Payments',
       icon: CreditCard,
-      score: calcPct(payments.ready, payments.total),
-      detail: `${payments.ready}/${payments.total}`,
+      score: paymentScore,
+      detail: `${readiness.paymentsConfigured}/${readiness.paymentsTotal}`,
     },
   ];
 
   const overallScore = Math.round(pillars.reduce((s, p) => s + p.score, 0) / pillars.length);
+  const nextSteps = deriveNextSteps(readiness);
 
   return (
     <div className="pivt-card border border-border/50 p-5 space-y-5">
@@ -104,7 +110,7 @@ export const ClosingReadinessPanel: React.FC<ClosingReadinessProps> = ({
         </div>
         <div className="flex items-center gap-3">
           <Badge className={`text-xs font-mono ${getOverallBg(overallScore)}`}>
-            {overallScore >= 80 ? 'Ready' : overallScore >= 50 ? 'In Progress' : 'Blocked'}
+            {readiness.readyToClose ? 'Ready' : overallScore >= 50 ? 'In Progress' : 'Blocked'}
           </Badge>
           <span className={`text-2xl font-bold font-mono ${getScoreColor(overallScore)}`}>
             {overallScore}%
@@ -150,16 +156,20 @@ export const ClosingReadinessPanel: React.FC<ClosingReadinessProps> = ({
                     : 'bg-amber-500/5 border border-amber-500/15'
                 }`}
               >
-                {step.severity === 'blocker' ? (
-                  <AlertTriangle className="w-3 h-3 text-red-500 shrink-0" />
-                ) : (
-                  <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
-                )}
+                <AlertTriangle className={`w-3 h-3 shrink-0 ${
+                  step.severity === 'blocker' ? 'text-red-500' : 'text-amber-500'
+                }`} />
                 <span className="flex-1">{step.label}</span>
                 <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {readiness.readyToClose && (
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3 text-center">
+          <p className="text-xs font-medium text-emerald-600">All gates clear — ready for execution</p>
         </div>
       )}
     </div>

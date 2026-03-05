@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   CheckCircle2, Circle, Lock, Shield, FileText, CreditCard, Users,
-  AlertTriangle, Rocket,
+  AlertTriangle, Rocket, ClipboardCheck,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Textarea } from '@/components/ui/textarea';
 import { useClosingReadiness } from '@/hooks/useClosingReadiness';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { dealStateMachineService } from '@/services/dealStateMachineService';
 import { fadeInUp } from '@/lib/animations';
 import { toast } from 'sonner';
 
@@ -20,16 +21,25 @@ interface GateItem {
   description: string;
   icon: React.ElementType;
   passed: boolean;
+  detail?: string;
 }
 
 export const ClosingCenterCover: React.FC = () => {
-  const { dealId } = useDealWorkspace();
+  const { dealId, realDeal } = useDealWorkspace();
   const readiness = useClosingReadiness(dealId || undefined);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmNotes, setConfirmNotes] = useState('');
   const [executing, setExecuting] = useState(false);
 
   const gates: GateItem[] = [
+    {
+      id: 'stakeholders-configured',
+      label: 'Stakeholders Configured',
+      description: 'At least one buyer and one seller have been added to the deal',
+      icon: Users,
+      passed: readiness.stakeholdersConfigured,
+      detail: `${readiness.stakeholdersTotal} stakeholders`,
+    },
     {
       id: 'seller-verified',
       label: 'Seller Verified',
@@ -50,6 +60,7 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'Primary transaction agreement has been uploaded and processed',
       icon: FileText,
       passed: readiness.spaUploaded,
+      detail: `${readiness.documentsUploaded} documents`,
     },
     {
       id: 'wire-uploaded',
@@ -64,6 +75,15 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'All payment instructions have been confirmed and authorized',
       icon: CreditCard,
       passed: readiness.paymentApproved,
+      detail: readiness.paymentsTotal > 0 ? `${readiness.paymentsConfigured}/${readiness.paymentsTotal}` : undefined,
+    },
+    {
+      id: 'approvals-complete',
+      label: 'Approvals Complete',
+      description: 'All required approvals from buyer and seller counsel have been granted',
+      icon: ClipboardCheck,
+      passed: readiness.approvalsComplete,
+      detail: readiness.approvalsTotal > 0 ? `${readiness.approvalsGranted}/${readiness.approvalsTotal}` : undefined,
     },
   ];
 
@@ -71,12 +91,21 @@ export const ClosingCenterCover: React.FC = () => {
   const progressPct = Math.round((passedCount / gates.length) * 100);
 
   const handleExecute = async () => {
+    if (!dealId) return;
     setExecuting(true);
-    await new Promise(r => setTimeout(r, 1500));
-    toast.success('Closing execution initiated successfully');
-    setExecuting(false);
-    setConfirmOpen(false);
-    setConfirmNotes('');
+    try {
+      await dealStateMachineService.applyEvent(dealId, 'EXECUTION_STARTED', {
+        notes: confirmNotes,
+        triggered_at: new Date().toISOString(),
+      });
+      toast.success('Closing execution initiated successfully');
+    } catch (err) {
+      toast.error('Failed to initiate closing execution');
+    } finally {
+      setExecuting(false);
+      setConfirmOpen(false);
+      setConfirmNotes('');
+    }
   };
 
   if (readiness.loading) {
@@ -153,6 +182,9 @@ export const ClosingCenterCover: React.FC = () => {
                     <span className={`text-sm font-medium ${gate.passed ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {gate.label}
                     </span>
+                    {gate.detail && (
+                      <span className="text-[10px] text-muted-foreground font-mono">{gate.detail}</span>
+                    )}
                     <Badge className={`text-[9px] ml-auto ${
                       gate.passed
                         ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
@@ -192,7 +224,7 @@ export const ClosingCenterCover: React.FC = () => {
               <p className="text-xs text-muted-foreground mt-1">
                 {readiness.readyToClose
                   ? 'All prerequisites met — you may proceed with closing execution.'
-                  : 'Complete all gates above to unlock execution.'}
+                  : 'Complete all verification, documents, and approvals before executing payments.'}
               </p>
             </div>
           </div>
@@ -213,6 +245,11 @@ export const ClosingCenterCover: React.FC = () => {
             <><Lock className="w-4 h-4" /> Execute Closing (Locked)</>
           )}
         </Button>
+        {!readiness.readyToClose && (
+          <p className="text-xs text-muted-foreground text-center mt-2">
+            Complete all verification, documents, and approvals before executing payments.
+          </p>
+        )}
       </motion.div>
 
       {/* Confirm Dialog */}
@@ -228,6 +265,14 @@ export const ClosingCenterCover: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {realDeal && (
+              <div className="space-y-1.5 text-sm bg-muted/30 rounded-lg p-3">
+                <div className="flex justify-between"><span className="text-muted-foreground">Deal</span><span className="font-medium">{realDeal.deal_name}</span></div>
+                {realDeal.seller && <div className="flex justify-between"><span className="text-muted-foreground">Seller</span><span>{realDeal.seller}</span></div>}
+                {realDeal.buyer && <div className="flex justify-between"><span className="text-muted-foreground">Buyer</span><span>{realDeal.buyer}</span></div>}
+                <div className="flex justify-between"><span className="text-muted-foreground">Value</span><span className="font-mono">${realDeal.deal_value?.toLocaleString()}</span></div>
+              </div>
+            )}
             <div className="space-y-2">
               {gates.map(gate => (
                 <div key={gate.id} className="flex items-center gap-2 text-sm">
