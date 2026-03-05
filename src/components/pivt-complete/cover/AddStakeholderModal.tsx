@@ -179,6 +179,15 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
 
     toast.success('Stakeholder added successfully');
     setCreatedStakeholderId(data.id);
+
+    // Fire state machine event
+    applyEvent(dealId, 'STAKEHOLDER_ADDED', {
+      stakeholder_id: data.id,
+      name: name.trim(),
+      role,
+      type,
+    }).catch(console.error);
+
     await onAdded?.();
     setShowKycPrompt(true);
   };
