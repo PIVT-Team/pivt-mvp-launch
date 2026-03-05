@@ -200,7 +200,7 @@ export const DiscrepancyPanelCover: React.FC = () => {
       </div>
 
       {/* Closing Readiness Score */}
-      <ClosingReadinessPanel />
+      <ClosingReadinessPanel dealId={selectedDeal?.id} />
 
       {/* Summary Badges with filter */}
       <div className="flex gap-3">
