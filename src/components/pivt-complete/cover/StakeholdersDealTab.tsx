@@ -3,11 +3,19 @@ import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp } from '@/lib/animations';
-import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AddStakeholderModal } from './AddStakeholderModal';
 import { useEditGuard } from '@/hooks/useEditGuard';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface DbStakeholder {
   id: string;
@@ -20,6 +28,7 @@ interface DbStakeholder {
   email: string | null;
   role: string;
   stakeholder_type: string;
+  verification_status: string;
 }
 
 export const StakeholdersDealTab: React.FC = () => {
