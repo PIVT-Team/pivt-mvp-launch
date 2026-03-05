@@ -186,7 +186,25 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     setName(''); setEmail(''); setOwnership(''); setRole('');
     setPhone(''); setShareClass(''); setNotes('');
     setErrors({}); setShowKycPrompt(false); setType('individual');
+    setCreatedStakeholderId(null);
     onClose();
+  };
+
+  const handleSendVerification = async () => {
+    if (!createdStakeholderId || !dealId) {
+      resetAndClose();
+      return;
+    }
+    const { error } = await supabase.functions.invoke('send-verification', {
+      body: { stakeholder_id: createdStakeholderId, deal_id: dealId },
+    });
+    if (error) {
+      toast.error(`Failed to send verification: ${error.message}`);
+    } else {
+      toast.success('Verification email sent');
+      await onAdded?.();
+    }
+    resetAndClose();
   };
 
   if (!open) return null;
