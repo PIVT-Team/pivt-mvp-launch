@@ -33,6 +33,12 @@ interface DbStakeholder {
   role: string;
   stakeholder_type: string;
   verification_status: string;
+  verification_requested_at: string | null;
+  verification_last_sent_at: string | null;
+  verification_completed_at: string | null;
+  verification_rejection_reason: string | null;
+  verification_provider: string | null;
+  verification_reference_id: string | null;
 }
 
 const STATUS_CHIP: Record<string, { label: string; className: string }> = {
