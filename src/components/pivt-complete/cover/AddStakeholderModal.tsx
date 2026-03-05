@@ -154,10 +154,6 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
         deal_id: dealId,
         shareholder_name: name.trim(),
         ownership_pct: ownershipNum,
-        payout_amount: 0,
-        escrow_holdback: 0,
-        fees: 0,
-        net_payout: 0,
       })
       .select()
       .maybeSingle();
