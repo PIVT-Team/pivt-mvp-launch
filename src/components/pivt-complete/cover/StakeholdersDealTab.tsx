@@ -3,13 +3,14 @@ import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp } from '@/lib/animations';
-import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck, Eye, AlertTriangle, FileSearch } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck, Eye, AlertTriangle, FileSearch, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AddStakeholderModal } from './AddStakeholderModal';
 import { useEditGuard } from '@/hooks/useEditGuard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { applyEvent } from '@/services/dealStateMachineService';
 import {
   DropdownMenu,
