@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
 
     // POST: submit verification data
     if (req.method === "POST") {
-      const { token, submission } = await req.json();
+      const { token, submission, consent_accepted, documents } = await req.json();
       if (!token || !submission) {
         return new Response(
           JSON.stringify({ error: "Token and submission data are required" }),
@@ -127,6 +127,29 @@ Deno.serve(async (req) => {
           JSON.stringify({ error: "This verification has already been completed" }),
           { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      // Create verification submission record
+      await adminClient
+        .from("verification_submissions")
+        .insert({
+          verification_request_id: verReq.id,
+          payload_json: submission,
+          consent_accepted: consent_accepted || false,
+        });
+
+      // Create verification document records
+      if (documents && Array.isArray(documents)) {
+        for (const doc of documents) {
+          await adminClient
+            .from("verification_documents")
+            .insert({
+              verification_request_id: verReq.id,
+              file_name: doc.fileName,
+              file_url: doc.fileUrl,
+              doc_type: doc.docType,
+            });
+        }
       }
 
       // Update verification request

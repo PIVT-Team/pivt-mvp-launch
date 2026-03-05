@@ -2035,6 +2035,41 @@ export type Database = {
           },
         ]
       }
+      verification_documents: {
+        Row: {
+          created_at: string
+          doc_type: string
+          file_name: string
+          file_url: string
+          id: string
+          verification_request_id: string
+        }
+        Insert: {
+          created_at?: string
+          doc_type?: string
+          file_name: string
+          file_url: string
+          id?: string
+          verification_request_id: string
+        }
+        Update: {
+          created_at?: string
+          doc_type?: string
+          file_name?: string
+          file_url?: string
+          id?: string
+          verification_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_documents_verification_request_id_fkey"
+            columns: ["verification_request_id"]
+            isOneToOne: false
+            referencedRelation: "verification_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       verification_requests: {
         Row: {
           created_at: string
@@ -2042,6 +2077,7 @@ export type Database = {
           deal_id: string
           expires_at: string
           id: string
+          manual_review_notes: string | null
           opened_at: string | null
           recipient_email: string
           recipient_name: string
@@ -2054,7 +2090,9 @@ export type Database = {
           submitted_at: string | null
           token_hash: string
           updated_at: string
+          verification_type: string
           verified_at: string | null
+          verified_by_user_id: string | null
         }
         Insert: {
           created_at?: string
@@ -2062,6 +2100,7 @@ export type Database = {
           deal_id: string
           expires_at?: string
           id?: string
+          manual_review_notes?: string | null
           opened_at?: string | null
           recipient_email: string
           recipient_name: string
@@ -2074,7 +2113,9 @@ export type Database = {
           submitted_at?: string | null
           token_hash: string
           updated_at?: string
+          verification_type?: string
           verified_at?: string | null
+          verified_by_user_id?: string | null
         }
         Update: {
           created_at?: string
@@ -2082,6 +2123,7 @@ export type Database = {
           deal_id?: string
           expires_at?: string
           id?: string
+          manual_review_notes?: string | null
           opened_at?: string | null
           recipient_email?: string
           recipient_name?: string
@@ -2094,7 +2136,9 @@ export type Database = {
           submitted_at?: string | null
           token_hash?: string
           updated_at?: string
+          verification_type?: string
           verified_at?: string | null
+          verified_by_user_id?: string | null
         }
         Relationships: [
           {
@@ -2109,6 +2153,44 @@ export type Database = {
             columns: ["stakeholder_id"]
             isOneToOne: false
             referencedRelation: "cap_table_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      verification_submissions: {
+        Row: {
+          consent_accepted: boolean
+          created_at: string
+          id: string
+          ip_address: string | null
+          payload_json: Json
+          user_agent: string | null
+          verification_request_id: string
+        }
+        Insert: {
+          consent_accepted?: boolean
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          payload_json?: Json
+          user_agent?: string | null
+          verification_request_id: string
+        }
+        Update: {
+          consent_accepted?: boolean
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          payload_json?: Json
+          user_agent?: string | null
+          verification_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_submissions_verification_request_id_fkey"
+            columns: ["verification_request_id"]
+            isOneToOne: false
+            referencedRelation: "verification_requests"
             referencedColumns: ["id"]
           },
         ]

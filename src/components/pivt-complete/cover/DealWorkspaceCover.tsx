@@ -33,8 +33,8 @@ import { DealInputsCover } from './DealInputsCover';
 import { DiscrepancyPanelCover } from './DiscrepancyPanelCover';
 import { ExecutionAuthorityPanel } from './ExecutionAuthorityPanel';
 import { EditDealDrawer } from './EditDealDrawer';
-
-// ── Workflow helpers ──
+import { VerificationReviewCover } from './VerificationReviewCover';
+import { VerificationReadinessBanner } from './VerificationReadinessBanner';
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
   { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for trust account', severity: 'critical' as const, resolved: false },
@@ -60,6 +60,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   ],
   verification: [
     { id: 'kyc', label: 'KYC / KYB' },
+    { id: 'review', label: 'Review Queue' },
     { id: 'documents', label: 'Documents' },
     { id: 'reconciliation', label: 'Reconciliation' },
   ],
@@ -315,6 +316,7 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
 
   return (
     <div className="space-y-8">
+      <VerificationReadinessBanner />
       <motion.div {...fadeInUp} className="pivt-next-action p-5">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-accent/12 flex items-center justify-center pivt-icon-pulse">
@@ -464,6 +466,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'ownership') return CapTableCover;
       return StakeholdersDealTab;
     case 'verification':
+      if (subNavId === 'review') return VerificationReviewCover;
       if (subNavId === 'documents') return DocumentsCover;
       if (subNavId === 'reconciliation') return ReconciliationSection;
       return KycKybDealTab;
