@@ -24,6 +24,7 @@ const LoginPageLazy = lazy(() =>
     });
   })
 );
+const VerifyPageLazy = lazy(() => import("./pages/VerifyPage"));
 
 const queryClient = new QueryClient();
 
