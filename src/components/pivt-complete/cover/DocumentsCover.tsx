@@ -291,6 +291,15 @@ export const DocumentsCover: React.FC = () => {
       });
 
       toast.success(`"${file.name}" uploaded and classified`);
+
+      // Trigger state machine event
+      if (selectedDealId) {
+        dealStateMachineService.applyEvent(selectedDealId, 'DOCUMENT_UPLOADED', {
+          documentId: inserted.id,
+          fileName: file.name,
+        }).catch(console.error);
+      }
+
       loadDocuments(); // Refresh from DB
     } catch (err: any) {
       console.error('Upload error:', err);
