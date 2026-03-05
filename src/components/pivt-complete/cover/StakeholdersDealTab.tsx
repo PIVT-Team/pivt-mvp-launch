@@ -150,8 +150,9 @@ export const StakeholdersDealTab: React.FC = () => {
 
         <div className="pivt-card overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/50">
-            <div className="grid grid-cols-5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              <span className="col-span-2">Shareholder</span>
+            <div className="grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <span className="col-span-2">Stakeholder</span>
+              <span>Role</span>
               <span className="text-right">Ownership %</span>
               <span className="text-right">Payout</span>
               <span className="text-right">Net Payout</span>
@@ -159,10 +160,12 @@ export const StakeholdersDealTab: React.FC = () => {
           </div>
           {dbStakeholders.map((s) => (
             <motion.div key={s.id} {...fadeInUp} className="p-4 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-              <div className="grid grid-cols-5 items-center">
+              <div className="grid grid-cols-6 items-center">
                 <div className="col-span-2">
                   <p className="font-medium text-sm">{s.shareholder_name}</p>
+                  {s.email && <p className="text-xs text-muted-foreground">{s.email}</p>}
                 </div>
+                <span className="text-sm text-muted-foreground">{s.role}</span>
                 <span className="text-right font-mono text-sm">{s.ownership_pct}%</span>
                 <span className="text-right font-mono text-sm">${(s.payout_amount / 1e6).toFixed(1)}M</span>
                 <span className="text-right font-mono text-sm text-validated">${((s.net_payout || 0) / 1e6).toFixed(1)}M</span>
