@@ -107,6 +107,7 @@ export type Database = {
           role: string
           shareholder_name: string
           stakeholder_type: string
+          verification_status: string
         }
         Insert: {
           created_at?: string
@@ -121,6 +122,7 @@ export type Database = {
           role?: string
           shareholder_name: string
           stakeholder_type?: string
+          verification_status?: string
         }
         Update: {
           created_at?: string
@@ -135,6 +137,7 @@ export type Database = {
           role?: string
           shareholder_name?: string
           stakeholder_type?: string
+          verification_status?: string
         }
         Relationships: [
           {
@@ -2032,6 +2035,84 @@ export type Database = {
           },
         ]
       }
+      verification_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          expires_at: string
+          id: string
+          opened_at: string | null
+          recipient_email: string
+          recipient_name: string
+          revoked_at: string | null
+          sent_at: string | null
+          stakeholder_id: string
+          stakeholder_type: string
+          status: Database["public"]["Enums"]["verification_request_status"]
+          submission_data: Json | null
+          submitted_at: string | null
+          token_hash: string
+          updated_at: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          expires_at?: string
+          id?: string
+          opened_at?: string | null
+          recipient_email: string
+          recipient_name: string
+          revoked_at?: string | null
+          sent_at?: string | null
+          stakeholder_id: string
+          stakeholder_type?: string
+          status?: Database["public"]["Enums"]["verification_request_status"]
+          submission_data?: Json | null
+          submitted_at?: string | null
+          token_hash: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          expires_at?: string
+          id?: string
+          opened_at?: string | null
+          recipient_email?: string
+          recipient_name?: string
+          revoked_at?: string | null
+          sent_at?: string | null
+          stakeholder_id?: string
+          stakeholder_type?: string
+          status?: Database["public"]["Enums"]["verification_request_status"]
+          submission_data?: Json | null
+          submitted_at?: string | null
+          token_hash?: string
+          updated_at?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "verification_requests_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "verification_requests_stakeholder_id_fkey"
+            columns: ["stakeholder_id"]
+            isOneToOne: false
+            referencedRelation: "cap_table_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       waterfall_allocation_lines: {
         Row: {
           amount_original: number
@@ -2361,6 +2442,14 @@ export type Database = {
       ontology_status: "draft" | "active" | "deprecated"
       party_type: "BUYER" | "SELLER" | "ESCROW_AGENT" | "LENDER" | "OTHER"
       payment_status: "DRAFT" | "READY" | "SENT" | "CONFIRMED"
+      verification_request_status:
+        | "pending"
+        | "sent"
+        | "opened"
+        | "submitted"
+        | "verified"
+        | "expired"
+        | "revoked"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2673,6 +2762,15 @@ export const Constants = {
       ontology_status: ["draft", "active", "deprecated"],
       party_type: ["BUYER", "SELLER", "ESCROW_AGENT", "LENDER", "OTHER"],
       payment_status: ["DRAFT", "READY", "SENT", "CONFIRMED"],
+      verification_request_status: [
+        "pending",
+        "sent",
+        "opened",
+        "submitted",
+        "verified",
+        "expired",
+        "revoked",
+      ],
     },
   },
 } as const

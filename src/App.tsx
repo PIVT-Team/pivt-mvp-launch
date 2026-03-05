@@ -24,6 +24,7 @@ const LoginPageLazy = lazy(() =>
     });
   })
 );
+const VerifyPageLazy = lazy(() => import("./pages/VerifyPage"));
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/login" element={<LoginPageLazy />} />
+              <Route path="/verify" element={<VerifyPageLazy />} />
               <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />

@@ -76,6 +76,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
   const [shareClass, setShareClass] = useState('');
   const [notes, setNotes] = useState('');
   const [showKycPrompt, setShowKycPrompt] = useState(false);
+  const [createdStakeholderId, setCreatedStakeholderId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
@@ -176,7 +177,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     }
 
     toast.success('Stakeholder added successfully');
-    // Re-fetch from DB, then show KYC prompt
+    setCreatedStakeholderId(data.id);
     await onAdded?.();
     setShowKycPrompt(true);
   };
@@ -185,7 +186,25 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     setName(''); setEmail(''); setOwnership(''); setRole('');
     setPhone(''); setShareClass(''); setNotes('');
     setErrors({}); setShowKycPrompt(false); setType('individual');
+    setCreatedStakeholderId(null);
     onClose();
+  };
+
+  const handleSendVerification = async () => {
+    if (!createdStakeholderId || !dealId) {
+      resetAndClose();
+      return;
+    }
+    const { error } = await supabase.functions.invoke('send-verification', {
+      body: { stakeholder_id: createdStakeholderId, deal_id: dealId },
+    });
+    if (error) {
+      toast.error(`Failed to send verification: ${error.message}`);
+    } else {
+      toast.success('Verification email sent');
+      await onAdded?.();
+    }
+    resetAndClose();
   };
 
   if (!open) return null;
@@ -218,7 +237,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
               </div>
               <div className="flex gap-3 justify-center">
                 <button
-                  onClick={resetAndClose}
+                  onClick={handleSendVerification}
                   className="px-5 py-2.5 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
                 >
                   Yes, Send Now

@@ -3,11 +3,19 @@ import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp } from '@/lib/animations';
-import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AddStakeholderModal } from './AddStakeholderModal';
 import { useEditGuard } from '@/hooks/useEditGuard';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface DbStakeholder {
   id: string;
@@ -20,6 +28,7 @@ interface DbStakeholder {
   email: string | null;
   role: string;
   stakeholder_type: string;
+  verification_status: string;
 }
 
 export const StakeholdersDealTab: React.FC = () => {
@@ -29,6 +38,8 @@ export const StakeholdersDealTab: React.FC = () => {
   const { isProtected, guardEdit } = useEditGuard();
   const [dbStakeholders, setDbStakeholders] = useState<DbStakeholder[]>([]);
   const [loading, setLoading] = useState(!isDemoDeal);
+
+  const { isAdmin } = useAuth();
 
   const fetchStakeholders = async () => {
     if (isDemoDeal || !dealId) return;
@@ -41,12 +52,51 @@ export const StakeholdersDealTab: React.FC = () => {
     setLoading(false);
   };
 
+  const sendVerification = async (stakeholderId: string) => {
+    const { data, error } = await supabase.functions.invoke('send-verification', {
+      body: { stakeholder_id: stakeholderId, deal_id: dealId },
+    });
+    if (error) {
+      toast.error(`Failed to send verification: ${error.message}`);
+      return;
+    }
+    toast.success('Verification email sent');
+    await fetchStakeholders();
+  };
+
+  const copyVerificationLink = (stakeholder: DbStakeholder) => {
+    // We can't reconstruct the token (it's hashed), so just inform user
+    toast.info('Use "Send Verification" to email the link. Tokens are single-use and cannot be copied after creation.');
+  };
+
+  const markVerified = async (stakeholderId: string) => {
+    const { error } = await supabase
+      .from('cap_table_entries')
+      .update({ verification_status: 'verified' } as any)
+      .eq('id', stakeholderId);
+    if (error) {
+      toast.error('Failed to mark as verified');
+      return;
+    }
+    toast.success('Marked as verified');
+    await fetchStakeholders();
+  };
+
   useEffect(() => {
     fetchStakeholders();
   }, [isDemoDeal, dealId]);
 
   const handleAddClick = () => {
     guardEdit('ADD_STAKEHOLDER', null, () => setModalOpen(true));
+  };
+
+  const verificationBadge = (status: string) => {
+    switch (status) {
+      case 'verified': return <Badge className="bg-validated/10 text-validated text-[10px]">Verified</Badge>;
+      case 'submitted': return <Badge className="bg-accent/10 text-accent text-[10px]">Submitted</Badge>;
+      case 'sent': return <Badge className="bg-discrepancy/10 text-discrepancy text-[10px]">Sent</Badge>;
+      default: return <Badge className="bg-muted text-muted-foreground text-[10px]">Not Sent</Badge>;
+    }
   };
 
   // For non-demo deals with no stakeholders, show empty state
@@ -134,7 +184,7 @@ export const StakeholdersDealTab: React.FC = () => {
           {[
             { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: DollarSign, color: 'text-accent' },
             { label: 'Stakeholders', value: `${dbStakeholders.length}`, icon: Shield, color: 'text-validated' },
-            { label: 'KYC Complete', value: '0/0', icon: CheckCircle2, color: 'text-validated' },
+            { label: 'Verified', value: `${dbStakeholders.filter(s => s.verification_status === 'verified').length}/${dbStakeholders.length}`, icon: CheckCircle2, color: 'text-validated' },
             { label: 'Wire Collected', value: '0/0', icon: CreditCard, color: 'text-accent' },
             { label: 'Ownership', value: `${totalOwnership}%`, icon: Percent, color: 'text-foreground' },
           ].map(card => (
@@ -150,17 +200,19 @@ export const StakeholdersDealTab: React.FC = () => {
 
         <div className="pivt-card overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/50">
-            <div className="grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <div className="grid grid-cols-8 text-xs font-medium text-muted-foreground uppercase tracking-wide">
               <span className="col-span-2">Stakeholder</span>
               <span>Role</span>
               <span className="text-right">Ownership %</span>
               <span className="text-right">Payout</span>
+              <span className="text-center">Verification</span>
               <span className="text-right">Net Payout</span>
+              <span className="text-center">Actions</span>
             </div>
           </div>
           {dbStakeholders.map((s) => (
             <motion.div key={s.id} {...fadeInUp} className="p-4 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-              <div className="grid grid-cols-6 items-center">
+              <div className="grid grid-cols-8 items-center">
                 <div className="col-span-2">
                   <p className="font-medium text-sm">{s.shareholder_name}</p>
                   {s.email && <p className="text-xs text-muted-foreground">{s.email}</p>}
@@ -168,7 +220,29 @@ export const StakeholdersDealTab: React.FC = () => {
                 <span className="text-sm text-muted-foreground">{s.role}</span>
                 <span className="text-right font-mono text-sm">{s.ownership_pct}%</span>
                 <span className="text-right font-mono text-sm">${(s.payout_amount / 1e6).toFixed(1)}M</span>
+                <div className="flex justify-center">{verificationBadge(s.verification_status)}</div>
                 <span className="text-right font-mono text-sm text-validated">${((s.net_payout || 0) / 1e6).toFixed(1)}M</span>
+                <div className="flex justify-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="z-[70]">
+                      <DropdownMenuItem onClick={() => sendVerification(s.id)} className="gap-2">
+                        <Send className="w-3.5 h-3.5" />
+                        {s.verification_status === 'not_sent' ? 'Send Verification' : 'Resend Verification'}
+                      </DropdownMenuItem>
+                      {isAdmin && s.verification_status !== 'verified' && (
+                        <DropdownMenuItem onClick={() => markVerified(s.id)} className="gap-2">
+                          <BadgeCheck className="w-3.5 h-3.5" />
+                          Mark Verified (Admin)
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </motion.div>
           ))}
