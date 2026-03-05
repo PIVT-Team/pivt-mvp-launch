@@ -3,11 +3,13 @@ import { supabase } from '@/integrations/supabase/client';
 
 export interface ClosingReadinessResult {
   // Individual gates
+  stakeholdersConfigured: boolean;
   sellerVerified: boolean;
   buyerVerified: boolean;
   spaUploaded: boolean;
   wireInstructionsUploaded: boolean;
   paymentApproved: boolean;
+  approvalsComplete: boolean;
 
   // Aggregates
   verificationComplete: boolean;
@@ -22,18 +24,25 @@ export interface ClosingReadinessResult {
   documentsRequired: number;
   approvalsGranted: number;
   approvalsTotal: number;
+  paymentsConfigured: number;
+  paymentsTotal: number;
 
   loading: boolean;
   refetch: () => void;
 }
 
+const SELLER_ROLES = ['Seller', 'Target', 'Shareholder', 'Founder', 'Employee'];
+const BUYER_ROLES = ['Buyer', 'Merger Sub', 'Investor'];
+
 export function useClosingReadiness(dealId: string | undefined): ClosingReadinessResult {
   const [state, setState] = useState<Omit<ClosingReadinessResult, 'loading' | 'refetch'>>({
+    stakeholdersConfigured: false,
     sellerVerified: false,
     buyerVerified: false,
     spaUploaded: false,
     wireInstructionsUploaded: false,
     paymentApproved: false,
+    approvalsComplete: false,
     verificationComplete: false,
     documentsComplete: false,
     paymentAuthorized: false,
@@ -41,9 +50,11 @@ export function useClosingReadiness(dealId: string | undefined): ClosingReadines
     stakeholdersTotal: 0,
     stakeholdersVerified: 0,
     documentsUploaded: 0,
-    documentsRequired: 0,
+    documentsRequired: 2,
     approvalsGranted: 0,
     approvalsTotal: 0,
+    paymentsConfigured: 0,
+    paymentsTotal: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -63,41 +74,50 @@ export function useClosingReadiness(dealId: string | undefined): ClosingReadines
     const apps = approvals.data || [];
     const pays = payments.data || [];
 
-    // Gate 1: Seller verified
-    const sellerRoles = ['Seller', 'Target', 'Shareholder', 'Founder'];
-    const sellers = stk.filter(s => sellerRoles.includes(s.role));
+    // Gate: Stakeholders configured (at least one seller + one buyer)
+    const sellers = stk.filter(s => SELLER_ROLES.includes(s.role));
+    const buyers = stk.filter(s => BUYER_ROLES.includes(s.role));
+    const stakeholdersConfigured = sellers.length > 0 && buyers.length > 0;
+
+    // Gate: Seller verified
     const sellerVerified = sellers.length > 0 && sellers.every(s => s.verification_status === 'verified');
 
-    // Gate 2: Buyer verified
-    const buyerRoles = ['Buyer', 'Merger Sub', 'Investor'];
-    const buyers = stk.filter(s => buyerRoles.includes(s.role));
+    // Gate: Buyer verified
     const buyerVerified = buyers.length > 0 && buyers.every(s => s.verification_status === 'verified');
 
-    // Gate 3: SPA uploaded (check for SPA or MERGER_AGREEMENT doc types)
+    // Gate: SPA uploaded
     const spaTypes = ['SPA', 'MERGER_AGREEMENT', 'PURCHASE_AGREEMENT'];
     const spaUploaded = docs.some(d => spaTypes.includes(d.doc_type) || d.doc_type === 'OTHER');
 
-    // Gate 4: Wire instructions uploaded
+    // Gate: Wire instructions uploaded
     const wireTypes = ['WIRE_INSTRUCTIONS', 'BANK_LETTER'];
     const wireInstructionsUploaded = docs.some(d => wireTypes.includes(d.doc_type));
 
-    // Gate 5: Payment approved
-    const paymentApproved = pays.length > 0 && pays.every(p => (p.status as string) === 'CONFIRMED' || (p.status as string) === 'confirmed');
+    // Gate: Payment approved
+    const paymentApproved = pays.length > 0 && pays.every(p => {
+      const s = (p.status as string).toUpperCase();
+      return s === 'CONFIRMED' || s === 'APPROVED';
+    });
+
+    // Gate: Approvals complete
+    const approvalsComplete = apps.length > 0 && apps.every(a => a.status === 'approved');
 
     const verificationComplete = sellerVerified && buyerVerified;
     const documentsComplete = spaUploaded && wireInstructionsUploaded;
     const paymentAuthorized = paymentApproved;
-    const readyToClose = verificationComplete && documentsComplete && paymentAuthorized;
+    const readyToClose = stakeholdersConfigured && verificationComplete && documentsComplete && paymentAuthorized && approvalsComplete;
 
-    const requiredRoles = [...sellerRoles, ...buyerRoles];
+    const requiredRoles = [...SELLER_ROLES, ...BUYER_ROLES];
     const requiredStk = stk.filter(s => requiredRoles.includes(s.role));
 
     setState({
+      stakeholdersConfigured,
       sellerVerified,
       buyerVerified,
       spaUploaded,
       wireInstructionsUploaded,
       paymentApproved,
+      approvalsComplete,
       verificationComplete,
       documentsComplete,
       paymentAuthorized,
@@ -105,9 +125,14 @@ export function useClosingReadiness(dealId: string | undefined): ClosingReadines
       stakeholdersTotal: requiredStk.length,
       stakeholdersVerified: requiredStk.filter(s => s.verification_status === 'verified').length,
       documentsUploaded: docs.length,
-      documentsRequired: Math.max(docs.filter(d => d.status !== 'UPLOADED').length + docs.length, 2),
+      documentsRequired: Math.max(2, docs.length),
       approvalsGranted: apps.filter(a => a.status === 'approved').length,
       approvalsTotal: apps.length,
+      paymentsConfigured: pays.filter(p => {
+        const s = (p.status as string).toUpperCase();
+        return s === 'CONFIRMED' || s === 'APPROVED';
+      }).length,
+      paymentsTotal: pays.length,
     });
     setLoading(false);
   }, [dealId]);
