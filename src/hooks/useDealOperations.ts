@@ -219,36 +219,21 @@ export function useDealOperations() {
   const softDeleteDeal = async (dealId: string): Promise<boolean> => {
     if (!user) return false;
 
-    // Verify it's not a demo deal and user owns it
-    const { data: deal } = await supabase
-      .from("deals")
-      .select("is_demo, owner_id, visibility")
-      .eq("id", dealId)
-      .single();
-
-    if (!deal) {
-      toast({ title: "Deal not found", description: "This deal no longer exists.", variant: "destructive" });
-      return false;
-    }
-
-    if (deal.is_demo || (deal as any).visibility === 'global_demo') {
-      toast({ title: "Cannot delete demo deal", description: "Demo deals are read-only and can't be deleted.", variant: "destructive" });
-      return false;
-    }
-
-    if (deal.owner_id !== user.id) {
-      toast({ title: "Permission denied", description: "You can only delete deals you created.", variant: "destructive" });
-      return false;
-    }
-
-    const { error } = await supabase
-      .from("deals")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: user.id })
-      .eq("id", dealId);
+    const { error } = await supabase.rpc("soft_delete_deal", {
+      _deal_id: dealId,
+    });
 
     if (error) {
-      console.error("Soft delete failed:", { dealId, userId: user.id, error });
-      toast({ title: "Error deleting deal", description: error.message, variant: "destructive" });
+      const msg = error.message || "";
+      if (msg.includes("demo")) {
+        toast({ title: "Cannot delete demo deal", description: "Demo deals are read-only and can't be deleted.", variant: "destructive" });
+      } else if (msg.includes("Permission")) {
+        toast({ title: "Permission denied", description: "You can only delete deals you created.", variant: "destructive" });
+      } else if (msg.includes("not found")) {
+        toast({ title: "Deal not found", description: "This deal no longer exists.", variant: "destructive" });
+      } else {
+        toast({ title: "Error deleting deal", description: msg, variant: "destructive" });
+      }
       return false;
     }
 
