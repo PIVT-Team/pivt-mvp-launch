@@ -82,6 +82,23 @@ export const StakeholdersDealTab: React.FC = () => {
     await fetchStakeholders();
   };
 
+  useEffect(() => {
+    fetchStakeholders();
+  }, [isDemoDeal, dealId]);
+
+  const handleAddClick = () => {
+    guardEdit('ADD_STAKEHOLDER', null, () => setModalOpen(true));
+  };
+
+  const verificationBadge = (status: string) => {
+    switch (status) {
+      case 'verified': return <Badge className="bg-validated/10 text-validated text-[10px]">Verified</Badge>;
+      case 'submitted': return <Badge className="bg-accent/10 text-accent text-[10px]">Submitted</Badge>;
+      case 'sent': return <Badge className="bg-discrepancy/10 text-discrepancy text-[10px]">Sent</Badge>;
+      default: return <Badge className="bg-muted text-muted-foreground text-[10px]">Not Sent</Badge>;
+    }
+  };
+
   // For non-demo deals with no stakeholders, show empty state
   if (!isDemoDeal) {
     if (loading) {
