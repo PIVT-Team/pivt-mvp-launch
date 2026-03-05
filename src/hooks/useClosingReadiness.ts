@@ -82,7 +82,7 @@ export function useClosingReadiness(dealId: string | undefined): ClosingReadines
     const wireInstructionsUploaded = docs.some(d => wireTypes.includes(d.doc_type));
 
     // Gate 5: Payment approved
-    const paymentApproved = pays.length > 0 && pays.every(p => p.status === 'CONFIRMED' || p.status === 'confirmed');
+    const paymentApproved = pays.length > 0 && pays.every(p => (p.status as string) === 'CONFIRMED' || (p.status as string) === 'confirmed');
 
     const verificationComplete = sellerVerified && buyerVerified;
     const documentsComplete = spaUploaded && wireInstructionsUploaded;
