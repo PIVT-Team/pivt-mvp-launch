@@ -77,7 +77,7 @@ export const VerificationReviewCover: React.FC = () => {
       .eq('deal_id', dealId)
       .order('created_at', { ascending: false });
 
-    setRequests((reqData as VerificationRequest[]) || []);
+    setRequests((reqData as unknown as VerificationRequest[]) || []);
     setLoading(false);
   };
 
