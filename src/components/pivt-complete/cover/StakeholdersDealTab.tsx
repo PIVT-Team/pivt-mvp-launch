@@ -17,6 +17,9 @@ interface DbStakeholder {
   escrow_holdback: number | null;
   fees: number | null;
   net_payout: number | null;
+  email: string | null;
+  role: string;
+  stakeholder_type: string;
 }
 
 export const StakeholdersDealTab: React.FC = () => {
@@ -27,17 +30,15 @@ export const StakeholdersDealTab: React.FC = () => {
   const [dbStakeholders, setDbStakeholders] = useState<DbStakeholder[]>([]);
   const [loading, setLoading] = useState(!isDemoDeal);
 
-  const fetchStakeholders = () => {
+  const fetchStakeholders = async () => {
     if (isDemoDeal || !dealId) return;
     setLoading(true);
-    supabase
+    const { data } = await supabase
       .from('cap_table_entries')
       .select('*')
-      .eq('deal_id', dealId)
-      .then(({ data }) => {
-        setDbStakeholders((data as DbStakeholder[]) || []);
-        setLoading(false);
-      });
+      .eq('deal_id', dealId);
+    setDbStakeholders((data as DbStakeholder[]) || []);
+    setLoading(false);
   };
 
   useEffect(() => {
