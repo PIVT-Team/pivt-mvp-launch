@@ -78,19 +78,22 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       stk.length === 0 ? 'NOT_STARTED' :
       stk.every(s => s.verification_status === 'verified') ? 'COMPLETED' :
       'IN_PROGRESS';
+    // Stakeholder pct: having stakeholders = 50% base, verification progress = remaining 50%
     const stkPct = stk.length === 0 ? 0 :
-      Math.round((stk.filter(s => s.verification_status === 'verified').length / stk.length) * 100);
+      Math.round(50 + (stk.filter(s => s.verification_status === 'verified').length / stk.length) * 50);
 
     // ── Verification
-    const ACTIVE_STATUSES = ['sent', 'in_progress', 'submitted', 'pending', 'verified', 'failed'];
+    const ACTIVE_STATUSES = ['sent', 'in_progress', 'submitted', 'pending', 'verified', 'failed', 'not_sent'];
     const activeVerifications = stk.filter(s => ACTIVE_STATUSES.includes(s.verification_status));
     const verifiedCount = stk.filter(s => s.verification_status === 'verified').length;
     const verificationStatus: WorkflowStepStatus =
-      activeVerifications.length === 0 ? 'NOT_STARTED' :
+      stk.length === 0 ? 'NOT_STARTED' :
       verifiedCount === stk.length && stk.length > 0 ? 'COMPLETED' :
       'IN_PROGRESS';
+    // Verification pct: having stakeholders to verify = 25% base, verified progress = remaining 75%
     const verPct = stk.length === 0 ? 0 :
-      Math.round((verifiedCount / stk.length) * 100);
+      (verificationStatus === 'NOT_STARTED' ? 0 :
+        Math.round(25 + (verifiedCount / stk.length) * 75));
 
     // ── Structuring (cap table + waterfall)
     const ownershipTotal = stk.reduce((sum, s) => sum + (Number(s.ownership_pct) || 0), 0);
