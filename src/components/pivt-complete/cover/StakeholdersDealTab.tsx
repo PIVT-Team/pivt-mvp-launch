@@ -151,6 +151,7 @@ export const StakeholdersDealTab: React.FC = () => {
         .eq('id', stakeholderId);
     }
     toast.success('Marked as verified');
+    if (dealId) applyEvent(dealId, 'VERIFICATION_VERIFIED', { stakeholder_id: stakeholderId }).catch(console.error);
     await fetchStakeholders();
   };
 
