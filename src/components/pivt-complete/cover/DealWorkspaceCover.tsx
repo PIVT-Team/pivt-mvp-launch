@@ -566,8 +566,8 @@ export const DealWorkspaceCover: React.FC = () => {
     if (!isRealDeal) return selectedDealId; // 'atlas', 'beacon', 'cipher'
     return realDeal?.seed_key || null;
   }, [isRealDeal, realDeal, selectedDealId]);
-  const { summary: dealSummary } = useDealSummary(!isDemoDeal && isRealDeal ? selectedDealId : undefined);
-  const { completionPcts: wfPcts } = useWorkflowStatus(!isDemoDeal && isRealDeal ? selectedDealId : undefined);
+  const { summary: dealSummary } = useDealSummary(isRealDeal ? selectedDealId : undefined);
+  const { completionPcts: wfPcts } = useWorkflowStatus(isRealDeal ? selectedDealId : undefined);
   useEffect(() => {
     if (isRealDeal) {
       setLoadingDeal(true);
@@ -677,7 +677,7 @@ export const DealWorkspaceCover: React.FC = () => {
   }, [isDemoDeal, demoDealSeedKey, dealSummary]);
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
-    if (isDemoDeal) {
+    if (isDemoDeal && !isRealDeal) {
       // Static workflow for demo deals
       const DEMO_STEPS: Record<string, WorkflowStep[]> = {
         atlas: [
