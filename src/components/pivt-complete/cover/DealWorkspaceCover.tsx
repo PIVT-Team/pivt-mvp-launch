@@ -465,6 +465,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'ownership') return CapTableCover;
       return StakeholdersDealTab;
     case 'verification':
+      if (subNavId === 'review') return VerificationReviewCover;
       if (subNavId === 'documents') return DocumentsCover;
       if (subNavId === 'reconciliation') return ReconciliationSection;
       return KycKybDealTab;
