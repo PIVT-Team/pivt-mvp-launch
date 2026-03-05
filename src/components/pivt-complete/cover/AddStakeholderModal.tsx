@@ -154,6 +154,9 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
         deal_id: dealId,
         shareholder_name: name.trim(),
         ownership_pct: ownershipNum,
+        role,
+        email: email.trim(),
+        stakeholder_type: type,
       })
       .select()
       .maybeSingle();
@@ -172,9 +175,9 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
       return;
     }
 
-    console.log('Stakeholder inserted', data);
     toast.success('Stakeholder added successfully');
-    onAdded?.();
+    // Re-fetch from DB, then show KYC prompt
+    await onAdded?.();
     setShowKycPrompt(true);
   };
 
