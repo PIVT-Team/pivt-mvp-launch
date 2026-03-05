@@ -41,16 +41,16 @@ interface DbStakeholder {
   verification_reference_id: string | null;
 }
 
-const STATUS_CHIP: Record<string, { label: string; className: string }> = {
-  not_sent: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border' },
-  not_requested: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border' },
-  pending: { label: 'Pending', className: 'bg-muted text-muted-foreground border-border' },
-  sent: { label: 'Email Sent', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  in_progress: { label: 'In Progress', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
-  submitted: { label: 'Submitted', className: 'bg-accent/10 text-accent border-accent/20' },
-  verified: { label: 'Verified', className: 'bg-validated/10 text-validated border-validated/20' },
-  failed: { label: 'Failed', className: 'bg-destructive/10 text-destructive border-destructive/20' },
-  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground border-border' },
+const STATUS_CHIP: Record<string, { label: string; className: string; tooltip: string }> = {
+  not_sent: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border', tooltip: "Verification hasn't been initiated." },
+  not_requested: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border', tooltip: "Verification hasn't been initiated." },
+  pending: { label: 'Pending', className: 'bg-muted text-muted-foreground border-border', tooltip: "Verification is pending." },
+  sent: { label: 'Email Sent', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20', tooltip: 'Verification request email has been sent.' },
+  in_progress: { label: 'In Progress', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', tooltip: 'Stakeholder has started verification.' },
+  submitted: { label: 'Submitted', className: 'bg-accent/10 text-accent border-accent/20', tooltip: 'Verification data submitted, awaiting review.' },
+  verified: { label: 'Verified', className: 'bg-validated/10 text-validated border-validated/20', tooltip: 'Stakeholder is verified.' },
+  failed: { label: 'Rejected', className: 'bg-destructive/10 text-destructive border-destructive/20', tooltip: 'Verification failed. Review details.' },
+  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground border-border', tooltip: 'Verification link has expired.' },
 };
 
 export const StakeholdersDealTab: React.FC = () => {
