@@ -60,6 +60,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   ],
   verification: [
     { id: 'kyc', label: 'KYC / KYB' },
+    { id: 'review', label: 'Review Queue' },
     { id: 'documents', label: 'Documents' },
     { id: 'reconciliation', label: 'Reconciliation' },
   ],
