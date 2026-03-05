@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Shield, CheckCircle2, Clock, AlertTriangle, Eye, BadgeCheck, XCircle, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, CheckCircle2, Clock, AlertTriangle, Eye, BadgeCheck, XCircle, FileText, ChevronDown, ChevronUp, Send, RotateCw, Copy } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 
 interface VerificationRequest {
@@ -27,29 +27,17 @@ interface VerificationRequest {
   manual_review_notes: string | null;
   submission_data: any;
   created_at: string;
-  submissions: Array<{
-    id: string;
-    payload_json: any;
-    consent_accepted: boolean;
-    created_at: string;
-  }>;
-  documents: Array<{
-    id: string;
-    file_name: string;
-    file_url: string;
-    doc_type: string;
-    created_at: string;
-  }>;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  pending: { label: 'Pending', color: 'bg-muted text-muted-foreground', icon: Clock },
-  sent: { label: 'Sent', color: 'bg-discrepancy/10 text-discrepancy', icon: Clock },
-  opened: { label: 'Opened', color: 'bg-accent/10 text-accent', icon: Eye },
-  submitted: { label: 'Submitted', color: 'bg-accent/10 text-accent', icon: FileText },
-  verified: { label: 'Verified', color: 'bg-validated/10 text-validated', icon: CheckCircle2 },
-  expired: { label: 'Expired', color: 'bg-muted text-muted-foreground', icon: AlertTriangle },
-  revoked: { label: 'Revoked', color: 'bg-muted text-muted-foreground', icon: XCircle },
+const STATUS_CONFIG: Record<string, { label: string; chipClass: string; icon: React.ElementType }> = {
+  pending: { label: 'Pending', chipClass: 'bg-muted text-muted-foreground', icon: Clock },
+  sent: { label: 'Email sent', chipClass: 'bg-blue-500/10 text-blue-500', icon: Send },
+  opened: { label: 'Opened', chipClass: 'bg-yellow-500/10 text-yellow-600', icon: Eye },
+  submitted: { label: 'Submitted', chipClass: 'bg-accent/10 text-accent', icon: FileText },
+  verified: { label: 'Verified', chipClass: 'bg-validated/10 text-validated', icon: CheckCircle2 },
+  failed: { label: 'Failed', chipClass: 'bg-destructive/10 text-destructive', icon: XCircle },
+  expired: { label: 'Expired', chipClass: 'bg-muted text-muted-foreground', icon: AlertTriangle },
+  revoked: { label: 'Revoked', chipClass: 'bg-muted text-muted-foreground', icon: XCircle },
 };
 
 export const VerificationReviewCover: React.FC = () => {
@@ -60,30 +48,21 @@ export const VerificationReviewCover: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
   const [processing, setProcessing] = useState<string | null>(null);
+  const lastResendRef = useRef<Record<string, number>>({});
 
   const fetchRequests = async () => {
     if (!dealId) return;
     setLoading(true);
-    const { data, error } = await supabase.functions.invoke('manual-verify', {
-      method: 'GET',
-      body: undefined,
-      headers: {},
-    });
-
-    // Fallback: use direct query since GET with query params via invoke is tricky
-    const { data: reqData } = await supabase
+    const { data } = await supabase
       .from('verification_requests')
       .select('*')
       .eq('deal_id', dealId)
       .order('created_at', { ascending: false });
-
-    setRequests((reqData as unknown as VerificationRequest[]) || []);
+    setRequests((data as unknown as VerificationRequest[]) || []);
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchRequests();
-  }, [dealId]);
+  useEffect(() => { fetchRequests(); }, [dealId]);
 
   const handleManualVerify = async (requestId: string, verified: boolean) => {
     setProcessing(requestId);
@@ -96,6 +75,26 @@ export const VerificationReviewCover: React.FC = () => {
       toast.success(verified ? 'Marked as verified' : 'Marked as failed');
       setReviewNotes('');
       setExpandedId(null);
+      await fetchRequests();
+    }
+    setProcessing(null);
+  };
+
+  const handleResend = async (req: VerificationRequest) => {
+    const last = lastResendRef.current[req.id] || 0;
+    if (Date.now() - last < 60_000) {
+      toast.error('Please wait before resending verification.');
+      return;
+    }
+    setProcessing(req.id);
+    const { error } = await supabase.functions.invoke('send-verification', {
+      body: { stakeholder_id: req.stakeholder_id, deal_id: req.deal_id },
+    });
+    if (error) {
+      toast.error(`Failed to resend: ${error.message}`);
+    } else {
+      lastResendRef.current[req.id] = Date.now();
+      toast.success('Verification email resent');
       await fetchRequests();
     }
     setProcessing(null);
@@ -116,20 +115,20 @@ export const VerificationReviewCover: React.FC = () => {
       <div>
         <h2 className="text-xl font-semibold flex items-center gap-2">
           <Shield className="w-5 h-5 text-accent" />
-          Verification Review
+          Verification
         </h2>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Review and manage KYC/KYB verification requests for deal stakeholders.
+          Track and manage all KYC/KYB verification requests for this deal.
         </p>
       </div>
 
-      {/* Summary Cards */}
+      {/* Summary */}
       <div className="grid grid-cols-4 gap-3">
         {[
           { label: 'Total Requests', value: activeRequests.length, color: 'text-foreground' },
+          { label: 'Sent / Pending', value: activeRequests.filter(r => ['pending', 'sent', 'opened'].includes(r.status)).length, color: 'text-blue-500' },
           { label: 'Submitted', value: activeRequests.filter(r => r.status === 'submitted').length, color: 'text-accent' },
           { label: 'Verified', value: activeRequests.filter(r => r.status === 'verified').length, color: 'text-validated' },
-          { label: 'Pending', value: activeRequests.filter(r => ['pending', 'sent', 'opened'].includes(r.status)).length, color: 'text-discrepancy' },
         ].map(card => (
           <motion.div key={card.label} {...fadeInUp} className="pivt-card p-4">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{card.label}</p>
@@ -147,49 +146,85 @@ export const VerificationReviewCover: React.FC = () => {
           </p>
         </motion.div>
       ) : (
-        <div className="space-y-3">
+        /* Table view */
+        <div className="pivt-card overflow-hidden">
+          <div className="p-4 border-b border-border bg-muted/50">
+            <div className="grid grid-cols-7 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              <span className="col-span-2">Stakeholder</span>
+              <span>Type</span>
+              <span className="text-center">Status</span>
+              <span className="text-center">Sent</span>
+              <span className="text-center">Submitted</span>
+              <span className="text-center">Actions</span>
+            </div>
+          </div>
           {activeRequests.map(req => {
             const cfg = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
             const Icon = cfg.icon;
             const isExpanded = expandedId === req.id;
+            const isProcessing = processing === req.id;
 
             return (
-              <motion.div key={req.id} {...fadeInUp} className="pivt-card overflow-hidden">
-                <button
+              <div key={req.id} className="border-b border-border last:border-0">
+                <div
+                  className="p-4 hover:bg-muted/30 transition-colors cursor-pointer"
                   onClick={() => setExpandedId(isExpanded ? null : req.id)}
-                  className="w-full p-4 flex items-center justify-between hover:bg-muted/30 transition-colors"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                    <div className="text-left">
+                  <div className="grid grid-cols-7 items-center">
+                    <div className="col-span-2">
                       <p className="font-medium text-sm">{req.recipient_name}</p>
-                      <p className="text-xs text-muted-foreground">{req.recipient_email} · {req.verification_type || (req.stakeholder_type === 'entity' ? 'KYB' : 'KYC')}</p>
+                      <p className="text-xs text-muted-foreground">{req.recipient_email}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {req.stakeholder_type === 'entity' ? 'KYB' : 'KYC'}
+                    </span>
+                    <div className="flex justify-center">
+                      <Badge className={`${cfg.chipClass} text-[10px]`}>
+                        <Icon className="w-3 h-3 mr-1" />{cfg.label}
+                      </Badge>
+                    </div>
+                    <span className="text-center text-xs text-muted-foreground">
+                      {req.sent_at ? new Date(req.sent_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                    </span>
+                    <span className="text-center text-xs text-muted-foreground">
+                      {req.submitted_at ? new Date(req.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                    </span>
+                    <div className="flex justify-center items-center gap-2" onClick={e => e.stopPropagation()}>
+                      {['sent', 'pending', 'opened', 'failed', 'expired'].includes(req.status) && (
+                        <button
+                          onClick={() => handleResend(req)}
+                          disabled={isProcessing}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+                        >
+                          <RotateCw className="w-3 h-3" />
+                          Resend
+                        </button>
+                      )}
+                      {isAdmin && !['verified', 'expired'].includes(req.status) && (
+                        <button
+                          onClick={() => handleManualVerify(req.id, true)}
+                          disabled={isProcessing}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-validated/10 text-validated text-xs font-medium hover:bg-validated/20 transition-colors disabled:opacity-50"
+                        >
+                          <BadgeCheck className="w-3 h-3" />
+                          Verify
+                        </button>
+                      )}
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Badge className={`${cfg.color} text-[10px]`}>
-                      <Icon className="w-3 h-3 mr-1" />{cfg.label}
-                    </Badge>
-                    {req.sent_at && (
-                      <span className="text-[10px] text-muted-foreground">
-                        Sent {new Date(req.sent_at).toLocaleDateString()}
-                      </span>
-                    )}
-                    {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
-                  </div>
-                </button>
+                </div>
 
                 {isExpanded && (
-                  <div className="border-t border-border p-4 space-y-4">
+                  <div className="border-t border-border p-4 bg-muted/20 space-y-4">
                     {/* Timeline */}
-                    <div className="grid grid-cols-4 gap-4 text-xs">
+                    <div className="grid grid-cols-5 gap-4 text-xs">
                       {[
                         { label: 'Created', value: req.created_at },
                         { label: 'Sent', value: req.sent_at },
                         { label: 'Submitted', value: req.submitted_at },
                         { label: 'Verified', value: req.verified_at },
+                        { label: 'Expires', value: req.expires_at },
                       ].map(t => (
                         <div key={t.label}>
                           <p className="text-muted-foreground">{t.label}</p>
@@ -213,7 +248,6 @@ export const VerificationReviewCover: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Manual Review Notes */}
                     {req.manual_review_notes && (
                       <div className="bg-muted/30 rounded-lg p-3">
                         <p className="text-xs font-medium text-muted-foreground mb-1">Review Notes</p>
@@ -234,16 +268,16 @@ export const VerificationReviewCover: React.FC = () => {
                         <div className="flex gap-3">
                           <button
                             onClick={() => handleManualVerify(req.id, true)}
-                            disabled={processing === req.id}
+                            disabled={isProcessing}
                             className="flex items-center gap-2 px-4 py-2 rounded-lg bg-validated/10 border border-validated/20 text-validated text-sm font-medium hover:bg-validated/20 transition-all disabled:opacity-50"
                           >
                             <BadgeCheck className="w-4 h-4" />
-                            {processing === req.id ? 'Processing…' : 'Mark Verified'}
+                            {isProcessing ? 'Processing…' : 'Mark Verified'}
                           </button>
                           <button
                             onClick={() => handleManualVerify(req.id, false)}
-                            disabled={processing === req.id}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blocking/10 border border-blocking/20 text-blocking text-sm font-medium hover:bg-blocking/20 transition-all disabled:opacity-50"
+                            disabled={isProcessing}
+                            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm font-medium hover:bg-destructive/20 transition-all disabled:opacity-50"
                           >
                             <XCircle className="w-4 h-4" />
                             Mark Failed
@@ -253,7 +287,7 @@ export const VerificationReviewCover: React.FC = () => {
                     )}
                   </div>
                 )}
-              </motion.div>
+              </div>
             );
           })}
         </div>
