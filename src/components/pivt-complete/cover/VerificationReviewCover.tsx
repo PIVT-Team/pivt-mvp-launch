@@ -74,6 +74,14 @@ export const VerificationReviewCover: React.FC = () => {
       toast.error(`Failed: ${error.message}`);
     } else {
       toast.success(verified ? 'Marked as verified' : 'Marked as failed');
+      // Fire state machine event
+      const req = requests.find(r => r.id === requestId);
+      if (dealId && req) {
+        applyEvent(dealId, verified ? 'VERIFICATION_VERIFIED' : 'VERIFICATION_FAILED', {
+          stakeholder_id: req.stakeholder_id,
+          request_id: requestId,
+        }).catch(console.error);
+      }
       setReviewNotes('');
       setExpandedId(null);
       await fetchRequests();
