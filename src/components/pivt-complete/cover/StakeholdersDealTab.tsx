@@ -409,14 +409,14 @@ export const StakeholdersDealTab: React.FC = () => {
                     <DropdownMenuContent align="end" className="z-[70]">
                       {(s.verification_status === 'not_sent' || s.verification_status === 'not_requested') && (
                         <DropdownMenuItem onClick={() => sendVerification(s.id)} className="gap-2" disabled={!s.email}>
-                          <Send className="w-3.5 h-3.5" />
-                          Send Verification
+                          <Mail className="w-3.5 h-3.5" />
+                          Send KYB/KYC Verification Email
                         </DropdownMenuItem>
                       )}
                       {['sent', 'in_progress', 'pending', 'failed', 'expired'].includes(s.verification_status) && (
                         <DropdownMenuItem onClick={() => resendVerification(s.id)} className="gap-2" disabled={!s.email}>
                           <RotateCw className="w-3.5 h-3.5" />
-                          Resend Verification
+                          Resend Verification Email
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem onClick={() => copyVerificationLink(s.id)} className="gap-2">
