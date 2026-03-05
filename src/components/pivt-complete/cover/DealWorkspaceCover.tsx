@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
 import { DealWorkspaceProvider } from '@/contexts/DealWorkspaceContext';
+import { useWorkflowStatus } from '@/hooks/useWorkflowStatus';
 
 // Import existing cover pages
 import { StakeholdersDealTab } from './StakeholdersDealTab';
@@ -566,6 +567,7 @@ export const DealWorkspaceCover: React.FC = () => {
     return realDeal?.seed_key || null;
   }, [isRealDeal, realDeal, selectedDealId]);
   const { summary: dealSummary } = useDealSummary(!isDemoDeal && isRealDeal ? selectedDealId : undefined);
+  const { completionPcts: wfPcts } = useWorkflowStatus(!isDemoDeal && isRealDeal ? selectedDealId : undefined);
   useEffect(() => {
     if (isRealDeal) {
       setLoadingDeal(true);
@@ -715,25 +717,21 @@ export const DealWorkspaceCover: React.FC = () => {
       return DEMO_STEPS[demoDealSeedKey || ''] || DEMO_STEPS.atlas;
     }
 
-    // Dynamic workflow for real deals
-    const s = dealSummary;
-    const condPct = s ? (s.conditionsTotal > 0 ? Math.round((s.conditionsSatisfied / s.conditionsTotal) * 100) : 0) : 0;
-    const appPct = s ? (s.approvalsTotal > 0 ? Math.round((s.approvalsApproved / s.approvalsTotal) * 100) : 0) : 0;
-    const docPct = s ? (s.documentsCount > 0 ? 100 : 0) : 0;
-    const payPct = s ? (s.paymentsTotal > 0 ? Math.round((s.paymentsConfirmed / s.paymentsTotal) * 100) : 0) : 0;
+    // Dynamic workflow for real deals — driven by useWorkflowStatus hook
+    const pct = (key: string) => wfPcts[key] ?? 0;
 
     return [
       { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-      { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: docPct > 0 ? 85 : 0, blockers: 0 },
-      { id: 'verification', number: 3, label: 'Verification', completionPct: appPct, blockers: s?.approvalsPending || 0 },
-      { id: 'structuring', number: 4, label: 'Structuring', completionPct: condPct > 0 ? 64 : 0, blockers: 0 },
-      { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: docPct, blockers: 0 },
-      { id: 'execution', number: 6, label: 'Execution', completionPct: payPct, blockers: s ? (s.paymentsTotal - s.paymentsConfirmed) : 0 },
-      { id: 'compliance', number: 7, label: 'Compliance', completionPct: condPct, blockers: s ? (s.conditionsTotal - s.conditionsSatisfied) : 0 },
+      { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: pct('stakeholders'), blockers: 0 },
+      { id: 'verification', number: 3, label: 'Verification', completionPct: pct('verification'), blockers: 0 },
+      { id: 'structuring', number: 4, label: 'Structuring', completionPct: pct('structuring'), blockers: 0 },
+      { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: pct('deal-inputs'), blockers: 0 },
+      { id: 'execution', number: 6, label: 'Execution', completionPct: pct('execution'), blockers: 0 },
+      { id: 'compliance', number: 7, label: 'Compliance', completionPct: pct('compliance'), blockers: 0 },
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
     ];
-  }, [isDemoDeal, demoDealSeedKey, dealSummary]);
+  }, [isDemoDeal, demoDealSeedKey, wfPcts]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);

@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 export interface WorkflowStep {
   id: string;
@@ -33,6 +34,13 @@ const STATUS_DOT_GLOW: Record<StepStatus, string> = {
   needs_attention: 'shadow-[0_0_8px_rgba(248,113,113,0.45)] animate-pulse',
 };
 
+const STATUS_TOOLTIP: Record<StepStatus, string> = {
+  not_started: 'Not Started',
+  in_progress: 'In Progress',
+  complete: 'Completed',
+  needs_attention: 'Needs Attention',
+};
+
 interface DealWorkflowStepperProps {
   steps: WorkflowStep[];
   activeStepId: string;
@@ -47,6 +55,7 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
     : 0;
 
   return (
+    <TooltipProvider delayDuration={200}>
     <div className="relative">
       <div
         className="pivt-workflow-nav relative flex items-center h-14 px-3 overflow-x-auto scrollbar-hide"
@@ -79,8 +88,15 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
                   }
                 `}
               >
-                {/* Status dot */}
-                <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[status]} ${STATUS_DOT_GLOW[status]} transition-all duration-300`} />
+                {/* Status dot with tooltip */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${STATUS_DOT[status]} ${STATUS_DOT_GLOW[status]} transition-all duration-300`} />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs bg-[#111111] text-white border-0 px-2.5 py-1.5 rounded-lg">
+                    {STATUS_TOOLTIP[status]}
+                  </TooltipContent>
+                </Tooltip>
 
                 {/* Label */}
                 <span
@@ -92,7 +108,7 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
                   {step.label}
                 </span>
 
-                {/* Active underline — animates from left */}
+                {/* Active underline */}
                 {isActive && (
                   <motion.div
                     layoutId="workflow-step-underline"
@@ -117,5 +133,6 @@ export const DealWorkflowStepper: React.FC<DealWorkflowStepperProps> = ({
         })}
       </div>
     </div>
+    </TooltipProvider>
   );
 };
