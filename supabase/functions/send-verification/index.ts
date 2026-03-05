@@ -8,11 +8,13 @@ const corsHeaders = {
 
 const jsonHeaders = { ...corsHeaders, "Content-Type": "application/json" };
 
-function errorResponse(message: string, status: number, details?: unknown) {
-  console.error(`[send-verification] ERROR ${status}: ${message}`, details ?? "");
+// IMPORTANT: Always return HTTP 200 so supabase.functions.invoke surfaces the body in `data`.
+// Use { success: false, error: "..." } for application-level errors.
+function errorResponse(message: string, details?: unknown) {
+  console.error(`[send-verification] ERROR: ${message}`, details ?? "");
   return new Response(
-    JSON.stringify({ error: message, ...(details ? { details } : {}) }),
-    { status, headers: jsonHeaders }
+    JSON.stringify({ success: false, error: message, ...(details ? { details } : {}) }),
+    { status: 200, headers: jsonHeaders }
   );
 }
 
