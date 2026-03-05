@@ -376,6 +376,9 @@ export const StakeholdersDealTab: React.FC = () => {
     const totalPayout = dbStakeholders.reduce((s, x) => s + x.payout_amount, 0);
     const totalOwnership = dbStakeholders.reduce((s, x) => s + x.ownership_pct, 0);
     const verifiedCount = dbStakeholders.filter(s => s.verification_status === 'verified').length;
+    const emailSentCount = dbStakeholders.filter(s => s.verification_status === 'sent').length;
+    const inProgressCount = dbStakeholders.filter(s => ['in_progress', 'submitted'].includes(s.verification_status)).length;
+    const rejectedCount = dbStakeholders.filter(s => s.verification_status === 'failed').length;
 
     return (
       <div className="space-y-6">
@@ -393,12 +396,13 @@ export const StakeholdersDealTab: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-6 gap-3">
           {[
             { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: DollarSign, color: 'text-accent' },
-            { label: 'Stakeholders', value: `${dbStakeholders.length}`, icon: Users, color: 'text-foreground' },
             { label: 'Verified', value: `${verifiedCount}/${dbStakeholders.length}`, icon: Shield, color: 'text-validated' },
-            { label: 'Wire Collected', value: '0/0', icon: CreditCard, color: 'text-accent' },
+            { label: 'Email Sent', value: `${emailSentCount}`, icon: Mail, color: 'text-blue-500' },
+            { label: 'In Progress', value: `${inProgressCount}`, icon: Clock, color: 'text-yellow-600' },
+            { label: 'Rejected', value: `${rejectedCount}`, icon: XCircle, color: 'text-destructive' },
             { label: 'Ownership', value: `${totalOwnership}%`, icon: Percent, color: 'text-foreground' },
           ].map(card => (
             <motion.div key={card.label} {...fadeInUp} className="pivt-card p-4">
