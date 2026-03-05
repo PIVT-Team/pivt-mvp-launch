@@ -177,7 +177,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
     }
 
     toast.success('Stakeholder added successfully');
-    // Re-fetch from DB, then show KYC prompt
+    setCreatedStakeholderId(data.id);
     await onAdded?.();
     setShowKycPrompt(true);
   };
