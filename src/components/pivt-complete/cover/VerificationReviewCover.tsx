@@ -5,6 +5,7 @@ import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { applyEvent } from '@/services/dealStateMachineService';
 import { Badge } from '@/components/ui/badge';
 import { Shield, CheckCircle2, Clock, AlertTriangle, Eye, BadgeCheck, XCircle, FileText, ChevronDown, ChevronUp, Send, RotateCw, Copy } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
