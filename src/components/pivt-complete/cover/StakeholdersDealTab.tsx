@@ -10,6 +10,7 @@ import { useEditGuard } from '@/hooks/useEditGuard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { applyEvent } from '@/services/dealStateMachineService';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -86,6 +87,7 @@ export const StakeholdersDealTab: React.FC = () => {
     } else {
       lastSendTimesRef.current[stakeholderId] = Date.now();
       toast.success('Verification email sent');
+      if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId }).catch(console.error);
     }
     setSendingId(null);
     await fetchStakeholders();
@@ -102,6 +104,7 @@ export const StakeholdersDealTab: React.FC = () => {
     } else {
       lastSendTimesRef.current[stakeholderId] = Date.now();
       toast.success('Verification email resent');
+      if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId, resend: true }).catch(console.error);
     }
     setSendingId(null);
     await fetchStakeholders();
@@ -148,6 +151,7 @@ export const StakeholdersDealTab: React.FC = () => {
         .eq('id', stakeholderId);
     }
     toast.success('Marked as verified');
+    if (dealId) applyEvent(dealId, 'VERIFICATION_VERIFIED', { stakeholder_id: stakeholderId }).catch(console.error);
     await fetchStakeholders();
   };
 
@@ -171,6 +175,7 @@ export const StakeholdersDealTab: React.FC = () => {
         .eq('id', stakeholderId);
     }
     toast.success('Marked as failed');
+    if (dealId) applyEvent(dealId, 'VERIFICATION_FAILED', { stakeholder_id: stakeholderId }).catch(console.error);
     await fetchStakeholders();
   };
 

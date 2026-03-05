@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { applyEvent } from '@/services/dealStateMachineService';
 
 type StakeholderType = 'individual' | 'entity';
 type OwnershipBasis = 'SELLER_EQUITY' | 'BUYER_EQUITY' | 'NOT_APPLICABLE';
@@ -178,6 +179,15 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
 
     toast.success('Stakeholder added successfully');
     setCreatedStakeholderId(data.id);
+
+    // Fire state machine event
+    applyEvent(dealId, 'STAKEHOLDER_ADDED', {
+      stakeholder_id: data.id,
+      name: name.trim(),
+      role,
+      type,
+    }).catch(console.error);
+
     await onAdded?.();
     setShowKycPrompt(true);
   };

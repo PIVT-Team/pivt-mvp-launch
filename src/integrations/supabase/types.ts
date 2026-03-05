@@ -528,6 +528,47 @@ export type Database = {
         }
         Relationships: []
       }
+      deal_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          deal_id: string
+          event_type: string
+          id: string
+          new_state: string | null
+          payload: Json
+          previous_state: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          deal_id: string
+          event_type: string
+          id?: string
+          new_state?: string | null
+          payload?: Json
+          previous_state?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          deal_id?: string
+          event_type?: string
+          id?: string
+          new_state?: string | null
+          payload?: Json
+          previous_state?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_members: {
         Row: {
           created_at: string
@@ -703,6 +744,7 @@ export type Database = {
       }
       deals: {
         Row: {
+          blocked_reason: string | null
           buyer: string | null
           closing_date: string | null
           created_at: string
@@ -711,6 +753,7 @@ export type Database = {
           deal_kind: Database["public"]["Enums"]["deal_kind"]
           deal_name: string
           deal_number: string
+          deal_state: Database["public"]["Enums"]["deal_state"]
           deal_type: string | null
           deal_value: number
           deleted_at: string | null
@@ -724,6 +767,7 @@ export type Database = {
           seed_key: string | null
           seller: string | null
           signing_date: string | null
+          state_updated_at: string
           status: string
           target_company: string | null
           template_blueprint: Json | null
@@ -731,6 +775,7 @@ export type Database = {
           visibility: string
         }
         Insert: {
+          blocked_reason?: string | null
           buyer?: string | null
           closing_date?: string | null
           created_at?: string
@@ -739,6 +784,7 @@ export type Database = {
           deal_kind?: Database["public"]["Enums"]["deal_kind"]
           deal_name: string
           deal_number: string
+          deal_state?: Database["public"]["Enums"]["deal_state"]
           deal_type?: string | null
           deal_value?: number
           deleted_at?: string | null
@@ -752,6 +798,7 @@ export type Database = {
           seed_key?: string | null
           seller?: string | null
           signing_date?: string | null
+          state_updated_at?: string
           status?: string
           target_company?: string | null
           template_blueprint?: Json | null
@@ -759,6 +806,7 @@ export type Database = {
           visibility?: string
         }
         Update: {
+          blocked_reason?: string | null
           buyer?: string | null
           closing_date?: string | null
           created_at?: string
@@ -767,6 +815,7 @@ export type Database = {
           deal_kind?: Database["public"]["Enums"]["deal_kind"]
           deal_name?: string
           deal_number?: string
+          deal_state?: Database["public"]["Enums"]["deal_state"]
           deal_type?: string | null
           deal_value?: number
           deleted_at?: string | null
@@ -780,6 +829,7 @@ export type Database = {
           seed_key?: string | null
           seller?: string | null
           signing_date?: string | null
+          state_updated_at?: string
           status?: string
           target_company?: string | null
           template_blueprint?: Json | null
@@ -2426,6 +2476,15 @@ export type Database = {
         | "FINANCE_APPROVER"
         | "OPERATIONS"
         | "VIEWER"
+      deal_state:
+        | "draft"
+        | "verification_pending"
+        | "structuring"
+        | "conditions_pending"
+        | "ready_for_execution"
+        | "executing"
+        | "settled"
+        | "archived"
       disbursement_status:
         | "draft"
         | "pending_conditions"
@@ -2733,6 +2792,16 @@ export const Constants = {
         "FINANCE_APPROVER",
         "OPERATIONS",
         "VIEWER",
+      ],
+      deal_state: [
+        "draft",
+        "verification_pending",
+        "structuring",
+        "conditions_pending",
+        "ready_for_execution",
+        "executing",
+        "settled",
+        "archived",
       ],
       disbursement_status: [
         "draft",

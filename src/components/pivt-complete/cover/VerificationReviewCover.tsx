@@ -5,6 +5,7 @@ import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { applyEvent } from '@/services/dealStateMachineService';
 import { Badge } from '@/components/ui/badge';
 import { Shield, CheckCircle2, Clock, AlertTriangle, Eye, BadgeCheck, XCircle, FileText, ChevronDown, ChevronUp, Send, RotateCw, Copy } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
@@ -73,6 +74,14 @@ export const VerificationReviewCover: React.FC = () => {
       toast.error(`Failed: ${error.message}`);
     } else {
       toast.success(verified ? 'Marked as verified' : 'Marked as failed');
+      // Fire state machine event
+      const req = requests.find(r => r.id === requestId);
+      if (dealId && req) {
+        applyEvent(dealId, verified ? 'VERIFICATION_VERIFIED' : 'VERIFICATION_FAILED', {
+          stakeholder_id: req.stakeholder_id,
+          request_id: requestId,
+        }).catch(console.error);
+      }
       setReviewNotes('');
       setExpandedId(null);
       await fetchRequests();
