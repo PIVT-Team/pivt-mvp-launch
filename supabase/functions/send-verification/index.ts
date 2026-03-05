@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
 
     const siteUrl = Deno.env.get("SITE_URL") || `https://id-preview--7a07f5f2-4b1d-47b9-b6b9-ed69164d12f6.lovable.app`;
     const verifyUrl = `${siteUrl}/verify?token=${rawToken}`;
-    const logoUrl = `${siteUrl}/pivt-logo-email.png`;
+    const logoUrl = `https://hipjywloeveadfndzary.supabase.co/storage/v1/object/public/email-assets/pivt-logo.png`;
 
     const isKYB = (stakeholder.stakeholder_type || "individual") === "entity";
     const dealName = deal?.deal_name || "a transaction";
