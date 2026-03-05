@@ -77,6 +77,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'readiness', label: 'Readiness' },
   ],
   execution: [
+    { id: 'closing', label: 'Closing Readiness' },
     { id: 'intents', label: 'Disbursement Intents' },
     { id: 'payments', label: 'Payments' },
     { id: 'discrepancies', label: 'Discrepancies' },
