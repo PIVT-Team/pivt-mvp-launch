@@ -425,7 +425,7 @@ export const StakeholdersDealTab: React.FC = () => {
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[12%]">Role</th>
                   <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Ownership</th>
                   <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Payout</th>
-                  <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[14%]">Verification</th>
+                  <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[14%]">Verification Status</th>
                   <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[14%]">Action</th>
                   <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Net Payout</th>
                   <th className="w-[2%] px-2 py-3"></th>
