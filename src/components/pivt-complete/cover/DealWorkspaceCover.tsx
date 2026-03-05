@@ -33,8 +33,8 @@ import { DealInputsCover } from './DealInputsCover';
 import { DiscrepancyPanelCover } from './DiscrepancyPanelCover';
 import { ExecutionAuthorityPanel } from './ExecutionAuthorityPanel';
 import { EditDealDrawer } from './EditDealDrawer';
-
-// ── Workflow helpers ──
+import { VerificationReviewCover } from './VerificationReviewCover';
+import { VerificationReadinessBanner } from './VerificationReadinessBanner';
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
   { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for trust account', severity: 'critical' as const, resolved: false },
