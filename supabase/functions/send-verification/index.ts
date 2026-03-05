@@ -26,16 +26,14 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (claimsErr || !claims?.claims) {
+    const { data: { user }, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claims.claims.sub as string;
+    const userId = user.id;
 
     const { stakeholder_id, deal_id } = await req.json();
     if (!stakeholder_id || !deal_id) {
@@ -45,13 +43,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use service role for DB ops
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Get stakeholder details
+    // Get stakeholder
     const { data: stakeholder, error: sErr } = await adminClient
       .from("cap_table_entries")
       .select("*")
@@ -73,23 +70,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get deal name
-    const { data: deal } = await adminClient
-      .from("deals")
-      .select("deal_name, deal_number")
-      .eq("id", deal_id)
-      .maybeSingle();
+    // Get deal + requester profile in parallel
+    const [dealRes, profileRes] = await Promise.all([
+      adminClient.from("deals").select("deal_name, deal_number").eq("id", deal_id).maybeSingle(),
+      adminClient.from("profiles").select("full_name, organization").eq("user_id", userId).maybeSingle(),
+    ]);
+
+    const deal = dealRes.data;
+    const profile = profileRes.data;
 
     // Generate token
     const rawToken = crypto.randomUUID() + "-" + crypto.randomUUID();
     const tokenHash = await hashToken(rawToken);
 
-    // Check for existing pending request and revoke
+    // Revoke existing pending requests
     await adminClient
       .from("verification_requests")
       .update({ status: "revoked", revoked_at: new Date().toISOString() })
       .eq("stakeholder_id", stakeholder_id)
       .in("status", ["pending", "sent"]);
+
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
     // Create verification request
     const { data: verReq, error: insertErr } = await adminClient
@@ -103,7 +104,7 @@ Deno.serve(async (req) => {
         token_hash: tokenHash,
         status: "pending",
         created_by: userId,
-        expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        expires_at: expiresAt.toISOString(),
       })
       .select()
       .single();
@@ -117,21 +118,47 @@ Deno.serve(async (req) => {
     }
 
     // Build verification URL
-    const projectUrl = Deno.env.get("SUPABASE_URL")!.replace(".supabase.co", "");
     const siteUrl = `https://id-preview--7a07f5f2-4b1d-47b9-b6b9-ed69164d12f6.lovable.app`;
     const verifyUrl = `${siteUrl}/verify?token=${rawToken}`;
+    const logoUrl = `${siteUrl}/pivt-favicon-new.png`;
 
     // Send email via Resend
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
-      console.error("RESEND_API_KEY not configured");
       return new Response(
         JSON.stringify({ error: "Email service not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const isKYB = (stakeholder.stakeholder_type || "individual") === "entity";
     const dealName = deal?.deal_name || "a transaction";
+    const contactName = stakeholder.shareholder_name || "there";
+    const requesterName = profile?.full_name || "A team member";
+    const requesterEmail = user.email || "";
+    const requestingFirmName = profile?.organization || "PIVT";
+    const entityName = stakeholder.shareholder_name || "your entity";
+    const expiresAtFormatted = expiresAt.toLocaleDateString("en-US", {
+      year: "numeric", month: "long", day: "numeric",
+    });
+
+    const subject = isKYB
+      ? `Action required: Business verification for ${entityName}`
+      : `Action required: Identity verification requested by ${requestingFirmName}`;
+
+    const emailHtml = buildEmailHtml({
+      isKYB,
+      logoUrl,
+      contactName,
+      entityName,
+      dealName,
+      verifyUrl,
+      requesterName,
+      requesterEmail,
+      requestingFirmName,
+      expiresAt: expiresAtFormatted,
+    });
+
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -141,8 +168,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         from: "PIVT Verification <onboarding@resend.dev>",
         to: [stakeholder.email],
-        subject: `Action Required: Complete verification for ${dealName}`,
-        html: buildEmailHtml(stakeholder.shareholder_name, dealName, verifyUrl),
+        subject,
+        html: emailHtml,
       }),
     });
 
@@ -161,7 +188,6 @@ Deno.serve(async (req) => {
       .update({ status: "sent", sent_at: new Date().toISOString() })
       .eq("id", verReq.id);
 
-    // Update stakeholder verification_status
     await adminClient
       .from("cap_table_entries")
       .update({ verification_status: "sent" })
@@ -189,36 +215,136 @@ async function hashToken(token: string): Promise<string> {
     .join("");
 }
 
-function buildEmailHtml(name: string, dealName: string, verifyUrl: string): string {
-  return `
-<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <div style="max-width:560px;margin:40px auto;padding:0 20px;">
-    <div style="background:#0F1220;border-radius:12px;padding:40px 32px;color:#ffffff;">
-      <div style="text-align:center;margin-bottom:32px;">
-        <h1 style="font-size:20px;font-weight:700;margin:0;color:#ffffff;">PIVT</h1>
-        <p style="font-size:12px;color:rgba(255,255,255,0.4);margin:4px 0 0;">Verification Required</p>
-      </div>
-      <p style="font-size:15px;line-height:1.6;color:rgba(255,255,255,0.85);">Hi ${name},</p>
-      <p style="font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
-        You've been added as a stakeholder on <strong style="color:#ffffff;">${dealName}</strong>.
-        To proceed, please complete your identity verification.
-      </p>
-      <div style="text-align:center;margin:32px 0;">
-        <a href="${verifyUrl}" style="display:inline-block;padding:14px 32px;background:#6C5CE7;color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">
-          Complete Verification
-        </a>
-      </div>
-      <p style="font-size:12px;color:rgba(255,255,255,0.4);line-height:1.5;">
-        This link expires in 7 days. If you didn't expect this email, you can safely ignore it.
-      </p>
-    </div>
-    <p style="text-align:center;font-size:11px;color:#999;margin-top:16px;">
-      Sent by PIVT · Secure transaction infrastructure
-    </p>
-  </div>
+interface EmailParams {
+  isKYB: boolean;
+  logoUrl: string;
+  contactName: string;
+  entityName: string;
+  dealName: string;
+  verifyUrl: string;
+  requesterName: string;
+  requesterEmail: string;
+  requestingFirmName: string;
+  expiresAt: string;
+}
+
+function buildEmailHtml(p: EmailParams): string {
+  const ctaLabel = p.isKYB ? "Complete Business Verification" : "Complete Identity Verification";
+  const verificationType = p.isKYB ? "Know Your Business (KYB)" : "Know Your Customer (KYC) identity";
+
+  const introText = p.isKYB
+    ? `<strong>${p.requesterName}</strong> from <strong>${p.requestingFirmName}</strong> has requested Know Your Business (KYB) verification for the following entity as part of a transaction workflow managed through PIVT.`
+    : `<strong>${p.requesterName}</strong> from <strong>${p.requestingFirmName}</strong> has requested Know Your Customer (KYC) identity verification as part of a transaction workflow managed through PIVT.`;
+
+  const detailsBlock = p.isKYB
+    ? `<table role="presentation" style="width:100%;margin:20px 0;border-collapse:collapse;">
+        <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;width:110px;">Entity</td><td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${p.entityName}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Deal</td><td style="padding:6px 0;color:#111827;font-size:14px;font-weight:600;">${p.dealName}</td></tr>
+        <tr><td style="padding:6px 0;color:#6b7280;font-size:14px;">Requested by</td><td style="padding:6px 0;color:#111827;font-size:14px;">${p.requesterName} (${p.requesterEmail})</td></tr>
+       </table>`
+    : "";
+
+  const requirementsList = p.isKYB
+    ? `<ul style="margin:0;padding:0 0 0 20px;color:#374151;font-size:14px;line-height:1.8;">
+        <li>Legal business details</li>
+        <li>Registration number (EIN / Company Number / ACN etc.)</li>
+        <li>Registered business address</li>
+        <li>Certificate of incorporation or business registry extract</li>
+       </ul>`
+    : `<ul style="margin:0;padding:0 0 0 20px;color:#374151;font-size:14px;line-height:1.8;">
+        <li>Your legal name and contact details</li>
+        <li>Date of birth</li>
+        <li>Residential address</li>
+        <li>A government-issued ID (passport or driver's licence)</li>
+       </ul>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PIVT Verification</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <!-- Wrapper -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f3f4f6;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <!-- Card -->
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <!-- Logo Header -->
+          <tr>
+            <td align="center" style="padding:32px 40px 24px;">
+              <img src="${p.logoUrl}" alt="PIVT" height="36" style="display:block;height:36px;width:auto;" />
+            </td>
+          </tr>
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 40px;">
+              <div style="height:1px;background-color:#e5e7eb;"></div>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px 40px;">
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#111827;">Hi ${p.contactName},</p>
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#374151;">${introText}</p>
+              ${detailsBlock}
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#374151;">To proceed, please complete verification using the secure link below.</p>
+              <!-- CTA -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding:8px 0 32px;">
+                    <a href="${p.verifyUrl}" target="_blank" style="display:inline-block;padding:14px 32px;background-color:#6B46FF;color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;line-height:1;mso-padding-alt:0;text-align:center;">
+                      <!--[if mso]><i style="mso-font-width:150%;mso-text-raise:22pt">&nbsp;</i><![endif]-->
+                      <span style="mso-text-raise:11pt;">${ctaLabel}</span>
+                      <!--[if mso]><i style="mso-font-width:150%">&nbsp;</i><![endif]-->
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <!-- What you'll need -->
+              <p style="margin:0 0 12px;font-size:14px;font-weight:600;color:#111827;">What you will need</p>
+              <p style="margin:0 0 8px;font-size:14px;color:#6b7280;">To complete verification you may be asked to provide:</p>
+              ${requirementsList}
+              <p style="margin:16px 0 0;font-size:13px;color:#9ca3af;">This process typically takes 2–3 minutes.</p>
+            </td>
+          </tr>
+          <!-- Security Notice -->
+          <tr>
+            <td style="padding:0 40px;">
+              <div style="height:1px;background-color:#e5e7eb;"></div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:24px 40px 32px;">
+              <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#6b7280;">Security Notice</p>
+              <p style="margin:0;font-size:13px;line-height:1.7;color:#9ca3af;">
+                For security reasons:<br/>
+                • This link is unique to you<br/>
+                • It will expire on ${p.expiresAt}<br/>
+                • Please do not forward this email
+              </p>
+              <p style="margin:12px 0 0;font-size:13px;color:#9ca3af;">
+                If you have questions you may reply directly to <a href="mailto:${p.requesterEmail}" style="color:#6B46FF;text-decoration:none;">${p.requesterEmail}</a>.
+              </p>
+            </td>
+          </tr>
+        </table>
+        <!-- Footer -->
+        <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
+          <tr>
+            <td align="center" style="padding:24px 40px 0;">
+              <p style="margin:0;font-size:12px;color:#9ca3af;line-height:1.5;">
+                Powered by <strong style="color:#6b7280;">PIVT</strong><br/>
+                The Intelligence Layer Behind Every Close
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`;
 }
