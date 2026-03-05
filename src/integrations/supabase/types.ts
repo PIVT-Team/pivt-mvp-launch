@@ -97,35 +97,44 @@ export type Database = {
         Row: {
           created_at: string
           deal_id: string
+          email: string | null
           escrow_holdback: number | null
           fees: number | null
           id: string
           net_payout: number | null
           ownership_pct: number
           payout_amount: number
+          role: string
           shareholder_name: string
+          stakeholder_type: string
         }
         Insert: {
           created_at?: string
           deal_id: string
+          email?: string | null
           escrow_holdback?: number | null
           fees?: number | null
           id?: string
           net_payout?: number | null
           ownership_pct?: number
           payout_amount?: number
+          role?: string
           shareholder_name: string
+          stakeholder_type?: string
         }
         Update: {
           created_at?: string
           deal_id?: string
+          email?: string | null
           escrow_holdback?: number | null
           fees?: number | null
           id?: string
           net_payout?: number | null
           ownership_pct?: number
           payout_amount?: number
+          role?: string
           shareholder_name?: string
+          stakeholder_type?: string
         }
         Relationships: [
           {
