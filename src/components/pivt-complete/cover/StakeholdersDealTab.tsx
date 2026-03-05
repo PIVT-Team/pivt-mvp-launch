@@ -205,9 +205,30 @@ export const StakeholdersDealTab: React.FC = () => {
     guardEdit('ADD_STAKEHOLDER', null, () => setModalOpen(true));
   };
 
-  const verificationBadge = (status: string) => {
+  const verificationBadge = (s: DbStakeholder) => {
+    const status = s.verification_status;
     const cfg = STATUS_CHIP[status] || STATUS_CHIP.not_sent;
-    return <Badge variant="outline" className={`${cfg.className} text-[10px] whitespace-nowrap`}>{cfg.label}</Badge>;
+    const showWarning = status === 'failed';
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="inline-flex items-center gap-1">
+              <Badge variant="outline" className={`${cfg.className} text-[10px] whitespace-nowrap`}>
+                {showWarning && <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />}
+                {cfg.label}
+              </Badge>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {cfg.tooltip}
+            {status === 'failed' && s.verification_rejection_reason && (
+              <span className="block mt-1 text-[10px] opacity-80">Reason: {s.verification_rejection_reason}</span>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   const getPrimaryAction = (s: DbStakeholder) => {
