@@ -219,15 +219,25 @@ export function useDealOperations() {
   const softDeleteDeal = async (dealId: string): Promise<boolean> => {
     if (!user) return false;
 
-    // Verify it's not a demo deal
+    // Verify it's not a demo deal and user owns it
     const { data: deal } = await supabase
       .from("deals")
-      .select("is_demo, owner_id")
+      .select("is_demo, owner_id, visibility")
       .eq("id", dealId)
       .single();
 
-    if (!deal || deal.is_demo || deal.owner_id !== user.id) {
-      toast({ title: "Cannot delete this deal", description: "You can only delete deals you created.", variant: "destructive" });
+    if (!deal) {
+      toast({ title: "Deal not found", description: "This deal no longer exists.", variant: "destructive" });
+      return false;
+    }
+
+    if (deal.is_demo || (deal as any).visibility === 'global_demo') {
+      toast({ title: "Cannot delete demo deal", description: "Demo deals are read-only and can't be deleted.", variant: "destructive" });
+      return false;
+    }
+
+    if (deal.owner_id !== user.id) {
+      toast({ title: "Permission denied", description: "You can only delete deals you created.", variant: "destructive" });
       return false;
     }
 
@@ -237,7 +247,7 @@ export function useDealOperations() {
       .eq("id", dealId);
 
     if (error) {
-      toast({ title: "Error deleting deal", description: error.message, variant: "destructive" });
+      toast({ title: "Error deleting deal", description: "You don't have permission to delete this deal.", variant: "destructive" });
       return false;
     }
 
