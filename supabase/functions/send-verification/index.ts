@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "PIVT Verification <noreply@pivttech.ai>",
+        from: "PIVT Verification <joanna@pivttech.ai>",
         to: [stakeholder.email],
         subject,
         html: emailHtml,
