@@ -629,12 +629,25 @@ const LiveKycKybTab: React.FC = () => {
   );
 };
 
+// ── Main Export ──
+export const KycKybDealTab: React.FC = () => {
+  const { isDemoDeal } = useDealWorkspace();
+  const { stakeholders } = usePIVTStore();
+  const [filter, setFilter] = useState<KycFilter>('all');
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Non-demo: use live data from cap_table_entries
+  if (!isDemoDeal) {
+    return <LiveKycKybTab />;
+  }
+
+  // Demo mode below
   const verified = stakeholders.filter(s => s.kycStatus === 'verified').length;
   const pending = stakeholders.filter(s => s.kycStatus === 'pending').length;
   const failed = stakeholders.filter(s => s.kycStatus === 'failed').length;
   const total = stakeholders.length;
   const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
-  const expiring = 1; // demo
+  const expiring = 1;
 
   const filtered = stakeholders.filter(s => {
     if (filter === 'all') return true;
@@ -655,7 +668,7 @@ const LiveKycKybTab: React.FC = () => {
     return 'All Documents';
   };
 
-  const filters: { key: KycFilter; label: string; count: number }[] = [
+  const demoFilters: { key: KycFilter; label: string; count: number }[] = [
     { key: 'all', label: 'All', count: total },
     { key: 'pending', label: 'Pending', count: pending },
     { key: 'failed', label: 'Failed', count: failed },
@@ -665,12 +678,11 @@ const LiveKycKybTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Shield className="w-5 h-5 text-accent" />
-            KYC / KYB
+            KYB / KYC
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">Compliance verification operations console for this deal.</p>
         </div>
@@ -683,10 +695,9 @@ const LiveKycKybTab: React.FC = () => {
         </button>
       </div>
 
-      {/* Progress Overview */}
       <motion.div {...fadeInUp} className="pivt-card p-5">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium">KYC Completion</span>
+          <span className="text-sm font-medium">KYB / KYC Completion</span>
           <span className="font-mono text-sm font-semibold">{pct}%</span>
         </div>
         <Progress value={pct} className="h-2.5 mb-4" />
@@ -708,7 +719,6 @@ const LiveKycKybTab: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Action Buttons */}
       <div className="flex gap-2 flex-wrap">
         {[
           { label: 'Send KYC Request', icon: Send },
@@ -726,9 +736,8 @@ const LiveKycKybTab: React.FC = () => {
         ))}
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
-        {filters.map(f => (
+        {demoFilters.map(f => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
@@ -741,7 +750,6 @@ const LiveKycKybTab: React.FC = () => {
         ))}
       </div>
 
-      {/* KYC Worklist Table */}
       <div className="pivt-card overflow-hidden">
         <div className="p-4 border-b border-border bg-muted/50">
           <div className="grid grid-cols-7 text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -791,7 +799,6 @@ const LiveKycKybTab: React.FC = () => {
         ))}
       </div>
 
-      {/* KYC Wizard Modal */}
       <KycOnboardingWizard open={wizardOpen} onClose={() => setWizardOpen(false)} stakeholders={stakeholders} />
     </div>
   );
