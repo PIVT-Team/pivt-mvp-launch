@@ -3,13 +3,14 @@ import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp } from '@/lib/animations';
-import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck, Eye, AlertTriangle, FileSearch } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck, Eye, AlertTriangle, FileSearch, Mail } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { AddStakeholderModal } from './AddStakeholderModal';
 import { useEditGuard } from '@/hooks/useEditGuard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { applyEvent } from '@/services/dealStateMachineService';
 import {
   DropdownMenu,
@@ -86,7 +87,7 @@ export const StakeholdersDealTab: React.FC = () => {
       toast.error(`Failed to send verification: ${error.message}`);
     } else {
       lastSendTimesRef.current[stakeholderId] = Date.now();
-      toast.success('Verification email sent');
+      toast.success('Verification email sent successfully');
       if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId }).catch(console.error);
     }
     setSendingId(null);
@@ -103,7 +104,7 @@ export const StakeholdersDealTab: React.FC = () => {
       toast.error(`Failed to resend verification: ${error.message}`);
     } else {
       lastSendTimesRef.current[stakeholderId] = Date.now();
-      toast.success('Verification email resent');
+      toast.success('Verification email re-sent successfully');
       if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId, resend: true }).catch(console.error);
     }
     setSendingId(null);
@@ -198,27 +199,41 @@ export const StakeholdersDealTab: React.FC = () => {
 
     if (status === 'not_sent' || status === 'not_requested') {
       return (
-        <button
-          onClick={() => sendVerification(s.id)}
-          disabled={isSending || !s.email}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
-        >
-          <Send className="w-3 h-3" />
-          {isSending ? 'Sending…' : 'Send'}
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => sendVerification(s.id)}
+                disabled={isSending || !s.email}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+              >
+                <Mail className="w-3 h-3" />
+                {isSending ? 'Sending…' : 'Send KYB/KYC Verification Email'}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Sends a verification request to the stakeholder to complete KYB/KYC checks</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 
     if (status === 'sent' || status === 'in_progress' || status === 'pending') {
       return (
-        <button
-          onClick={() => resendVerification(s.id)}
-          disabled={isSending}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
-        >
-          <RotateCw className="w-3 h-3" />
-          {isSending ? 'Sending…' : 'Resend'}
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => resendVerification(s.id)}
+                disabled={isSending}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+              >
+                <RotateCw className="w-3 h-3" />
+                {isSending ? 'Sending…' : 'Resend Verification Email'}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Resends the KYB/KYC verification request email</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 
@@ -235,21 +250,28 @@ export const StakeholdersDealTab: React.FC = () => {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-validated">
           <CheckCircle2 className="w-3 h-3" />
-          Verified
+          Verified ✓
         </span>
       );
     }
 
     if (status === 'failed' || status === 'expired') {
       return (
-        <button
-          onClick={() => resendVerification(s.id)}
-          disabled={isSending || !s.email}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
-        >
-          <RotateCw className="w-3 h-3" />
-          Resend
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => resendVerification(s.id)}
+                disabled={isSending || !s.email}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+              >
+                <RotateCw className="w-3 h-3" />
+                Resend Verification Email
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Previous verification expired or failed — resend to try again</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 
@@ -387,14 +409,14 @@ export const StakeholdersDealTab: React.FC = () => {
                     <DropdownMenuContent align="end" className="z-[70]">
                       {(s.verification_status === 'not_sent' || s.verification_status === 'not_requested') && (
                         <DropdownMenuItem onClick={() => sendVerification(s.id)} className="gap-2" disabled={!s.email}>
-                          <Send className="w-3.5 h-3.5" />
-                          Send Verification
+                          <Mail className="w-3.5 h-3.5" />
+                          Send KYB/KYC Verification Email
                         </DropdownMenuItem>
                       )}
                       {['sent', 'in_progress', 'pending', 'failed', 'expired'].includes(s.verification_status) && (
                         <DropdownMenuItem onClick={() => resendVerification(s.id)} className="gap-2" disabled={!s.email}>
                           <RotateCw className="w-3.5 h-3.5" />
-                          Resend Verification
+                          Resend Verification Email
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem onClick={() => copyVerificationLink(s.id)} className="gap-2">
