@@ -11,6 +11,7 @@ import {
   Shield, Search, FolderOpen, Send, Link2, RefreshCw,
   MessageSquare, X,
 } from 'lucide-react';
+import { dealStateMachineService } from '@/services/dealStateMachineService';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
