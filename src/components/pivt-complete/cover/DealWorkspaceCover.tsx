@@ -479,13 +479,14 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
     case 'deal-inputs':
       return DealInputsCover;
     case 'execution':
+      if (subNavId === 'closing') return ClosingCenterCover;
       if (subNavId === 'intents') return PaymentsCover;
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
       if (subNavId === 'approvals') return ApprovalsCover;
       if (subNavId === 'authority') return () => <ExecutionAuthorityPanel userIsExecutor={true} />;
-      return PaymentsCover;
+      return ClosingCenterCover;
     case 'compliance':
       if (subNavId === 'reports') return DealReportsCover;
       if (subNavId === 'activity') return DealActivityCover;
