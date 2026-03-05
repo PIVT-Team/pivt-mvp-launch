@@ -175,6 +175,7 @@ export const StakeholdersDealTab: React.FC = () => {
         .eq('id', stakeholderId);
     }
     toast.success('Marked as failed');
+    if (dealId) applyEvent(dealId, 'VERIFICATION_FAILED', { stakeholder_id: stakeholderId }).catch(console.error);
     await fetchStakeholders();
   };
 
