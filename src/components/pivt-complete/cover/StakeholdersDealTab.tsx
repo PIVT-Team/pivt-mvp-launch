@@ -199,27 +199,41 @@ export const StakeholdersDealTab: React.FC = () => {
 
     if (status === 'not_sent' || status === 'not_requested') {
       return (
-        <button
-          onClick={() => sendVerification(s.id)}
-          disabled={isSending || !s.email}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
-        >
-          <Send className="w-3 h-3" />
-          {isSending ? 'Sending…' : 'Send'}
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => sendVerification(s.id)}
+                disabled={isSending || !s.email}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent text-accent-foreground text-xs font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+              >
+                <Mail className="w-3 h-3" />
+                {isSending ? 'Sending…' : 'Send KYB/KYC Verification Email'}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Sends a verification request to the stakeholder to complete KYB/KYC checks</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 
     if (status === 'sent' || status === 'in_progress' || status === 'pending') {
       return (
-        <button
-          onClick={() => resendVerification(s.id)}
-          disabled={isSending}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
-        >
-          <RotateCw className="w-3 h-3" />
-          {isSending ? 'Sending…' : 'Resend'}
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => resendVerification(s.id)}
+                disabled={isSending}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+              >
+                <RotateCw className="w-3 h-3" />
+                {isSending ? 'Sending…' : 'Resend Verification Email'}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Resends the KYB/KYC verification request email</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 
@@ -236,21 +250,28 @@ export const StakeholdersDealTab: React.FC = () => {
       return (
         <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-validated">
           <CheckCircle2 className="w-3 h-3" />
-          Verified
+          Verified ✓
         </span>
       );
     }
 
     if (status === 'failed' || status === 'expired') {
       return (
-        <button
-          onClick={() => resendVerification(s.id)}
-          disabled={isSending || !s.email}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
-        >
-          <RotateCw className="w-3 h-3" />
-          Resend
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => resendVerification(s.id)}
+                disabled={isSending || !s.email}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-medium hover:bg-muted/80 transition-colors disabled:opacity-50"
+              >
+                <RotateCw className="w-3 h-3" />
+                Resend Verification Email
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Previous verification expired or failed — resend to try again</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       );
     }
 
