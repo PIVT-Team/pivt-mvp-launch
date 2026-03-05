@@ -85,39 +85,33 @@ export const StakeholdersDealTab: React.FC = () => {
     return true;
   };
 
-  const sendVerification = async (stakeholderId: string) => {
+  const invokeVerification = async (stakeholderId: string, isResend: boolean) => {
     if (!checkRateLimit(stakeholderId)) return;
     setSendingId(stakeholderId);
-    const { error } = await supabase.functions.invoke('send-verification', {
-      body: { stakeholder_id: stakeholderId, deal_id: dealId },
-    });
-    if (error) {
-      toast.error(`Failed to send verification: ${error.message}`);
-    } else {
-      lastSendTimesRef.current[stakeholderId] = Date.now();
-      toast.success('Verification email sent successfully');
-      if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId }).catch(console.error);
+    try {
+      const { data, error } = await supabase.functions.invoke('send-verification', {
+        body: { stakeholder_id: stakeholderId, deal_id: dealId },
+      });
+      // supabase.functions.invoke puts the parsed JSON body in `data` even on non-2xx
+      // and sets `error` to a generic FunctionsHttpError. Check data.error for the real message.
+      const serverError = data?.error || error?.message;
+      if (error || data?.error) {
+        toast.error(serverError || 'Failed to send verification email');
+      } else {
+        lastSendTimesRef.current[stakeholderId] = Date.now();
+        const modeLabel = data?.mode === 'MOCK' ? ' (MOCK)' : '';
+        toast.success(isResend ? `Verification email re-sent${modeLabel}.` : `Verification email sent${modeLabel}.`);
+        if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId, resend: isResend }).catch(console.error);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Network error sending verification');
     }
     setSendingId(null);
     await fetchStakeholders();
   };
 
-  const resendVerification = async (stakeholderId: string) => {
-    if (!checkRateLimit(stakeholderId)) return;
-    setSendingId(stakeholderId);
-    const { error } = await supabase.functions.invoke('send-verification', {
-      body: { stakeholder_id: stakeholderId, deal_id: dealId },
-    });
-    if (error) {
-      toast.error(`Failed to resend verification: ${error.message}`);
-    } else {
-      lastSendTimesRef.current[stakeholderId] = Date.now();
-      toast.success('Verification email re-sent successfully');
-      if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId, resend: true }).catch(console.error);
-    }
-    setSendingId(null);
-    await fetchStakeholders();
-  };
+  const sendVerification = (stakeholderId: string) => invokeVerification(stakeholderId, false);
+  const resendVerification = (stakeholderId: string) => invokeVerification(stakeholderId, true);
 
   const copyVerificationLink = async (stakeholderId: string) => {
     const { data } = await supabase
