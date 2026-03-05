@@ -87,6 +87,7 @@ export const StakeholdersDealTab: React.FC = () => {
     } else {
       lastSendTimesRef.current[stakeholderId] = Date.now();
       toast.success('Verification email sent');
+      if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId }).catch(console.error);
     }
     setSendingId(null);
     await fetchStakeholders();
