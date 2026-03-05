@@ -182,15 +182,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update status to sent
+    // Update status to sent + write tracking fields
+    const now = new Date().toISOString();
     await adminClient
       .from("verification_requests")
-      .update({ status: "sent", sent_at: new Date().toISOString() })
+      .update({ status: "sent", sent_at: now })
       .eq("id", verReq.id);
 
     await adminClient
       .from("cap_table_entries")
-      .update({ verification_status: "sent" })
+      .update({
+        verification_status: "sent",
+        verification_requested_at: stakeholder.verification_requested_at || now,
+        verification_last_sent_at: now,
+        verification_provider: "mock",
+      } as any)
       .eq("id", stakeholder_id);
 
     return new Response(

@@ -117,10 +117,17 @@ Deno.serve(async (req) => {
         })
         .eq("id", request_id);
 
-      // Update stakeholder verification_status
+      // Update stakeholder verification_status + tracking fields
+      const stakeholderUpdate: Record<string, unknown> = {
+        verification_status: stakeholderStatus,
+        verification_completed_at: now,
+      };
+      if (!verified && notes) {
+        stakeholderUpdate.verification_rejection_reason = notes;
+      }
       await adminClient
         .from("cap_table_entries")
-        .update({ verification_status: stakeholderStatus })
+        .update(stakeholderUpdate)
         .eq("id", verReq.stakeholder_id);
 
       return new Response(
