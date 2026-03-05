@@ -39,6 +39,8 @@ export const StakeholdersDealTab: React.FC = () => {
   const [dbStakeholders, setDbStakeholders] = useState<DbStakeholder[]>([]);
   const [loading, setLoading] = useState(!isDemoDeal);
 
+  const { isAdmin } = useAuth();
+
   const fetchStakeholders = async () => {
     if (isDemoDeal || !dealId) return;
     setLoading(true);
@@ -50,12 +52,34 @@ export const StakeholdersDealTab: React.FC = () => {
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchStakeholders();
-  }, [isDemoDeal, dealId]);
+  const sendVerification = async (stakeholderId: string) => {
+    const { data, error } = await supabase.functions.invoke('send-verification', {
+      body: { stakeholder_id: stakeholderId, deal_id: dealId },
+    });
+    if (error) {
+      toast.error(`Failed to send verification: ${error.message}`);
+      return;
+    }
+    toast.success('Verification email sent');
+    await fetchStakeholders();
+  };
 
-  const handleAddClick = () => {
-    guardEdit('ADD_STAKEHOLDER', null, () => setModalOpen(true));
+  const copyVerificationLink = (stakeholder: DbStakeholder) => {
+    // We can't reconstruct the token (it's hashed), so just inform user
+    toast.info('Use "Send Verification" to email the link. Tokens are single-use and cannot be copied after creation.');
+  };
+
+  const markVerified = async (stakeholderId: string) => {
+    const { error } = await supabase
+      .from('cap_table_entries')
+      .update({ verification_status: 'verified' } as any)
+      .eq('id', stakeholderId);
+    if (error) {
+      toast.error('Failed to mark as verified');
+      return;
+    }
+    toast.success('Marked as verified');
+    await fetchStakeholders();
   };
 
   // For non-demo deals with no stakeholders, show empty state
