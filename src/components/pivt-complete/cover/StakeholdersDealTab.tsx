@@ -200,17 +200,19 @@ export const StakeholdersDealTab: React.FC = () => {
 
         <div className="pivt-card overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/50">
-            <div className="grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <div className="grid grid-cols-8 text-xs font-medium text-muted-foreground uppercase tracking-wide">
               <span className="col-span-2">Stakeholder</span>
               <span>Role</span>
               <span className="text-right">Ownership %</span>
               <span className="text-right">Payout</span>
+              <span className="text-center">Verification</span>
               <span className="text-right">Net Payout</span>
+              <span className="text-center">Actions</span>
             </div>
           </div>
           {dbStakeholders.map((s) => (
             <motion.div key={s.id} {...fadeInUp} className="p-4 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-              <div className="grid grid-cols-6 items-center">
+              <div className="grid grid-cols-8 items-center">
                 <div className="col-span-2">
                   <p className="font-medium text-sm">{s.shareholder_name}</p>
                   {s.email && <p className="text-xs text-muted-foreground">{s.email}</p>}
@@ -218,7 +220,29 @@ export const StakeholdersDealTab: React.FC = () => {
                 <span className="text-sm text-muted-foreground">{s.role}</span>
                 <span className="text-right font-mono text-sm">{s.ownership_pct}%</span>
                 <span className="text-right font-mono text-sm">${(s.payout_amount / 1e6).toFixed(1)}M</span>
+                <div className="flex justify-center">{verificationBadge(s.verification_status)}</div>
                 <span className="text-right font-mono text-sm text-validated">${((s.net_payout || 0) / 1e6).toFixed(1)}M</span>
+                <div className="flex justify-center">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-1.5 rounded-lg hover:bg-muted transition-colors">
+                        <MoreHorizontal className="w-4 h-4 text-muted-foreground" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="z-[70]">
+                      <DropdownMenuItem onClick={() => sendVerification(s.id)} className="gap-2">
+                        <Send className="w-3.5 h-3.5" />
+                        {s.verification_status === 'not_sent' ? 'Send Verification' : 'Resend Verification'}
+                      </DropdownMenuItem>
+                      {isAdmin && s.verification_status !== 'verified' && (
+                        <DropdownMenuItem onClick={() => markVerified(s.id)} className="gap-2">
+                          <BadgeCheck className="w-3.5 h-3.5" />
+                          Mark Verified (Admin)
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               </div>
             </motion.div>
           ))}
