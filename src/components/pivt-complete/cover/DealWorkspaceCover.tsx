@@ -566,8 +566,8 @@ export const DealWorkspaceCover: React.FC = () => {
     if (!isRealDeal) return selectedDealId; // 'atlas', 'beacon', 'cipher'
     return realDeal?.seed_key || null;
   }, [isRealDeal, realDeal, selectedDealId]);
-  const { summary: dealSummary } = useDealSummary(!isDemoDeal && isRealDeal ? selectedDealId : undefined);
-  const { completionPcts: wfPcts } = useWorkflowStatus(!isDemoDeal && isRealDeal ? selectedDealId : undefined);
+  const { summary: dealSummary } = useDealSummary(isRealDeal ? selectedDealId : undefined);
+  const { completionPcts: wfPcts } = useWorkflowStatus(isRealDeal ? selectedDealId : undefined);
   useEffect(() => {
     if (isRealDeal) {
       setLoadingDeal(true);
