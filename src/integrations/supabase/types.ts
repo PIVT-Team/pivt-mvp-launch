@@ -107,6 +107,12 @@ export type Database = {
           role: string
           shareholder_name: string
           stakeholder_type: string
+          verification_completed_at: string | null
+          verification_last_sent_at: string | null
+          verification_provider: string | null
+          verification_reference_id: string | null
+          verification_rejection_reason: string | null
+          verification_requested_at: string | null
           verification_status: string
         }
         Insert: {
@@ -122,6 +128,12 @@ export type Database = {
           role?: string
           shareholder_name: string
           stakeholder_type?: string
+          verification_completed_at?: string | null
+          verification_last_sent_at?: string | null
+          verification_provider?: string | null
+          verification_reference_id?: string | null
+          verification_rejection_reason?: string | null
+          verification_requested_at?: string | null
           verification_status?: string
         }
         Update: {
@@ -137,6 +149,12 @@ export type Database = {
           role?: string
           shareholder_name?: string
           stakeholder_type?: string
+          verification_completed_at?: string | null
+          verification_last_sent_at?: string | null
+          verification_provider?: string | null
+          verification_reference_id?: string | null
+          verification_rejection_reason?: string | null
+          verification_requested_at?: string | null
           verification_status?: string
         }
         Relationships: [
