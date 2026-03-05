@@ -92,11 +92,12 @@ export const StakeholdersDealTab: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('send-verification', {
         body: { stakeholder_id: stakeholderId, deal_id: dealId },
       });
-      // supabase.functions.invoke puts the parsed JSON body in `data` even on non-2xx
-      // and sets `error` to a generic FunctionsHttpError. Check data.error for the real message.
-      const serverError = data?.error || error?.message;
-      if (error || data?.error) {
-        toast.error(serverError || 'Failed to send verification email');
+      if (error) {
+        // Generic invoke failure (network, CORS, etc.)
+        toast.error(error.message || 'Failed to send verification email');
+      } else if (data?.success === false || data?.error) {
+        // Edge function returned an application-level error (HTTP 200 with success:false)
+        toast.error(data.error || 'Failed to send verification email');
       } else {
         lastSendTimesRef.current[stakeholderId] = Date.now();
         const modeLabel = data?.mode === 'MOCK' ? ' (MOCK)' : '';
