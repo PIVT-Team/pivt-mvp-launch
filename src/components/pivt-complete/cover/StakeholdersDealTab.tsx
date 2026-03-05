@@ -33,18 +33,24 @@ interface DbStakeholder {
   role: string;
   stakeholder_type: string;
   verification_status: string;
+  verification_requested_at: string | null;
+  verification_last_sent_at: string | null;
+  verification_completed_at: string | null;
+  verification_rejection_reason: string | null;
+  verification_provider: string | null;
+  verification_reference_id: string | null;
 }
 
-const STATUS_CHIP: Record<string, { label: string; className: string }> = {
-  not_sent: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border' },
-  not_requested: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border' },
-  pending: { label: 'Pending', className: 'bg-muted text-muted-foreground border-border' },
-  sent: { label: 'Email Sent', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20' },
-  in_progress: { label: 'In Progress', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' },
-  submitted: { label: 'Submitted', className: 'bg-accent/10 text-accent border-accent/20' },
-  verified: { label: 'Verified', className: 'bg-validated/10 text-validated border-validated/20' },
-  failed: { label: 'Failed', className: 'bg-destructive/10 text-destructive border-destructive/20' },
-  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground border-border' },
+const STATUS_CHIP: Record<string, { label: string; className: string; tooltip: string }> = {
+  not_sent: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border', tooltip: "Verification hasn't been initiated." },
+  not_requested: { label: 'Not Requested', className: 'bg-muted text-muted-foreground border-border', tooltip: "Verification hasn't been initiated." },
+  pending: { label: 'Pending', className: 'bg-muted text-muted-foreground border-border', tooltip: "Verification is pending." },
+  sent: { label: 'Email Sent', className: 'bg-blue-500/10 text-blue-500 border-blue-500/20', tooltip: 'Verification request email has been sent.' },
+  in_progress: { label: 'In Progress', className: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', tooltip: 'Stakeholder has started verification.' },
+  submitted: { label: 'Submitted', className: 'bg-accent/10 text-accent border-accent/20', tooltip: 'Verification data submitted, awaiting review.' },
+  verified: { label: 'Verified', className: 'bg-validated/10 text-validated border-validated/20', tooltip: 'Stakeholder is verified.' },
+  failed: { label: 'Rejected', className: 'bg-destructive/10 text-destructive border-destructive/20', tooltip: 'Verification failed. Review details.' },
+  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground border-border', tooltip: 'Verification link has expired.' },
 };
 
 export const StakeholdersDealTab: React.FC = () => {
@@ -199,9 +205,30 @@ export const StakeholdersDealTab: React.FC = () => {
     guardEdit('ADD_STAKEHOLDER', null, () => setModalOpen(true));
   };
 
-  const verificationBadge = (status: string) => {
+  const verificationBadge = (s: DbStakeholder) => {
+    const status = s.verification_status;
     const cfg = STATUS_CHIP[status] || STATUS_CHIP.not_sent;
-    return <Badge variant="outline" className={`${cfg.className} text-[10px] whitespace-nowrap`}>{cfg.label}</Badge>;
+    const showWarning = status === 'failed';
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="inline-flex items-center gap-1">
+              <Badge variant="outline" className={`${cfg.className} text-[10px] whitespace-nowrap`}>
+                {showWarning && <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />}
+                {cfg.label}
+              </Badge>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {cfg.tooltip}
+            {status === 'failed' && s.verification_rejection_reason && (
+              <span className="block mt-1 text-[10px] opacity-80">Reason: {s.verification_rejection_reason}</span>
+            )}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   const getPrimaryAction = (s: DbStakeholder) => {
@@ -349,6 +376,9 @@ export const StakeholdersDealTab: React.FC = () => {
     const totalPayout = dbStakeholders.reduce((s, x) => s + x.payout_amount, 0);
     const totalOwnership = dbStakeholders.reduce((s, x) => s + x.ownership_pct, 0);
     const verifiedCount = dbStakeholders.filter(s => s.verification_status === 'verified').length;
+    const emailSentCount = dbStakeholders.filter(s => s.verification_status === 'sent').length;
+    const inProgressCount = dbStakeholders.filter(s => ['in_progress', 'submitted'].includes(s.verification_status)).length;
+    const rejectedCount = dbStakeholders.filter(s => s.verification_status === 'failed').length;
 
     return (
       <div className="space-y-6">
@@ -366,12 +396,13 @@ export const StakeholdersDealTab: React.FC = () => {
           </button>
         </div>
 
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-6 gap-3">
           {[
             { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: DollarSign, color: 'text-accent' },
-            { label: 'Stakeholders', value: `${dbStakeholders.length}`, icon: Users, color: 'text-foreground' },
             { label: 'Verified', value: `${verifiedCount}/${dbStakeholders.length}`, icon: Shield, color: 'text-validated' },
-            { label: 'Wire Collected', value: '0/0', icon: CreditCard, color: 'text-accent' },
+            { label: 'Email Sent', value: `${emailSentCount}`, icon: Mail, color: 'text-blue-500' },
+            { label: 'In Progress', value: `${inProgressCount}`, icon: Clock, color: 'text-yellow-600' },
+            { label: 'Rejected', value: `${rejectedCount}`, icon: XCircle, color: 'text-destructive' },
             { label: 'Ownership', value: `${totalOwnership}%`, icon: Percent, color: 'text-foreground' },
           ].map(card => (
             <motion.div key={card.label} {...fadeInUp} className="pivt-card p-4">
@@ -394,7 +425,7 @@ export const StakeholdersDealTab: React.FC = () => {
                   <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[12%]">Role</th>
                   <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Ownership</th>
                   <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Payout</th>
-                  <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[14%]">Verification</th>
+                  <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[14%]">Verification Status</th>
                   <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[14%]">Action</th>
                   <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-3 py-3 w-[10%]">Net Payout</th>
                   <th className="w-[2%] px-2 py-3"></th>
@@ -410,7 +441,7 @@ export const StakeholdersDealTab: React.FC = () => {
                     <td className="px-3 py-4 text-sm text-muted-foreground whitespace-nowrap">{s.role}</td>
                     <td className="px-3 py-4 text-right font-mono text-sm whitespace-nowrap">{s.ownership_pct}%</td>
                     <td className="px-3 py-4 text-right font-mono text-sm whitespace-nowrap">${(s.payout_amount / 1e6).toFixed(1)}M</td>
-                    <td className="px-3 py-4 text-center">{verificationBadge(s.verification_status)}</td>
+                    <td className="px-3 py-4 text-center">{verificationBadge(s)}</td>
                     <td className="px-3 py-4 text-center">{getPrimaryAction(s)}</td>
                     <td className="px-3 py-4 text-right font-mono text-sm text-validated whitespace-nowrap">${((s.net_payout || 0) / 1e6).toFixed(1)}M</td>
                     <td className="px-2 py-4">

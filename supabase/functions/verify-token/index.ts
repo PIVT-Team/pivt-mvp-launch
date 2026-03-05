@@ -63,12 +63,17 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Mark as opened
+      // Mark as opened + set stakeholder to in_progress
       if (verReq.status === "sent") {
         await adminClient
           .from("verification_requests")
           .update({ status: "opened", opened_at: new Date().toISOString() })
           .eq("id", verReq.id);
+
+        await adminClient
+          .from("cap_table_entries")
+          .update({ verification_status: "in_progress" } as any)
+          .eq("id", verReq.stakeholder_id);
       }
 
       // Get deal info
