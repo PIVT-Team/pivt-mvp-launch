@@ -184,7 +184,7 @@ export const StakeholdersDealTab: React.FC = () => {
           {[
             { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: DollarSign, color: 'text-accent' },
             { label: 'Stakeholders', value: `${dbStakeholders.length}`, icon: Shield, color: 'text-validated' },
-            { label: 'KYC Complete', value: '0/0', icon: CheckCircle2, color: 'text-validated' },
+            { label: 'Verified', value: `${dbStakeholders.filter(s => s.verification_status === 'verified').length}/${dbStakeholders.length}`, icon: CheckCircle2, color: 'text-validated' },
             { label: 'Wire Collected', value: '0/0', icon: CreditCard, color: 'text-accent' },
             { label: 'Ownership', value: `${totalOwnership}%`, icon: Percent, color: 'text-foreground' },
           ].map(card => (
