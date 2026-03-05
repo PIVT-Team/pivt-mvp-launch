@@ -76,6 +76,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
   const [shareClass, setShareClass] = useState('');
   const [notes, setNotes] = useState('');
   const [showKycPrompt, setShowKycPrompt] = useState(false);
+  const [createdStakeholderId, setCreatedStakeholderId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
