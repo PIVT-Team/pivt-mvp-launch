@@ -104,7 +104,7 @@ export const StakeholdersDealTab: React.FC = () => {
       toast.error(`Failed to resend verification: ${error.message}`);
     } else {
       lastSendTimesRef.current[stakeholderId] = Date.now();
-      toast.success('Verification email resent');
+      toast.success('Verification email re-sent successfully');
       if (dealId) applyEvent(dealId, 'VERIFICATION_SENT', { stakeholder_id: stakeholderId, resend: true }).catch(console.error);
     }
     setSendingId(null);
