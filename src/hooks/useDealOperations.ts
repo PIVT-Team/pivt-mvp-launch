@@ -241,13 +241,14 @@ export function useDealOperations() {
       return false;
     }
 
-    const { error } = await (supabase
+    const { error } = await supabase
       .from("deals")
-      .update({ deleted_at: new Date().toISOString(), deleted_by: user.id } as any) as any)
+      .update({ deleted_at: new Date().toISOString(), deleted_by: user.id })
       .eq("id", dealId);
 
     if (error) {
-      toast({ title: "Error deleting deal", description: "You don't have permission to delete this deal.", variant: "destructive" });
+      console.error("Soft delete failed:", { dealId, userId: user.id, error });
+      toast({ title: "Error deleting deal", description: error.message, variant: "destructive" });
       return false;
     }
 
