@@ -437,7 +437,7 @@ export const StakeholdersDealTab: React.FC = () => {
                     <td className="px-3 py-4 text-sm text-muted-foreground whitespace-nowrap">{s.role}</td>
                     <td className="px-3 py-4 text-right font-mono text-sm whitespace-nowrap">{s.ownership_pct}%</td>
                     <td className="px-3 py-4 text-right font-mono text-sm whitespace-nowrap">${(s.payout_amount / 1e6).toFixed(1)}M</td>
-                    <td className="px-3 py-4 text-center">{verificationBadge(s.verification_status)}</td>
+                    <td className="px-3 py-4 text-center">{verificationBadge(s)}</td>
                     <td className="px-3 py-4 text-center">{getPrimaryAction(s)}</td>
                     <td className="px-3 py-4 text-right font-mono text-sm text-validated whitespace-nowrap">${((s.net_payout || 0) / 1e6).toFixed(1)}M</td>
                     <td className="px-2 py-4">
