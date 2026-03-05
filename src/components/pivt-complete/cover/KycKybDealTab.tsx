@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePIVTStore, DemoStakeholder } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
@@ -6,14 +6,65 @@ import { fadeInUp } from '@/lib/animations';
 import {
   Shield, CheckCircle2, Clock, XCircle, AlertTriangle, Send, Upload, Eye,
   Plus, X, ArrowLeft, ArrowRight, User, Building2, FileText, Landmark,
+  BadgeCheck, FileSearch, RotateCw, Mail,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type KycFilter = 'all' | 'pending' | 'failed' | 'expiring' | 'completed';
+
+// Status mapping helpers
+const PENDING_STATUSES = ['sent', 'in_progress', 'submitted', 'pending'];
+const COMPLETE_STATUSES = ['verified'];
+const FAILED_STATUSES = ['failed'];
+const NOT_STARTED_STATUSES = ['not_sent', 'not_requested'];
+
+interface VerificationSummary {
+  total: number;
+  complete: number;
+  pending: number;
+  failed: number;
+  expiringSoon: number;
+  completionPct: number;
+}
+
+interface StakeholderRow {
+  id: string;
+  shareholder_name: string;
+  email: string | null;
+  role: string;
+  stakeholder_type: string;
+  verification_status: string;
+  verification_last_sent_at: string | null;
+  verification_completed_at: string | null;
+  verification_rejection_reason: string | null;
+}
+
+function computeSummary(stakeholders: StakeholderRow[]): VerificationSummary {
+  const complete = stakeholders.filter(s => COMPLETE_STATUSES.includes(s.verification_status)).length;
+  const pending = stakeholders.filter(s => PENDING_STATUSES.includes(s.verification_status)).length;
+  const failed = stakeholders.filter(s => FAILED_STATUSES.includes(s.verification_status)).length;
+  const totalStarted = complete + pending + failed;
+  const completionPct = totalStarted > 0 ? Math.round((complete / totalStarted) * 100) : 0;
+  return { total: stakeholders.length, complete, pending, failed, expiringSoon: 0, completionPct };
+}
+
+const STATUS_CHIP: Record<string, { label: string; className: string }> = {
+  not_sent: { label: 'Not Requested', className: 'bg-muted text-muted-foreground' },
+  not_requested: { label: 'Not Requested', className: 'bg-muted text-muted-foreground' },
+  pending: { label: 'Pending', className: 'bg-muted text-muted-foreground' },
+  sent: { label: 'Email Sent', className: 'bg-blue-500/10 text-blue-500' },
+  in_progress: { label: 'In Progress', className: 'bg-yellow-500/10 text-yellow-600' },
+  submitted: { label: 'Submitted', className: 'bg-accent/10 text-accent' },
+  verified: { label: 'Verified', className: 'bg-validated/10 text-validated' },
+  failed: { label: 'Rejected', className: 'bg-destructive/10 text-destructive' },
+  expired: { label: 'Expired', className: 'bg-muted text-muted-foreground' },
+};
 
 // ── KYC Onboarding Wizard ──
 interface KycWizardProps {
@@ -98,7 +149,6 @@ const KycOnboardingWizard: React.FC<KycWizardProps> = ({ open, onClose, stakehol
 
   const handleSubmit = () => {
     if (!validateStep()) return;
-    // In production this would write to Supabase + audit log
     onClose();
     resetForm();
   };
@@ -362,70 +412,242 @@ const KycOnboardingWizard: React.FC<KycWizardProps> = ({ open, onClose, stakehol
   );
 };
 
-// ── Main KYC / KYB Tab ──
-export const KycKybDealTab: React.FC = () => {
-  const { isDemoDeal } = useDealWorkspace();
-  const { stakeholders } = usePIVTStore();
+// ── Non-Demo Live KYC/KYB Tab ──
+const LiveKycKybTab: React.FC = () => {
+  const { dealId } = useDealWorkspace();
+  const [stakeholders, setStakeholders] = useState<StakeholderRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<KycFilter>('all');
-  const [wizardOpen, setWizardOpen] = useState(false);
 
-  // Non-demo empty state
-  if (!isDemoDeal) {
+  const fetchStakeholders = useCallback(async () => {
+    if (!dealId) return;
+    const { data } = await supabase
+      .from('cap_table_entries')
+      .select('id, shareholder_name, email, role, stakeholder_type, verification_status, verification_last_sent_at, verification_completed_at, verification_rejection_reason')
+      .eq('deal_id', dealId);
+    setStakeholders((data as StakeholderRow[]) || []);
+    setLoading(false);
+  }, [dealId]);
+
+  useEffect(() => { fetchStakeholders(); }, [fetchStakeholders]);
+
+  // Subscribe to realtime changes on cap_table_entries for this deal
+  useEffect(() => {
+    if (!dealId) return;
+    const channel = supabase
+      .channel(`kyc-status-${dealId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'cap_table_entries',
+        filter: `deal_id=eq.${dealId}`,
+      }, () => { fetchStakeholders(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [dealId, fetchStakeholders]);
+
+  if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Shield className="w-5 h-5 text-accent" />
-              KYC / KYB
-            </h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Compliance verification operations console for this deal.</p>
-          </div>
+      <div className="flex justify-center py-20">
+        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const summary = computeSummary(stakeholders);
+  const hasActivity = summary.pending > 0 || summary.complete > 0 || summary.failed > 0;
+
+  // Filter stakeholders
+  const filtered = stakeholders.filter(s => {
+    if (filter === 'all') return !NOT_STARTED_STATUSES.includes(s.verification_status);
+    if (filter === 'pending') return PENDING_STATUSES.includes(s.verification_status);
+    if (filter === 'failed') return FAILED_STATUSES.includes(s.verification_status);
+    if (filter === 'completed') return COMPLETE_STATUSES.includes(s.verification_status);
+    return true;
+  });
+
+  // Review queue: submitted, in_progress, failed first
+  const reviewQueue = stakeholders
+    .filter(s => ['submitted', 'in_progress', 'failed'].includes(s.verification_status))
+    .sort((a, b) => {
+      const priority: Record<string, number> = { submitted: 0, in_progress: 1, failed: 2 };
+      return (priority[a.verification_status] ?? 9) - (priority[b.verification_status] ?? 9);
+    });
+
+  const filters: { key: KycFilter; label: string; count: number }[] = [
+    { key: 'all', label: 'All Active', count: stakeholders.filter(s => !NOT_STARTED_STATUSES.includes(s.verification_status)).length },
+    { key: 'pending', label: 'Pending', count: summary.pending },
+    { key: 'failed', label: 'Failed', count: summary.failed },
+    { key: 'completed', label: 'Completed', count: summary.complete },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Shield className="w-5 h-5 text-accent" />
+            KYB / KYC
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Compliance verification operations console for this deal.</p>
         </div>
+      </div>
 
-        <motion.div {...fadeInUp} className="pivt-card p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm font-medium">KYC Completion</span>
-            <span className="font-mono text-sm font-semibold">0%</span>
-          </div>
-          <Progress value={0} className="h-2.5 mb-4" />
-          <div className="grid grid-cols-4 gap-4">
-            {[
-              { label: 'Complete', value: 0, icon: CheckCircle2, color: 'text-validated' },
-              { label: 'Pending', value: 0, icon: Clock, color: 'text-discrepancy' },
-              { label: 'Failed', value: 0, icon: XCircle, color: 'text-blocking' },
-              { label: 'Expiring Soon', value: 0, icon: AlertTriangle, color: 'text-discrepancy' },
-            ].map(stat => (
-              <div key={stat.label} className="flex items-center gap-2">
-                <stat.icon className={`w-4 h-4 ${stat.color}`} />
-                <div>
-                  <p className="text-lg font-semibold">{stat.value}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
-                </div>
+      {/* Progress Overview */}
+      <motion.div {...fadeInUp} className="pivt-card p-5">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium">KYB / KYC Completion</span>
+          <span className="font-mono text-sm font-semibold">{summary.completionPct}%</span>
+        </div>
+        <Progress value={summary.completionPct} className="h-2.5 mb-4" />
+        <div className="grid grid-cols-4 gap-4">
+          {[
+            { label: 'Complete', value: summary.complete, icon: CheckCircle2, color: 'text-validated' },
+            { label: 'Pending', value: summary.pending, icon: Clock, color: 'text-discrepancy' },
+            { label: 'Failed', value: summary.failed, icon: XCircle, color: 'text-blocking' },
+            { label: 'Expiring Soon', value: summary.expiringSoon, icon: AlertTriangle, color: 'text-discrepancy' },
+          ].map(stat => (
+            <div key={stat.label} className="flex items-center gap-2">
+              <stat.icon className={`w-4 h-4 ${stat.color}`} />
+              <div>
+                <p className="text-lg font-semibold">{stat.value}</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</p>
               </div>
-            ))}
-          </div>
-        </motion.div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
 
+      {!hasActivity ? (
         <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
           <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto">
             <Shield className="w-6 h-6 text-muted-foreground" />
           </div>
           <div>
             <h3 className="text-base font-semibold">KYC not started</h3>
-            <p className="text-sm text-muted-foreground mt-1">Add stakeholders first, then initiate KYC verification for each party.</p>
+            <p className="text-sm text-muted-foreground mt-1">Add stakeholders first, then initiate KYC verification from the Stakeholders tab.</p>
           </div>
         </motion.div>
-      </div>
-    );
+      ) : (
+        <>
+          {/* Review Queue */}
+          {reviewQueue.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold flex items-center gap-2">
+                <FileSearch className="w-4 h-4 text-accent" />
+                Review Queue
+              </h3>
+              <div className="pivt-card overflow-hidden">
+                {reviewQueue.map(s => {
+                  const cfg = STATUS_CHIP[s.verification_status] || STATUS_CHIP.not_sent;
+                  return (
+                    <div key={s.id} className="p-4 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{s.shareholder_name}</p>
+                          <p className="text-xs text-muted-foreground">{s.email || 'No email'} · {s.stakeholder_type === 'entity' ? 'KYB' : 'KYC'}</p>
+                        </div>
+                        <Badge className={`${cfg.className} text-[10px]`}>{cfg.label}</Badge>
+                      </div>
+                      {s.verification_status === 'failed' && s.verification_rejection_reason && (
+                        <p className="text-xs text-destructive mt-1">Reason: {s.verification_rejection_reason}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Filter Tabs + Table */}
+          <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
+            {filters.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  filter === f.key ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {f.label} ({f.count})
+              </button>
+            ))}
+          </div>
+
+          <div className="pivt-card overflow-hidden">
+            <div className="p-4 border-b border-border bg-muted/50">
+              <div className="grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <span className="col-span-2">Stakeholder</span>
+                <span>Type</span>
+                <span className="text-center">Status</span>
+                <span className="text-center">Last Updated</span>
+                <span className="text-center">Action</span>
+              </div>
+            </div>
+            {filtered.length === 0 && (
+              <div className="p-8 text-center text-muted-foreground text-sm">No stakeholders match this filter.</div>
+            )}
+            {filtered.map(s => {
+              const cfg = STATUS_CHIP[s.verification_status] || STATUS_CHIP.not_sent;
+              const lastDate = s.verification_completed_at || s.verification_last_sent_at;
+              return (
+                <motion.div key={s.id} {...fadeInUp} className="p-4 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
+                  <div className="grid grid-cols-6 items-center">
+                    <div className="col-span-2">
+                      <p className="font-medium text-sm">{s.shareholder_name}</p>
+                      <p className="text-xs text-muted-foreground">{s.email || '—'}</p>
+                    </div>
+                    <span className="text-sm text-muted-foreground">{s.stakeholder_type === 'entity' ? 'KYB' : 'KYC'}</span>
+                    <div className="flex justify-center">
+                      <Badge className={`text-[10px] ${cfg.className}`}>{cfg.label}</Badge>
+                    </div>
+                    <span className="text-center text-xs text-muted-foreground font-mono">
+                      {lastDate ? new Date(lastDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                    </span>
+                    <div className="flex justify-center">
+                      {s.verification_status === 'verified' && (
+                        <span className="text-xs text-validated flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Complete</span>
+                      )}
+                      {s.verification_status === 'submitted' && (
+                        <span className="text-xs text-accent flex items-center gap-1"><FileSearch className="w-3 h-3" /> Review</span>
+                      )}
+                      {PENDING_STATUSES.includes(s.verification_status) && s.verification_status !== 'submitted' && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Awaiting</span>
+                      )}
+                      {s.verification_status === 'failed' && (
+                        <span className="text-xs text-destructive flex items-center gap-1"><XCircle className="w-3 h-3" /> Failed</span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ── Main Export ──
+export const KycKybDealTab: React.FC = () => {
+  const { isDemoDeal } = useDealWorkspace();
+  const { stakeholders } = usePIVTStore();
+  const [filter, setFilter] = useState<KycFilter>('all');
+  const [wizardOpen, setWizardOpen] = useState(false);
+
+  // Non-demo: use live data from cap_table_entries
+  if (!isDemoDeal) {
+    return <LiveKycKybTab />;
   }
 
+  // Demo mode below
   const verified = stakeholders.filter(s => s.kycStatus === 'verified').length;
   const pending = stakeholders.filter(s => s.kycStatus === 'pending').length;
   const failed = stakeholders.filter(s => s.kycStatus === 'failed').length;
   const total = stakeholders.length;
   const pct = total > 0 ? Math.round((verified / total) * 100) : 0;
-  const expiring = 1; // demo
+  const expiring = 1;
 
   const filtered = stakeholders.filter(s => {
     if (filter === 'all') return true;
@@ -446,7 +668,7 @@ export const KycKybDealTab: React.FC = () => {
     return 'All Documents';
   };
 
-  const filters: { key: KycFilter; label: string; count: number }[] = [
+  const demoFilters: { key: KycFilter; label: string; count: number }[] = [
     { key: 'all', label: 'All', count: total },
     { key: 'pending', label: 'Pending', count: pending },
     { key: 'failed', label: 'Failed', count: failed },
@@ -456,12 +678,11 @@ export const KycKybDealTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-semibold flex items-center gap-2">
             <Shield className="w-5 h-5 text-accent" />
-            KYC / KYB
+            KYB / KYC
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">Compliance verification operations console for this deal.</p>
         </div>
@@ -474,10 +695,9 @@ export const KycKybDealTab: React.FC = () => {
         </button>
       </div>
 
-      {/* Progress Overview */}
       <motion.div {...fadeInUp} className="pivt-card p-5">
         <div className="flex items-center justify-between mb-3">
-          <span className="text-sm font-medium">KYC Completion</span>
+          <span className="text-sm font-medium">KYB / KYC Completion</span>
           <span className="font-mono text-sm font-semibold">{pct}%</span>
         </div>
         <Progress value={pct} className="h-2.5 mb-4" />
@@ -499,7 +719,6 @@ export const KycKybDealTab: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Action Buttons */}
       <div className="flex gap-2 flex-wrap">
         {[
           { label: 'Send KYC Request', icon: Send },
@@ -517,9 +736,8 @@ export const KycKybDealTab: React.FC = () => {
         ))}
       </div>
 
-      {/* Filter Tabs */}
       <div className="flex gap-1 p-1 rounded-xl bg-muted/50">
-        {filters.map(f => (
+        {demoFilters.map(f => (
           <button
             key={f.key}
             onClick={() => setFilter(f.key)}
@@ -532,7 +750,6 @@ export const KycKybDealTab: React.FC = () => {
         ))}
       </div>
 
-      {/* KYC Worklist Table */}
       <div className="pivt-card overflow-hidden">
         <div className="p-4 border-b border-border bg-muted/50">
           <div className="grid grid-cols-7 text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -582,7 +799,6 @@ export const KycKybDealTab: React.FC = () => {
         ))}
       </div>
 
-      {/* KYC Wizard Modal */}
       <KycOnboardingWizard open={wizardOpen} onClose={() => setWizardOpen(false)} stakeholders={stakeholders} />
     </div>
   );
