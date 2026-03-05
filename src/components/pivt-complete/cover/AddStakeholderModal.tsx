@@ -237,7 +237,7 @@ export const AddStakeholderModal: React.FC<AddStakeholderModalProps> = ({ open, 
               </div>
               <div className="flex gap-3 justify-center">
                 <button
-                  onClick={resetAndClose}
+                  onClick={handleSendVerification}
                   className="px-5 py-2.5 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
                 >
                   Yes, Send Now
