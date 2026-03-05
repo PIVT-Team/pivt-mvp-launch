@@ -83,11 +83,11 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       Math.round(50 + (stk.filter(s => s.verification_status === 'verified').length / stk.length) * 50);
 
     // ── Verification
-    const ACTIVE_STATUSES = ['sent', 'in_progress', 'submitted', 'pending', 'verified', 'failed'];
+    const ACTIVE_STATUSES = ['sent', 'in_progress', 'submitted', 'pending', 'verified', 'failed', 'not_sent'];
     const activeVerifications = stk.filter(s => ACTIVE_STATUSES.includes(s.verification_status));
     const verifiedCount = stk.filter(s => s.verification_status === 'verified').length;
     const verificationStatus: WorkflowStepStatus =
-      activeVerifications.length === 0 ? 'NOT_STARTED' :
+      stk.length === 0 ? 'NOT_STARTED' :
       verifiedCount === stk.length && stk.length > 0 ? 'COMPLETED' :
       'IN_PROGRESS';
     // Verification pct: having stakeholders to verify = 25% base, verified progress = remaining 75%
