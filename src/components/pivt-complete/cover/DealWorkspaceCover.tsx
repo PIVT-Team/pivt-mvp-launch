@@ -35,6 +35,7 @@ import { ExecutionAuthorityPanel } from './ExecutionAuthorityPanel';
 import { EditDealDrawer } from './EditDealDrawer';
 import { VerificationReviewCover } from './VerificationReviewCover';
 import { VerificationReadinessBanner } from './VerificationReadinessBanner';
+import { ClosingCenterCover } from './ClosingCenterCover';
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
   { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for trust account', severity: 'critical' as const, resolved: false },
@@ -76,6 +77,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'readiness', label: 'Readiness' },
   ],
   execution: [
+    { id: 'closing', label: 'Closing Readiness' },
     { id: 'intents', label: 'Disbursement Intents' },
     { id: 'payments', label: 'Payments' },
     { id: 'discrepancies', label: 'Discrepancies' },
@@ -477,13 +479,14 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
     case 'deal-inputs':
       return DealInputsCover;
     case 'execution':
+      if (subNavId === 'closing') return ClosingCenterCover;
       if (subNavId === 'intents') return PaymentsCover;
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
       if (subNavId === 'approvals') return ApprovalsCover;
       if (subNavId === 'authority') return () => <ExecutionAuthorityPanel userIsExecutor={true} />;
-      return PaymentsCover;
+      return ClosingCenterCover;
     case 'compliance':
       if (subNavId === 'reports') return DealReportsCover;
       if (subNavId === 'activity') return DealActivityCover;
