@@ -90,8 +90,10 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       activeVerifications.length === 0 ? 'NOT_STARTED' :
       verifiedCount === stk.length && stk.length > 0 ? 'COMPLETED' :
       'IN_PROGRESS';
+    // Verification pct: having stakeholders to verify = 25% base, verified progress = remaining 75%
     const verPct = stk.length === 0 ? 0 :
-      Math.round((verifiedCount / stk.length) * 100);
+      (verificationStatus === 'NOT_STARTED' ? 0 :
+        Math.round(25 + (verifiedCount / stk.length) * 75));
 
     // ── Structuring (cap table + waterfall)
     const ownershipTotal = stk.reduce((sum, s) => sum + (Number(s.ownership_pct) || 0), 0);
