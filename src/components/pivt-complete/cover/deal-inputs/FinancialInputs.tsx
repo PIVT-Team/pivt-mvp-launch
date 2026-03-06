@@ -201,10 +201,11 @@ export const FinancialInputs: React.FC = () => {
           <div>
             <Label className="text-xs text-muted-foreground">Total Purchase Price</Label>
             <Input
-              placeholder="$0.00"
+              placeholder="e.g. 185,000,000"
               className="mt-1.5"
               value={dealValue}
-              onChange={e => setDealValue(e.target.value)}
+              onChange={e => setDealValue(formatNumber(e.target.value))}
+            />
             />
           </div>
           <div>
