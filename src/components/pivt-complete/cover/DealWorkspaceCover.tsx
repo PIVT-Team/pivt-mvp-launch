@@ -60,7 +60,7 @@ const AUDIT_ENTRIES = [
 ];
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'documents' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
+type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -71,13 +71,10 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'kyc', label: 'KYC / KYB' },
     { id: 'review', label: 'Review Queue' },
   ],
-  documents: [
-    { id: 'all', label: 'All Documents' },
-    { id: 'cap-table', label: 'Cap Table' },
-    { id: 'waterfall', label: 'Waterfall' },
-  ],
   'deal-inputs': [
     { id: 'financial', label: 'Financial' },
+    { id: 'cap-table', label: 'Cap Table' },
+    { id: 'waterfall', label: 'Waterfall' },
     { id: 'wires', label: 'Wire Instructions' },
     { id: 'tax', label: 'Tax' },
     { id: 'contracts', label: 'Contract' },
