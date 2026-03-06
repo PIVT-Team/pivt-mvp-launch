@@ -241,14 +241,30 @@ export const FinancialInputs: React.FC = () => {
               onChange={e => setDealValue(formatNumber(e.target.value))}
             />
           </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Currency</Label>
+          <div className="md:col-span-2">
+            <Label className="text-xs text-muted-foreground">Currencies</Label>
+            <div className="flex flex-wrap gap-1.5 mt-1.5 mb-2 min-h-[28px]">
+              {selectedCurrencies.map(c => (
+                <Badge key={c} variant="secondary" className="gap-1 text-xs cursor-pointer" onClick={() => {
+                  if (selectedCurrencies.length > 1) setSelectedCurrencies(prev => prev.filter(x => x !== c));
+                }}>
+                  {c} {selectedCurrencies.length > 1 && <X className="w-3 h-3" />}
+                </Badge>
+              ))}
+            </div>
             <select
-              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm mt-1.5"
-              value={currency}
-              onChange={e => setCurrency(e.target.value)}
+              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm"
+              value=""
+              onChange={e => { if (e.target.value && !selectedCurrencies.includes(e.target.value)) setSelectedCurrencies(prev => [...prev, e.target.value]); }}
             >
-              <option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>CHF</option>
+              <option value="">Add currency…</option>
+              {CURRENCY_GROUPS.map(g => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.items.filter(i => !selectedCurrencies.includes(i.value)).map(i => (
+                    <option key={i.value} value={i.value}>{i.label}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
           <div>
