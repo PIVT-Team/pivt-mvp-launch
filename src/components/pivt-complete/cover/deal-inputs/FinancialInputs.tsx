@@ -225,7 +225,6 @@ export const FinancialInputs: React.FC = () => {
               value={escrowAmount}
               onChange={e => setEscrowAmount(formatNumber(e.target.value))}
             />
-            />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Seller Proceeds Allocation</Label>
