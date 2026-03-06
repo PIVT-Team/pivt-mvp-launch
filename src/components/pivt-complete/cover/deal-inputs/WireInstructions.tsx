@@ -1,9 +1,9 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
   Upload, CheckCircle2, Clock, Plus, Landmark, Building2,
-  FileSpreadsheet, Table2, X,
+  FileSpreadsheet, Table2, X, Loader2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,8 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 
 /* ── Document types ── */
 const WIRE_DOC_TYPES = [
@@ -54,37 +56,89 @@ interface WireInstruction {
   status: string;
 }
 
-/* ── Demo data ── */
-const DEMO_DOCS: WireDoc[] = [
-  { id: 'wd1', doc_type: 'FUNDS_FLOW_MEMO', filename: 'Funds Flow Memo v1.pdf', status: 'PARSED', uploaded_at: '2026-03-05T09:00:00Z' },
-  { id: 'wd2', doc_type: 'WIRE_SCHEDULE', filename: 'Wire Schedule.xlsx', status: 'PARSED', uploaded_at: '2026-03-05T14:00:00Z' },
-];
-
-const DEMO_WIRES: WireInstruction[] = [
-  { id: 'w1', stakeholder: 'Seller Parent', payment_type: 'Purchase Price', amount: '$150M', currency: 'USD', bank_name: 'JPMorgan', account_name: 'Seller Parent LLC', account_number: '••••7742', routing_aba: '021000021', swift_iban: 'CHASUS33', status: 'Pending' },
-  { id: 'w2', stakeholder: 'Shareholder A', payment_type: 'Equity Payout', amount: '$8M', currency: 'USD', bank_name: 'Citi', account_name: 'John Smith', account_number: '••••1234', routing_aba: '021000089', swift_iban: 'CITIUS33', status: 'Verified' },
-  { id: 'w3', stakeholder: 'Escrow Agent', payment_type: 'Escrow', amount: '$20M', currency: 'USD', bank_name: 'Bank of America', account_name: 'JPM Escrow Services', account_number: '••••5678', routing_aba: '026009593', swift_iban: 'BOFAUS3N', status: 'Pending' },
-];
-
 const statusColor = (s: string) =>
-  s === 'Verified' ? 'bg-emerald-500/10 text-emerald-600' :
+  s === 'Verified' || s === 'verified' ? 'bg-emerald-500/10 text-emerald-600' :
   s === 'Rejected' ? 'bg-destructive/10 text-destructive' :
   'bg-muted/60 text-muted-foreground';
 
 const statusIcon = (s: string) =>
-  s === 'Verified' ? <CheckCircle2 className="w-3 h-3" /> :
+  s === 'Verified' || s === 'verified' ? <CheckCircle2 className="w-3 h-3" /> :
   <Clock className="w-3 h-3" />;
+
+const formatAmount = (v: number, currency = 'USD') => {
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
+};
 
 /* ── Component ── */
 export const WireInstructions: React.FC = () => {
-  const [docs, setDocs] = useState<WireDoc[]>(DEMO_DOCS);
+  const { dealId, isDemoDeal, realDeal } = useDealWorkspace();
+
+  const [docs, setDocs] = useState<WireDoc[]>([]);
   const [selectedDocType, setSelectedDocType] = useState('FUNDS_FLOW_MEMO');
-  const [wires, setWires] = useState<WireInstruction[]>(DEMO_WIRES);
+  const [wires, setWires] = useState<WireInstruction[]>([]);
   const [showAddWire, setShowAddWire] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [newWire, setNewWire] = useState<Omit<WireInstruction, 'id' | 'status'>>({
     stakeholder: '', payment_type: 'Purchase Price', amount: '', currency: 'USD',
     bank_name: '', account_name: '', account_number: '', routing_aba: '', swift_iban: '',
   });
+
+  // Auto-populate wire instructions from stakeholder (cap_table_entries) data
+  useEffect(() => {
+    if (!dealId || isDemoDeal) {
+      setLoading(false);
+      return;
+    }
+    const fetchData = async () => {
+      setLoading(true);
+      // Fetch stakeholders with payout info
+      const [stakeholders, wireDocs] = await Promise.all([
+        supabase
+          .from('cap_table_entries')
+          .select('id, shareholder_name, role, payout_amount, email, verification_status')
+          .eq('deal_id', dealId),
+        supabase
+          .from('contract_documents')
+          .select('id, doc_type, filename, status, uploaded_at')
+          .eq('deal_id', dealId)
+          .in('doc_type', ['FUNDS_FLOW_MEMO', 'WIRE_SCHEDULE', 'BANK_INSTRUCTION_LETTER', 'ESCROW_INSTRUCTIONS', 'DEBT_PAYOFF_LETTER'] as any),
+      ]);
+
+      // Map stakeholders to wire instruction rows
+      const stakeholderWires: WireInstruction[] = (stakeholders.data || [])
+        .filter((s: any) => s.payout_amount > 0)
+        .map((s: any) => ({
+          id: s.id,
+          stakeholder: s.shareholder_name,
+          payment_type: s.role === 'Escrow Agent' ? 'Escrow' :
+                       ['Buyer', 'Investor', 'LP'].includes(s.role) ? 'Purchase Price' : 'Equity Payout',
+          amount: formatAmount(s.payout_amount, realDeal?.currency || 'USD'),
+          currency: realDeal?.currency || 'USD',
+          bank_name: '',
+          account_name: s.shareholder_name,
+          account_number: '',
+          routing_aba: '',
+          swift_iban: '',
+          status: s.verification_status === 'verified' ? 'Verified' : 'Pending',
+        }));
+
+      setWires(stakeholderWires);
+
+      // Wire docs from contract_documents
+      setDocs((wireDocs.data || []).map((d: any) => ({
+        id: d.id,
+        doc_type: d.doc_type,
+        filename: d.filename,
+        status: d.status,
+        uploaded_at: d.uploaded_at,
+      })));
+
+      setLoading(false);
+    };
+    fetchData();
+  }, [dealId, isDemoDeal, realDeal?.currency]);
 
   const handleDocUpload = useCallback(() => {
     const label = WIRE_DOC_TYPES.find(t => t.value === selectedDocType)?.label || selectedDocType;
@@ -111,6 +165,14 @@ export const WireInstructions: React.FC = () => {
     setShowAddWire(false);
     toast.success('Wire instruction added');
   }, [newWire]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -157,8 +219,8 @@ export const WireInstructions: React.FC = () => {
                   </td>
                   <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{getDocLabel(doc.doc_type)}</Badge></td>
                   <td className="px-4 py-2.5">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${doc.status === 'PARSED' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/60 text-muted-foreground'}`}>
-                      {doc.status === 'PARSED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status}
+                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${doc.status === 'PARSED' || doc.status === 'EXTRACTION_COMPLETE' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/60 text-muted-foreground'}`}>
+                      {doc.status === 'PARSED' || doc.status === 'EXTRACTION_COMPLETE' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status}
                     </span>
                   </td>
                   <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
@@ -178,7 +240,10 @@ export const WireInstructions: React.FC = () => {
               <Landmark className="w-5 h-5 text-blue-500" />
               <h3 className="font-semibold">Wire Instructions</h3>
             </div>
-            <p className="text-xs text-muted-foreground ml-8">Structured payment instructions for all deal parties and escrow accounts.</p>
+            <p className="text-xs text-muted-foreground ml-8">
+              Structured payment instructions for all deal parties and escrow accounts.
+              {wires.length > 0 && !isDemoDeal && <span className="text-accent"> Auto-populated from stakeholder data.</span>}
+            </p>
           </div>
           <Button size="sm" onClick={() => setShowAddWire(true)} className="gap-1.5">
             <Plus className="w-3.5 h-3.5" /> Add Wire Instruction
@@ -200,7 +265,7 @@ export const WireInstructions: React.FC = () => {
                   <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{w.payment_type}</Badge></td>
                   <td className="px-4 py-2.5">{w.amount}</td>
                   <td className="px-4 py-2.5 text-muted-foreground">{w.currency}</td>
-                  <td className="px-4 py-2.5">{w.bank_name}</td>
+                  <td className="px-4 py-2.5">{w.bank_name || <span className="text-muted-foreground italic text-xs">Not provided</span>}</td>
                   <td className="px-4 py-2.5">
                     <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${statusColor(w.status)}`}>
                       {statusIcon(w.status)}{w.status}
@@ -208,7 +273,7 @@ export const WireInstructions: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {wires.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No wire instructions added yet.</td></tr>}
+              {wires.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No wire instructions added yet. Add stakeholders with payout amounts to auto-populate.</td></tr>}
             </tbody>
           </table>
         </div>
@@ -227,8 +292,8 @@ export const WireInstructions: React.FC = () => {
               {FUNDING_SOURCE_TYPES.map(t => <option key={t}>{t}</option>)}
             </select>
           </div>
-          <div><Label className="text-xs text-muted-foreground">Bank Name</Label><Input placeholder="JPMorgan Chase" className="mt-1.5" /></div>
-          <div><Label className="text-xs text-muted-foreground">Account Name</Label><Input placeholder="Apex Capital Partners LLC" className="mt-1.5" /></div>
+          <div><Label className="text-xs text-muted-foreground">Bank Name</Label><Input placeholder={realDeal?.buyer || 'JPMorgan Chase'} className="mt-1.5" /></div>
+          <div><Label className="text-xs text-muted-foreground">Account Name</Label><Input placeholder={realDeal?.buyer || 'Apex Capital Partners LLC'} className="mt-1.5" /></div>
           <div><Label className="text-xs text-muted-foreground">Account Number</Label><Input placeholder="••••••7742" className="mt-1.5" /></div>
           <div><Label className="text-xs text-muted-foreground">Routing / ABA</Label><Input placeholder="021000021" className="mt-1.5" /></div>
           <div><Label className="text-xs text-muted-foreground">SWIFT / IBAN</Label><Input placeholder="CHASUS33" className="mt-1.5" /></div>
