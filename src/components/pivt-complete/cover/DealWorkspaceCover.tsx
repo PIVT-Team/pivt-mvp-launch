@@ -603,7 +603,7 @@ export const DealWorkspaceCover: React.FC = () => {
         if (pending.type === 'ADD_STAKEHOLDER') {
           setActiveStepId('stakeholders');
         } else if (pending.type === 'ADD_WATERFALL_TIER') {
-          setActiveStepId('structuring');
+          setActiveStepId('documents');
           setActiveSubNav('waterfall');
         } else if (pending.type === 'UPLOAD_DOCUMENT') {
           setActiveStepId('deal-inputs');
