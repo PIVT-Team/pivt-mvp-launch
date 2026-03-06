@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, ShieldCheck, AlertTriangle, Info, ChevronDown, ChevronRight, ExternalLink, Check, Search } from 'lucide-react';
+import { ShieldAlert, ShieldCheck, AlertTriangle, Info, ChevronDown, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';

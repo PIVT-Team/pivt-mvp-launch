@@ -651,7 +651,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
-      if (subNavId === 'authority') return () => <ExecutionAuthorityPanel userIsExecutor={true} />;
+      if (subNavId === 'authority') return ExecutionAuthorityPanel;
       return ClosingCenterCover;
     case 'compliance':
       if (subNavId === 'reports') return DealReportsCover;
