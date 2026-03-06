@@ -732,13 +732,14 @@ export const DealWorkspaceCover: React.FC = () => {
     return [
       { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
       { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: pct('stakeholders'), blockers: 0 },
-      { id: 'verification', number: 3, label: 'Verification', completionPct: pct('verification'), blockers: 0 },
-      { id: 'structuring', number: 4, label: 'Structuring', completionPct: pct('structuring'), blockers: 0 },
-      { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: pct('deal-inputs'), blockers: 0 },
-      { id: 'execution', number: 6, label: 'Execution', completionPct: pct('execution'), blockers: 0 },
-      { id: 'compliance', number: 7, label: 'Compliance', completionPct: pct('compliance'), blockers: 0 },
-      { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-      { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+      { id: 'documents', number: 3, label: 'Documents', completionPct: pct('structuring'), blockers: 0 },
+      { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: pct('deal-inputs'), blockers: 0 },
+      { id: 'verification', number: 5, label: 'Verification', completionPct: pct('verification'), blockers: 0 },
+      { id: 'approvals', number: 6, label: 'Approvals', completionPct: pct('compliance'), blockers: 0 },
+      { id: 'execution', number: 7, label: 'Execution', completionPct: pct('execution'), blockers: 0 },
+      { id: 'compliance', number: 8, label: 'Compliance', completionPct: pct('compliance'), blockers: 0 },
+      { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
+      { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
     ];
   }, [isDemoDeal, demoDealSeedKey, wfPcts]);
 
