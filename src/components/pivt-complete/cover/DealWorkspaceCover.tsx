@@ -318,6 +318,7 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
 
 const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> = ({ realDeal, dealId }) => {
   const { summary } = useDealSummary(dealId);
+  const { toast } = useToast();
   const status = realDeal.status;
   const [activating, setActivating] = useState(false);
   const [stakeholderCount, setStakeholderCount] = useState(0);
