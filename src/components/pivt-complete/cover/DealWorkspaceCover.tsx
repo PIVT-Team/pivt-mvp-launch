@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
-  ArrowLeft, AlertTriangle, Ban,
+  ArrowLeft, AlertTriangle, Ban, CheckCircle2, Rocket,
   FileText, Users, Search, Sparkles, Calendar, Brain, ShieldAlert, Copy, Pencil,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
