@@ -219,7 +219,6 @@ export const WireInstructions: React.FC = () => {
             </div>
             <p className="text-xs text-muted-foreground ml-8">
               Structured payment instructions for all deal parties and escrow accounts.
-              {wires.length > 0 && !isDemoDeal && <span className="text-accent"> Auto-populated from stakeholder data.</span>}
             </p>
           </div>
           <Button size="sm" onClick={() => setShowAddWire(true)} className="gap-1.5">
