@@ -473,25 +473,25 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
     case 'overview': return OverviewSection;
     case 'stakeholders':
       if (subNavId === 'ownership') return CapTableCover;
-      return StakeholdersDealTab;
-    case 'verification':
+      if (subNavId === 'kyc') return KycKybDealTab;
       if (subNavId === 'review') return VerificationReviewCover;
-      if (subNavId === 'documents') return DocumentsCover;
-      if (subNavId === 'reconciliation') return ReconciliationSection;
-      return KycKybDealTab;
-    case 'structuring':
+      return StakeholdersDealTab;
+    case 'documents':
+      if (subNavId === 'cap-table') return CapTableCover;
       if (subNavId === 'waterfall') return WaterfallCover;
-      if (subNavId === 'deal-inputs') return DealInputsCover;
-      return CapTableCover;
+      return DocumentsCover;
     case 'deal-inputs':
       return DealInputsCover;
+    case 'verification':
+      return PaymentVerificationCover;
+    case 'approvals':
+      return ApprovalsWorkflowCover;
     case 'execution':
       if (subNavId === 'closing') return ClosingCenterCover;
       if (subNavId === 'intents') return PaymentsCover;
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
-      if (subNavId === 'approvals') return ApprovalsCover;
       if (subNavId === 'authority') return () => <ExecutionAuthorityPanel userIsExecutor={true} />;
       return ClosingCenterCover;
     case 'compliance':
