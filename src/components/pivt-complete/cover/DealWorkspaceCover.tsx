@@ -570,27 +570,57 @@ const ProtectedDealBanner: React.FC = () => {
   );
 };
 
-const DealAuditSection: React.FC = () => (
-  <div className="space-y-4">
-    <div className="flex items-center gap-2 mb-3">
-      <FileText className="w-4 h-4 text-muted-foreground" />
-      <h3 className="font-medium">Deal Audit Log</h3>
-    </div>
-    <div className="relative pl-5 space-y-3">
-      <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border/40" />
-      {AUDIT_ENTRIES.map((entry, i) => (
-        <div key={i} className="relative flex items-start gap-3">
-          <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
-          <div className="flex-1">
-            <p className="text-sm">{entry.action}</p>
-            <p className="text-[10px] text-muted-foreground">{entry.actor}</p>
+const DealAuditSection: React.FC = () => {
+  const { dealId } = useDealWorkspace();
+  const [entries, setEntries] = useState<{ action: string; actor: string; time: string }[]>([]);
+
+  useEffect(() => {
+    if (!dealId) return;
+    supabase
+      .from('audit_log')
+      .select('action, created_at')
+      .eq('deal_id', dealId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        setEntries((data || []).map((e: any) => ({
+          action: e.action,
+          actor: 'System',
+          time: new Date(e.created_at).toLocaleString(),
+        })));
+      });
+  }, [dealId]);
+
+  if (entries.length === 0) {
+    return (
+      <div className="pivt-card p-12 text-center text-muted-foreground text-sm">
+        No audit activity recorded yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-3">
+        <FileText className="w-4 h-4 text-muted-foreground" />
+        <h3 className="font-medium">Deal Audit Log</h3>
+      </div>
+      <div className="relative pl-5 space-y-3">
+        <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border/40" />
+        {entries.map((entry, i) => (
+          <div key={i} className="relative flex items-start gap-3">
+            <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
+            <div className="flex-1">
+              <p className="text-sm">{entry.action}</p>
+              <p className="text-[10px] text-muted-foreground">{entry.actor}</p>
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{entry.time}</span>
           </div>
-          <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{entry.time}</span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ── Content resolver ──
 function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
