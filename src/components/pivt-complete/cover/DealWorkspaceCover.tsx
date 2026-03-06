@@ -19,7 +19,8 @@ import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspac
 import { useWorkflowStatus } from '@/hooks/useWorkflowStatus';
 
 // Import existing cover pages
-import { StakeholdersDealTab } from './StakeholdersDealTab';
+import { DealPartiesCover } from './DealPartiesCover';
+import { ContactsDealTab } from './ContactsDealTab';
 import { KycKybDealTab } from './KycKybDealTab';
 import { CapTableCover } from './CapTableCover';
 import { WaterfallCover } from './WaterfallCover';
