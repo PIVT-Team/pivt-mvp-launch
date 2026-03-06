@@ -1,20 +1,20 @@
 /**
- * Real-time Deal Activity Feed
+ * Real-time Deal Activity Feed — driven by deal_events + audit_log
  */
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
-import { fadeInUp, springConfig } from '@/lib/animations';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { supabase } from '@/integrations/supabase/client';
 import {
   Activity, FileUp, UserCheck, AlertTriangle, Send, Shield, CreditCard,
-  CheckCircle2, Clock, Filter, ChevronDown, Bell,
+  CheckCircle2, Clock, Filter, ChevronDown, Inbox,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
 interface ActivityEvent {
   id: string;
-  type: 'document' | 'kyc' | 'approval' | 'payment' | 'escrow' | 'system';
+  type: string;
   action: string;
   actor: string;
   target: string;
@@ -32,25 +32,14 @@ const typeConfig: Record<string, { icon: React.ElementType; color: string }> = {
   system: { icon: Activity, color: 'text-muted-foreground' },
 };
 
-// Generate demo activity events
-const generateDemoEvents = (dealName: string): ActivityEvent[] => {
-  const now = Date.now();
-  const events: ActivityEvent[] = [
-    { id: 'e1', type: 'document', action: 'uploaded', actor: 'Seller Counsel', target: 'Waterfall Schedule v3', timestamp: new Date(now - 15 * 60000), details: 'Pending review by buyer counsel' },
-    { id: 'e2', type: 'approval', action: 'requested', actor: 'Deal Admin', target: 'Execute $840M wire to Sarah Chen', timestamp: new Date(now - 32 * 60000), severity: 'warning', details: 'Requires dual authorization' },
-    { id: 'e3', type: 'kyc', action: 'verified', actor: 'Compliance', target: 'Tiger Global Management', timestamp: new Date(now - 45 * 60000) },
-    { id: 'e4', type: 'payment', action: 'executed', actor: 'Treasury', target: '$224M wire to Tiger Global', timestamp: new Date(now - 90 * 60000), details: 'Wire reference: WR-2026-0847' },
-    { id: 'e5', type: 'system', action: 'flagged', actor: 'Newton AI', target: 'Cap table discrepancy detected', timestamp: new Date(now - 120 * 60000), severity: 'critical', details: 'Ownership percentages sum to 100.3% — review required' },
-    { id: 'e6', type: 'document', action: 'verified', actor: 'Buyer Counsel', target: 'Merger Agreement (Executed)', timestamp: new Date(now - 180 * 60000) },
-    { id: 'e7', type: 'kyc', action: 'failed', actor: 'System', target: 'GIC Private Limited', timestamp: new Date(now - 240 * 60000), severity: 'critical', details: 'Beneficial ownership documentation incomplete' },
-    { id: 'e8', type: 'approval', action: 'approved', actor: 'Senior Partner', target: 'Escrow Agreement terms', timestamp: new Date(now - 360 * 60000) },
-    { id: 'e9', type: 'escrow', action: 'funded', actor: 'Treasury', target: '$280M escrow holdback', timestamp: new Date(now - 480 * 60000), details: 'Funds received at JPMorgan escrow account' },
-    { id: 'e10', type: 'document', action: 'uploaded', actor: 'Tax Advisor', target: 'Tax Certificates Bundle', timestamp: new Date(now - 600 * 60000) },
-    { id: 'e11', type: 'payment', action: 'approved', actor: 'Deal Admin', target: '$560M wire to Marcus Williams', timestamp: new Date(now - 720 * 60000) },
-    { id: 'e12', type: 'system', action: 'analyzed', actor: 'Newton AI', target: '108 documents processed', timestamp: new Date(now - 900 * 60000), details: 'Entity extraction complete. 3 discrepancies flagged for review.' },
-  ];
-  return events;
-};
+function classifyEvent(eventType: string): string {
+  if (eventType.includes('document') || eventType.includes('DOC') || eventType.includes('upload')) return 'document';
+  if (eventType.includes('kyc') || eventType.includes('KYC') || eventType.includes('verif')) return 'kyc';
+  if (eventType.includes('approv') || eventType.includes('APPROV')) return 'approval';
+  if (eventType.includes('payment') || eventType.includes('wire') || eventType.includes('PAYMENT')) return 'payment';
+  if (eventType.includes('escrow')) return 'escrow';
+  return 'system';
+}
 
 function formatTimeAgo(date: Date): string {
   const mins = Math.floor((Date.now() - date.getTime()) / 60000);
@@ -62,11 +51,64 @@ function formatTimeAgo(date: Date): string {
 }
 
 export const ActivityFeed: React.FC = () => {
-  const deal = useSelectedDeal();
+  const { dealId } = useDealWorkspace();
   const [filter, setFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
+  const [events, setEvents] = useState<ActivityEvent[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const events = useMemo(() => generateDemoEvents(deal.codeName), [deal.codeName]);
+  useEffect(() => {
+    if (!dealId) { setLoading(false); return; }
+    setLoading(true);
+
+    Promise.all([
+      supabase
+        .from('deal_events')
+        .select('id, event_type, actor_id, created_at, payload')
+        .eq('deal_id', dealId)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase
+        .from('audit_log')
+        .select('id, action, created_at')
+        .eq('deal_id', dealId)
+        .order('created_at', { ascending: false })
+        .limit(20),
+    ]).then(([eventsRes, auditRes]) => {
+      const mapped: ActivityEvent[] = [];
+      const seen = new Set<string>();
+
+      (eventsRes.data || []).forEach((e: any) => {
+        if (seen.has(e.id)) return;
+        seen.add(e.id);
+        mapped.push({
+          id: e.id,
+          type: classifyEvent(e.event_type),
+          action: e.event_type.replace(/_/g, ' '),
+          actor: 'System',
+          target: e.event_type.replace(/_/g, ' '),
+          timestamp: new Date(e.created_at),
+        });
+      });
+
+      (auditRes.data || []).forEach((e: any) => {
+        if (seen.has(e.id)) return;
+        seen.add(e.id);
+        mapped.push({
+          id: e.id,
+          type: classifyEvent(e.action),
+          action: e.action,
+          actor: 'System',
+          target: e.action,
+          timestamp: new Date(e.created_at),
+        });
+      });
+
+      mapped.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      setEvents(mapped.slice(0, 20));
+      setLoading(false);
+    });
+  }, [dealId]);
 
   const filteredEvents = filter === 'all'
     ? events
@@ -82,6 +124,21 @@ export const ActivityFeed: React.FC = () => {
     { value: 'system', label: 'System' },
   ];
 
+  if (loading) {
+    return (
+      <div className="text-xs text-muted-foreground py-4 text-center">Loading activity…</div>
+    );
+  }
+
+  if (events.length === 0) {
+    return (
+      <div className="py-6 text-center">
+        <Inbox className="w-5 h-5 text-muted-foreground/40 mx-auto mb-2" />
+        <p className="text-xs text-muted-foreground">No activity recorded yet</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {/* Header */}
@@ -89,20 +146,17 @@ export const ActivityFeed: React.FC = () => {
         <div className="flex items-center gap-2">
           <Activity className="w-4 h-4 text-accent" />
           <span className="text-xs font-medium text-muted-foreground">Live Activity</span>
-          <div className="w-1.5 h-1.5 rounded-full bg-validated animate-pulse" />
         </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 text-xs"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="w-3 h-3 mr-1" />
-            {filterOptions.find(f => f.value === filter)?.label || 'Filter'}
-            <ChevronDown className="w-3 h-3 ml-1" />
-          </Button>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="w-3 h-3 mr-1" />
+          {filterOptions.find(f => f.value === filter)?.label || 'Filter'}
+          <ChevronDown className="w-3 h-3 ml-1" />
+        </Button>
       </div>
 
       {/* Filter pills */}
@@ -136,7 +190,7 @@ export const ActivityFeed: React.FC = () => {
         <div className="absolute left-[15px] top-0 bottom-0 w-px bg-border" />
         <div className="space-y-0">
           {filteredEvents.map((event, i) => {
-            const config = typeConfig[event.type];
+            const config = typeConfig[event.type] || typeConfig.system;
             const Icon = config.icon;
             return (
               <motion.div
@@ -146,22 +200,9 @@ export const ActivityFeed: React.FC = () => {
                 transition={{ delay: i * 0.03 }}
                 className="relative flex items-start gap-3 py-2.5 group"
               >
-                {/* Timeline dot */}
-                <div className={`relative z-10 w-[30px] h-[30px] rounded-full border flex items-center justify-center shrink-0 ${
-                  event.severity === 'critical'
-                    ? 'border-blocking/30 bg-blocking/10'
-                    : event.severity === 'warning'
-                      ? 'border-discrepancy/30 bg-discrepancy/10'
-                      : 'border-border bg-card'
-                }`}>
-                  <Icon className={`w-3.5 h-3.5 ${
-                    event.severity === 'critical' ? 'text-blocking' :
-                    event.severity === 'warning' ? 'text-discrepancy' :
-                    config.color
-                  }`} />
+                <div className={`relative z-10 w-[30px] h-[30px] rounded-full border flex items-center justify-center shrink-0 border-border bg-card`}>
+                  <Icon className={`w-3.5 h-3.5 ${config.color}`} />
                 </div>
-
-                {/* Content */}
                 <div className="flex-1 min-w-0 pt-0.5">
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium">{event.actor}</span>
@@ -169,9 +210,6 @@ export const ActivityFeed: React.FC = () => {
                     <span className="text-[10px] text-muted-foreground ml-auto shrink-0">{formatTimeAgo(event.timestamp)}</span>
                   </div>
                   <p className="text-xs text-foreground/80 truncate">{event.target}</p>
-                  {event.details && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5">{event.details}</p>
-                  )}
                 </div>
               </motion.div>
             );
