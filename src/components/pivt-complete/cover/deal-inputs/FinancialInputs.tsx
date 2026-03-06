@@ -132,7 +132,7 @@ export const FinancialInputs: React.FC = () => {
       .from('deals')
       .update({
         deal_value: parseFloat(parseNumber(dealValue)) || 0,
-        currency,
+        currency: selectedCurrencies.join(','),
         escrow_amount: parseFloat(parseNumber(escrowAmount)) || 0,
       } as any)
       .eq('id', dealId);
