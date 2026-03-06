@@ -50,7 +50,7 @@ const AUDIT_ENTRIES = [
 ];
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'verification' | 'structuring' | 'deal-inputs' | 'execution' | 'compliance' | 'comments' | 'ai';
+type StepId = 'overview' | 'stakeholders' | 'documents' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -58,18 +58,13 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   stakeholders: [
     { id: 'parties', label: 'Parties' },
     { id: 'ownership', label: 'Ownership' },
-    { id: 'permissions', label: 'Permissions' },
-  ],
-  verification: [
     { id: 'kyc', label: 'KYC / KYB' },
     { id: 'review', label: 'Review Queue' },
-    { id: 'documents', label: 'Documents' },
-    { id: 'reconciliation', label: 'Reconciliation' },
   ],
-  structuring: [
+  documents: [
+    { id: 'all', label: 'All Documents' },
     { id: 'cap-table', label: 'Cap Table' },
     { id: 'waterfall', label: 'Waterfall' },
-    { id: 'deal-inputs', label: 'Deal Inputs' },
   ],
   'deal-inputs': [
     { id: 'financial', label: 'Financial Inputs' },
@@ -77,13 +72,22 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'obligations', label: 'Obligations' },
     { id: 'readiness', label: 'Readiness' },
   ],
+  verification: [
+    { id: 'wire-instructions', label: 'Wire Instructions' },
+    { id: 'allocations', label: 'Payment Allocations' },
+    { id: 'discrepancies', label: 'Discrepancies' },
+  ],
+  approvals: [
+    { id: 'approvers', label: 'Approvers' },
+    { id: 'docusign', label: 'DocuSign' },
+    { id: 'audit-log', label: 'Audit Log' },
+  ],
   execution: [
     { id: 'closing', label: 'Closing Readiness' },
     { id: 'intents', label: 'Disbursement Intents' },
     { id: 'payments', label: 'Payments' },
     { id: 'discrepancies', label: 'Discrepancies' },
     { id: 'escrow', label: 'Escrow' },
-    { id: 'approvals', label: 'Approvals' },
     { id: 'authority', label: 'Execution Authority' },
   ],
   compliance: [
