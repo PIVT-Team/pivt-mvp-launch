@@ -142,7 +142,7 @@ export const FinancialInputs: React.FC = () => {
     } else {
       toast.success('Financial inputs saved');
     }
-  }, [dealId, isDemoDeal, dealValue, currency, escrowAmount]);
+  }, [dealId, isDemoDeal, dealValue, selectedCurrencies, escrowAmount]);
 
   const handleUpload = useCallback(() => {
     const label = FINANCIAL_DOC_TYPES.find(t => t.value === selectedType)?.label || selectedType;
