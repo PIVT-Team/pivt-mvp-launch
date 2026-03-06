@@ -1,18 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
-import { Users, PieChart, Download, Filter, ArrowUpDown, CheckCircle2, AlertTriangle, Search, Table } from 'lucide-react';
+import {
+  Upload, PieChart, Download, CheckCircle2, AlertTriangle, Search,
+  Table, FileSpreadsheet, Loader2, X, Eye, Trash2,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { PieChart as RPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const COLORS = ['hsl(262,72%,55%)', 'hsl(262,72%,70%)', 'hsl(160,84%,39%)', 'hsl(45,93%,47%)', 'hsl(217,91%,60%)', 'hsl(0,84%,60%)', 'hsl(280,60%,60%)', 'hsl(190,80%,45%)'];
 
-type SortKey = 'name' | 'ownershipPct' | 'payoutAmount' | 'kycStatus';
+type CapTableStatus = 'not_uploaded' | 'extracting' | 'parsed' | 'verified';
 
-interface DbCapEntry {
+interface CapEntry {
   id: string;
   shareholder_name: string;
   ownership_pct: number;
@@ -20,289 +25,386 @@ interface DbCapEntry {
   escrow_holdback: number | null;
   fees: number | null;
   net_payout: number | null;
+  role: string;
+  stakeholder_type: string;
+  email: string | null;
 }
+
+const STATUS_CONFIG: Record<CapTableStatus, { label: string; color: string; icon: React.ElementType }> = {
+  not_uploaded: { label: 'Not Uploaded', color: 'bg-muted/60 text-muted-foreground', icon: Upload },
+  extracting: { label: 'Extracting', color: 'bg-amber-500/10 text-amber-600', icon: Loader2 },
+  parsed: { label: 'Parsed', color: 'bg-blue-500/10 text-blue-600', icon: FileSpreadsheet },
+  verified: { label: 'Verified', color: 'bg-emerald-500/10 text-emerald-600', icon: CheckCircle2 },
+};
+
+// ── Manual Add Row ──
+const AddShareholderRow: React.FC<{ dealId: string; onAdded: () => void }> = ({ dealId, onAdded }) => {
+  const [name, setName] = useState('');
+  const [pct, setPct] = useState('');
+  const [role, setRole] = useState('Shareholder');
+  const [saving, setSaving] = useState(false);
+
+  const handleAdd = async () => {
+    if (!name.trim() || !pct) return;
+    setSaving(true);
+    const { error } = await supabase.from('cap_table_entries').insert({
+      deal_id: dealId,
+      shareholder_name: name.trim(),
+      ownership_pct: parseFloat(pct),
+      role,
+      payout_amount: 0,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`${name} added to cap table`);
+    setName(''); setPct(''); setRole('Shareholder');
+    onAdded();
+  };
+
+  return (
+    <tr className="border-b border-border bg-muted/10">
+      <td className="px-4 py-2">
+        <input value={name} onChange={e => setName(e.target.value)} placeholder="Shareholder name" className="w-full bg-transparent border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-accent/50" />
+      </td>
+      <td className="px-4 py-2">
+        <select value={role} onChange={e => setRole(e.target.value)} className="bg-transparent border border-border rounded px-2 py-1 text-sm">
+          <option value="Shareholder">Shareholder</option>
+          <option value="Founder">Founder</option>
+          <option value="Employee">Employee</option>
+          <option value="Investor">Investor</option>
+          <option value="Advisor">Advisor</option>
+        </select>
+      </td>
+      <td className="px-4 py-2">
+        <input value={pct} onChange={e => setPct(e.target.value)} placeholder="0.00" type="number" step="0.01" min="0" max="100" className="w-20 bg-transparent border border-border rounded px-2 py-1 text-sm font-mono focus:outline-none focus:border-accent/50" />
+      </td>
+      <td className="px-4 py-2" colSpan={3}>
+        <Button size="sm" onClick={handleAdd} disabled={saving || !name.trim() || !pct} className="gap-1.5">
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : null} Add
+        </Button>
+      </td>
+    </tr>
+  );
+};
 
 export const CapTableCover: React.FC = () => {
   const { isDemoDeal, dealId } = useDealWorkspace();
-  const deal = useSelectedDeal();
-  const { stakeholders } = usePIVTStore();
+  const [entries, setEntries] = useState<CapEntry[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('ownershipPct');
-  const [sortAsc, setSortAsc] = useState(false);
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [dbEntries, setDbEntries] = useState<DbCapEntry[]>([]);
-  const [loading, setLoading] = useState(!isDemoDeal);
+  const [showAddRow, setShowAddRow] = useState(false);
+  const [capStatus, setCapStatus] = useState<CapTableStatus>('not_uploaded');
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isDemoDeal || !dealId) return;
+  const fetchEntries = useCallback(async () => {
+    if (!dealId) return;
     setLoading(true);
-    supabase
+    const { data } = await supabase
       .from('cap_table_entries')
       .select('*')
-      .eq('deal_id', dealId)
-      .then(({ data }) => {
-        setDbEntries((data as DbCapEntry[]) || []);
-        setLoading(false);
-      });
-  }, [isDemoDeal, dealId]);
+      .eq('deal_id', dealId);
+    const rows = (data as CapEntry[] | null) || [];
+    setEntries(rows);
+    // Derive status
+    if (rows.length === 0) setCapStatus('not_uploaded');
+    else setCapStatus('parsed');
+    setLoading(false);
+  }, [dealId]);
 
-  // Non-demo empty state
-  if (!isDemoDeal) {
-    if (loading) {
-      return (
-        <div className="flex justify-center py-20">
-          <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-        </div>
-      );
+  useEffect(() => { fetchEntries(); }, [fetchEntries]);
+
+  // Demo deals also use DB data — no stakeholder auto-population
+  // If demo deal has no cap_table_entries, show empty state
+
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !dealId) return;
+
+    const allowed = ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'application/pdf'];
+    if (!allowed.includes(file.type) && !file.name.endsWith('.csv') && !file.name.endsWith('.xlsx')) {
+      toast.error('Please upload a CSV, XLSX, or PDF file');
+      return;
     }
 
-    if (dbEntries.length === 0) {
-      return (
-        <motion.div {...staggerChildren} className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold text-foreground">Cap Table</h1>
-              <p className="text-muted-foreground mt-1">0 shareholders · $0 consideration</p>
-            </div>
-          </div>
+    setUploading(true);
+    setCapStatus('extracting');
+    toast.info('Uploading and extracting cap table...');
 
+    // Upload to storage
+    const path = `${dealId}/cap-table/${Date.now()}_${file.name}`;
+    const { error: uploadErr } = await supabase.storage.from('deal-documents').upload(path, file);
+    if (uploadErr) {
+      toast.error('Upload failed: ' + uploadErr.message);
+      setUploading(false);
+      setCapStatus('not_uploaded');
+      return;
+    }
+
+    // Record the document
+    await supabase.from('contract_documents').insert({
+      deal_id: dealId,
+      filename: file.name,
+      doc_type: 'CAP_TABLE',
+      status: 'UPLOADED',
+      file_url: path,
+    });
+
+    // Simulate AI extraction (in production this would call document-ai edge function)
+    setTimeout(async () => {
+      // For now mark as parsed — real extraction would create cap_table_entries
+      setCapStatus('parsed');
+      setUploading(false);
+      toast.success('Cap table file uploaded. Add shareholders manually or wait for AI extraction.');
+      await fetchEntries();
+    }, 2000);
+
+    e.target.value = '';
+  }, [dealId, fetchEntries]);
+
+  const handleDelete = useCallback(async (id: string) => {
+    const { error } = await supabase.from('cap_table_entries').delete().eq('id', id);
+    if (error) { toast.error(error.message); return; }
+    toast.success('Shareholder removed');
+    fetchEntries();
+  }, [fetchEntries]);
+
+  const handleVerify = useCallback(() => {
+    setCapStatus('verified');
+    toast.success('Cap table marked as verified');
+  }, []);
+
+  // Filter
+  const filtered = entries.filter(e =>
+    !search || e.shareholder_name.toLowerCase().includes(search.toLowerCase()) || e.role.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const totalPct = entries.reduce((s, e) => s + e.ownership_pct, 0);
+  const totalPayout = entries.reduce((s, e) => s + e.payout_amount, 0);
+  const pieData = entries.map(e => ({ name: e.shareholder_name, value: e.ownership_pct }));
+
+  // Loading
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const StatusIcon = STATUS_CONFIG[capStatus].icon;
+
+  return (
+    <motion.div {...staggerChildren} className="space-y-6">
+      {/* Status Banner */}
+      <motion.div {...fadeInUp} className={`flex items-center gap-3 px-4 py-3 rounded-xl border border-border ${STATUS_CONFIG[capStatus].color}`}>
+        <StatusIcon className={`w-5 h-5 ${capStatus === 'extracting' ? 'animate-spin' : ''}`} />
+        <div className="flex-1">
+          <span className="text-sm font-medium">Cap Table Status: {STATUS_CONFIG[capStatus].label}</span>
+          {capStatus === 'not_uploaded' && (
+            <p className="text-xs mt-0.5 opacity-80">Upload a cap table file to populate shareholder ownership data.</p>
+          )}
+          {capStatus === 'extracting' && (
+            <p className="text-xs mt-0.5 opacity-80">AI is extracting shareholder data from the uploaded file...</p>
+          )}
+          {capStatus === 'parsed' && (
+            <p className="text-xs mt-0.5 opacity-80">Shareholder data has been parsed. Review and verify when ready.</p>
+          )}
+          {capStatus === 'verified' && (
+            <p className="text-xs mt-0.5 opacity-80">Cap table has been reviewed and verified.</p>
+          )}
+        </div>
+        {capStatus === 'parsed' && (
+          <Button size="sm" variant="outline" onClick={handleVerify} className="gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Mark Verified
+          </Button>
+        )}
+      </motion.div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">Cap Table</h1>
+          <p className="text-muted-foreground mt-1">
+            {entries.length > 0
+              ? `${entries.length} shareholders · ${totalPct.toFixed(1)}% allocated · $${(totalPayout / 1e6).toFixed(1)}M consideration`
+              : 'No shareholder data available'}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" onChange={handleFileUpload} />
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading} className="gap-1.5">
+            {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+            Upload Cap Table
+          </Button>
+          {entries.length > 0 && (
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Download className="w-3.5 h-3.5" /> Export CSV
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Empty State */}
+      {entries.length === 0 && capStatus === 'not_uploaded' && (
+        <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+            <Table className="w-7 h-7 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-base font-semibold">No Cap Table Data</h3>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+              Upload a cap table file (XLSX, CSV, or PDF) to populate shareholder ownership data, or add shareholders manually.
+            </p>
+          </div>
+          <div className="flex gap-3 justify-center pt-2">
+            <Button onClick={() => fileRef.current?.click()} className="gap-1.5">
+              <Upload className="w-4 h-4" /> Upload Cap Table
+            </Button>
+            <Button variant="outline" onClick={() => setShowAddRow(true)} className="gap-1.5">
+              Add Manually
+            </Button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Extracting State */}
+      {entries.length === 0 && capStatus === 'extracting' && (
+        <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
+          <Loader2 className="w-10 h-10 text-accent animate-spin mx-auto" />
+          <div>
+            <h3 className="text-base font-semibold">Extracting Shareholder Data</h3>
+            <p className="text-sm text-muted-foreground mt-1">AI is parsing the uploaded cap table file...</p>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Data View */}
+      {(entries.length > 0 || showAddRow) && (
+        <>
+          {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { label: 'Total Shareholders', value: '0', icon: Users },
-              { label: 'Total Ownership', value: '0%', icon: PieChart },
-              { label: 'Total Payout', value: '$0', icon: PieChart },
-              { label: 'KYC Verified', value: '0/0', icon: CheckCircle2 },
+              { label: 'Shareholders', value: entries.length, icon: Table },
+              { label: 'Ownership Allocated', value: `${totalPct.toFixed(1)}%`, icon: PieChart },
+              { label: 'Total Payout', value: totalPayout > 0 ? `$${(totalPayout / 1e6).toFixed(1)}M` : '—', icon: PieChart },
+              { label: 'Unallocated', value: `${(100 - totalPct).toFixed(1)}%`, icon: AlertTriangle },
             ].map(stat => (
               <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4">
                 <div className="flex items-center gap-2 mb-1">
                   <stat.icon className="w-4 h-4 text-accent" />
                   <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</span>
                 </div>
-                <p className="pivt-stat text-xl">{stat.value}</p>
+                <p className="text-xl font-semibold">{stat.value}</p>
               </motion.div>
             ))}
           </div>
 
-          <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto">
-              <Table className="w-6 h-6 text-muted-foreground" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold">No shareholders added yet</h3>
-              <p className="text-sm text-muted-foreground mt-1">Add stakeholders to populate the cap table with ownership and payout data.</p>
-            </div>
-          </motion.div>
-        </motion.div>
-      );
-    }
-
-    // Render DB entries
-    const totalPayout = dbEntries.reduce((s, e) => s + e.payout_amount, 0);
-    const totalPct = dbEntries.reduce((s, e) => s + e.ownership_pct, 0);
-    const pieData = dbEntries.map(e => ({ name: e.shareholder_name, value: e.ownership_pct }));
-
-    return (
-      <motion.div {...staggerChildren} className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-foreground">Cap Table</h1>
-            <p className="text-muted-foreground mt-1">{dbEntries.length} shareholders · ${(totalPayout / 1e6).toFixed(1)}M consideration</p>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors">
-            <Download className="w-4 h-4" /> Export CSV
-          </button>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: 'Total Shareholders', value: dbEntries.length, icon: Users },
-            { label: 'Total Ownership', value: `${totalPct}%`, icon: PieChart },
-            { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: PieChart },
-            { label: 'Entries', value: `${dbEntries.length}`, icon: CheckCircle2 },
-          ].map(stat => (
-            <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4">
-              <div className="flex items-center gap-2 mb-1">
-                <stat.icon className="w-4 h-4 text-accent" />
-                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</span>
-              </div>
-              <p className="pivt-stat text-xl">{stat.value}</p>
-            </motion.div>
-          ))}
-        </div>
-
-        <div className="pivt-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border bg-muted/30">
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Shareholder</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Ownership %</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Gross Payout</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Net Payout</th>
-              </tr>
-            </thead>
-            <tbody>
-              {dbEntries.map(e => (
-                <tr key={e.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-3 font-medium">{e.shareholder_name}</td>
-                  <td className="px-4 py-3 font-mono">{e.ownership_pct}%</td>
-                  <td className="px-4 py-3 font-mono">${(e.payout_amount / 1e6).toFixed(1)}M</td>
-                  <td className="px-4 py-3 font-mono text-validated">${((e.net_payout || 0) / 1e6).toFixed(1)}M</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
-    );
-  }
-
-  // Demo deal — existing behavior
-  const totalPayout = stakeholders.reduce((s, sh) => s + sh.payoutAmount, 0);
-  const totalPct = stakeholders.reduce((s, sh) => s + sh.ownershipPct, 0);
-
-  const roleTypes = ['all', ...new Set(stakeholders.map(s => s.role.includes('Founder') || s.role.includes('CEO') || s.role.includes('CTO') ? 'Founder' : s.role.includes('Investor') || s.role.includes('Lead') || s.role.includes('Capital') ? 'Investor' : s.role.includes('ESOP') ? 'ESOP' : 'Other'))];
-
-  const filtered = stakeholders
-    .filter(s => search === '' || s.name.toLowerCase().includes(search.toLowerCase()) || s.role.toLowerCase().includes(search.toLowerCase()))
-    .filter(s => {
-      if (selectedType === 'all') return true;
-      if (selectedType === 'Founder') return s.role.includes('Founder') || s.role.includes('CEO') || s.role.includes('CTO');
-      if (selectedType === 'Investor') return s.role.includes('Investor') || s.role.includes('Lead') || s.role.includes('Capital');
-      if (selectedType === 'ESOP') return s.role.includes('ESOP');
-      return true;
-    })
-    .sort((a, b) => {
-      const mul = sortAsc ? 1 : -1;
-      if (sortKey === 'name') return mul * a.name.localeCompare(b.name);
-      if (sortKey === 'kycStatus') return mul * a.kycStatus.localeCompare(b.kycStatus);
-      return mul * ((a[sortKey] as number) - (b[sortKey] as number));
-    });
-
-  const pieData = stakeholders.map(s => ({ name: s.name, value: s.ownershipPct }));
-
-  const toggleSort = (key: SortKey) => {
-    if (sortKey === key) setSortAsc(!sortAsc);
-    else { setSortKey(key); setSortAsc(false); }
-  };
-
-  return (
-    <motion.div {...staggerChildren} className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Cap Table</h1>
-          <p className="text-muted-foreground mt-1">{deal.codeName} — {deal.totalRecipients} shareholders · ${(deal.consideration / 1e6).toFixed(1)}M consideration</p>
-        </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm hover:bg-muted/50 transition-colors">
-          <Download className="w-4 h-4" /> Export CSV
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Shareholders', value: stakeholders.length, icon: Users },
-          { label: 'Total Ownership', value: `${totalPct}%`, icon: PieChart },
-          { label: 'Total Payout', value: `$${(totalPayout / 1e6).toFixed(1)}M`, icon: PieChart },
-          { label: 'KYC Verified', value: `${stakeholders.filter(s => s.kycStatus === 'verified').length}/${stakeholders.length}`, icon: CheckCircle2 },
-        ].map(stat => (
-          <motion.div key={stat.label} {...fadeInUp} className="pivt-card p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <stat.icon className="w-4 h-4 text-accent" />
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{stat.label}</span>
-            </div>
-            <p className="pivt-stat text-xl">{stat.value}</p>
-          </motion.div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <motion.div {...fadeInUp} className="pivt-card p-5">
-          <h3 className="text-sm font-medium mb-3">Ownership Distribution</h3>
-          <ResponsiveContainer width="100%" height={240}>
-            <RPieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={90} dataKey="value" strokeWidth={2} stroke="hsl(var(--card))">
-                {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie>
-              <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} formatter={(val: number) => [`${val}%`, 'Ownership']} />
-            </RPieChart>
-          </ResponsiveContainer>
-          <div className="space-y-1 mt-2">
-            {stakeholders.slice(0, 5).map((s, i) => (
-              <div key={s.id} className="flex items-center gap-2 text-xs">
-                <div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
-                <span className="truncate flex-1">{s.name}</span>
-                <span className="font-mono text-muted-foreground">{s.ownershipPct}%</span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
-        <motion.div {...fadeInUp} className="pivt-card overflow-hidden lg:col-span-2">
-          <div className="p-4 border-b border-border flex items-center gap-3">
-            <div className="relative flex-1">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search shareholders..." className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-accent/50" />
-            </div>
-            <div className="flex gap-1">
-              {['all', 'Founder', 'Investor', 'ESOP'].map(t => (
-                <button key={t} onClick={() => setSelectedType(t)} className={`px-3 py-1.5 rounded-lg text-xs transition-colors ${selectedType === t ? 'bg-accent/10 text-accent font-medium' : 'text-muted-foreground hover:bg-muted/50'}`}>
-                  {t === 'all' ? 'All' : t}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  {[
-                    { key: 'name' as SortKey, label: 'Shareholder' },
-                    { key: 'ownershipPct' as SortKey, label: 'Ownership %' },
-                    { key: 'payoutAmount' as SortKey, label: 'Gross Payout' },
-                    { key: 'payoutAmount' as SortKey, label: 'Net Payout' },
-                    { key: 'kycStatus' as SortKey, label: 'KYC' },
-                  ].map(col => (
-                    <th key={col.label} className="px-4 py-3 text-left text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground" onClick={() => toggleSort(col.key)}>
-                      <span className="flex items-center gap-1">{col.label} <ArrowUpDown className="w-3 h-3" /></span>
-                    </th>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {/* Pie Chart */}
+            {entries.length > 0 && (
+              <motion.div {...fadeInUp} className="pivt-card p-5">
+                <h3 className="text-sm font-medium mb-3">Ownership Distribution</h3>
+                <ResponsiveContainer width="100%" height={240}>
+                  <RPieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={50} outerRadius={90} dataKey="value" strokeWidth={2} stroke="hsl(var(--card))">
+                      {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }} formatter={(val: number) => [`${val}%`, 'Ownership']} />
+                  </RPieChart>
+                </ResponsiveContainer>
+                <div className="space-y-1 mt-2">
+                  {entries.slice(0, 6).map((e, i) => (
+                    <div key={e.id} className="flex items-center gap-2 text-xs">
+                      <div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                      <span className="truncate flex-1">{e.shareholder_name}</span>
+                      <span className="font-mono text-muted-foreground">{e.ownership_pct}%</span>
+                    </div>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((s, i) => {
-                  const escrow = s.payoutAmount * 0.1;
-                  const fees = s.payoutAmount * 0.005;
-                  const net = s.payoutAmount - escrow - fees;
-                  return (
-                    <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                      <td className="px-4 py-3">
-                        <div>
-                          <p className="font-medium">{s.name}</p>
-                          <p className="text-xs text-muted-foreground">{s.role}</p>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-mono">{s.ownershipPct}%</td>
-                      <td className="px-4 py-3 font-mono">${(s.payoutAmount / 1e6).toFixed(0)}M</td>
-                      <td className="px-4 py-3 font-mono text-validated">${(net / 1e6).toFixed(0)}M</td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline" className={`text-[10px] ${s.kycStatus === 'verified' ? 'border-validated/50 text-validated' : s.kycStatus === 'pending' ? 'border-discrepancy/50 text-discrepancy' : 'border-blocking/50 text-blocking'}`}>
-                          {s.kycStatus}
-                        </Badge>
-                      </td>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Table */}
+            <motion.div {...fadeInUp} className={`pivt-card overflow-hidden ${entries.length > 0 ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
+              <div className="p-4 border-b border-border flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search shareholders..." className="w-full bg-muted/50 border border-border rounded-lg pl-9 pr-4 py-2 text-sm focus:outline-none focus:border-accent/50" />
+                </div>
+                <Button variant="outline" size="sm" onClick={() => setShowAddRow(!showAddRow)} className="gap-1.5">
+                  {showAddRow ? <X className="w-3.5 h-3.5" /> : <Table className="w-3.5 h-3.5" />}
+                  {showAddRow ? 'Cancel' : 'Add Row'}
+                </Button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Shareholder</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Role</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Ownership %</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Gross Payout</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">Net Payout</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground w-16"></th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {showAddRow && dealId && <AddShareholderRow dealId={dealId} onAdded={fetchEntries} />}
+                    {filtered.map(e => (
+                      <tr key={e.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                        <td className="px-4 py-3">
+                          <p className="font-medium">{e.shareholder_name}</p>
+                          {e.email && <p className="text-xs text-muted-foreground">{e.email}</p>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className="text-[10px]">{e.role}</Badge>
+                        </td>
+                        <td className="px-4 py-3 font-mono">{e.ownership_pct}%</td>
+                        <td className="px-4 py-3 font-mono">
+                          {e.payout_amount > 0 ? `$${(e.payout_amount / 1e6).toFixed(1)}M` : '—'}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-emerald-600">
+                          {(e.net_payout || 0) > 0 ? `$${((e.net_payout || 0) / 1e6).toFixed(1)}M` : '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <button onClick={() => handleDelete(e.id)} className="p-1 rounded hover:bg-muted/50 text-muted-foreground hover:text-red-500 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filtered.length === 0 && !showAddRow && (
+                      <tr>
+                        <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                          {search ? 'No matching shareholders' : 'No shareholders in cap table'}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {entries.length > 0 && (
+                <div className="p-4 border-t border-border bg-muted/30 flex justify-between text-sm font-semibold">
+                  <span>Totals</span>
+                  <div className="flex gap-12">
+                    <span className="font-mono">{totalPct.toFixed(1)}%</span>
+                    <span className="font-mono">{totalPayout > 0 ? `$${(totalPayout / 1e6).toFixed(1)}M` : '—'}</span>
+                  </div>
+                </div>
+              )}
+            </motion.div>
           </div>
-          <div className="p-4 border-t border-border bg-muted/30 flex justify-between text-sm font-semibold">
-            <span>Totals</span>
-            <div className="flex gap-12">
-              <span className="font-mono">{totalPct}%</span>
-              <span className="font-mono">${(totalPayout / 1e6).toFixed(1)}M</span>
-            </div>
-          </div>
-        </motion.div>
-      </div>
+
+          {/* Ownership warning */}
+          {totalPct > 100 && (
+            <motion.div {...fadeInUp} className="flex items-center gap-2 px-4 py-3 rounded-xl border border-red-500/30 bg-red-500/5 text-red-600 text-sm">
+              <AlertTriangle className="w-4 h-4" />
+              Total ownership exceeds 100% ({totalPct.toFixed(1)}%). Please review shareholder allocations.
+            </motion.div>
+          )}
+        </>
+      )}
     </motion.div>
   );
 };
