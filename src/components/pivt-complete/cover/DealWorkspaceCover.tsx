@@ -486,30 +486,60 @@ const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string; i
   return <RealDealOverviewSection realDeal={realDeal!} dealId={dealId || ''} />;
 };
 
-const ReconciliationSection: React.FC = () => (
-  <div className="space-y-4">
-    <div className="flex items-center gap-2 mb-3">
-      <Search className="w-4 h-4 text-discrepancy" />
-      <h3 className="font-medium">Reconciliation Results</h3>
-      <span className="text-xs text-muted-foreground ml-auto">{DISCREPANCIES.filter(d => !d.resolved).length} unresolved</span>
-    </div>
-    <div className="space-y-2">
-      {DISCREPANCIES.map(disc => (
-        <div key={disc.id} className={`pivt-card p-4 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/4' : 'border-discrepancy bg-discrepancy/4'} ${disc.resolved ? 'opacity-50' : ''}`}>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium">{disc.field}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{disc.desc}</p>
+const ReconciliationSection: React.FC = () => {
+  const { dealId } = useDealWorkspace();
+  const [discrepancies, setDiscrepancies] = useState<{ id: string; field: string; desc: string; severity: 'warning' | 'critical'; resolved: boolean }[]>([]);
+
+  useEffect(() => {
+    if (!dealId) return;
+    supabase
+      .from('discrepancies')
+      .select('id, rule_key, message, severity, status')
+      .eq('deal_id', dealId)
+      .then(({ data }) => {
+        setDiscrepancies((data || []).map((d: any) => ({
+          id: d.id,
+          field: d.rule_key,
+          desc: d.message,
+          severity: d.severity === 'critical' ? 'critical' : 'warning',
+          resolved: d.status === 'resolved' || d.status === 'acknowledged',
+        })));
+      });
+  }, [dealId]);
+
+  if (discrepancies.length === 0) {
+    return (
+      <div className="pivt-card p-12 text-center text-muted-foreground text-sm">
+        No reconciliation issues found.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Search className="w-4 h-4 text-discrepancy" />
+        <h3 className="font-medium">Reconciliation Results</h3>
+        <span className="text-xs text-muted-foreground ml-auto">{discrepancies.filter(d => !d.resolved).length} unresolved</span>
+      </div>
+      <div className="space-y-2">
+        {discrepancies.map(disc => (
+          <div key={disc.id} className={`pivt-card p-4 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/4' : 'border-discrepancy bg-discrepancy/4'} ${disc.resolved ? 'opacity-50' : ''}`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium">{disc.field}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{disc.desc}</p>
+              </div>
+              <Badge className={`text-[9px] ${disc.resolved ? 'bg-validated/10 text-validated' : disc.severity === 'critical' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
+                {disc.resolved ? 'Resolved' : disc.severity}
+              </Badge>
             </div>
-            <Badge className={`text-[9px] ${disc.resolved ? 'bg-validated/10 text-validated' : disc.severity === 'critical' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
-              {disc.resolved ? 'Resolved' : disc.severity}
-            </Badge>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ── Protected deal banner ──
 const ProtectedDealBanner: React.FC = () => {
