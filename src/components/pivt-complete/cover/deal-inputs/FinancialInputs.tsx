@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
   Upload, CheckCircle2, Clock, DollarSign,
-  FileSpreadsheet, Table2, Loader2,
+  FileSpreadsheet, Table2, Loader2, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
