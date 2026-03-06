@@ -1,10 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import { Upload, FileText, CheckCircle2, Clock, Zap, Eye, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 
 const CONTRACT_DOC_TYPES = [
   { value: 'SPA', label: 'SPA / Merger Agreement' },
@@ -15,17 +17,41 @@ const CONTRACT_DOC_TYPES = [
   { value: 'EARNOUT', label: 'Earn-out Agreements' },
 ] as const;
 
+const CONTRACT_DOC_VALUES = CONTRACT_DOC_TYPES.map(t => t.value);
+
 interface ContractDoc { id: string; doc_type: string; filename: string; status: string; uploaded_at: string }
 
-const DEMO_DOCS: ContractDoc[] = [
-  { id: 'cd1', doc_type: 'SPA', filename: 'SPA_v3_Final.pdf', status: 'EXTRACTION_COMPLETE', uploaded_at: '2026-02-28T10:30:00Z' },
-  { id: 'cd2', doc_type: 'ESCROW_AGREEMENT', filename: 'Escrow_Agreement_JPMorgan.pdf', status: 'UPLOADED', uploaded_at: '2026-03-01T09:00:00Z' },
-];
-
 export const ContractInputs: React.FC = () => {
-  const [docs, setDocs] = useState<ContractDoc[]>(DEMO_DOCS);
+  const { dealId, isDemoDeal } = useDealWorkspace();
+  const [docs, setDocs] = useState<ContractDoc[]>([]);
   const [selectedType, setSelectedType] = useState('SPA');
   const [extracting, setExtracting] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Auto-populate from already-uploaded contract documents
+  useEffect(() => {
+    if (!dealId || isDemoDeal) {
+      setLoading(false);
+      return;
+    }
+    const fetchDocs = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('contract_documents')
+        .select('id, doc_type, filename, status, uploaded_at')
+        .eq('deal_id', dealId)
+        .in('doc_type', CONTRACT_DOC_VALUES as any);
+      setDocs((data || []).map((d: any) => ({
+        id: d.id,
+        doc_type: d.doc_type,
+        filename: d.filename,
+        status: d.status,
+        uploaded_at: d.uploaded_at,
+      })));
+      setLoading(false);
+    };
+    fetchDocs();
+  }, [dealId, isDemoDeal]);
 
   const handleUpload = useCallback(() => {
     const label = CONTRACT_DOC_TYPES.find(t => t.value === selectedType)?.label || selectedType;
@@ -50,7 +76,10 @@ export const ContractInputs: React.FC = () => {
     <div className="space-y-8">
       <motion.div {...fadeInUp}>
         <h2 className="text-xl font-semibold" style={{ letterSpacing: '-0.03em' }}>Contract Documents</h2>
-        <p className="text-sm text-muted-foreground mt-1">Core transaction agreements — parsed by AI for obligations.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          Core transaction agreements — parsed by AI for obligations.
+          {docs.length > 0 && !isDemoDeal && <span className="text-accent"> Auto-populated from uploaded deal documents.</span>}
+        </p>
       </motion.div>
 
       <motion.div {...fadeInUp} className="pivt-card overflow-hidden">
@@ -69,42 +98,46 @@ export const ContractInputs: React.FC = () => {
             <Button onClick={handleUpload} className="gap-1.5"><Upload className="w-3.5 h-3.5" /> Upload</Button>
           </div>
 
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-border/30">
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Filename</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Uploaded</th>
-              <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
-            </tr></thead>
-            <tbody>
-              {docs.map(doc => (
-                <tr key={doc.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-2.5 font-medium flex items-center gap-2"><FileText className="w-4 h-4 text-muted-foreground shrink-0" />{doc.filename}</td>
-                  <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{getLabel(doc.doc_type)}</Badge></td>
-                  <td className="px-4 py-2.5">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${
-                      doc.status === 'EXTRACTION_COMPLETE' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/60 text-muted-foreground'
-                    }`}>
-                      {doc.status === 'EXTRACTION_COMPLETE' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-2.5">
-                    {doc.status === 'UPLOADED' && (
-                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" disabled={extracting === doc.id} onClick={() => handleExtract(doc.id)}>
-                        {extracting === doc.id ? <><Loader2 className="w-3 h-3 animate-spin" /> Extracting...</> : <><Zap className="w-3 h-3" /> Extract Obligations</>}
-                      </Button>
-                    )}
-                    {doc.status === 'EXTRACTION_COMPLETE' && (
-                      <Badge className="bg-emerald-500/10 text-emerald-600 text-xs"><Eye className="w-3 h-3 mr-1" /> Parsed</Badge>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {docs.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground text-sm">No contract documents uploaded.</td></tr>}
-            </tbody>
-          </table>
+          {loading ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead><tr className="border-b border-border/30">
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Filename</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Uploaded</th>
+                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
+              </tr></thead>
+              <tbody>
+                {docs.map(doc => (
+                  <tr key={doc.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5 font-medium flex items-center gap-2"><FileText className="w-4 h-4 text-muted-foreground shrink-0" />{doc.filename}</td>
+                    <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{getLabel(doc.doc_type)}</Badge></td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${
+                        doc.status === 'EXTRACTION_COMPLETE' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/60 text-muted-foreground'
+                      }`}>
+                        {doc.status === 'EXTRACTION_COMPLETE' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-2.5">
+                      {doc.status === 'UPLOADED' && (
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" disabled={extracting === doc.id} onClick={() => handleExtract(doc.id)}>
+                          {extracting === doc.id ? <><Loader2 className="w-3 h-3 animate-spin" /> Extracting...</> : <><Zap className="w-3 h-3" /> Extract Obligations</>}
+                        </Button>
+                      )}
+                      {doc.status === 'EXTRACTION_COMPLETE' && (
+                        <Badge className="bg-emerald-500/10 text-emerald-600 text-xs"><Eye className="w-3 h-3 mr-1" /> Parsed</Badge>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {docs.length === 0 && <tr><td colSpan={5} className="px-4 py-8 text-center text-muted-foreground text-sm">No contract documents uploaded.</td></tr>}
+              </tbody>
+            </table>
+          )}
         </div>
       </motion.div>
     </div>

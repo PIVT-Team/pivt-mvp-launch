@@ -1,15 +1,17 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
   Upload, CheckCircle2, Clock, DollarSign,
-  FileSpreadsheet, Table2,
+  FileSpreadsheet, Table2, Loader2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 
 const FINANCIAL_DOC_TYPES = [
   { value: 'CAP_TABLE', label: 'Cap Table' },
@@ -27,14 +29,81 @@ interface FinancialDoc {
   uploaded_at: string;
 }
 
-const DEMO_DOCS: FinancialDoc[] = [
-  { id: 'fd1', doc_type: 'CAP_TABLE', filename: 'CapTable_Final.xlsx', status: 'PARSED', uploaded_at: '2026-02-25T09:00:00Z' },
-  { id: 'fd2', doc_type: 'WATERFALL_MODEL', filename: 'Waterfall_Schedule_v3.xlsx', status: 'PARSED', uploaded_at: '2026-02-26T14:00:00Z' },
-];
+const formatCurrency = (v: number | null | undefined, currency = 'USD') => {
+  if (v == null) return '';
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
+};
 
 export const FinancialInputs: React.FC = () => {
-  const [docs, setDocs] = useState<FinancialDoc[]>(DEMO_DOCS);
+  const { dealId, isDemoDeal, realDeal } = useDealWorkspace();
+
+  // Financial fields pre-filled from deal record
+  const [dealValue, setDealValue] = useState('');
+  const [currency, setCurrency] = useState('USD');
+  const [escrowAmount, setEscrowAmount] = useState('');
+  const [sellerAllocation, setSellerAllocation] = useState('');
+  const [paymentSchedule, setPaymentSchedule] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  // Docs
+  const [docs, setDocs] = useState<FinancialDoc[]>([]);
   const [selectedType, setSelectedType] = useState('CAP_TABLE');
+  const [loadingDocs, setLoadingDocs] = useState(true);
+
+  // Pre-fill from deal record
+  useEffect(() => {
+    if (realDeal) {
+      setDealValue(realDeal.deal_value ? realDeal.deal_value.toString() : '');
+      setCurrency(realDeal.currency || 'USD');
+      setEscrowAmount(realDeal.escrow_amount != null ? realDeal.escrow_amount.toString() : '');
+    }
+  }, [realDeal]);
+
+  // Fetch financial docs from contract_documents
+  useEffect(() => {
+    if (!dealId || isDemoDeal) {
+      setLoadingDocs(false);
+      return;
+    }
+    const fetch = async () => {
+      setLoadingDocs(true);
+      const financialDocTypes = ['CAP_TABLE', 'WATERFALL_MODEL', 'PURCHASE_PRICE_ALLOCATION', 'ESCROW_ALLOCATION', 'DISTRIBUTION_SCHEDULE'];
+      const { data } = await supabase
+        .from('contract_documents')
+        .select('id, doc_type, filename, status, uploaded_at')
+        .eq('deal_id', dealId)
+        .in('doc_type', financialDocTypes as any);
+      setDocs((data || []).map((d: any) => ({
+        id: d.id,
+        doc_type: d.doc_type,
+        filename: d.filename,
+        status: d.status,
+        uploaded_at: d.uploaded_at,
+      })));
+      setLoadingDocs(false);
+    };
+    fetch();
+  }, [dealId, isDemoDeal]);
+
+  // Save financial fields back to deal record
+  const handleSave = useCallback(async () => {
+    if (!dealId || isDemoDeal) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from('deals')
+      .update({
+        deal_value: parseFloat(dealValue) || 0,
+        currency,
+        escrow_amount: parseFloat(escrowAmount) || 0,
+      } as any)
+      .eq('id', dealId);
+    setSaving(false);
+    if (error) {
+      toast.error('Failed to save financial inputs');
+    } else {
+      toast.success('Financial inputs saved');
+    }
+  }, [dealId, isDemoDeal, dealValue, currency, escrowAmount]);
 
   const handleUpload = useCallback(() => {
     const label = FINANCIAL_DOC_TYPES.find(t => t.value === selectedType)?.label || selectedType;
@@ -79,33 +148,37 @@ export const FinancialInputs: React.FC = () => {
             <Button onClick={handleUpload} className="gap-1.5"><Upload className="w-3.5 h-3.5" /> Upload</Button>
           </div>
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/30">
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Filename</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Uploaded</th>
-              </tr>
-            </thead>
-            <tbody>
-              {docs.map(doc => (
-                <tr key={doc.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-2.5 font-medium flex items-center gap-2">
-                    <Table2 className="w-4 h-4 text-emerald-500 shrink-0" />{doc.filename}
-                  </td>
-                  <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{getLabel(doc.doc_type)}</Badge></td>
-                  <td className="px-4 py-2.5">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${doc.status === 'PARSED' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/60 text-muted-foreground'}`}>
-                      {doc.status === 'PARSED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+          {loadingDocs ? (
+            <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/30">
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Filename</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Uploaded</th>
                 </tr>
-              ))}
-              {docs.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground text-sm">No financial inputs uploaded yet.</td></tr>}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {docs.map(doc => (
+                  <tr key={doc.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5 font-medium flex items-center gap-2">
+                      <Table2 className="w-4 h-4 text-emerald-500 shrink-0" />{doc.filename}
+                    </td>
+                    <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{getLabel(doc.doc_type)}</Badge></td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${doc.status === 'PARSED' || doc.status === 'EXTRACTION_COMPLETE' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/60 text-muted-foreground'}`}>
+                        {doc.status === 'PARSED' || doc.status === 'EXTRACTION_COMPLETE' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+                {docs.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground text-sm">No financial inputs uploaded yet.</td></tr>}
+              </tbody>
+            </table>
+          )}
         </div>
       </motion.div>
 
@@ -116,18 +189,63 @@ export const FinancialInputs: React.FC = () => {
             <DollarSign className="w-5 h-5 text-accent" />
             <h3 className="font-semibold">Financial Inputs</h3>
           </div>
-          <p className="text-xs text-muted-foreground ml-8">Structured fields that feed the payment orchestration engine.</p>
+          <p className="text-xs text-muted-foreground ml-8">Structured fields that feed the payment orchestration engine. {realDeal ? 'Pre-filled from deal creation.' : ''}</p>
         </div>
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div><Label className="text-xs text-muted-foreground">Total Purchase Price</Label><Input placeholder="$0.00" className="mt-1.5" /></div>
-          <div><Label className="text-xs text-muted-foreground">Currency</Label>
-            <select className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm mt-1.5">
-              <option>USD</option><option>EUR</option><option>GBP</option>
+          <div>
+            <Label className="text-xs text-muted-foreground">Total Purchase Price</Label>
+            <Input
+              placeholder="$0.00"
+              className="mt-1.5"
+              value={dealValue}
+              onChange={e => setDealValue(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Currency</Label>
+            <select
+              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm mt-1.5"
+              value={currency}
+              onChange={e => setCurrency(e.target.value)}
+            >
+              <option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>CHF</option>
             </select>
           </div>
-          <div><Label className="text-xs text-muted-foreground">Escrow Amount</Label><Input placeholder="$0.00" className="mt-1.5" /></div>
-          <div><Label className="text-xs text-muted-foreground">Seller Proceeds Allocation</Label><Input placeholder="e.g. Pro-rata by ownership" className="mt-1.5" /></div>
-          <div className="md:col-span-2"><Label className="text-xs text-muted-foreground">Payment Schedule (if applicable)</Label><Input placeholder="At closing / milestone-based" className="mt-1.5" /></div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Escrow Amount</Label>
+            <Input
+              placeholder="$0.00"
+              className="mt-1.5"
+              value={escrowAmount}
+              onChange={e => setEscrowAmount(e.target.value)}
+            />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Seller Proceeds Allocation</Label>
+            <Input
+              placeholder="e.g. Pro-rata by ownership"
+              className="mt-1.5"
+              value={sellerAllocation}
+              onChange={e => setSellerAllocation(e.target.value)}
+            />
+          </div>
+          <div className="md:col-span-2 flex items-end gap-4">
+            <div className="flex-1">
+              <Label className="text-xs text-muted-foreground">Payment Schedule (if applicable)</Label>
+              <Input
+                placeholder="At closing / milestone-based"
+                className="mt-1.5"
+                value={paymentSchedule}
+                onChange={e => setPaymentSchedule(e.target.value)}
+              />
+            </div>
+            {!isDemoDeal && (
+              <Button onClick={handleSave} disabled={saving} className="gap-1.5">
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Save
+              </Button>
+            )}
+          </div>
         </div>
       </motion.div>
     </div>

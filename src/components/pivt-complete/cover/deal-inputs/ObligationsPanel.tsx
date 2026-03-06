@@ -1,12 +1,14 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
-  AlertTriangle, CheckCircle2, Eye, X, Download, Filter, Shield, Activity,
+  AlertTriangle, CheckCircle2, X, Filter, Loader2,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 
 interface Obligation {
   id: string;
@@ -60,19 +62,47 @@ function formatAmount(ob: Obligation): string {
   return 'Unknown';
 }
 
-const DEMO: Obligation[] = [
-  { id: 'ob1', obligation_type: 'PURCHASE_PRICE_BASE', status: 'CONFIRMED', timing_type: 'AT_CLOSING', payor_label: 'Buyer (Apex Capital)', payee_label: 'Seller Shareholders', amount_type: 'FIXED', amount_value_minor: 280_000_000_00, amount_currency: 'USD', percent_basis_points: null, percent_base_reference: null, confidence_score: 0.98, source_text_snippet: '"$280,000,000"', mapping_status: 'MAPPED' },
-  { id: 'ob2', obligation_type: 'ESCROW_HOLD_BACK', status: 'CONFIRMED', timing_type: 'AT_CLOSING', payor_label: 'Buyer', payee_label: 'Escrow Agent (JPMorgan)', amount_type: 'PERCENT_OF_BASE', amount_value_minor: null, amount_currency: 'USD', percent_basis_points: 1000, percent_base_reference: 'PURCHASE_PRICE_BASE', confidence_score: 0.96, source_text_snippet: '"10% escrow"', mapping_status: 'MAPPED' },
-  { id: 'ob3', obligation_type: 'DEBT_PAYOFF', status: 'NEEDS_REVIEW', timing_type: 'AT_CLOSING', payor_label: 'Company', payee_label: 'Silicon Valley Bank', amount_type: 'FIXED', amount_value_minor: 45_000_000_00, amount_currency: 'USD', percent_basis_points: null, percent_base_reference: null, confidence_score: 0.88, source_text_snippet: '"Payoff $45M SVB"', mapping_status: 'UNMAPPED' },
-  { id: 'ob4', obligation_type: 'LEGAL_FEE', status: 'NEEDS_REVIEW', timing_type: 'AT_CLOSING', payor_label: 'Seller', payee_label: 'Wilson Sonsini', amount_type: 'FIXED', amount_value_minor: 3_500_000_00, amount_currency: 'USD', percent_basis_points: null, percent_base_reference: null, confidence_score: 0.82, source_text_snippet: '"Legal fees $3.5M"', mapping_status: 'UNMAPPED' },
-  { id: 'ob5', obligation_type: 'BROKER_FEE', status: 'NEEDS_REVIEW', timing_type: 'AT_CLOSING', payor_label: 'Seller', payee_label: 'Goldman Sachs', amount_type: 'PERCENT_OF_BASE', amount_value_minor: null, amount_currency: 'USD', percent_basis_points: 150, percent_base_reference: 'PURCHASE_PRICE_BASE', confidence_score: 0.75, source_text_snippet: '"1.5% advisory fee"', mapping_status: 'UNMAPPED' },
-  { id: 'ob6', obligation_type: 'TAX_WITHHOLDING', status: 'DRAFT_EXTRACTED', timing_type: 'AT_CLOSING', payor_label: 'Buyer', payee_label: 'IRS', amount_type: 'UNKNOWN', amount_value_minor: null, amount_currency: 'USD', percent_basis_points: null, percent_base_reference: null, confidence_score: 0.55, source_text_snippet: '"Section 1445 withholding"', mapping_status: 'UNMAPPED' },
-];
-
 export const ObligationsPanel: React.FC = () => {
-  const [obligations, setObligations] = useState<Obligation[]>(DEMO);
+  const { dealId, isDemoDeal } = useDealWorkspace();
+  const [obligations, setObligations] = useState<Obligation[]>([]);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selected, setSelected] = useState<Obligation | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Auto-populate from obligations table (AI-extracted)
+  useEffect(() => {
+    if (!dealId || isDemoDeal) {
+      setLoading(false);
+      return;
+    }
+    const fetchObligations = async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from('obligations')
+        .select('id, obligation_type, status, payor_label, payee_label, amount_type, amount_value_minor, amount_currency, percent_basis_points, percent_base_reference, confidence_score, source_text_snippet, mapping_status, timing_type')
+        .eq('deal_id', dealId)
+        .order('created_at', { ascending: false });
+
+      setObligations((data || []).map((d: any) => ({
+        id: d.id,
+        obligation_type: d.obligation_type,
+        status: d.status,
+        payor_label: d.payor_label,
+        payee_label: d.payee_label,
+        amount_type: d.amount_type,
+        amount_value_minor: d.amount_value_minor,
+        amount_currency: d.amount_currency,
+        percent_basis_points: d.percent_basis_points,
+        percent_base_reference: d.percent_base_reference,
+        confidence_score: d.confidence_score || 0,
+        source_text_snippet: d.source_text_snippet,
+        mapping_status: d.mapping_status,
+        timing_type: d.timing_type,
+      })));
+      setLoading(false);
+    };
+    fetchObligations();
+  }, [dealId, isDemoDeal]);
 
   const filtered = useMemo(() => {
     if (statusFilter === 'all') return obligations;
@@ -85,21 +115,38 @@ export const ObligationsPanel: React.FC = () => {
     confirmed: obligations.filter(o => o.status === 'CONFIRMED').length,
   }), [obligations]);
 
-  const handleConfirm = useCallback((id: string) => {
+  const handleConfirm = useCallback(async (id: string) => {
+    if (!isDemoDeal && dealId) {
+      await supabase.from('obligations').update({ status: 'CONFIRMED' } as any).eq('id', id);
+    }
     setObligations(prev => prev.map(o => o.id === id ? { ...o, status: 'CONFIRMED' } : o));
     toast.success('Obligation confirmed');
-  }, []);
+  }, [isDemoDeal, dealId]);
 
-  const handleReject = useCallback((id: string) => {
+  const handleReject = useCallback(async (id: string) => {
+    if (!isDemoDeal && dealId) {
+      await supabase.from('obligations').update({ status: 'REJECTED' } as any).eq('id', id);
+    }
     setObligations(prev => prev.map(o => o.id === id ? { ...o, status: 'REJECTED' } : o));
     toast.info('Obligation rejected');
-  }, []);
+  }, [isDemoDeal, dealId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <motion.div {...fadeInUp}>
         <h2 className="text-xl font-semibold" style={{ letterSpacing: '-0.03em' }}>Obligations</h2>
-        <p className="text-sm text-muted-foreground mt-1">AI-extracted obligations from contract documents.</p>
+        <p className="text-sm text-muted-foreground mt-1">
+          AI-extracted obligations from contract documents.
+          {obligations.length > 0 && !isDemoDeal && <span className="text-accent"> Auto-populated from parsed contracts.</span>}
+        </p>
       </motion.div>
 
       {/* Stats */}
@@ -176,7 +223,7 @@ export const ObligationsPanel: React.FC = () => {
                 </tr>
               );
             })}
-            {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No obligations match the current filter.</td></tr>}
+            {filtered.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">{obligations.length === 0 ? 'No obligations found. Upload and parse contracts to auto-populate.' : 'No obligations match the current filter.'}</td></tr>}
           </tbody>
         </table>
       </div>
