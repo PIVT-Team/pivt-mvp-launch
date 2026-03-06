@@ -249,7 +249,7 @@ export const WireInstructions: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {wires.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No wire instructions added yet. Add stakeholders with payout amounts to auto-populate.</td></tr>}
+              {wires.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No wire instructions added yet. Upload a wire instruction document or add instructions manually.</td></tr>}
             </tbody>
           </table>
         </div>
