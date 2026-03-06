@@ -447,9 +447,9 @@ export const WaterfallCover: React.FC = () => {
   // Initialize waterfall for the current deal (empty state, no seed data)
   React.useEffect(() => {
     if (deal) {
-      initForDeal(deal.id, deal.deal_value || 0);
+      initForDeal(deal.id, deal.consideration || 0);
     }
-  }, [deal?.id, deal?.deal_value, initForDeal]);
+  }, [deal?.id, deal?.consideration, initForDeal]);
 
   const guardedSetAddTierOpen = () => {
     guardEdit('ADD_WATERFALL_TIER', null, () => setAddTierOpen(true));
