@@ -29,10 +29,15 @@ interface FinancialDoc {
   uploaded_at: string;
 }
 
-const formatCurrency = (v: number | null | undefined, currency = 'USD') => {
-  if (v == null) return '';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
+const formatNumber = (v: string) => {
+  const num = v.replace(/[^0-9.]/g, '');
+  if (!num) return '';
+  const parts = num.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
 };
+
+const parseNumber = (v: string) => v.replace(/,/g, '');
 
 export const FinancialInputs: React.FC = () => {
   const { dealId, isDemoDeal, realDeal } = useDealWorkspace();
@@ -53,9 +58,9 @@ export const FinancialInputs: React.FC = () => {
   // Pre-fill from deal record
   useEffect(() => {
     if (realDeal) {
-      setDealValue(realDeal.deal_value ? realDeal.deal_value.toString() : '');
+      setDealValue(realDeal.deal_value ? formatNumber(realDeal.deal_value.toString()) : '');
       setCurrency(realDeal.currency || 'USD');
-      setEscrowAmount(realDeal.escrow_amount != null ? realDeal.escrow_amount.toString() : '');
+      setEscrowAmount(realDeal.escrow_amount != null ? formatNumber(realDeal.escrow_amount.toString()) : '');
     }
   }, [realDeal]);
 
@@ -92,9 +97,9 @@ export const FinancialInputs: React.FC = () => {
     const { error } = await supabase
       .from('deals')
       .update({
-        deal_value: parseFloat(dealValue) || 0,
+        deal_value: parseFloat(parseNumber(dealValue)) || 0,
         currency,
-        escrow_amount: parseFloat(escrowAmount) || 0,
+        escrow_amount: parseFloat(parseNumber(escrowAmount)) || 0,
       } as any)
       .eq('id', dealId);
     setSaving(false);
@@ -125,6 +130,7 @@ export const FinancialInputs: React.FC = () => {
       <motion.div {...fadeInUp}>
         <h2 className="text-xl font-semibold" style={{ letterSpacing: '-0.03em' }}>Financial Inputs</h2>
         <p className="text-sm text-muted-foreground mt-1">Financial structure of the transaction — models, allocations, and schedules.</p>
+        {realDeal && <p className="text-xs text-accent mt-1">Pre-filled from deal creation. You may edit if needed.</p>}
       </motion.div>
 
       {/* ── Financial Documents ── */}
@@ -195,10 +201,10 @@ export const FinancialInputs: React.FC = () => {
           <div>
             <Label className="text-xs text-muted-foreground">Total Purchase Price</Label>
             <Input
-              placeholder="$0.00"
+              placeholder="e.g. 185,000,000"
               className="mt-1.5"
               value={dealValue}
-              onChange={e => setDealValue(e.target.value)}
+              onChange={e => setDealValue(formatNumber(e.target.value))}
             />
           </div>
           <div>
@@ -214,10 +220,10 @@ export const FinancialInputs: React.FC = () => {
           <div>
             <Label className="text-xs text-muted-foreground">Escrow Amount</Label>
             <Input
-              placeholder="$0.00"
+              placeholder="e.g. 5,000,000"
               className="mt-1.5"
               value={escrowAmount}
-              onChange={e => setEscrowAmount(e.target.value)}
+              onChange={e => setEscrowAmount(formatNumber(e.target.value))}
             />
           </div>
           <div>
