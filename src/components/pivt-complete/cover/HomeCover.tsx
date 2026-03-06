@@ -98,26 +98,33 @@ export const HomeCover: React.FC = () => {
         openDiscrepancies: (discrepanciesRes as any).count || 0,
       });
 
-      // 3. Recent events across all deals
+      // 3. Recent events across all visible deals — deduplicated
       if (dealIds.length > 0) {
         const { data: events } = await supabase
           .from('deal_events')
           .select('id, event_type, created_at, deal_id')
           .in('deal_id', dealIds)
           .order('created_at', { ascending: false })
-          .limit(8);
+          .limit(40);
 
-        // Build a deal name lookup
         const dealMap = new Map(allDeals.map(d => [d.id, d.deal_name]));
 
-        setRecentEvents(
-          (events || []).map((e: any) => ({
+        // Deduplicate: skip consecutive identical event_type+deal_id pairs
+        const deduped: RecentEvent[] = [];
+        const seen = new Set<string>();
+        for (const e of (events || []) as any[]) {
+          const key = `${e.deal_id}::${e.event_type}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push({
             id: e.id,
             dealName: dealMap.get(e.deal_id) || 'Unknown Deal',
             action: (e.event_type as string).replace(/_/g, ' '),
             timestamp: e.created_at,
-          }))
-        );
+          });
+          if (deduped.length >= 8) break;
+        }
+        setRecentEvents(deduped);
       }
 
       setLoading(false);
