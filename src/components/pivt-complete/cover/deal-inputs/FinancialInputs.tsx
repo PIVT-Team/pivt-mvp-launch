@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
   Upload, CheckCircle2, Clock, DollarSign,
-  FileSpreadsheet, Table2, Loader2,
+  FileSpreadsheet, Table2, Loader2, X,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,39 @@ const FINANCIAL_DOC_TYPES = [
   { value: 'ESCROW_ALLOCATION', label: 'Escrow Allocation Model' },
   { value: 'DISTRIBUTION_SCHEDULE', label: 'Seller Distribution Schedule' },
 ] as const;
+
+const CURRENCY_GROUPS = [
+  { label: 'Major Currencies', items: [
+    { value: 'USD', label: 'USD — US Dollar' },
+    { value: 'EUR', label: 'EUR — Euro' },
+    { value: 'GBP', label: 'GBP — British Pound' },
+  ]},
+  { label: 'Asia-Pacific', items: [
+    { value: 'JPY', label: 'JPY — Japanese Yen' },
+    { value: 'CNY', label: 'CNY — Chinese Yuan' },
+    { value: 'AUD', label: 'AUD — Australian Dollar' },
+    { value: 'SGD', label: 'SGD — Singapore Dollar' },
+    { value: 'HKD', label: 'HKD — Hong Kong Dollar' },
+    { value: 'KRW', label: 'KRW — South Korean Won' },
+    { value: 'INR', label: 'INR — Indian Rupee' },
+  ]},
+  { label: 'Americas', items: [
+    { value: 'CAD', label: 'CAD — Canadian Dollar' },
+    { value: 'BRL', label: 'BRL — Brazilian Real' },
+    { value: 'MXN', label: 'MXN — Mexican Peso' },
+  ]},
+  { label: 'Europe (Other)', items: [
+    { value: 'CHF', label: 'CHF — Swiss Franc' },
+    { value: 'SEK', label: 'SEK — Swedish Krona' },
+    { value: 'NOK', label: 'NOK — Norwegian Krone' },
+    { value: 'DKK', label: 'DKK — Danish Krone' },
+    { value: 'PLN', label: 'PLN — Polish Zloty' },
+  ]},
+  { label: 'Other', items: [
+    { value: 'AED', label: 'AED — UAE Dirham' },
+    { value: 'ZAR', label: 'ZAR — South African Rand' },
+  ]},
+];
 
 interface FinancialDoc {
   id: string;
@@ -44,7 +77,7 @@ export const FinancialInputs: React.FC = () => {
 
   // Financial fields pre-filled from deal record
   const [dealValue, setDealValue] = useState('');
-  const [currency, setCurrency] = useState('USD');
+  const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>(['USD']);
   const [escrowAmount, setEscrowAmount] = useState('');
   const [sellerAllocation, setSellerAllocation] = useState('');
   const [paymentSchedule, setPaymentSchedule] = useState('');
@@ -59,7 +92,8 @@ export const FinancialInputs: React.FC = () => {
   useEffect(() => {
     if (realDeal) {
       setDealValue(realDeal.deal_value ? formatNumber(realDeal.deal_value.toString()) : '');
-      setCurrency(realDeal.currency || 'USD');
+      const currencies = realDeal.currency ? realDeal.currency.split(',').map(c => c.trim()).filter(Boolean) : ['USD'];
+      setSelectedCurrencies(currencies);
       setEscrowAmount(realDeal.escrow_amount != null ? formatNumber(realDeal.escrow_amount.toString()) : '');
     }
   }, [realDeal]);
@@ -98,7 +132,7 @@ export const FinancialInputs: React.FC = () => {
       .from('deals')
       .update({
         deal_value: parseFloat(parseNumber(dealValue)) || 0,
-        currency,
+        currency: selectedCurrencies.join(','),
         escrow_amount: parseFloat(parseNumber(escrowAmount)) || 0,
       } as any)
       .eq('id', dealId);
@@ -108,7 +142,7 @@ export const FinancialInputs: React.FC = () => {
     } else {
       toast.success('Financial inputs saved');
     }
-  }, [dealId, isDemoDeal, dealValue, currency, escrowAmount]);
+  }, [dealId, isDemoDeal, dealValue, selectedCurrencies, escrowAmount]);
 
   const handleUpload = useCallback(() => {
     const label = FINANCIAL_DOC_TYPES.find(t => t.value === selectedType)?.label || selectedType;
@@ -207,14 +241,30 @@ export const FinancialInputs: React.FC = () => {
               onChange={e => setDealValue(formatNumber(e.target.value))}
             />
           </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">Currency</Label>
+          <div className="md:col-span-2">
+            <Label className="text-xs text-muted-foreground">Currencies</Label>
+            <div className="flex flex-wrap gap-1.5 mt-1.5 mb-2 min-h-[28px]">
+              {selectedCurrencies.map(c => (
+                <Badge key={c} variant="secondary" className="gap-1 text-xs cursor-pointer" onClick={() => {
+                  if (selectedCurrencies.length > 1) setSelectedCurrencies(prev => prev.filter(x => x !== c));
+                }}>
+                  {c} {selectedCurrencies.length > 1 && <X className="w-3 h-3" />}
+                </Badge>
+              ))}
+            </div>
             <select
-              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm mt-1.5"
-              value={currency}
-              onChange={e => setCurrency(e.target.value)}
+              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm"
+              value=""
+              onChange={e => { if (e.target.value && !selectedCurrencies.includes(e.target.value)) setSelectedCurrencies(prev => [...prev, e.target.value]); }}
             >
-              <option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>CHF</option>
+              <option value="">Add currency…</option>
+              {CURRENCY_GROUPS.map(g => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.items.filter(i => !selectedCurrencies.includes(i.value)).map(i => (
+                    <option key={i.value} value={i.value}>{i.label}</option>
+                  ))}
+                </optgroup>
+              ))}
             </select>
           </div>
           <div>
