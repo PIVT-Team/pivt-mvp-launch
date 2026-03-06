@@ -173,7 +173,7 @@ export const HomeCover: React.FC = () => {
               </div>
               <span className="pivt-metric-label">{m.label}</span>
             </div>
-            <span className="pivt-stat-lg text-3xl">{m.value}</span>
+            <span className="pivt-stat-lg text-3xl text-center w-full">{m.value}</span>
           </motion.div>
         ))}
       </motion.div>
