@@ -60,7 +60,7 @@ const AUDIT_ENTRIES = [
 ];
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'documents' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
+type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -71,13 +71,10 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'kyc', label: 'KYC / KYB' },
     { id: 'review', label: 'Review Queue' },
   ],
-  documents: [
-    { id: 'all', label: 'All Documents' },
-    { id: 'cap-table', label: 'Cap Table' },
-    { id: 'waterfall', label: 'Waterfall' },
-  ],
   'deal-inputs': [
     { id: 'financial', label: 'Financial' },
+    { id: 'cap-table', label: 'Cap Table' },
+    { id: 'waterfall', label: 'Waterfall' },
     { id: 'wires', label: 'Wire Instructions' },
     { id: 'tax', label: 'Tax' },
     { id: 'contracts', label: 'Contract' },
@@ -584,11 +581,9 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'kyc') return KycKybDealTab;
       if (subNavId === 'review') return VerificationReviewCover;
       return StakeholdersDealTab;
-    case 'documents':
+    case 'deal-inputs':
       if (subNavId === 'cap-table') return CapTableCover;
       if (subNavId === 'waterfall') return WaterfallCover;
-      return DocumentsCover;
-    case 'deal-inputs':
       if (subNavId === 'wires') return WireInstructions;
       if (subNavId === 'tax') return TaxInputs;
       if (subNavId === 'contracts') return ContractInputs;
@@ -713,14 +708,14 @@ export const DealWorkspaceCover: React.FC = () => {
     if (!loadingDeal && realDeal && !isDemoDeal) {
       const pending = consumePendingAction();
       if (pending) {
-        // Navigate to the relevant step based on the action type
         if (pending.type === 'ADD_STAKEHOLDER') {
           setActiveStepId('stakeholders');
         } else if (pending.type === 'ADD_WATERFALL_TIER') {
-          setActiveStepId('documents');
+          setActiveStepId('deal-inputs');
           setActiveSubNav('waterfall');
         } else if (pending.type === 'UPLOAD_DOCUMENT') {
           setActiveStepId('deal-inputs');
+          setActiveSubNav('contracts');
         }
       }
     }
@@ -798,62 +793,56 @@ export const DealWorkspaceCover: React.FC = () => {
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
     if (isDemoDeal && !isRealDeal) {
-      // Static workflow for demo deals
       const DEMO_STEPS: Record<string, WorkflowStep[]> = {
         atlas: [
           { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
           { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 92, blockers: 0 },
-          { id: 'documents', number: 3, label: 'Documents', completionPct: 78, blockers: 0 },
-          { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: 90, blockers: 0 },
-          { id: 'verification', number: 5, label: 'Verification', completionPct: 85, blockers: 1 },
-          { id: 'approvals', number: 6, label: 'Approvals', completionPct: 70, blockers: 0 },
-          { id: 'execution', number: 7, label: 'Execution', completionPct: 64, blockers: 2 },
-          { id: 'compliance', number: 8, label: 'Compliance', completionPct: 100, blockers: 0 },
-          { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
+          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 90, blockers: 0 },
+          { id: 'verification', number: 4, label: 'Verification', completionPct: 85, blockers: 1 },
+          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 70, blockers: 0 },
+          { id: 'execution', number: 6, label: 'Execution', completionPct: 64, blockers: 2 },
+          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
+          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
         ],
         beacon: [
           { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
           { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 75, blockers: 1 },
-          { id: 'documents', number: 3, label: 'Documents', completionPct: 40, blockers: 0 },
-          { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: 60, blockers: 0 },
-          { id: 'verification', number: 5, label: 'Verification', completionPct: 50, blockers: 2 },
-          { id: 'approvals', number: 6, label: 'Approvals', completionPct: 0, blockers: 0 },
-          { id: 'execution', number: 7, label: 'Execution', completionPct: 20, blockers: 3 },
-          { id: 'compliance', number: 8, label: 'Compliance', completionPct: 55, blockers: 1 },
-          { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
+          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 60, blockers: 0 },
+          { id: 'verification', number: 4, label: 'Verification', completionPct: 50, blockers: 2 },
+          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 0, blockers: 0 },
+          { id: 'execution', number: 6, label: 'Execution', completionPct: 20, blockers: 3 },
+          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 55, blockers: 1 },
+          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
         ],
         cipher: [
           { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
           { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 100, blockers: 0 },
-          { id: 'documents', number: 3, label: 'Documents', completionPct: 100, blockers: 0 },
-          { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: 100, blockers: 0 },
-          { id: 'verification', number: 5, label: 'Verification', completionPct: 95, blockers: 0 },
-          { id: 'approvals', number: 6, label: 'Approvals', completionPct: 90, blockers: 0 },
-          { id: 'execution', number: 7, label: 'Execution', completionPct: 88, blockers: 1 },
-          { id: 'compliance', number: 8, label: 'Compliance', completionPct: 100, blockers: 0 },
-          { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
+          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 100, blockers: 0 },
+          { id: 'verification', number: 4, label: 'Verification', completionPct: 95, blockers: 0 },
+          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 90, blockers: 0 },
+          { id: 'execution', number: 6, label: 'Execution', completionPct: 88, blockers: 1 },
+          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
+          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
         ],
       };
       return DEMO_STEPS[demoDealSeedKey || ''] || DEMO_STEPS.atlas;
     }
 
-    // Dynamic workflow for real deals — driven by useWorkflowStatus hook
     const pct = (key: string) => wfPcts[key] ?? 0;
 
     return [
       { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
       { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: pct('stakeholders'), blockers: 0 },
-      { id: 'documents', number: 3, label: 'Documents', completionPct: pct('structuring'), blockers: 0 },
-      { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: pct('deal-inputs'), blockers: 0 },
-      { id: 'verification', number: 5, label: 'Verification', completionPct: pct('verification'), blockers: 0 },
-      { id: 'approvals', number: 6, label: 'Approvals', completionPct: pct('compliance'), blockers: 0 },
-      { id: 'execution', number: 7, label: 'Execution', completionPct: pct('execution'), blockers: 0 },
-      { id: 'compliance', number: 8, label: 'Compliance', completionPct: pct('compliance'), blockers: 0 },
-      { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
-      { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
+      { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: pct('deal-inputs'), blockers: 0 },
+      { id: 'verification', number: 4, label: 'Verification', completionPct: pct('verification'), blockers: 0 },
+      { id: 'approvals', number: 5, label: 'Approvals', completionPct: pct('compliance'), blockers: 0 },
+      { id: 'execution', number: 6, label: 'Execution', completionPct: pct('execution'), blockers: 0 },
+      { id: 'compliance', number: 7, label: 'Compliance', completionPct: pct('compliance'), blockers: 0 },
+      { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
+      { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
     ];
   }, [isDemoDeal, demoDealSeedKey, wfPcts]);
 
@@ -1009,7 +998,7 @@ export const DealWorkspaceCover: React.FC = () => {
           const stepMap: Record<string, string> = {
             stakeholders: 'stakeholders',
             verification: 'verification',
-            documents: 'documents',
+            'deal-inputs': 'deal-inputs',
             execution: 'execution',
             settlement: 'execution',
           };
