@@ -32,6 +32,13 @@ import { DealActivityCover } from './DealActivityCover';
 import { AIDashboardCover } from './AIDashboardCover';
 import { CommentsCover } from './CommentsCover';
 import { DealInputsCover } from './DealInputsCover';
+import { FinancialInputs } from './deal-inputs/FinancialInputs';
+import { WireInstructions } from './deal-inputs/WireInstructions';
+import { TaxInputs } from './deal-inputs/TaxInputs';
+import { ContractInputs } from './deal-inputs/ContractInputs';
+import { GovernanceInputs } from './deal-inputs/GovernanceInputs';
+import { ObligationsPanel } from './deal-inputs/ObligationsPanel';
+import { ReadinessPanel } from './deal-inputs/ReadinessPanel';
 import { DiscrepancyPanelCover } from './DiscrepancyPanelCover';
 import { ExecutionAuthorityPanel } from './ExecutionAuthorityPanel';
 import { EditDealDrawer } from './EditDealDrawer';
@@ -70,8 +77,11 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'waterfall', label: 'Waterfall' },
   ],
   'deal-inputs': [
-    { id: 'financial', label: 'Financial Inputs' },
-    { id: 'contracts', label: 'Contract Inputs' },
+    { id: 'financial', label: 'Financial' },
+    { id: 'wires', label: 'Wire Instructions' },
+    { id: 'tax', label: 'Tax' },
+    { id: 'contracts', label: 'Contract' },
+    { id: 'governance', label: 'Governance' },
     { id: 'obligations', label: 'Obligations' },
     { id: 'readiness', label: 'Readiness' },
   ],
@@ -579,7 +589,13 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'waterfall') return WaterfallCover;
       return DocumentsCover;
     case 'deal-inputs':
-      return DealInputsCover;
+      if (subNavId === 'wires') return WireInstructions;
+      if (subNavId === 'tax') return TaxInputs;
+      if (subNavId === 'contracts') return ContractInputs;
+      if (subNavId === 'governance') return GovernanceInputs;
+      if (subNavId === 'obligations') return ObligationsPanel;
+      if (subNavId === 'readiness') return ReadinessPanel;
+      return FinancialInputs;
     case 'verification':
       return PaymentVerificationCover;
     case 'approvals':
