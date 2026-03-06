@@ -221,10 +221,11 @@ export const FinancialInputs: React.FC = () => {
           <div>
             <Label className="text-xs text-muted-foreground">Escrow Amount</Label>
             <Input
-              placeholder="$0.00"
+              placeholder="e.g. 5,000,000"
               className="mt-1.5"
               value={escrowAmount}
-              onChange={e => setEscrowAmount(e.target.value)}
+              onChange={e => setEscrowAmount(formatNumber(e.target.value))}
+            />
             />
           </div>
           <div>
