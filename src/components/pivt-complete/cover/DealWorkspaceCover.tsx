@@ -708,14 +708,14 @@ export const DealWorkspaceCover: React.FC = () => {
     if (!loadingDeal && realDeal && !isDemoDeal) {
       const pending = consumePendingAction();
       if (pending) {
-        // Navigate to the relevant step based on the action type
         if (pending.type === 'ADD_STAKEHOLDER') {
           setActiveStepId('stakeholders');
         } else if (pending.type === 'ADD_WATERFALL_TIER') {
-          setActiveStepId('documents');
+          setActiveStepId('deal-inputs');
           setActiveSubNav('waterfall');
         } else if (pending.type === 'UPLOAD_DOCUMENT') {
           setActiveStepId('deal-inputs');
+          setActiveSubNav('contracts');
         }
       }
     }
