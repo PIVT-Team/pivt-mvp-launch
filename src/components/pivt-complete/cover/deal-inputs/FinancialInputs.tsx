@@ -206,7 +206,6 @@ export const FinancialInputs: React.FC = () => {
               value={dealValue}
               onChange={e => setDealValue(formatNumber(e.target.value))}
             />
-            />
           </div>
           <div>
             <Label className="text-xs text-muted-foreground">Currency</Label>
