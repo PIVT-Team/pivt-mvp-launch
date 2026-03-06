@@ -21,6 +21,39 @@ const FINANCIAL_DOC_TYPES = [
   { value: 'DISTRIBUTION_SCHEDULE', label: 'Seller Distribution Schedule' },
 ] as const;
 
+const CURRENCY_GROUPS = [
+  { label: 'Major Currencies', items: [
+    { value: 'USD', label: 'USD — US Dollar' },
+    { value: 'EUR', label: 'EUR — Euro' },
+    { value: 'GBP', label: 'GBP — British Pound' },
+  ]},
+  { label: 'Asia-Pacific', items: [
+    { value: 'JPY', label: 'JPY — Japanese Yen' },
+    { value: 'CNY', label: 'CNY — Chinese Yuan' },
+    { value: 'AUD', label: 'AUD — Australian Dollar' },
+    { value: 'SGD', label: 'SGD — Singapore Dollar' },
+    { value: 'HKD', label: 'HKD — Hong Kong Dollar' },
+    { value: 'KRW', label: 'KRW — South Korean Won' },
+    { value: 'INR', label: 'INR — Indian Rupee' },
+  ]},
+  { label: 'Americas', items: [
+    { value: 'CAD', label: 'CAD — Canadian Dollar' },
+    { value: 'BRL', label: 'BRL — Brazilian Real' },
+    { value: 'MXN', label: 'MXN — Mexican Peso' },
+  ]},
+  { label: 'Europe (Other)', items: [
+    { value: 'CHF', label: 'CHF — Swiss Franc' },
+    { value: 'SEK', label: 'SEK — Swedish Krona' },
+    { value: 'NOK', label: 'NOK — Norwegian Krone' },
+    { value: 'DKK', label: 'DKK — Danish Krone' },
+    { value: 'PLN', label: 'PLN — Polish Zloty' },
+  ]},
+  { label: 'Other', items: [
+    { value: 'AED', label: 'AED — UAE Dirham' },
+    { value: 'ZAR', label: 'ZAR — South African Rand' },
+  ]},
+];
+
 interface FinancialDoc {
   id: string;
   doc_type: string;
