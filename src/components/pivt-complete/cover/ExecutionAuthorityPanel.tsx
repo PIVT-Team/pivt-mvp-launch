@@ -1,36 +1,25 @@
-import React, { useState } from 'react';
-import { Shield, UserCheck, Users, Lock, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Shield, UserCheck, Users, Lock, AlertTriangle, ChevronDown, ChevronUp, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 
-interface ExecutorAssignment {
-  userId: string;
-  name: string;
-  role: 'EXECUTOR' | 'APPROVER' | 'EDITOR' | 'VIEWER';
-  assignedAt: string;
+interface DealUserRole {
+  id: string;
+  user_id: string;
+  role: string;
+  created_at: string;
 }
 
-// Mock data
-const MOCK_EXECUTORS: ExecutorAssignment[] = [
-  { userId: '1', name: 'Sarah Chen', role: 'EXECUTOR', assignedAt: '2026-02-10' },
-  { userId: '2', name: 'Michael Ross', role: 'EXECUTOR', assignedAt: '2026-02-10' },
-];
-
-const MOCK_DEAL_MEMBERS = [
-  { userId: '1', name: 'Sarah Chen', currentRole: 'EXECUTOR' },
-  { userId: '2', name: 'Michael Ross', currentRole: 'EXECUTOR' },
-  { userId: '3', name: 'David Kim', currentRole: 'APPROVER' },
-  { userId: '4', name: 'Jennifer Lee', currentRole: 'EDITOR' },
-  { userId: '5', name: 'Robert Taylor', currentRole: 'VIEWER' },
-];
-
-interface ExecutionBlocker {
-  label: string;
-  met: boolean;
+interface DealSettings {
+  enforce_separation_of_duties: boolean;
+  require_dual_execution: boolean;
 }
 
 interface ExecutionAuthorityPanelProps {
@@ -38,28 +27,65 @@ interface ExecutionAuthorityPanelProps {
   dealId?: string;
 }
 
-export const ExecutionAuthorityPanel: React.FC<ExecutionAuthorityPanelProps> = ({
-  userIsExecutor = false,
-}) => {
+export const ExecutionAuthorityPanel: React.FC<ExecutionAuthorityPanelProps> = () => {
+  const { dealId } = useDealWorkspace();
+  const { user } = useAuth();
   const [expanded, setExpanded] = useState(false);
-  const [separationOfDuties, setSeparationOfDuties] = useState(true);
-  const [dualExecution, setDualExecution] = useState(false);
+  const [roles, setRoles] = useState<DealUserRole[]>([]);
+  const [settings, setSettings] = useState<DealSettings | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const executionBlockers: ExecutionBlocker[] = [
-    { label: 'User has EXECUTOR role', met: userIsExecutor },
-    { label: 'Intent status is APPROVED', met: true },
-    { label: 'No blocking discrepancies', met: false },
-    { label: 'All conditions satisfied', met: true },
-    { label: 'Compliance checks passed', met: true },
-    { label: 'Wire instructions confirmed', met: true },
-  ];
+  useEffect(() => {
+    if (!dealId) { setLoading(false); return; }
+    Promise.all([
+      supabase.from('deal_user_roles').select('*').eq('deal_id', dealId),
+      supabase.from('deal_settings').select('*').eq('deal_id', dealId).maybeSingle(),
+    ]).then(([rolesRes, settingsRes]) => {
+      setRoles(rolesRes.data || []);
+      setSettings(settingsRes.data || null);
+      setLoading(false);
+    });
+  }, [dealId]);
 
-  const allMet = executionBlockers.every(b => b.met);
-  const unmetCount = executionBlockers.filter(b => !b.met).length;
+  if (loading) {
+    return (
+      <div className="pivt-card border border-border/40 p-4 flex items-center justify-center h-16">
+        <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const executors = roles.filter(r => r.role === 'executor');
+  const userIsExecutor = executors.some(r => r.user_id === user?.id);
+  const separationOfDuties = settings?.enforce_separation_of_duties ?? false;
+  const dualExecution = settings?.require_dual_execution ?? false;
+
+  if (roles.length === 0) {
+    return (
+      <div className="pivt-card border border-border/40 p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-muted/60 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-muted-foreground" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold">Execution Authority</h3>
+            <p className="text-[11px] text-muted-foreground">No execution authority configured yet</p>
+          </div>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Add designated execution approvers or derive them from governance approvals.
+        </p>
+        <div className="flex gap-3">
+          <Button variant="outline" size="sm" className="gap-2 text-xs" onClick={() => toast.info('Add execution authority coming soon')}>
+            <Plus className="w-3 h-3" /> Add Execution Authority
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pivt-card border border-border/40">
-      {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
@@ -71,29 +97,20 @@ export const ExecutionAuthorityPanel: React.FC<ExecutionAuthorityPanelProps> = (
           <div className="text-left">
             <h3 className="text-sm font-semibold">Execution Authority</h3>
             <p className="text-[11px] text-muted-foreground">
-              {MOCK_EXECUTORS.length} designated executor{MOCK_EXECUTORS.length !== 1 ? 's' : ''} •
+              {executors.length} designated executor{executors.length !== 1 ? 's' : ''} •
               {dualExecution ? ' Dual execution required' : ' Single execution'} •
               {separationOfDuties ? ' Separation enforced' : ' No separation'}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {!userIsExecutor && (
-            <Badge className="bg-muted/60 text-muted-foreground text-[10px]">
-              <Lock className="w-3 h-3 mr-1" />
-              Not Executor
-            </Badge>
-          )}
-          {userIsExecutor && allMet && (
+          {userIsExecutor ? (
             <Badge className="bg-validated/10 text-validated text-[10px]">
-              <UserCheck className="w-3 h-3 mr-1" />
-              Authorized
+              <UserCheck className="w-3 h-3 mr-1" /> Authorized
             </Badge>
-          )}
-          {userIsExecutor && !allMet && (
-            <Badge className="bg-discrepancy/10 text-discrepancy text-[10px]">
-              <AlertTriangle className="w-3 h-3 mr-1" />
-              {unmetCount} blocker{unmetCount !== 1 ? 's' : ''}
+          ) : (
+            <Badge className="bg-muted/60 text-muted-foreground text-[10px]">
+              <Lock className="w-3 h-3 mr-1" /> Not Executor
             </Badge>
           )}
           {expanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
@@ -102,94 +119,57 @@ export const ExecutionAuthorityPanel: React.FC<ExecutionAuthorityPanelProps> = (
 
       {expanded && (
         <div className="border-t border-border/30 p-5 space-y-6">
-          {/* Execution Gating Checklist */}
-          <div className="space-y-2">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Execution Gating</h4>
-            <div className="space-y-1.5">
-              {executionBlockers.map((blocker, i) => (
-                <div key={i} className="flex items-center gap-2.5 text-sm">
-                  <div className={`w-4 h-4 rounded-full flex items-center justify-center ${blocker.met ? 'bg-validated/15' : 'bg-blocking/15'}`}>
-                    {blocker.met ? (
-                      <div className="w-1.5 h-1.5 rounded-full bg-validated" />
-                    ) : (
-                      <div className="w-1.5 h-1.5 rounded-full bg-blocking" />
-                    )}
-                  </div>
-                  <span className={blocker.met ? 'text-foreground' : 'text-muted-foreground'}>{blocker.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Designated Executors */}
+          {/* Executors */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Designated Executors</h4>
-              <Button variant="ghost" size="sm" className="h-7 text-xs text-accent" onClick={() => toast.info('Assign executor modal coming soon')}>
-                <Users className="w-3 h-3 mr-1" /> Assign
-              </Button>
-            </div>
-            <div className="space-y-2">
-              {MOCK_EXECUTORS.map(exec => (
-                <div key={exec.userId} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/20">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center text-[10px] font-semibold text-accent">
-                      {exec.name.split(' ').map(n => n[0]).join('')}
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Designated Executors</h4>
+            {executors.length > 0 ? (
+              <div className="space-y-2">
+                {executors.map(exec => (
+                  <div key={exec.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-muted/20">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-accent/15 flex items-center justify-center text-[10px] font-semibold text-accent">
+                        E
+                      </div>
+                      <span className="text-sm font-medium font-mono">{exec.user_id.slice(0, 8)}</span>
                     </div>
-                    <span className="text-sm font-medium">{exec.name}</span>
+                    <Badge className="bg-accent/10 text-accent text-[10px]">{exec.role.toUpperCase()}</Badge>
                   </div>
-                  <Badge className="bg-accent/10 text-accent text-[10px]">{exec.role}</Badge>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No executors assigned.</p>
+            )}
           </div>
 
-          {/* Deal-Level Role Assignments */}
+          {/* All roles */}
           <div className="space-y-3">
             <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">All Role Assignments</h4>
             <div className="space-y-1.5">
-              {MOCK_DEAL_MEMBERS.map(member => (
-                <div key={member.userId} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/15 transition-colors">
-                  <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-muted/40 flex items-center justify-center text-[10px] font-semibold text-muted-foreground">
-                      {member.name.split(' ').map(n => n[0]).join('')}
-                    </div>
-                    <span className="text-sm">{member.name}</span>
-                  </div>
-                  <Select defaultValue={member.currentRole} onValueChange={(val) => toast.success(`${member.name} → ${val}`)}>
-                    <SelectTrigger className="h-7 w-28 text-[11px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="VIEWER">Viewer</SelectItem>
-                      <SelectItem value="EDITOR">Editor</SelectItem>
-                      <SelectItem value="APPROVER">Approver</SelectItem>
-                      <SelectItem value="EXECUTOR">Executor</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {roles.map(r => (
+                <div key={r.id} className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-muted/15 transition-colors">
+                  <span className="text-sm font-mono">{r.user_id.slice(0, 8)}</span>
+                  <Badge variant="outline" className="text-[10px]">{r.role.toUpperCase()}</Badge>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Settings */}
-          <div className="space-y-4 pt-2 border-t border-border/30">
-            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Execution Settings</h4>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Enforce Separation of Duties</p>
-                <p className="text-[11px] text-muted-foreground">Creator/approver cannot execute the same intent</p>
+          {/* Settings display */}
+          {settings && (
+            <div className="space-y-3 pt-2 border-t border-border/30">
+              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Execution Settings</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>Separation of Duties</span>
+                  <Badge variant="outline" className="text-[10px]">{separationOfDuties ? 'Enforced' : 'Off'}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Dual Execution</span>
+                  <Badge variant="outline" className="text-[10px]">{dualExecution ? 'Required' : 'Off'}</Badge>
+                </div>
               </div>
-              <Switch checked={separationOfDuties} onCheckedChange={setSeparationOfDuties} />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium">Require Dual Execution</p>
-                <p className="text-[11px] text-muted-foreground">Two executors must independently confirm</p>
-              </div>
-              <Switch checked={dualExecution} onCheckedChange={setDualExecution} />
-            </div>
-          </div>
+          )}
         </div>
       )}
     </div>
