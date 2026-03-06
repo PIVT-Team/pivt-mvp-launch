@@ -48,8 +48,8 @@ Deno.serve(async (req) => {
       source_entity_id: deal.id,
     });
 
-    // 2. Stakeholders (cap_table_entries) — PARTICIPATES_IN, not ownership
-    const { data: stakeholders } = await supabase.from("cap_table_entries").select("*").eq("deal_id", deal_id);
+    // 2. Cap table entries — shareholders get OWNS edges, non-equity roles get PARTICIPATES_IN
+    const { data: capEntries } = await supabase.from("cap_table_entries").select("*").eq("deal_id", deal_id);
     for (const s of stakeholders || []) {
       // Determine if shareholder (equity holder) vs stakeholder (participant)
       const equityRoles = ['Seller', 'Target', 'Shareholder', 'Founder', 'Employee', 'Advisor'];
