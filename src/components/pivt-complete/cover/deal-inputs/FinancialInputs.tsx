@@ -58,9 +58,9 @@ export const FinancialInputs: React.FC = () => {
   // Pre-fill from deal record
   useEffect(() => {
     if (realDeal) {
-      setDealValue(realDeal.deal_value ? realDeal.deal_value.toString() : '');
+      setDealValue(realDeal.deal_value ? formatNumber(realDeal.deal_value.toString()) : '');
       setCurrency(realDeal.currency || 'USD');
-      setEscrowAmount(realDeal.escrow_amount != null ? realDeal.escrow_amount.toString() : '');
+      setEscrowAmount(realDeal.escrow_amount != null ? formatNumber(realDeal.escrow_amount.toString()) : '');
     }
   }, [realDeal]);
 
