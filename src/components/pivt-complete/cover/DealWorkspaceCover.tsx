@@ -998,7 +998,7 @@ export const DealWorkspaceCover: React.FC = () => {
           const stepMap: Record<string, string> = {
             stakeholders: 'stakeholders',
             verification: 'verification',
-            documents: 'documents',
+            'deal-inputs': 'deal-inputs',
             execution: 'execution',
             settlement: 'execution',
           };

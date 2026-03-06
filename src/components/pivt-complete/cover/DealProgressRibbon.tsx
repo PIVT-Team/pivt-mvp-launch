@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Users, ShieldCheck, Layers, FileText, Zap, CheckCircle2,
+  Users, ShieldCheck, Layers, Zap, CheckCircle2,
   AlertTriangle, ArrowRight,
 } from 'lucide-react';
 import { fadeInUp } from '@/lib/animations';
@@ -15,7 +15,7 @@ export interface RibbonStage {
   icon: React.ElementType;
   status: RibbonStageStatus;
   completionPct: number;
-  detail: string; // e.g. "5/5 added" or "2/4 passed"
+  detail: string;
 }
 
 export interface DealProgressData {
@@ -60,28 +60,24 @@ export function computeRibbonStages(d: DealProgressData): RibbonStage[] {
       detail: detail(d.stakeholdersAdded, d.stakeholdersRequired, 'added'),
     },
     {
+      id: 'deal-inputs',
+      label: 'Deal Inputs',
+      icon: Layers,
+      status: deriveStageStatus(
+        d.documentsUploaded + d.conditionsSatisfied,
+        d.documentsRequired + d.conditionsTotal,
+        false
+      ),
+      completionPct: pct(d.documentsUploaded + d.conditionsSatisfied, d.documentsRequired + d.conditionsTotal),
+      detail: detail(d.documentsUploaded, d.documentsRequired, 'uploaded'),
+    },
+    {
       id: 'verification',
       label: 'Verification',
       icon: ShieldCheck,
       status: deriveStageStatus(d.compliancePassed, d.complianceTotal, d.complianceBlocked),
       completionPct: pct(d.compliancePassed, d.complianceTotal),
       detail: detail(d.compliancePassed, d.complianceTotal, 'passed'),
-    },
-    {
-      id: 'structuring',
-      label: 'Structuring',
-      icon: Layers,
-      status: deriveStageStatus(d.conditionsSatisfied, d.conditionsTotal, false),
-      completionPct: pct(d.conditionsSatisfied, d.conditionsTotal),
-      detail: detail(d.conditionsSatisfied, d.conditionsTotal, 'satisfied'),
-    },
-    {
-      id: 'documents',
-      label: 'Documents',
-      icon: FileText,
-      status: deriveStageStatus(d.documentsUploaded, d.documentsRequired, false),
-      completionPct: pct(d.documentsUploaded, d.documentsRequired),
-      detail: detail(d.documentsUploaded, d.documentsRequired, 'uploaded'),
     },
     {
       id: 'execution',
@@ -105,25 +101,16 @@ export function computeRibbonStages(d: DealProgressData): RibbonStage[] {
 export function computeNextAction(stages: RibbonStage[]): { label: string; stageId: string } | null {
   for (const stage of stages) {
     if (stage.status === 'blocked') {
-      return {
-        label: `${stage.label}: Blocked — resolve issues to continue`,
-        stageId: stage.id,
-      };
+      return { label: `${stage.label}: Blocked — resolve issues to continue`, stageId: stage.id };
     }
     if (stage.status === 'not_started') {
-      return {
-        label: `${stage.label}: ${stage.detail === `No ${stage.label.toLowerCase()} yet` ? 'Begin setup' : stage.detail}`,
-        stageId: stage.id,
-      };
+      return { label: `${stage.label}: Begin setup`, stageId: stage.id };
     }
     if (stage.status === 'in_progress') {
-      return {
-        label: `${stage.label}: ${stage.detail} — complete to advance`,
-        stageId: stage.id,
-      };
+      return { label: `${stage.label}: ${stage.detail} — complete to advance`, stageId: stage.id };
     }
   }
-  return null; // All complete
+  return null;
 }
 
 // ── Visuals ──
@@ -183,12 +170,7 @@ export const DealProgressRibbon: React.FC<DealProgressRibbonProps> = ({
 
   return (
     <div className="space-y-3">
-      {/* ── Ribbon ── */}
-      <motion.div
-        {...fadeInUp}
-        className="pivt-panel overflow-hidden"
-      >
-        {/* Overall progress bar */}
+      <motion.div {...fadeInUp} className="pivt-panel overflow-hidden">
         <div className="h-1 bg-muted/30 w-full">
           <motion.div
             className="h-full rounded-r-full"
@@ -210,19 +192,13 @@ export const DealProgressRibbon: React.FC<DealProgressRibbonProps> = ({
                   onClick={() => onStageClick?.(stage.id)}
                   className="group flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-muted/30 transition-colors min-w-0 shrink-0"
                 >
-                  {/* Icon circle */}
                   <div className={`w-8 h-8 rounded-lg ${cfg.bgColor} flex items-center justify-center ring-1 ${cfg.ringColor} transition-all`}>
                     <Icon className={`w-3.5 h-3.5 ${cfg.textColor}`} />
                   </div>
-
                   <div className="flex flex-col items-start min-w-0">
                     <span className="text-xs font-semibold text-foreground leading-tight">{stage.label}</span>
-                    <span className={`text-[10px] leading-tight ${cfg.textColor} font-medium`}>
-                      {stage.detail}
-                    </span>
+                    <span className={`text-[10px] leading-tight ${cfg.textColor} font-medium`}>{stage.detail}</span>
                   </div>
-
-                  {/* Mini progress arc as a thin bar */}
                   <div className="w-10 h-1.5 bg-muted/40 rounded-full overflow-hidden ml-1">
                     <motion.div
                       className={`h-full rounded-full ${
@@ -237,8 +213,6 @@ export const DealProgressRibbon: React.FC<DealProgressRibbonProps> = ({
                     />
                   </div>
                 </button>
-
-                {/* Connector */}
                 {i < stages.length - 1 && (
                   <div className="flex items-center shrink-0 px-0.5">
                     <div className={`w-4 h-px ${
@@ -252,7 +226,6 @@ export const DealProgressRibbon: React.FC<DealProgressRibbonProps> = ({
         </div>
       </motion.div>
 
-      {/* ── Next Required Action Card ── */}
       {nextAction ? (
         <motion.div
           {...fadeInUp}
@@ -269,10 +242,7 @@ export const DealProgressRibbon: React.FC<DealProgressRibbonProps> = ({
           <ArrowRight className="w-4 h-4 text-accent/60 shrink-0" />
         </motion.div>
       ) : (
-        <motion.div
-          {...fadeInUp}
-          className="pivt-panel px-5 py-3.5 flex items-center gap-3"
-        >
+        <motion.div {...fadeInUp} className="pivt-panel px-5 py-3.5 flex items-center gap-3">
           <div className="w-8 h-8 rounded-xl bg-validated/10 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-3.5 h-3.5 text-validated" />
           </div>
