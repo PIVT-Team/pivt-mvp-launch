@@ -3,9 +3,10 @@ import { motion } from 'framer-motion';
 import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
-  ArrowLeft, AlertTriangle, Ban,
+  ArrowLeft, AlertTriangle, Ban, CheckCircle2, Rocket,
   FileText, Users, Search, Sparkles, Calendar, Brain, ShieldAlert, Copy, Pencil,
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -317,15 +318,112 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
 
 const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> = ({ realDeal, dealId }) => {
   const { summary } = useDealSummary(dealId);
+  const { toast } = useToast();
   const status = realDeal.status;
+  const [activating, setActivating] = useState(false);
+  const [stakeholderCount, setStakeholderCount] = useState(0);
+  const [paymentCount, setPaymentCount] = useState(0);
+
+  // Fetch activation prerequisites
+  useEffect(() => {
+    if (!dealId) return;
+    Promise.all([
+      supabase.from('cap_table_entries').select('id', { count: 'exact', head: true }).eq('deal_id', dealId),
+      supabase.from('waterfall_tiers').select('id', { count: 'exact', head: true }).eq('deal_id', dealId),
+    ]).then(([stkRes, payRes]) => {
+      setStakeholderCount(stkRes.count || 0);
+      setPaymentCount(payRes.count || 0);
+    });
+  }, [dealId]);
 
   const nextAction = summary
     ? computeNextAction(summary, status)
-    : (status === 'draft' ? 'Upload Seller Cap Table' : 'Loading...');
+    : (status === 'draft' ? 'Activate this deal to unlock workflows' : 'Loading...');
+
+  // Activation prerequisites
+  const prereqs = [
+    { label: 'Buyer specified', met: !!realDeal.buyer },
+    { label: 'Seller specified', met: !!realDeal.seller },
+    { label: 'Target company specified', met: !!realDeal.target_company },
+    { label: 'Deal type selected', met: !!realDeal.deal_type },
+    { label: 'At least 2 stakeholders', met: stakeholderCount >= 2 },
+    { label: 'Payment structure initialized', met: paymentCount >= 1 },
+  ];
+  const allPrereqsMet = prereqs.every(p => p.met);
+  const isDraft = status === 'draft';
+
+  const handleActivate = async () => {
+    if (!allPrereqsMet) return;
+    setActivating(true);
+    const { error } = await supabase
+      .from('deals')
+      .update({ status: 'active' })
+      .eq('id', dealId);
+    setActivating(false);
+    if (error) {
+      toast({ title: 'Activation failed', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Deal Activated', description: 'Workflows are now unlocked.' });
+      // Force realDeal refresh by reloading window state
+      window.dispatchEvent(new CustomEvent('deal-activated', { detail: { dealId } }));
+      // Update local state immediately
+      (realDeal as any).status = 'active';
+    }
+  };
 
   return (
     <div className="space-y-8">
       <VerificationReadinessBanner />
+
+      {/* Activation Card for Draft deals */}
+      {isDraft && (
+        <motion.div {...fadeInUp} className="pivt-card p-6 border-l-4 border-accent">
+          <div className="flex items-start justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-3">
+                <Rocket className="w-5 h-5 text-accent" />
+                <h3 className="font-semibold text-lg">Activate Deal</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Complete the prerequisites below to activate this deal and unlock stakeholder invitations, verification, and approval workflows.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {prereqs.map(p => (
+                  <div key={p.label} className="flex items-center gap-2 text-sm">
+                    {p.met ? (
+                      <CheckCircle2 className="w-4 h-4 text-validated shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />
+                    )}
+                    <span className={p.met ? 'text-foreground' : 'text-muted-foreground'}>{p.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="shrink-0 pt-2">
+              <Button
+                onClick={handleActivate}
+                disabled={!allPrereqsMet || activating}
+                className="gap-2"
+                size="lg"
+              >
+                {activating ? (
+                  <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Rocket className="w-4 h-4" />
+                )}
+                {activating ? 'Activating…' : 'Activate Deal'}
+              </Button>
+              {!allPrereqsMet && (
+                <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                  {prereqs.filter(p => !p.met).length} prerequisite{prereqs.filter(p => !p.met).length > 1 ? 's' : ''} remaining
+                </p>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       <motion.div {...fadeInUp} className="pivt-next-action p-5">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-accent/12 flex items-center justify-center pivt-icon-pulse">
