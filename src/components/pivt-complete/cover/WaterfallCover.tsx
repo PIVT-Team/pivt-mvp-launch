@@ -435,7 +435,7 @@ function exportJSON(waterfall: any) {
 // ── Main Component ──
 
 export const WaterfallCover: React.FC = () => {
-  const { waterfall, recalculate, addAuditEntry } = useWaterfallStore();
+  const { waterfall, recalculate, addAuditEntry, initForDeal } = useWaterfallStore();
   const { tiers, distributionPoolAmount, unallocated, hasDiscrepancy } = waterfall;
   const deal = useSelectedDeal();
   const { importPayments } = usePIVTStore();
@@ -443,6 +443,13 @@ export const WaterfallCover: React.FC = () => {
   const [addTierOpen, setAddTierOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const { guardEdit } = useEditGuard();
+
+  // Initialize waterfall for the current deal (empty state, no seed data)
+  React.useEffect(() => {
+    if (deal) {
+      initForDeal(deal.id, deal.deal_value || 0);
+    }
+  }, [deal?.id, deal?.deal_value, initForDeal]);
 
   const guardedSetAddTierOpen = () => {
     guardEdit('ADD_WATERFALL_TIER', null, () => setAddTierOpen(true));
