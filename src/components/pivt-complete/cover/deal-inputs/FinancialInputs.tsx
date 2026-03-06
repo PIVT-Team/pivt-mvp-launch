@@ -77,7 +77,7 @@ export const FinancialInputs: React.FC = () => {
 
   // Financial fields pre-filled from deal record
   const [dealValue, setDealValue] = useState('');
-  const [currency, setCurrency] = useState('USD');
+  const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>(['USD']);
   const [escrowAmount, setEscrowAmount] = useState('');
   const [sellerAllocation, setSellerAllocation] = useState('');
   const [paymentSchedule, setPaymentSchedule] = useState('');
