@@ -48,10 +48,23 @@ Deno.serve(async (req) => {
       source_entity_id: deal.id,
     });
 
-    // 2. Cap table entries — shareholders get OWNS edges, non-equity roles get PARTICIPATES_IN
+    // 2. Deal parties — legal/transactional entities
+    const { data: dealParties } = await supabase.from("deal_parties").select("id, party_type, organization:organizations(id, name)").eq("deal_id", deal_id);
+    for (const dp of dealParties || []) {
+      const orgName = (dp.organization as any)?.name || dp.party_type;
+      nodes.push({
+        node_type: "stakeholder", // party entity
+        label: orgName,
+        status: "complete",
+        metadata: { party_type: dp.party_type, entity_class: "party" },
+        source_entity_id: dp.id,
+      });
+      edgeDefs.push({ from_source: dp.id, to_source: deal.id, edge_type: "PARTICIPATES_IN" });
+    }
+
+    // 3. Cap table entries — shareholders (equity holders) vs contacts (operational)
     const { data: capEntries } = await supabase.from("cap_table_entries").select("*").eq("deal_id", deal_id);
     for (const s of capEntries || []) {
-      // Determine if shareholder (equity holder) vs stakeholder (participant)
       const equityRoles = ['Seller', 'Target', 'Shareholder', 'Founder', 'Employee', 'Advisor'];
       const isShareholder = equityRoles.includes(s.role) && (s.ownership_pct > 0);
       const nodeType = isShareholder ? "shareholder" : "stakeholder";
@@ -63,6 +76,7 @@ Deno.serve(async (req) => {
         metadata: {
           role: s.role,
           stakeholder_type: s.stakeholder_type,
+          entity_class: isShareholder ? "shareholder" : "contact",
           ownership_pct: isShareholder ? s.ownership_pct : 0,
           payout: s.payout_amount,
           verification_status: s.verification_status,
@@ -70,7 +84,7 @@ Deno.serve(async (req) => {
         source_entity_id: s.id,
       });
 
-      // Stakeholders PARTICIPATE, shareholders OWN
+      // Shareholders OWN, contacts are ASSOCIATED_WITH parties
       if (isShareholder) {
         edgeDefs.push({ from_source: s.id, to_source: deal.id, edge_type: "OWNS" });
       } else {

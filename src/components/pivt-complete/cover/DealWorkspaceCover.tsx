@@ -19,7 +19,8 @@ import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspac
 import { useWorkflowStatus } from '@/hooks/useWorkflowStatus';
 
 // Import existing cover pages
-import { StakeholdersDealTab } from './StakeholdersDealTab';
+import { DealPartiesCover } from './DealPartiesCover';
+import { ContactsDealTab } from './ContactsDealTab';
 import { KycKybDealTab } from './KycKybDealTab';
 import { CapTableCover } from './CapTableCover';
 import { WaterfallCover } from './WaterfallCover';
@@ -56,8 +57,8 @@ interface SubNav { id: string; label: string }
 
 const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   stakeholders: [
-    { id: 'parties', label: 'Parties' },
-    { id: 'ownership', label: 'Ownership' },
+    { id: 'deal-parties', label: 'Deal Parties' },
+    { id: 'contacts', label: 'Contacts' },
     { id: 'kyc', label: 'KYC / KYB' },
     { id: 'review', label: 'Review Queue' },
   ],
@@ -627,10 +628,10 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
   switch (stepId) {
     case 'overview': return OverviewSection;
     case 'stakeholders':
-      if (subNavId === 'ownership') return CapTableCover;
+      if (subNavId === 'contacts') return ContactsDealTab;
       if (subNavId === 'kyc') return KycKybDealTab;
       if (subNavId === 'review') return VerificationReviewCover;
-      return StakeholdersDealTab;
+      return DealPartiesCover;
     case 'deal-inputs':
       if (subNavId === 'cap-table') return CapTableCover;
       if (subNavId === 'waterfall') return WaterfallCover;
