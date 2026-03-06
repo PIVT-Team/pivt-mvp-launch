@@ -628,10 +628,10 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
   switch (stepId) {
     case 'overview': return OverviewSection;
     case 'stakeholders':
-      if (subNavId === 'ownership') return CapTableCover;
+      if (subNavId === 'contacts') return ContactsDealTab;
       if (subNavId === 'kyc') return KycKybDealTab;
       if (subNavId === 'review') return VerificationReviewCover;
-      return StakeholdersDealTab;
+      return DealPartiesCover;
     case 'deal-inputs':
       if (subNavId === 'cap-table') return CapTableCover;
       if (subNavId === 'waterfall') return WaterfallCover;
