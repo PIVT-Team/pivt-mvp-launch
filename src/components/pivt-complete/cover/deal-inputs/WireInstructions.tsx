@@ -85,49 +85,24 @@ export const WireInstructions: React.FC = () => {
     bank_name: '', account_name: '', account_number: '', routing_aba: '', swift_iban: '',
   });
 
-  // Auto-populate wire instructions from stakeholder (cap_table_entries) data
+  // Fetch deal-scoped wire instruction documents only (no auto-population from stakeholders)
   useEffect(() => {
-    if (!dealId || isDemoDeal) {
+    if (!dealId) {
       setLoading(false);
       return;
     }
     const fetchData = async () => {
       setLoading(true);
-      // Fetch stakeholders with payout info
-      const [stakeholders, wireDocs] = await Promise.all([
-        supabase
-          .from('cap_table_entries')
-          .select('id, shareholder_name, role, payout_amount, email, verification_status')
-          .eq('deal_id', dealId),
-        supabase
-          .from('contract_documents')
-          .select('id, doc_type, filename, status, uploaded_at')
-          .eq('deal_id', dealId)
-          .in('doc_type', ['FUNDS_FLOW_MEMO', 'WIRE_SCHEDULE', 'BANK_INSTRUCTION_LETTER', 'ESCROW_INSTRUCTIONS', 'DEBT_PAYOFF_LETTER'] as any),
-      ]);
 
-      // Map stakeholders to wire instruction rows
-      const stakeholderWires: WireInstruction[] = (stakeholders.data || [])
-        .filter((s: any) => s.payout_amount > 0)
-        .map((s: any) => ({
-          id: s.id,
-          stakeholder: s.shareholder_name,
-          payment_type: s.role === 'Escrow Agent' ? 'Escrow' :
-                       ['Buyer', 'Investor', 'LP'].includes(s.role) ? 'Purchase Price' : 'Equity Payout',
-          amount: formatAmount(s.payout_amount, realDeal?.currency || 'USD'),
-          currency: realDeal?.currency || 'USD',
-          bank_name: '',
-          account_name: s.shareholder_name,
-          account_number: '',
-          routing_aba: '',
-          swift_iban: '',
-          status: s.verification_status === 'verified' ? 'Verified' : 'Pending',
-        }));
-
-      setWires(stakeholderWires);
+      // Only fetch wire-related documents uploaded for this deal
+      const { data: wireDocs } = await supabase
+        .from('contract_documents')
+        .select('id, doc_type, filename, status, uploaded_at')
+        .eq('deal_id', dealId)
+        .in('doc_type', ['FUNDS_FLOW_MEMO', 'WIRE_SCHEDULE', 'BANK_INSTRUCTION_LETTER', 'ESCROW_INSTRUCTIONS', 'DEBT_PAYOFF_LETTER'] as any);
 
       // Wire docs from contract_documents
-      setDocs((wireDocs.data || []).map((d: any) => ({
+      setDocs((wireDocs || []).map((d: any) => ({
         id: d.id,
         doc_type: d.doc_type,
         filename: d.filename,
@@ -135,10 +110,12 @@ export const WireInstructions: React.FC = () => {
         uploaded_at: d.uploaded_at,
       })));
 
+      // Wire instructions start empty — only user-entered or document-extracted instructions
+      setWires([]);
       setLoading(false);
     };
     fetchData();
-  }, [dealId, isDemoDeal, realDeal?.currency]);
+  }, [dealId]);
 
   const handleDocUpload = useCallback(() => {
     const label = WIRE_DOC_TYPES.find(t => t.value === selectedDocType)?.label || selectedDocType;
@@ -242,7 +219,6 @@ export const WireInstructions: React.FC = () => {
             </div>
             <p className="text-xs text-muted-foreground ml-8">
               Structured payment instructions for all deal parties and escrow accounts.
-              {wires.length > 0 && !isDemoDeal && <span className="text-accent"> Auto-populated from stakeholder data.</span>}
             </p>
           </div>
           <Button size="sm" onClick={() => setShowAddWire(true)} className="gap-1.5">
@@ -273,7 +249,7 @@ export const WireInstructions: React.FC = () => {
                   </td>
                 </tr>
               ))}
-              {wires.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No wire instructions added yet. Add stakeholders with payout amounts to auto-populate.</td></tr>}
+              {wires.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-muted-foreground text-sm">No wire instructions added yet. Upload a wire instruction document or add instructions manually.</td></tr>}
             </tbody>
           </table>
         </div>
