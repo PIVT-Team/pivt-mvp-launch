@@ -92,7 +92,8 @@ export const FinancialInputs: React.FC = () => {
   useEffect(() => {
     if (realDeal) {
       setDealValue(realDeal.deal_value ? formatNumber(realDeal.deal_value.toString()) : '');
-      setCurrency(realDeal.currency || 'USD');
+      const currencies = realDeal.currency ? realDeal.currency.split(',').map(c => c.trim()).filter(Boolean) : ['USD'];
+      setSelectedCurrencies(currencies);
       setEscrowAmount(realDeal.escrow_amount != null ? formatNumber(realDeal.escrow_amount.toString()) : '');
     }
   }, [realDeal]);
