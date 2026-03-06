@@ -15,7 +15,7 @@ import { DealProgressRibbon, DealProgressData } from './DealProgressRibbon';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
-import { DealWorkspaceProvider } from '@/contexts/DealWorkspaceContext';
+import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useWorkflowStatus } from '@/hooks/useWorkflowStatus';
 
 // Import existing cover pages
@@ -47,17 +47,7 @@ import { VerificationReadinessBanner } from './VerificationReadinessBanner';
 import { ClosingCenterCover } from './ClosingCenterCover';
 import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
-const DISCREPANCIES = [
-  { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
-  { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for trust account', severity: 'critical' as const, resolved: false },
-  { id: 3, field: 'Tax ID', desc: 'Entity TIN mismatch', severity: 'warning' as const, resolved: true },
-];
-
-const AUDIT_ENTRIES = [
-  { time: 'Recent', action: 'Waterfall Schedule uploaded', actor: 'Deal Admin' },
-  { time: 'Recent', action: 'KYC verification triggered', actor: 'System' },
-  { time: 'Recent', action: 'Deal created', actor: 'Deal Admin' },
-];
+// No hardcoded mock data — all data comes from deal-scoped DB queries
 
 // ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
@@ -496,30 +486,60 @@ const OverviewSection: React.FC<{ realDeal?: RealDeal | null; dealId?: string; i
   return <RealDealOverviewSection realDeal={realDeal!} dealId={dealId || ''} />;
 };
 
-const ReconciliationSection: React.FC = () => (
-  <div className="space-y-4">
-    <div className="flex items-center gap-2 mb-3">
-      <Search className="w-4 h-4 text-discrepancy" />
-      <h3 className="font-medium">Reconciliation Results</h3>
-      <span className="text-xs text-muted-foreground ml-auto">{DISCREPANCIES.filter(d => !d.resolved).length} unresolved</span>
-    </div>
-    <div className="space-y-2">
-      {DISCREPANCIES.map(disc => (
-        <div key={disc.id} className={`pivt-card p-4 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/4' : 'border-discrepancy bg-discrepancy/4'} ${disc.resolved ? 'opacity-50' : ''}`}>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-xs font-medium">{disc.field}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{disc.desc}</p>
+const ReconciliationSection: React.FC = () => {
+  const { dealId } = useDealWorkspace();
+  const [discrepancies, setDiscrepancies] = useState<{ id: string; field: string; desc: string; severity: 'warning' | 'critical'; resolved: boolean }[]>([]);
+
+  useEffect(() => {
+    if (!dealId) return;
+    supabase
+      .from('discrepancies')
+      .select('id, rule_key, message, severity, status')
+      .eq('deal_id', dealId)
+      .then(({ data }) => {
+        setDiscrepancies((data || []).map((d: any) => ({
+          id: d.id,
+          field: d.rule_key,
+          desc: d.message,
+          severity: d.severity === 'critical' ? 'critical' : 'warning',
+          resolved: d.status === 'resolved' || d.status === 'acknowledged',
+        })));
+      });
+  }, [dealId]);
+
+  if (discrepancies.length === 0) {
+    return (
+      <div className="pivt-card p-12 text-center text-muted-foreground text-sm">
+        No reconciliation issues found.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-3">
+        <Search className="w-4 h-4 text-discrepancy" />
+        <h3 className="font-medium">Reconciliation Results</h3>
+        <span className="text-xs text-muted-foreground ml-auto">{discrepancies.filter(d => !d.resolved).length} unresolved</span>
+      </div>
+      <div className="space-y-2">
+        {discrepancies.map(disc => (
+          <div key={disc.id} className={`pivt-card p-4 border-l-4 ${disc.severity === 'critical' ? 'border-blocking bg-blocking/4' : 'border-discrepancy bg-discrepancy/4'} ${disc.resolved ? 'opacity-50' : ''}`}>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium">{disc.field}</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">{disc.desc}</p>
+              </div>
+              <Badge className={`text-[9px] ${disc.resolved ? 'bg-validated/10 text-validated' : disc.severity === 'critical' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
+                {disc.resolved ? 'Resolved' : disc.severity}
+              </Badge>
             </div>
-            <Badge className={`text-[9px] ${disc.resolved ? 'bg-validated/10 text-validated' : disc.severity === 'critical' ? 'bg-blocking/10 text-blocking' : 'bg-discrepancy/10 text-discrepancy'}`}>
-              {disc.resolved ? 'Resolved' : disc.severity}
-            </Badge>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ── Protected deal banner ──
 const ProtectedDealBanner: React.FC = () => {
@@ -550,27 +570,57 @@ const ProtectedDealBanner: React.FC = () => {
   );
 };
 
-const DealAuditSection: React.FC = () => (
-  <div className="space-y-4">
-    <div className="flex items-center gap-2 mb-3">
-      <FileText className="w-4 h-4 text-muted-foreground" />
-      <h3 className="font-medium">Deal Audit Log</h3>
-    </div>
-    <div className="relative pl-5 space-y-3">
-      <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border/40" />
-      {AUDIT_ENTRIES.map((entry, i) => (
-        <div key={i} className="relative flex items-start gap-3">
-          <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
-          <div className="flex-1">
-            <p className="text-sm">{entry.action}</p>
-            <p className="text-[10px] text-muted-foreground">{entry.actor}</p>
+const DealAuditSection: React.FC = () => {
+  const { dealId } = useDealWorkspace();
+  const [entries, setEntries] = useState<{ action: string; actor: string; time: string }[]>([]);
+
+  useEffect(() => {
+    if (!dealId) return;
+    supabase
+      .from('audit_log')
+      .select('action, created_at')
+      .eq('deal_id', dealId)
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data }) => {
+        setEntries((data || []).map((e: any) => ({
+          action: e.action,
+          actor: 'System',
+          time: new Date(e.created_at).toLocaleString(),
+        })));
+      });
+  }, [dealId]);
+
+  if (entries.length === 0) {
+    return (
+      <div className="pivt-card p-12 text-center text-muted-foreground text-sm">
+        No audit activity recorded yet.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 mb-3">
+        <FileText className="w-4 h-4 text-muted-foreground" />
+        <h3 className="font-medium">Deal Audit Log</h3>
+      </div>
+      <div className="relative pl-5 space-y-3">
+        <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border/40" />
+        {entries.map((entry, i) => (
+          <div key={i} className="relative flex items-start gap-3">
+            <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
+            <div className="flex-1">
+              <p className="text-sm">{entry.action}</p>
+              <p className="text-[10px] text-muted-foreground">{entry.actor}</p>
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{entry.time}</span>
           </div>
-          <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{entry.time}</span>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // ── Content resolver ──
 function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
