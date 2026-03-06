@@ -57,8 +57,8 @@ interface SubNav { id: string; label: string }
 
 const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   stakeholders: [
-    { id: 'parties', label: 'Parties' },
-    { id: 'ownership', label: 'Ownership' },
+    { id: 'deal-parties', label: 'Deal Parties' },
+    { id: 'contacts', label: 'Contacts' },
     { id: 'kyc', label: 'KYC / KYB' },
     { id: 'review', label: 'Review Queue' },
   ],
