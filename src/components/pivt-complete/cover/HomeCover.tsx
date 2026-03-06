@@ -89,7 +89,7 @@ export const HomeCover: React.FC = () => {
         return d.closing_date >= monthStart && d.closing_date <= monthEnd;
       }).length;
 
-      const dealsWithBlockers = allDeals.filter(d => d.blocked_reason).length;
+      const dealsWithBlockers = allDeals.filter(d => (d as any).blocked_reason).length;
 
       setMetrics({
         dealsWithBlockers,
