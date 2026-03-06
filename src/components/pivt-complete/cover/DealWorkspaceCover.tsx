@@ -15,7 +15,7 @@ import { DealProgressRibbon, DealProgressData } from './DealProgressRibbon';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
-import { DealWorkspaceProvider } from '@/contexts/DealWorkspaceContext';
+import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useWorkflowStatus } from '@/hooks/useWorkflowStatus';
 
 // Import existing cover pages
