@@ -38,9 +38,10 @@ export const DiscrepancyPanelCover: React.FC = () => {
       .eq('deal_id', dealId)
       .order('created_at', { ascending: false })
       .then(({ data }) => {
+        const severityMap: Record<string, string> = { high: 'blocker', medium: 'warn', low: 'info' };
         setDiscrepancies((data || []).map(d => ({
           ...d,
-          severity: d.severity === 'high' ? 'blocker' : d.severity === 'medium' ? 'warn' : d.severity === 'low' ? 'info' : d.severity,
+          severity: severityMap[d.severity] || d.severity,
           details: (d.details || {}) as Record<string, unknown>,
         })));
         setLoading(false);
