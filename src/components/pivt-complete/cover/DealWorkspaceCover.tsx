@@ -47,17 +47,7 @@ import { VerificationReadinessBanner } from './VerificationReadinessBanner';
 import { ClosingCenterCover } from './ClosingCenterCover';
 import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
-const DISCREPANCIES = [
-  { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
-  { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for trust account', severity: 'critical' as const, resolved: false },
-  { id: 3, field: 'Tax ID', desc: 'Entity TIN mismatch', severity: 'warning' as const, resolved: true },
-];
-
-const AUDIT_ENTRIES = [
-  { time: 'Recent', action: 'Waterfall Schedule uploaded', actor: 'Deal Admin' },
-  { time: 'Recent', action: 'KYC verification triggered', actor: 'System' },
-  { time: 'Recent', action: 'Deal created', actor: 'Deal Admin' },
-];
+// No hardcoded mock data — all data comes from deal-scoped DB queries
 
 // ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
