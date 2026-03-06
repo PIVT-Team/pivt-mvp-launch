@@ -130,6 +130,7 @@ export const FinancialInputs: React.FC = () => {
       <motion.div {...fadeInUp}>
         <h2 className="text-xl font-semibold" style={{ letterSpacing: '-0.03em' }}>Financial Inputs</h2>
         <p className="text-sm text-muted-foreground mt-1">Financial structure of the transaction — models, allocations, and schedules.</p>
+        {realDeal && <p className="text-xs text-accent mt-1">Pre-filled from deal creation. You may edit if needed.</p>}
       </motion.div>
 
       {/* ── Financial Documents ── */}
