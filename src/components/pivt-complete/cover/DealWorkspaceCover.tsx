@@ -77,8 +77,11 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'waterfall', label: 'Waterfall' },
   ],
   'deal-inputs': [
-    { id: 'financial', label: 'Financial Inputs' },
-    { id: 'contracts', label: 'Contract Inputs' },
+    { id: 'financial', label: 'Financial' },
+    { id: 'wires', label: 'Wire Instructions' },
+    { id: 'tax', label: 'Tax' },
+    { id: 'contracts', label: 'Contract' },
+    { id: 'governance', label: 'Governance' },
     { id: 'obligations', label: 'Obligations' },
     { id: 'readiness', label: 'Readiness' },
   ],
