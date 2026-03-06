@@ -97,9 +97,9 @@ export const FinancialInputs: React.FC = () => {
     const { error } = await supabase
       .from('deals')
       .update({
-        deal_value: parseFloat(dealValue) || 0,
+        deal_value: parseFloat(parseNumber(dealValue)) || 0,
         currency,
-        escrow_amount: parseFloat(escrowAmount) || 0,
+        escrow_amount: parseFloat(parseNumber(escrowAmount)) || 0,
       } as any)
       .eq('id', dealId);
     setSaving(false);
