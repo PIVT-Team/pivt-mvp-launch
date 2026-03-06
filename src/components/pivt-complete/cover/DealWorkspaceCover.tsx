@@ -37,6 +37,8 @@ import { EditDealDrawer } from './EditDealDrawer';
 import { VerificationReviewCover } from './VerificationReviewCover';
 import { VerificationReadinessBanner } from './VerificationReadinessBanner';
 import { ClosingCenterCover } from './ClosingCenterCover';
+import { PaymentVerificationCover } from './PaymentVerificationCover';
+import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
   { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for trust account', severity: 'critical' as const, resolved: false },
@@ -50,7 +52,7 @@ const AUDIT_ENTRIES = [
 ];
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'verification' | 'structuring' | 'deal-inputs' | 'execution' | 'compliance' | 'comments' | 'ai';
+type StepId = 'overview' | 'stakeholders' | 'documents' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -58,18 +60,13 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   stakeholders: [
     { id: 'parties', label: 'Parties' },
     { id: 'ownership', label: 'Ownership' },
-    { id: 'permissions', label: 'Permissions' },
-  ],
-  verification: [
     { id: 'kyc', label: 'KYC / KYB' },
     { id: 'review', label: 'Review Queue' },
-    { id: 'documents', label: 'Documents' },
-    { id: 'reconciliation', label: 'Reconciliation' },
   ],
-  structuring: [
+  documents: [
+    { id: 'all', label: 'All Documents' },
     { id: 'cap-table', label: 'Cap Table' },
     { id: 'waterfall', label: 'Waterfall' },
-    { id: 'deal-inputs', label: 'Deal Inputs' },
   ],
   'deal-inputs': [
     { id: 'financial', label: 'Financial Inputs' },
@@ -77,13 +74,22 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'obligations', label: 'Obligations' },
     { id: 'readiness', label: 'Readiness' },
   ],
+  verification: [
+    { id: 'wire-instructions', label: 'Wire Instructions' },
+    { id: 'allocations', label: 'Payment Allocations' },
+    { id: 'discrepancies', label: 'Discrepancies' },
+  ],
+  approvals: [
+    { id: 'approvers', label: 'Approvers' },
+    { id: 'docusign', label: 'DocuSign' },
+    { id: 'audit-log', label: 'Audit Log' },
+  ],
   execution: [
     { id: 'closing', label: 'Closing Readiness' },
     { id: 'intents', label: 'Disbursement Intents' },
     { id: 'payments', label: 'Payments' },
     { id: 'discrepancies', label: 'Discrepancies' },
     { id: 'escrow', label: 'Escrow' },
-    { id: 'approvals', label: 'Approvals' },
     { id: 'authority', label: 'Execution Authority' },
   ],
   compliance: [
@@ -467,25 +473,25 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
     case 'overview': return OverviewSection;
     case 'stakeholders':
       if (subNavId === 'ownership') return CapTableCover;
-      return StakeholdersDealTab;
-    case 'verification':
+      if (subNavId === 'kyc') return KycKybDealTab;
       if (subNavId === 'review') return VerificationReviewCover;
-      if (subNavId === 'documents') return DocumentsCover;
-      if (subNavId === 'reconciliation') return ReconciliationSection;
-      return KycKybDealTab;
-    case 'structuring':
+      return StakeholdersDealTab;
+    case 'documents':
+      if (subNavId === 'cap-table') return CapTableCover;
       if (subNavId === 'waterfall') return WaterfallCover;
-      if (subNavId === 'deal-inputs') return DealInputsCover;
-      return CapTableCover;
+      return DocumentsCover;
     case 'deal-inputs':
       return DealInputsCover;
+    case 'verification':
+      return PaymentVerificationCover;
+    case 'approvals':
+      return ApprovalsWorkflowCover;
     case 'execution':
       if (subNavId === 'closing') return ClosingCenterCover;
       if (subNavId === 'intents') return PaymentsCover;
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
-      if (subNavId === 'approvals') return ApprovalsCover;
       if (subNavId === 'authority') return () => <ExecutionAuthorityPanel userIsExecutor={true} />;
       return ClosingCenterCover;
     case 'compliance':
@@ -597,7 +603,7 @@ export const DealWorkspaceCover: React.FC = () => {
         if (pending.type === 'ADD_STAKEHOLDER') {
           setActiveStepId('stakeholders');
         } else if (pending.type === 'ADD_WATERFALL_TIER') {
-          setActiveStepId('structuring');
+          setActiveStepId('documents');
           setActiveSubNav('waterfall');
         } else if (pending.type === 'UPLOAD_DOCUMENT') {
           setActiveStepId('deal-inputs');
@@ -683,35 +689,38 @@ export const DealWorkspaceCover: React.FC = () => {
         atlas: [
           { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
           { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 92, blockers: 0 },
-          { id: 'verification', number: 3, label: 'Verification', completionPct: 85, blockers: 1 },
-          { id: 'structuring', number: 4, label: 'Structuring', completionPct: 78, blockers: 0 },
-          { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: 90, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 64, blockers: 2 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+          { id: 'documents', number: 3, label: 'Documents', completionPct: 78, blockers: 0 },
+          { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: 90, blockers: 0 },
+          { id: 'verification', number: 5, label: 'Verification', completionPct: 85, blockers: 1 },
+          { id: 'approvals', number: 6, label: 'Approvals', completionPct: 70, blockers: 0 },
+          { id: 'execution', number: 7, label: 'Execution', completionPct: 64, blockers: 2 },
+          { id: 'compliance', number: 8, label: 'Compliance', completionPct: 100, blockers: 0 },
+          { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
         ],
         beacon: [
           { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
           { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 75, blockers: 1 },
-          { id: 'verification', number: 3, label: 'Verification', completionPct: 50, blockers: 2 },
-          { id: 'structuring', number: 4, label: 'Structuring', completionPct: 40, blockers: 0 },
-          { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: 60, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 20, blockers: 3 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 55, blockers: 1 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+          { id: 'documents', number: 3, label: 'Documents', completionPct: 40, blockers: 0 },
+          { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: 60, blockers: 0 },
+          { id: 'verification', number: 5, label: 'Verification', completionPct: 50, blockers: 2 },
+          { id: 'approvals', number: 6, label: 'Approvals', completionPct: 0, blockers: 0 },
+          { id: 'execution', number: 7, label: 'Execution', completionPct: 20, blockers: 3 },
+          { id: 'compliance', number: 8, label: 'Compliance', completionPct: 55, blockers: 1 },
+          { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
         ],
         cipher: [
           { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
           { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 100, blockers: 0 },
-          { id: 'verification', number: 3, label: 'Verification', completionPct: 95, blockers: 0 },
-          { id: 'structuring', number: 4, label: 'Structuring', completionPct: 100, blockers: 0 },
-          { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: 100, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 88, blockers: 1 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+          { id: 'documents', number: 3, label: 'Documents', completionPct: 100, blockers: 0 },
+          { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: 100, blockers: 0 },
+          { id: 'verification', number: 5, label: 'Verification', completionPct: 95, blockers: 0 },
+          { id: 'approvals', number: 6, label: 'Approvals', completionPct: 90, blockers: 0 },
+          { id: 'execution', number: 7, label: 'Execution', completionPct: 88, blockers: 1 },
+          { id: 'compliance', number: 8, label: 'Compliance', completionPct: 100, blockers: 0 },
+          { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
+          { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
         ],
       };
       return DEMO_STEPS[demoDealSeedKey || ''] || DEMO_STEPS.atlas;
@@ -723,13 +732,14 @@ export const DealWorkspaceCover: React.FC = () => {
     return [
       { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
       { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: pct('stakeholders'), blockers: 0 },
-      { id: 'verification', number: 3, label: 'Verification', completionPct: pct('verification'), blockers: 0 },
-      { id: 'structuring', number: 4, label: 'Structuring', completionPct: pct('structuring'), blockers: 0 },
-      { id: 'deal-inputs', number: 5, label: 'Deal Inputs', completionPct: pct('deal-inputs'), blockers: 0 },
-      { id: 'execution', number: 6, label: 'Execution', completionPct: pct('execution'), blockers: 0 },
-      { id: 'compliance', number: 7, label: 'Compliance', completionPct: pct('compliance'), blockers: 0 },
-      { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-      { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+      { id: 'documents', number: 3, label: 'Documents', completionPct: pct('structuring'), blockers: 0 },
+      { id: 'deal-inputs', number: 4, label: 'Deal Inputs', completionPct: pct('deal-inputs'), blockers: 0 },
+      { id: 'verification', number: 5, label: 'Verification', completionPct: pct('verification'), blockers: 0 },
+      { id: 'approvals', number: 6, label: 'Approvals', completionPct: pct('compliance'), blockers: 0 },
+      { id: 'execution', number: 7, label: 'Execution', completionPct: pct('execution'), blockers: 0 },
+      { id: 'compliance', number: 8, label: 'Compliance', completionPct: pct('compliance'), blockers: 0 },
+      { id: 'comments', number: 9, label: 'Comments', completionPct: 100, blockers: 0 },
+      { id: 'ai', number: 10, label: 'AI', completionPct: 0, blockers: 0 },
     ];
   }, [isDemoDeal, demoDealSeedKey, wfPcts]);
 
@@ -885,8 +895,7 @@ export const DealWorkspaceCover: React.FC = () => {
           const stepMap: Record<string, string> = {
             stakeholders: 'stakeholders',
             verification: 'verification',
-            structuring: 'structuring',
-            documents: 'deal-inputs',
+            documents: 'documents',
             execution: 'execution',
             settlement: 'execution',
           };
