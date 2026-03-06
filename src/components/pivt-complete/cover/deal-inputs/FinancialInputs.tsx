@@ -29,10 +29,15 @@ interface FinancialDoc {
   uploaded_at: string;
 }
 
-const formatCurrency = (v: number | null | undefined, currency = 'USD') => {
-  if (v == null) return '';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
+const formatNumber = (v: string) => {
+  const num = v.replace(/[^0-9.]/g, '');
+  if (!num) return '';
+  const parts = num.split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
 };
+
+const parseNumber = (v: string) => v.replace(/,/g, '');
 
 export const FinancialInputs: React.FC = () => {
   const { dealId, isDemoDeal, realDeal } = useDealWorkspace();
