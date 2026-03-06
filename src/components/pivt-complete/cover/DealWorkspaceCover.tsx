@@ -589,7 +589,13 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'waterfall') return WaterfallCover;
       return DocumentsCover;
     case 'deal-inputs':
-      return DealInputsCover;
+      if (subNavId === 'wires') return WireInstructions;
+      if (subNavId === 'tax') return TaxInputs;
+      if (subNavId === 'contracts') return ContractInputs;
+      if (subNavId === 'governance') return GovernanceInputs;
+      if (subNavId === 'obligations') return ObligationsPanel;
+      if (subNavId === 'readiness') return ReadinessPanel;
+      return FinancialInputs;
     case 'verification':
       return PaymentVerificationCover;
     case 'approvals':
