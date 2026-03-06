@@ -37,6 +37,8 @@ import { EditDealDrawer } from './EditDealDrawer';
 import { VerificationReviewCover } from './VerificationReviewCover';
 import { VerificationReadinessBanner } from './VerificationReadinessBanner';
 import { ClosingCenterCover } from './ClosingCenterCover';
+import { PaymentVerificationCover } from './PaymentVerificationCover';
+import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 const DISCREPANCIES = [
   { id: 1, field: 'Ownership %', desc: 'ESOP pool shows 7.2% vs cap table 7.0%', severity: 'warning' as const, resolved: false },
   { id: 2, field: 'Wire Instructions', desc: 'Missing bank details for trust account', severity: 'critical' as const, resolved: false },
