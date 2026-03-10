@@ -38,6 +38,7 @@ const PARTY_LABEL: Record<string, string> = {
 export const DealPartiesCover: React.FC = () => {
   const { dealId, isDemoDeal, realDeal } = useDealWorkspace();
   const [parties, setParties] = useState<DealParty[]>([]);
+  const [capTableParties, setCapTableParties] = useState<{ id: string; shareholder_name: string; role: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,11 +46,20 @@ export const DealPartiesCover: React.FC = () => {
 
     const fetchParties = async () => {
       setLoading(true);
-      const { data } = await supabase
-        .from('deal_parties')
-        .select('id, party_type, organization:organizations(id, name)')
-        .eq('deal_id', dealId);
-      setParties((data as any[]) || []);
+      const [dpResult, ctResult] = await Promise.all([
+        supabase
+          .from('deal_parties')
+          .select('id, party_type, organization:organizations(id, name)')
+          .eq('deal_id', dealId),
+        // Also fetch cap_table_entries with deal-party roles (Buyer, Seller, Target, etc.)
+        supabase
+          .from('cap_table_entries')
+          .select('id, shareholder_name, role')
+          .eq('deal_id', dealId)
+          .in('role', ['Buyer', 'Seller', 'Target', 'Merger Sub', 'Escrow Agent', 'Lender', 'Buyer Counsel', 'Seller Counsel', 'Paying Agent', 'Administrative Agent']),
+      ]);
+      setParties((dpResult.data as any[]) || []);
+      setCapTableParties(ctResult.data || []);
       setLoading(false);
     };
     fetchParties();
@@ -63,6 +73,25 @@ export const DealPartiesCover: React.FC = () => {
     if (realDeal.target_company) inferredParties.push({ name: realDeal.target_company, type: 'Target', side: 'Target' });
   }
 
+  // For demo deals, also infer from pivtStore deal data
+  if (isDemoDeal && !realDeal) {
+    // These come from the pivtStore demo deal
+    const demoDealData = {
+      atlas: { buyer: 'Apex Capital Partners', seller: 'Northbridge Software', target: 'Northbridge Software' },
+      beacon: { buyer: 'Meridian Holdings', seller: 'CloudVault Security', target: 'CloudVault Security' },
+      cipher: { buyer: 'Titan Strategic Group', seller: 'NeuralPath AI', target: 'NeuralPath AI' },
+    };
+    const key = dealId as string;
+    const demoData = demoDealData[key as keyof typeof demoDealData];
+    if (demoData) {
+      inferredParties.push({ name: demoData.buyer, type: 'Buyer', side: 'Buyer-side' });
+      inferredParties.push({ name: demoData.seller, type: 'Seller', side: 'Seller-side' });
+      if (demoData.target !== demoData.seller) {
+        inferredParties.push({ name: demoData.target, type: 'Target', side: 'Target' });
+      }
+    }
+  }
+
   const allParties = [
     ...inferredParties.map((p, i) => ({ id: `inferred-${i}`, name: p.name, type: p.type, side: p.side, source: 'deal' as const })),
     ...parties.map(p => ({
@@ -70,6 +99,14 @@ export const DealPartiesCover: React.FC = () => {
       name: p.organization?.name || 'Unknown',
       type: PARTY_LABEL[p.party_type] || p.party_type,
       side: PARTY_SIDE[p.party_type] || 'Neutral',
+      source: 'parties_table' as const,
+    })),
+    // Include cap_table_entries with deal-party roles
+    ...capTableParties.map(p => ({
+      id: p.id,
+      name: p.shareholder_name,
+      type: PARTY_LABEL[p.role.toLowerCase().replace(/ /g, '_')] || p.role,
+      side: PARTY_SIDE[p.role.toLowerCase().replace(/ /g, '_')] || 'Neutral',
       source: 'parties_table' as const,
     })),
   ];

@@ -51,6 +51,7 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       capTable,
       deal,
       escrow,
+      dealParties,
     ] = await Promise.all([
       supabase.from('cap_table_entries').select('id, role, verification_status, ownership_pct').eq('deal_id', dealId),
       supabase.from('contract_documents').select('id, doc_type, status').eq('deal_id', dealId),
@@ -60,6 +61,7 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       supabase.from('waterfall_tiers').select('id').eq('deal_id', dealId),
       supabase.from('deals').select('deal_value, closing_date, buyer, seller, target_company, deal_type, status').eq('id', dealId).single(),
       supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
+      supabase.from('deal_parties').select('id').eq('deal_id', dealId),
     ]);
 
     const stk = stakeholders.data || [];
@@ -69,18 +71,21 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
     const conds = conditions.data || [];
     const tiers = capTable.data || [];
     const d = deal.data;
+    const dp = dealParties.data || [];
 
     // ── Overview: always complete (it's a summary page)
     const overviewStatus: WorkflowStepStatus = 'COMPLETED';
 
-    // ── Stakeholders
+    // ── Stakeholders: combine cap_table_entries + deal_parties + inferred deal parties
+    const inferredPartyCount = [d?.buyer, d?.seller, d?.target_company].filter(Boolean).length;
+    const totalStakeholders = stk.length + dp.length + inferredPartyCount;
+    // Deduplicate isn't critical for status — if any exist, it's at least IN_PROGRESS
     const stkStatus: WorkflowStepStatus =
-      stk.length === 0 ? 'NOT_STARTED' :
-      stk.every(s => s.verification_status === 'verified') ? 'COMPLETED' :
+      totalStakeholders === 0 ? 'NOT_STARTED' :
+      stk.length > 0 && stk.every(s => s.verification_status === 'verified') ? 'COMPLETED' :
       'IN_PROGRESS';
-    // Stakeholder pct: having stakeholders = 50% base, verification progress = remaining 50%
-    const stkPct = stk.length === 0 ? 0 :
-      Math.round(50 + (stk.filter(s => s.verification_status === 'verified').length / stk.length) * 50);
+    const stkPct = totalStakeholders === 0 ? 0 :
+      Math.round(50 + (stk.filter(s => s.verification_status === 'verified').length / Math.max(stk.length, 1)) * 50);
 
     // ── Verification
     const ACTIVE_STATUSES = ['sent', 'in_progress', 'submitted', 'pending', 'verified', 'failed', 'not_sent'];

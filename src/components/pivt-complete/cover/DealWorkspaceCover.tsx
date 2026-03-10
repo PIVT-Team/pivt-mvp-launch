@@ -146,7 +146,7 @@ function computeNextAction(s: DealSummary, status: string): string {
 }
 
 const useDealSummary = (dealId: string | undefined) => {
-  const [summary, setSummary] = useState<DealSummary | null>(null);
+  const [summary, setSummary] = useState<(DealSummary & { stakeholderCount: number }) | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -154,12 +154,13 @@ const useDealSummary = (dealId: string | undefined) => {
 
     const fetchSummary = async () => {
       setLoading(true);
-      const [conditions, approvals, documents, payments, escrow] = await Promise.all([
+      const [conditions, approvals, documents, payments, escrow, stakeholders] = await Promise.all([
         supabase.from('conditions').select('id, status').eq('deal_id', dealId),
         supabase.from('ontology_approvals').select('id, status').eq('deal_id', dealId),
         supabase.from('ontology_documents').select('id').eq('deal_id', dealId),
         supabase.from('payment_instructions').select('id, status').eq('deal_id', dealId),
         supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
+        supabase.from('cap_table_entries').select('id').eq('deal_id', dealId),
       ]);
 
       const condData = conditions.data || [];
@@ -170,7 +171,7 @@ const useDealSummary = (dealId: string | undefined) => {
       const pending = appData.filter(a => a.status === 'PENDING').length;
       const confirmed = payData.filter(p => p.status === 'CONFIRMED').length;
 
-      const s: DealSummary = {
+      const s = {
         conditionsTotal: condData.length,
         conditionsSatisfied: satisfied,
         approvalsTotal: appData.length,
@@ -182,6 +183,7 @@ const useDealSummary = (dealId: string | undefined) => {
         escrowStatus: escrow.data?.status || null,
         nextAction: '',
         blockerCount: pending + (condData.length - satisfied),
+        stakeholderCount: (stakeholders.data || []).length,
       };
       s.nextAction = computeNextAction(s, 'draft');
       setSummary(s);
@@ -819,9 +821,10 @@ export const DealWorkspaceCover: React.FC = () => {
   const progressData: DealProgressData = useMemo(() => {
     if (isDemoDeal) return DEMO_PROGRESS[demoDealSeedKey || ''] || DEMO_PROGRESS.atlas;
     const s = dealSummary;
+    const stkCount = s?.stakeholderCount || 0;
     return {
-      stakeholdersAdded: s ? (s.documentsCount > 0 ? 1 : 0) : 0,
-      stakeholdersRequired: 1,
+      stakeholdersAdded: stkCount,
+      stakeholdersRequired: Math.max(stkCount, 1),
       compliancePassed: s?.conditionsSatisfied || 0,
       complianceTotal: s?.conditionsTotal || 0,
       complianceBlocked: false,
