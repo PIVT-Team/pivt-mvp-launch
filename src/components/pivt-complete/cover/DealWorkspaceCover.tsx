@@ -158,7 +158,7 @@ const useDealSummary = (dealId: string | undefined) => {
       const [conditions, approvals, documents, payments, escrow, stakeholders] = await Promise.all([
         supabase.from('conditions').select('id, status').eq('deal_id', dealId),
         supabase.from('ontology_approvals').select('id, status').eq('deal_id', dealId),
-        supabase.from('ontology_documents').select('id').eq('deal_id', dealId),
+        supabase.from('contract_documents').select('id').eq('deal_id', dealId),
         supabase.from('payment_instructions').select('id, status').eq('deal_id', dealId),
         supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
         supabase.from('cap_table_entries').select('id').eq('deal_id', dealId),
