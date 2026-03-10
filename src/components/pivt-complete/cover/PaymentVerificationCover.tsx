@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
-  Shield, CheckCircle2, Clock, AlertTriangle, Landmark, ArrowRightLeft,
-  Search, FileWarning, RefreshCw, Plus, Loader2,
+  Shield, CheckCircle2, Clock, AlertTriangle, ArrowRightLeft,
+  Search, FileWarning, RefreshCw, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,29 +17,28 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 
-type VerificationStatus = 'not_started' | 'in_review' | 'discrepancies_found' | 'pending_resolution' | 'verified';
+type VerificationStatus = 'pending' | 'in_review' | 'verified' | 'rejected';
 
 const STATUS_CONFIG: Record<VerificationStatus, { label: string; color: string; icon: React.ElementType }> = {
-  not_started: { label: 'Not Started', color: 'text-muted-foreground', icon: Clock },
+  pending: { label: 'Pending', color: 'text-muted-foreground', icon: Clock },
   in_review: { label: 'In Review', color: 'text-amber-500', icon: Search },
-  discrepancies_found: { label: 'Discrepancies Found', color: 'text-destructive', icon: FileWarning },
-  pending_resolution: { label: 'Pending Resolution', color: 'text-amber-500', icon: RefreshCw },
   verified: { label: 'Verified', color: 'text-validated', icon: CheckCircle2 },
+  rejected: { label: 'Rejected', color: 'text-destructive', icon: FileWarning },
 };
 
 interface WireInstruction {
   id: string;
-  party: string;
-  side: 'buyer' | 'seller';
-  bankName: string;
-  accountHolder: string;
-  accountLast4: string;
-  routingNumber: string;
-  swiftBic: string;
-  iban: string;
+  payee_entity: string;
+  payer_entity: string | null;
+  bank_name: string | null;
+  account_holder: string | null;
+  account_number_last4: string | null;
+  routing_number: string | null;
+  swift_bic: string | null;
   currency: string;
-  status: VerificationStatus;
-  discrepancies: string[];
+  amount: number;
+  payment_type: string;
+  verification_status: VerificationStatus;
 }
 
 interface PaymentAllocation {
@@ -47,8 +46,8 @@ interface PaymentAllocation {
   recipient: string;
   amount: number;
   currency: string;
-  wireRef: string;
-  status: 'matched' | 'unmatched' | 'partial';
+  allocation_type: string;
+  status: string;
 }
 
 const formatCurrency = (n: number) =>
@@ -64,46 +63,71 @@ export const PaymentVerificationCover: React.FC = () => {
   const [allocations, setAllocations] = useState<PaymentAllocation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch deal-scoped data from DB
   useEffect(() => {
-    if (!dealId) {
-      setLoading(false);
-      return;
-    }
+    if (!dealId) { setLoading(false); return; }
 
     const fetchData = async () => {
       setLoading(true);
 
-      // Fetch cap_table_entries that have verification data (wire-like info)
-      // and payment_instructions if that table exists
-      // For now, wire instructions come from cap_table_entries with bank info
-      const { data: capEntries } = await supabase
-        .from('cap_table_entries')
-        .select('*')
-        .eq('deal_id', dealId);
+      const [wiresRes, allocsRes] = await Promise.all([
+        supabase
+          .from('wire_instructions')
+          .select('id, payee_entity, payer_entity, bank_name, account_holder, account_number_last4, routing_number, swift_bic, currency, amount, payment_type, verification_status')
+          .eq('deal_id', dealId)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('payment_allocations')
+          .select('id, recipient, amount, currency, allocation_type, status')
+          .eq('deal_id', dealId)
+          .order('created_at', { ascending: true }),
+      ]);
 
-      // No auto-population — wire instructions start empty
-      // Only show entries that have actual verification data
-      setWireInstructions([]);
-      setAllocations([]);
+      setWireInstructions((wiresRes.data || []) as WireInstruction[]);
+      setAllocations((allocsRes.data || []) as PaymentAllocation[]);
       setLoading(false);
     };
 
     fetchData();
   }, [dealId]);
 
-  const verifiedCount = wireInstructions.filter(w => w.status === 'verified').length;
-  const discrepancyCount = wireInstructions.filter(w => w.status === 'discrepancies_found').length;
+  const verifiedCount = wireInstructions.filter(w => w.verification_status === 'verified').length;
+  const pendingCount = wireInstructions.filter(w => w.verification_status === 'pending' || w.verification_status === 'in_review').length;
   const totalCount = wireInstructions.length;
 
-  const handleResolve = (wire: WireInstruction) => {
+  const handleVerify = async (wire: WireInstruction) => {
+    const { error } = await supabase
+      .from('wire_instructions')
+      .update({ verification_status: 'verified', verified_at: new Date().toISOString() } as any)
+      .eq('id', wire.id);
+    if (error) { toast.error('Failed to verify'); return; }
+    toast.success(`${wire.payee_entity} verified`);
+    setWireInstructions(prev => prev.map(w => w.id === wire.id ? { ...w, verification_status: 'verified' as VerificationStatus } : w));
+
+    // Log audit
+    if (dealId) {
+      await supabase.from('audit_log').insert({
+        deal_id: dealId,
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        action: 'wire_instruction_verified',
+        details: { wire_id: wire.id, payee: wire.payee_entity, amount: wire.amount },
+      });
+    }
+  };
+
+  const handleReject = (wire: WireInstruction) => {
     setSelectedWire(wire);
     setResolutionNote('');
     setResolveDialogOpen(true);
   };
 
-  const confirmResolve = () => {
-    toast.success(`Discrepancies resolved for ${selectedWire?.party}`);
+  const confirmReject = async () => {
+    if (!selectedWire) return;
+    await supabase
+      .from('wire_instructions')
+      .update({ verification_status: 'rejected' } as any)
+      .eq('id', selectedWire.id);
+    toast.success(`${selectedWire.payee_entity} flagged for review`);
+    setWireInstructions(prev => prev.map(w => w.id === selectedWire.id ? { ...w, verification_status: 'rejected' as VerificationStatus } : w));
     setResolveDialogOpen(false);
   };
 
@@ -115,7 +139,6 @@ export const PaymentVerificationCover: React.FC = () => {
     );
   }
 
-  // Empty state — no wire instructions or allocations
   if (totalCount === 0 && allocations.length === 0) {
     return (
       <div className="space-y-6">
@@ -126,13 +149,12 @@ export const PaymentVerificationCover: React.FC = () => {
           </h2>
           <p className="text-sm text-muted-foreground mt-1">Wire instructions, bank details & payment allocation verification</p>
         </div>
-
         <div className="pivt-card p-12 text-center space-y-4">
           <Shield className="w-10 h-10 text-muted-foreground mx-auto" />
           <div>
             <p className="font-medium">No wire instructions to verify</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Add wire instructions in Deal Inputs → Wire Instructions first. Once added, they will appear here for verification.
+              Upload a Funds Flow Memo in Deal Inputs → Wire Instructions. Parsed payment details will appear here automatically.
             </p>
           </div>
         </div>
@@ -142,14 +164,12 @@ export const PaymentVerificationCover: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold flex items-center gap-2">
-            <ArrowRightLeft className="w-5 h-5 text-accent" />
-            Payment Verification
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">Wire instructions, bank details & payment allocation verification</p>
-        </div>
+      <div>
+        <h2 className="text-xl font-semibold flex items-center gap-2">
+          <ArrowRightLeft className="w-5 h-5 text-accent" />
+          Payment Verification
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">Wire instructions, bank details & payment allocation verification</p>
       </div>
 
       {/* Summary Cards */}
@@ -166,17 +186,15 @@ export const PaymentVerificationCover: React.FC = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-xs text-muted-foreground font-normal">Discrepancies</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-xs text-muted-foreground font-normal">Pending</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl font-light">{discrepancyCount}</div>
-            {discrepancyCount > 0 && <div className="flex items-center gap-1 mt-1"><AlertTriangle className="w-3 h-3 text-destructive" /><span className="text-xs text-destructive">Needs attention</span></div>}
+            <div className="text-2xl font-light">{pendingCount}</div>
+            {pendingCount > 0 && <div className="flex items-center gap-1 mt-1"><Clock className="w-3 h-3 text-amber-500" /><span className="text-xs text-amber-500">Awaiting review</span></div>}
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-xs text-muted-foreground font-normal">Pending Review</CardTitle></CardHeader>
-          <CardContent>
-            <div className="text-2xl font-light">{totalCount - verifiedCount - discrepancyCount}</div>
-          </CardContent>
+          <CardHeader className="pb-3"><CardTitle className="text-xs text-muted-foreground font-normal">Allocations</CardTitle></CardHeader>
+          <CardContent><div className="text-2xl font-light">{allocations.length}</div></CardContent>
         </Card>
       </div>
 
@@ -184,149 +202,94 @@ export const PaymentVerificationCover: React.FC = () => {
         <TabsList className="bg-muted/50">
           <TabsTrigger value="wire-instructions" className="text-xs">Wire Instructions ({totalCount})</TabsTrigger>
           <TabsTrigger value="allocations" className="text-xs">Payment Allocations ({allocations.length})</TabsTrigger>
-          <TabsTrigger value="discrepancies" className="text-xs">
-            Discrepancies {discrepancyCount > 0 && <Badge variant="destructive" className="ml-1 text-[9px] h-4 px-1">{discrepancyCount}</Badge>}
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="wire-instructions" className="space-y-3 mt-4">
-          {wireInstructions.length === 0 ? (
-            <div className="pivt-card p-12 text-center text-muted-foreground text-sm">
-              No wire instructions added yet.
-            </div>
-          ) : (
-            ['buyer', 'seller'].map(side => {
-              const sideInstructions = wireInstructions.filter(w => w.side === side);
-              if (sideInstructions.length === 0) return null;
-              return (
-                <div key={side} className="space-y-3">
-                  <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{side} Side</h3>
-                  {sideInstructions.map(wire => {
-                    const cfg = STATUS_CONFIG[wire.status];
-                    const Icon = cfg.icon;
-                    return (
-                      <motion.div key={wire.id} {...fadeInUp} className="pivt-card p-5">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 space-y-3">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{wire.party}</span>
-                              <Badge variant="outline" className={`text-xs gap-1 ${cfg.color}`}>
-                                <Icon className="w-3 h-3" /> {cfg.label}
-                              </Badge>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-                              <div><span className="text-muted-foreground">Bank</span><p className="font-medium mt-0.5">{wire.bankName}</p></div>
-                              <div><span className="text-muted-foreground">Account</span><p className="font-medium mt-0.5">••••{wire.accountLast4}</p></div>
-                              <div><span className="text-muted-foreground">Routing</span><p className="font-medium mt-0.5 font-mono">{wire.routingNumber || '—'}</p></div>
-                              <div><span className="text-muted-foreground">SWIFT</span><p className="font-medium mt-0.5 font-mono">{wire.swiftBic}</p></div>
-                            </div>
-                            {wire.discrepancies.length > 0 && (
-                              <div className="space-y-1 p-3 rounded-lg bg-destructive/5 border border-destructive/20">
-                                {wire.discrepancies.map((d, i) => (
-                                  <div key={i} className="flex items-center gap-2 text-xs text-destructive">
-                                    <AlertTriangle className="w-3 h-3 shrink-0" /> {d}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                          <div className="flex gap-2 ml-4">
-                            {wire.status === 'discrepancies_found' && (
-                              <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => handleResolve(wire)}>
-                                Resolve
-                              </Button>
-                            )}
-                            {wire.status !== 'verified' && (
-                              <Button size="sm" className="text-xs h-8" onClick={() => toast.success(`${wire.party} verified`)}>
-                                <CheckCircle2 className="w-3 h-3 mr-1" /> Verify
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
+          {wireInstructions.map(wire => {
+            const cfg = STATUS_CONFIG[wire.verification_status] || STATUS_CONFIG.pending;
+            const Icon = cfg.icon;
+            return (
+              <motion.div key={wire.id} {...fadeInUp} className="pivt-card p-5">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{wire.payee_entity}</span>
+                      <Badge variant="outline" className="text-xs">{wire.payment_type}</Badge>
+                      <Badge variant="outline" className={`text-xs gap-1 ${cfg.color}`}>
+                        <Icon className="w-3 h-3" /> {cfg.label}
+                      </Badge>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div><span className="text-muted-foreground">Amount</span><p className="font-medium mt-0.5">{formatCurrency(wire.amount)}</p></div>
+                      <div><span className="text-muted-foreground">Bank</span><p className="font-medium mt-0.5">{wire.bank_name || '—'}</p></div>
+                      <div><span className="text-muted-foreground">Account</span><p className="font-medium mt-0.5">{wire.account_number_last4 ? `••••${wire.account_number_last4}` : '—'}</p></div>
+                      <div><span className="text-muted-foreground">Routing / SWIFT</span><p className="font-medium mt-0.5 font-mono">{wire.routing_number || wire.swift_bic || '—'}</p></div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    {wire.verification_status !== 'verified' && (
+                      <>
+                        <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => handleReject(wire)}>
+                          <AlertTriangle className="w-3 h-3 mr-1" /> Flag
+                        </Button>
+                        <Button size="sm" className="text-xs h-8" onClick={() => handleVerify(wire)}>
+                          <CheckCircle2 className="w-3 h-3 mr-1" /> Verify
+                        </Button>
+                      </>
+                    )}
+                    {wire.verification_status === 'verified' && (
+                      <Badge className="bg-emerald-500/10 text-emerald-600 text-xs">
+                        <CheckCircle2 className="w-3 h-3 mr-1" /> Verified
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-              );
-            })
-          )}
+              </motion.div>
+            );
+          })}
         </TabsContent>
 
         <TabsContent value="allocations" className="space-y-3 mt-4">
           {allocations.length === 0 ? (
             <div className="pivt-card p-12 text-center text-muted-foreground text-sm">
-              No payment allocations yet.
+              No payment allocations yet. Upload a Funds Flow Memo to generate allocations.
             </div>
           ) : (
             allocations.map(alloc => (
               <motion.div key={alloc.id} {...fadeInUp} className="pivt-card p-4 flex items-center justify-between">
                 <div>
                   <p className="font-medium">{alloc.recipient}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(alloc.amount)} · {alloc.currency}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(alloc.amount)} · {alloc.currency} · {alloc.allocation_type.replace(/_/g, ' ')}</p>
                 </div>
                 <Badge variant="outline" className={`text-xs ${
                   alloc.status === 'matched' ? 'text-validated border-validated/20' :
-                  alloc.status === 'unmatched' ? 'text-destructive border-destructive/20' :
-                  'text-amber-500 border-amber-500/20'
+                  alloc.status === 'unmatched' ? 'text-amber-500 border-amber-500/20' :
+                  'text-muted-foreground border-border'
                 }`}>
-                  {alloc.status === 'matched' ? '✓ Matched' : alloc.status === 'unmatched' ? '✗ No wire' : '⚠ Partial'}
+                  {alloc.status === 'matched' ? '✓ Matched' : alloc.status === 'unmatched' ? '⏳ Pending Match' : alloc.status}
                 </Badge>
-              </motion.div>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="discrepancies" className="space-y-3 mt-4">
-          {wireInstructions.filter(w => w.discrepancies.length > 0).length === 0 ? (
-            <div className="pivt-card p-12 text-center">
-              <CheckCircle2 className="w-8 h-8 text-validated mx-auto mb-3" />
-              <p className="text-muted-foreground">No discrepancies found</p>
-            </div>
-          ) : (
-            wireInstructions.filter(w => w.discrepancies.length > 0).map(wire => (
-              <motion.div key={wire.id} {...fadeInUp} className="pivt-card p-5 border-l-4 border-destructive">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium">{wire.party}</p>
-                    <div className="space-y-1 mt-2">
-                      {wire.discrepancies.map((d, i) => (
-                        <p key={i} className="text-xs text-destructive flex items-center gap-1.5">
-                          <AlertTriangle className="w-3 h-3 shrink-0" /> {d}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => handleResolve(wire)}>
-                    Resolve
-                  </Button>
-                </div>
               </motion.div>
             ))
           )}
         </TabsContent>
       </Tabs>
 
-      {/* Resolve Dialog */}
+      {/* Reject/Flag Dialog */}
       <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Resolve Discrepancies</DialogTitle>
-            <DialogDescription>{selectedWire?.party} — {selectedWire?.discrepancies.length} issue(s)</DialogDescription>
+            <DialogTitle>Flag Wire Instruction</DialogTitle>
+            <DialogDescription>{selectedWire?.payee_entity} — {formatCurrency(selectedWire?.amount || 0)}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            {selectedWire?.discrepancies.map((d, i) => (
-              <div key={i} className="flex items-center gap-2 text-sm text-destructive">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {d}
-              </div>
-            ))}
             <div>
-              <label className="text-sm font-medium">Resolution Note</label>
-              <Textarea value={resolutionNote} onChange={e => setResolutionNote(e.target.value)} placeholder="Describe how this was resolved..." className="mt-2" />
+              <label className="text-sm font-medium">Reason for flagging</label>
+              <Textarea value={resolutionNote} onChange={e => setResolutionNote(e.target.value)} placeholder="Describe the issue with this wire instruction..." className="mt-2" />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResolveDialogOpen(false)}>Cancel</Button>
-            <Button onClick={confirmResolve}>Mark Resolved</Button>
+            <Button variant="destructive" onClick={confirmReject}>Flag for Review</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
