@@ -152,8 +152,11 @@ function simulateTextExtraction(fileName: string): string {
 }
 
 export const DocumentsCover: React.FC = () => {
-  const { deals, selectedDealId, setSelectedDealId } = usePIVTStore();
+  const { deals, selectedDealId: pivtSelectedDealId, setSelectedDealId } = usePIVTStore();
+  const { dealId: contextDealId } = useDealWorkspace();
   const { addEvent } = useAuditStore();
+  // Use resolved deal ID from workspace context if available, otherwise fall back to pivtStore
+  const selectedDealId = contextDealId || pivtSelectedDealId;
   const [documents, setDocuments] = useState<DealDocument[]>([]);
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
