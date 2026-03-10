@@ -155,10 +155,12 @@ const useDealSummary = (dealId: string | undefined) => {
 
     const fetchSummary = async () => {
       setLoading(true);
-      const [conditions, approvals, documents, wires, escrow, stakeholders] = await Promise.all([
+      // Query ALL canonical data sources — same tables used by every surface
+      const [conditions, approvals, contractDocs, dealDocs, wires, escrow, stakeholders] = await Promise.all([
         supabase.from('conditions').select('id, status').eq('deal_id', dealId),
         supabase.from('deal_approvals').select('id, status').eq('deal_id', dealId),
         supabase.from('contract_documents').select('id').eq('deal_id', dealId),
+        supabase.from('deal_documents').select('id').eq('deal_id', dealId),
         supabase.from('wire_instructions').select('id, verification_status').eq('deal_id', dealId),
         supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
         supabase.from('cap_table_entries').select('id').eq('deal_id', dealId),
@@ -172,13 +174,18 @@ const useDealSummary = (dealId: string | undefined) => {
       const pending = appData.filter(a => a.status === 'pending').length;
       const confirmed = wireData.filter(w => (w as any).verification_status === 'verified').length;
 
+      // Unified document count: contract_documents + deal_documents (deduplicated)
+      const contractDocIds = new Set((contractDocs.data || []).map(d => d.id));
+      const dealDocIds = new Set((dealDocs.data || []).map(d => d.id));
+      const totalDocs = new Set([...contractDocIds, ...dealDocIds]).size;
+
       const s = {
         conditionsTotal: condData.length,
         conditionsSatisfied: satisfied,
         approvalsTotal: appData.length,
         approvalsApproved: approved,
         approvalsPending: pending,
-        documentsCount: (documents.data || []).length,
+        documentsCount: totalDocs,
         paymentsTotal: wireData.length,
         paymentsConfirmed: confirmed,
         escrowStatus: escrow.data?.status || null,
