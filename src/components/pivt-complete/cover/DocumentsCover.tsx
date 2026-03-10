@@ -541,11 +541,11 @@ export const DocumentsCover: React.FC = () => {
       {/* Metrics */}
       <div className="grid grid-cols-5 gap-4">
         {[
-          { label: 'Total Documents', value: metrics.total, icon: FileText, color: '' },
-          { label: 'Processed', value: metrics.processed, icon: CheckCircle2, color: 'text-validated' },
-          { label: 'Pending', value: metrics.pending, icon: Clock, color: 'text-discrepancy' },
-          { label: 'Validation Flags', value: metrics.flags, icon: AlertTriangle, color: metrics.flags > 0 ? 'text-destructive' : 'text-validated' },
-          { label: 'Extracted Fields', value: metrics.entities, icon: Search, color: 'text-accent' },
+          { label: 'Total Documents', value: metrics.total, icon: FileText, color: '', subtitle: metrics.seeded > 0 ? `${metrics.userUploaded} uploaded · ${metrics.seeded} seeded` : undefined },
+          { label: 'Processed', value: metrics.processed, icon: CheckCircle2, color: 'text-validated', subtitle: undefined },
+          { label: 'Pending', value: metrics.pending, icon: Clock, color: 'text-discrepancy', subtitle: undefined },
+          { label: 'Validation Flags', value: metrics.flags, icon: AlertTriangle, color: metrics.flags > 0 ? 'text-destructive' : 'text-validated', subtitle: undefined },
+          { label: 'Extracted Fields', value: metrics.entities, icon: Search, color: 'text-accent', subtitle: undefined },
         ].map(card => (
           <motion.div key={card.label} {...fadeInUp} className="pivt-card p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -553,6 +553,7 @@ export const DocumentsCover: React.FC = () => {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{card.label}</p>
             </div>
             <p className={`font-mono text-xl font-semibold ${card.color}`}>{card.value}</p>
+            {card.subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{card.subtitle}</p>}
           </motion.div>
         ))}
       </div>
