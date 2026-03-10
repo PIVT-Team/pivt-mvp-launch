@@ -190,6 +190,9 @@ export const DealActivityCover: React.FC = () => {
             ))}
           </div>
 
+          {/* ── Workflow Orchestration View ── */}
+          {view === 'orchestration' && <WorkflowActivityFeed />}
+
           {/* ── Timeline View ── */}
           {view === 'timeline' && (
             <div className="space-y-3">
