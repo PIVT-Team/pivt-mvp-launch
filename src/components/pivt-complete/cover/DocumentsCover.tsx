@@ -223,14 +223,16 @@ export const DocumentsCover: React.FC = () => {
     setDocuments(unique);
   };
 
-  // ── Metrics ──
+  // ── Metrics with provenance ──
   const metrics = useMemo(() => {
     const total = documents.length;
     const processed = documents.filter(d => d.status === 'processed' || d.status === 'verified').length;
     const pending = documents.filter(d => d.status === 'pending_review' || d.status === 'processing').length;
     const flags = documents.reduce((acc, d) => acc + (d.validation_flags?.length || 0), 0);
     const entities = documents.reduce((acc, d) => acc + Object.keys(d.extracted_fields || {}).length, 0);
-    return { total, processed, pending, flags, entities };
+    const userUploaded = documents.filter(d => d.uploaded_by !== 'System').length;
+    const seeded = documents.filter(d => d.uploaded_by === 'System').length;
+    return { total, processed, pending, flags, entities, userUploaded, seeded };
   }, [documents]);
 
   const filteredDocs = useMemo(() => {
