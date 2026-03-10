@@ -223,11 +223,14 @@ export const WireInstructions: React.FC = () => {
   }, [deleteTarget, fetchDocs]);
 
   /* ── View ── */
-  const handleView = useCallback((doc: WireDoc) => {
-    if (doc.file_url) {
-      window.open(doc.file_url, '_blank');
+  const handleView = useCallback(async (doc: WireDoc) => {
+    if (!doc.file_url) { toast.error('No file URL available for this document.'); return; }
+    if (!doc.file_url.startsWith('http')) {
+      const { data, error } = await supabase.storage.from('deal-documents').createSignedUrl(doc.file_url, 3600);
+      if (error || !data?.signedUrl) { toast.error('Could not generate download link.'); return; }
+      window.open(data.signedUrl, '_blank');
     } else {
-      toast.error('No file URL available for this document.');
+      window.open(doc.file_url, '_blank');
     }
   }, []);
 
