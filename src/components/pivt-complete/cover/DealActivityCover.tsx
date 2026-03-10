@@ -56,7 +56,7 @@ function mapEventToCategory(eventType: string): string {
 
 export const DealActivityCover: React.FC = () => {
   const { dealId } = useDealWorkspace();
-  const [view, setView] = useState<ActivityView>('timeline');
+  const [view, setView] = useState<ActivityView>('orchestration');
   const [timelineFilter, setTimelineFilter] = useState<string>('all');
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
