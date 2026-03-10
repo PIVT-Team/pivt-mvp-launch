@@ -2462,6 +2462,10 @@ export type Database = {
         | "TEXT_EXTRACTED"
         | "EXTRACTION_COMPLETE"
         | "ERROR"
+        | "PROCESSING"
+        | "PARSED"
+        | "PARSE_FAILED"
+        | "VERIFIED"
       contract_doc_type:
         | "SPA"
         | "FUNDS_FLOW"
@@ -2486,6 +2490,20 @@ export type Database = {
         | "THIRD_PARTY_CONSENT"
         | "W9"
         | "GOOD_STANDING"
+        | "SIDE_LETTER"
+        | "EARNOUT"
+        | "WATERFALL_MODEL"
+        | "PURCHASE_PRICE_ALLOCATION"
+        | "ESCROW_ALLOCATION"
+        | "DISTRIBUTION_SCHEDULE"
+        | "BOARD_RESOLUTION"
+        | "SHAREHOLDER_APPROVAL"
+        | "WRITTEN_CONSENT"
+        | "W8BEN"
+        | "W8BENE"
+        | "FATCA"
+        | "WITHHOLDING"
+        | "TAX_RESIDENCY"
       deal_execution_role: "VIEWER" | "EDITOR" | "APPROVER" | "EXECUTOR"
       deal_kind: "demo" | "template" | "live"
       deal_member_role:
@@ -2776,6 +2794,10 @@ export const Constants = {
         "TEXT_EXTRACTED",
         "EXTRACTION_COMPLETE",
         "ERROR",
+        "PROCESSING",
+        "PARSED",
+        "PARSE_FAILED",
+        "VERIFIED",
       ],
       contract_doc_type: [
         "SPA",
@@ -2801,6 +2823,20 @@ export const Constants = {
         "THIRD_PARTY_CONSENT",
         "W9",
         "GOOD_STANDING",
+        "SIDE_LETTER",
+        "EARNOUT",
+        "WATERFALL_MODEL",
+        "PURCHASE_PRICE_ALLOCATION",
+        "ESCROW_ALLOCATION",
+        "DISTRIBUTION_SCHEDULE",
+        "BOARD_RESOLUTION",
+        "SHAREHOLDER_APPROVAL",
+        "WRITTEN_CONSENT",
+        "W8BEN",
+        "W8BENE",
+        "FATCA",
+        "WITHHOLDING",
+        "TAX_RESIDENCY",
       ],
       deal_execution_role: ["VIEWER", "EDITOR", "APPROVER", "EXECUTOR"],
       deal_kind: ["demo", "template", "live"],

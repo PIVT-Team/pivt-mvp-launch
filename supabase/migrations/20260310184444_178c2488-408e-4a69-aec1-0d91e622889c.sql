@@ -1,0 +1,15 @@
+-- Add missing enum values to contract_doc_type
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'SIDE_LETTER';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'EARNOUT';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'WATERFALL_MODEL';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'PURCHASE_PRICE_ALLOCATION';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'ESCROW_ALLOCATION';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'DISTRIBUTION_SCHEDULE';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'BOARD_RESOLUTION';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'SHAREHOLDER_APPROVAL';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'WRITTEN_CONSENT';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'W8BEN';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'W8BENE';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'FATCA';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'WITHHOLDING';
+ALTER TYPE public.contract_doc_type ADD VALUE IF NOT EXISTS 'TAX_RESIDENCY';
