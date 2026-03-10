@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.manual-verify]
 verify_jwt = false
+
+[functions.deal-workflow-orchestrator]
+verify_jwt = false

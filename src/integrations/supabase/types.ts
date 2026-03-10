@@ -1823,6 +1823,70 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_allocations: {
+        Row: {
+          allocation_type: string
+          amount: number
+          created_at: string
+          currency: string
+          deal_id: string
+          id: string
+          recipient: string
+          source_document_id: string | null
+          source_wire_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_type?: string
+          amount?: number
+          created_at?: string
+          currency?: string
+          deal_id: string
+          id?: string
+          recipient: string
+          source_document_id?: string | null
+          source_wire_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_type?: string
+          amount?: number
+          created_at?: string
+          currency?: string
+          deal_id?: string
+          id?: string
+          recipient?: string
+          source_document_id?: string | null
+          source_wire_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_allocations_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_allocations_source_wire_id_fkey"
+            columns: ["source_wire_id"]
+            isOneToOne: false
+            referencedRelation: "wire_instructions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_instructions: {
         Row: {
           amount: number
@@ -2498,6 +2562,87 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wire_instructions: {
+        Row: {
+          account_holder: string | null
+          account_number_last4: string | null
+          amount: number
+          bank_name: string | null
+          created_at: string
+          currency: string
+          deal_id: string
+          iban: string | null
+          id: string
+          payee_entity: string
+          payer_entity: string | null
+          payment_type: string
+          routing_number: string | null
+          source_document_id: string | null
+          swift_bic: string | null
+          updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          account_holder?: string | null
+          account_number_last4?: string | null
+          amount?: number
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          deal_id: string
+          iban?: string | null
+          id?: string
+          payee_entity: string
+          payer_entity?: string | null
+          payment_type?: string
+          routing_number?: string | null
+          source_document_id?: string | null
+          swift_bic?: string | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          account_holder?: string | null
+          account_number_last4?: string | null
+          amount?: number
+          bank_name?: string | null
+          created_at?: string
+          currency?: string
+          deal_id?: string
+          iban?: string | null
+          id?: string
+          payee_entity?: string
+          payer_entity?: string | null
+          payment_type?: string
+          routing_number?: string | null
+          source_document_id?: string | null
+          swift_bic?: string | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wire_instructions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wire_instructions_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
             referencedColumns: ["id"]
           },
         ]

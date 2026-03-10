@@ -59,7 +59,7 @@ export const ReadinessPanel: React.FC = () => {
         supabase.from('contract_documents').select('id, status').eq('deal_id', dealId),
         supabase.from('cap_table_entries').select('id, verification_status').eq('deal_id', dealId),
         supabase.from('obligations').select('id, status').eq('deal_id', dealId),
-        supabase.from('cap_table_entries').select('id, payout_amount, verification_status').eq('deal_id', dealId).gt('payout_amount', 0),
+        supabase.from('wire_instructions').select('id, verification_status').eq('deal_id', dealId),
         supabase.from('tax_forms').select('id, status').eq('deal_id', dealId),
         supabase.from('contract_documents').select('id').eq('deal_id', dealId).in('doc_type', ['BOARD_RESOLUTION', 'SHAREHOLDER_APPROVAL', 'WRITTEN_CONSENT', 'OFFICER_CERTIFICATE'] as any),
       ]);
@@ -76,12 +76,13 @@ export const ReadinessPanel: React.FC = () => {
       const obligationsConfirmed = obligations.filter((o: any) => o.status === 'CONFIRMED').length;
       const wiresVerified = wires.filter((w: any) => w.verification_status === 'verified').length;
       const taxSatisfied = taxForms.filter((t: any) => t.status === 'received' || t.status === 'verified').length;
+      const wiresTotal = wires.length;
 
       setCategories([
         { label: 'Documents Complete', icon: FileText, current: docsComplete, total: Math.max(docs.length, 1), status: deriveStatus(docsComplete, docs.length) },
         { label: 'Stakeholders Verified', icon: Users, current: stakeholdersVerified, total: Math.max(stakeholders.length, 1), status: deriveStatus(stakeholdersVerified, stakeholders.length) },
         { label: 'Obligations Confirmed', icon: Shield, current: obligationsConfirmed, total: Math.max(obligations.length, 1), status: deriveStatus(obligationsConfirmed, obligations.length) },
-        { label: 'Wire Instructions Verified', icon: Landmark, current: wiresVerified, total: Math.max(wires.length, 1), status: deriveStatus(wiresVerified, wires.length) },
+        { label: 'Wire Instructions Verified', icon: Landmark, current: wiresVerified, total: Math.max(wiresTotal, 1), status: deriveStatus(wiresVerified, wiresTotal) },
         { label: 'Tax Forms Collected', icon: FileText, current: taxSatisfied, total: Math.max(taxForms.length, 1), status: deriveStatus(taxSatisfied, taxForms.length) },
         { label: 'Governance Docs Uploaded', icon: Shield, current: govDocs.length, total: Math.max(govDocs.length, 1), status: deriveStatus(govDocs.length, 1) },
       ]);

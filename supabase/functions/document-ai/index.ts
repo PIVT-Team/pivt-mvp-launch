@@ -302,11 +302,18 @@ serve(async (req) => {
         }, { onConflict: "id" });
       }
 
-      // Trigger discrepancy engine after classification (non-blocking)
+      // Trigger workflow orchestrator after classification (non-blocking)
+      // This populates wire_instructions, payment_allocations, runs discrepancy engine
       if (dealId) {
-        adminClient.functions.invoke("discrepancy-engine", {
-          body: { deal_id: dealId },
-        }).catch(() => {}); // fire-and-forget
+        adminClient.functions.invoke("deal-workflow-orchestrator", {
+          body: {
+            deal_id: dealId,
+            document_id: documentId,
+            doc_type: result.doc_type,
+            extracted_fields: result.extracted_fields,
+            action: "process_document",
+          },
+        }).catch((err: any) => console.error("Orchestrator trigger failed:", err));
       }
 
       return new Response(JSON.stringify({ success: true, result }), {
