@@ -24,11 +24,11 @@ import { useAuth } from '@/contexts/AuthContext';
 
 /* ── Constants ── */
 const WIRE_DOC_TYPES = [
-  { value: 'FUNDS_FLOW_MEMO', label: 'Funds Flow Memo' },
-  { value: 'WIRE_SCHEDULE', label: 'Wire Schedule' },
-  { value: 'BANK_INSTRUCTION_LETTER', label: 'Bank Instruction Letter' },
-  { value: 'ESCROW_INSTRUCTIONS', label: 'Escrow Instructions' },
-  { value: 'DEBT_PAYOFF_LETTER', label: 'Debt Payoff Letter' },
+  { value: 'FUNDS_FLOW', label: 'Funds Flow Memo' },
+  { value: 'WIRE_INSTRUCTIONS', label: 'Wire Schedule' },
+  { value: 'WIRE_AUTHORIZATION', label: 'Bank Instruction Letter' },
+  { value: 'ESCROW_AGREEMENT', label: 'Escrow Instructions' },
+  { value: 'PAYOFF_LETTER', label: 'Debt Payoff Letter' },
 ] as const;
 
 const ACCEPTED_MIME_TYPES = [
