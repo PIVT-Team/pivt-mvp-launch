@@ -59,7 +59,7 @@ export const ReadinessPanel: React.FC = () => {
         supabase.from('contract_documents').select('id, status').eq('deal_id', dealId),
         supabase.from('cap_table_entries').select('id, verification_status').eq('deal_id', dealId),
         supabase.from('obligations').select('id, status').eq('deal_id', dealId),
-        supabase.from('cap_table_entries').select('id, payout_amount, verification_status').eq('deal_id', dealId).gt('payout_amount', 0),
+        supabase.from('wire_instructions').select('id, verification_status').eq('deal_id', dealId),
         supabase.from('tax_forms').select('id, status').eq('deal_id', dealId),
         supabase.from('contract_documents').select('id').eq('deal_id', dealId).in('doc_type', ['BOARD_RESOLUTION', 'SHAREHOLDER_APPROVAL', 'WRITTEN_CONSENT', 'OFFICER_CERTIFICATE'] as any),
       ]);
