@@ -820,14 +820,14 @@ export const DealWorkspaceCover: React.FC = () => {
   const dealStatus = realDeal?.status || demoDeal.status;
   const hasBlocker = isDemoDeal && demoDeal.hasBlocker;
   // Compute readiness from deal summary
+  // Readiness always derived from DB — no demo fallback
   const readyPct = useMemo(() => {
-    if (isDemoDeal) return demoDeal.readyToPayPercent;
     if (!dealSummary) return 0;
     const total = dealSummary.conditionsTotal + dealSummary.approvalsTotal + dealSummary.paymentsTotal;
     if (total === 0) return 0;
     const done = dealSummary.conditionsSatisfied + dealSummary.approvalsApproved + dealSummary.paymentsConfirmed;
     return Math.round((done / total) * 100);
-  }, [isDemoDeal, dealSummary, demoDeal.readyToPayPercent]);
+  }, [dealSummary]);
 
   // ── Progress Ribbon Data ──
   // All progress data is now computed from DB queries — no hardcoded demo values.
