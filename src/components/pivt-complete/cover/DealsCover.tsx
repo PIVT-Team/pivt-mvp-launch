@@ -79,29 +79,20 @@ const fmt = (n: number) => {
 
 const PROGRESS_BAR_STYLE = 'bg-gradient-to-r from-accent to-[hsl(217,100%,55%)]';
 
-// Golden demo summaries — derived from actual seeded data in demo-reset.
-// Counts here MUST match the canonical demo data seeded into the database.
-// Atlas: 12 stakeholders (8 equity + 4 parties), 20 docs, 8 cap table (equity holders)
-// Beacon: 10 stakeholders (6 equity + 4 parties), 15 docs, 6 cap table (equity holders)
-// Cipher: 14 stakeholders (10 equity + 4 parties), 24 docs, 10 cap table (equity holders)
-const DEMO_GOLDEN_SUMMARIES: Record<string, DealSummaryCounts & { buyerBorrower: string; sector: string; dealKindTags: string[]; funded: number; fundedPct: number; waterfallTiers: number }> = {
+// Demo narrative metadata — enrichment that isn't stored in the DB
+// All counts (parties, docs, cap table) are now derived from fetchDealSummaries.
+const DEMO_NARRATIVE: Record<string, { buyerBorrower: string; sector: string; dealKindTags: string[]; funded: number; fundedPct: number }> = {
   atlas_demo: {
-    deal_id: '', partiesCount: 12, docsCount: 20, capTableCount: 8, waterfallTiers: 0,
-    conditionsMet: 9, conditionsTotal: 9, approvalsGranted: 0, approvalsTotal: 0,
     buyerBorrower: 'Apex Capital Partners', sector: 'Enterprise SaaS',
     dealKindTags: ['M&A', 'Acquisition'],
     funded: 109_700_000, fundedPct: 77,
   },
   beacon_demo: {
-    deal_id: '', partiesCount: 10, docsCount: 15, capTableCount: 6, waterfallTiers: 0,
-    conditionsMet: 0, conditionsTotal: 0, approvalsGranted: 0, approvalsTotal: 0,
     buyerBorrower: 'Meridian Holdings', sector: 'Cybersecurity',
     dealKindTags: ['M&A', 'Acquisition'],
     funded: 0, fundedPct: 0,
   },
   cipher_demo: {
-    deal_id: '', partiesCount: 14, docsCount: 24, capTableCount: 10, waterfallTiers: 0,
-    conditionsMet: 0, conditionsTotal: 0, approvalsGranted: 0, approvalsTotal: 0,
     buyerBorrower: 'Titan Strategic Group', sector: 'Artificial Intelligence',
     dealKindTags: ['M&A', 'Acquisition'],
     funded: 0, fundedPct: 0,
@@ -121,22 +112,23 @@ const DealCard: React.FC<{
   const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
   const letter = deal.deal_name.charAt(0).toUpperCase();
   const seedKey = (deal as any).seed_key as string | null;
-  const goldenDemo = isDemo && seedKey ? DEMO_GOLDEN_SUMMARIES[seedKey] : null;
+  const narrative = isDemo && seedKey ? DEMO_NARRATIVE[seedKey] : null;
 
-  const partiesCount = goldenDemo?.partiesCount ?? summary?.partiesCount ?? 0;
-  const docsCount = goldenDemo?.docsCount ?? summary?.docsCount ?? 0;
-  const capTableCount = goldenDemo?.capTableCount ?? summary?.capTableCount ?? 0;
-  const tierCount = goldenDemo?.waterfallTiers ?? summary?.waterfallTiers ?? 0;
-  const sector = goldenDemo?.sector || (deal as any).sector || '—';
-  const buyerBorrower = goldenDemo?.buyerBorrower || (deal as any).buyer || '—';
+  // All counts derived from DB summaries — same source for demo and live deals
+  const partiesCount = summary?.partiesCount ?? 0;
+  const docsCount = summary?.docsCount ?? 0;
+  const capTableCount = summary?.capTableCount ?? 0;
+  const tierCount = summary?.waterfallTiers ?? 0;
+  const sector = narrative?.sector || (deal as any).sector || '—';
+  const buyerBorrower = narrative?.buyerBorrower || (deal as any).buyer || '—';
   const dealType = (deal as any).deal_type || '';
-  const dealKindTags = goldenDemo?.dealKindTags || (dealType ? [dealType] : []);
-  const funded = goldenDemo?.funded ?? 0;
-  const fundedPct = goldenDemo?.fundedPct ?? 0;
+  const dealKindTags = narrative?.dealKindTags || (dealType ? [dealType] : []);
+  const funded = narrative?.funded ?? 0;
+  const fundedPct = narrative?.fundedPct ?? 0;
 
-  // For non-demo deals, use conditions-based progress
-  const conditionsMet = goldenDemo?.conditionsMet ?? summary?.conditionsMet ?? 0;
-  const conditionsTotal = goldenDemo?.conditionsTotal ?? summary?.conditionsTotal ?? 0;
+  // Conditions-based progress from DB
+  const conditionsMet = summary?.conditionsMet ?? 0;
+  const conditionsTotal = summary?.conditionsTotal ?? 0;
 
   return (
     <motion.div
