@@ -1,22 +1,28 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
   Upload, CheckCircle2, Clock, Plus, Landmark, Building2,
-  FileSpreadsheet, Table2, X, Loader2,
+  FileSpreadsheet, Table2, X, Loader2, Trash2, RefreshCw, Eye,
+  AlertCircle, FileText,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 
-/* ── Document types ── */
+/* ── Constants ── */
 const WIRE_DOC_TYPES = [
   { value: 'FUNDS_FLOW_MEMO', label: 'Funds Flow Memo' },
   { value: 'WIRE_SCHEDULE', label: 'Wire Schedule' },
@@ -24,6 +30,16 @@ const WIRE_DOC_TYPES = [
   { value: 'ESCROW_INSTRUCTIONS', label: 'Escrow Instructions' },
   { value: 'DEBT_PAYOFF_LETTER', label: 'Debt Payoff Letter' },
 ] as const;
+
+const ACCEPTED_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+];
+const ACCEPTED_EXTENSIONS = '.pdf,.doc,.docx,.xlsx';
+const MAX_FILE_SIZE_MB = 25;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
 
 const PAYMENT_TYPES = [
   'Purchase Price', 'Escrow', 'Fees', 'Debt Payoff', 'Bonus', 'Equity Payout', 'Advisory Fee',
@@ -38,6 +54,7 @@ interface WireDoc {
   id: string;
   doc_type: string;
   filename: string;
+  file_url: string | null;
   status: string;
   uploaded_at: string;
 }
@@ -65,70 +82,154 @@ const statusIcon = (s: string) =>
   s === 'Verified' || s === 'verified' ? <CheckCircle2 className="w-3 h-3" /> :
   <Clock className="w-3 h-3" />;
 
-const formatAmount = (v: number, currency = 'USD') => {
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `$${(v / 1_000).toFixed(0)}K`;
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(v);
-};
-
 /* ── Component ── */
 export const WireInstructions: React.FC = () => {
   const { dealId, isDemoDeal, realDeal } = useDealWorkspace();
+  const { user } = useAuth();
 
   const [docs, setDocs] = useState<WireDoc[]>([]);
   const [selectedDocType, setSelectedDocType] = useState('FUNDS_FLOW_MEMO');
   const [wires, setWires] = useState<WireInstruction[]>([]);
   const [showAddWire, setShowAddWire] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<WireDoc | null>(null);
+  const [replaceTarget, setReplaceTarget] = useState<WireDoc | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   const [newWire, setNewWire] = useState<Omit<WireInstruction, 'id' | 'status'>>({
     stakeholder: '', payment_type: 'Purchase Price', amount: '', currency: 'USD',
     bank_name: '', account_name: '', account_number: '', routing_aba: '', swift_iban: '',
   });
 
-  // Fetch deal-scoped wire instruction documents only (no auto-population from stakeholders)
-  useEffect(() => {
-    if (!dealId) {
-      setLoading(false);
-      return;
-    }
-    const fetchData = async () => {
-      setLoading(true);
-
-      // Only fetch wire-related documents uploaded for this deal
-      const { data: wireDocs } = await supabase
-        .from('contract_documents')
-        .select('id, doc_type, filename, status, uploaded_at')
-        .eq('deal_id', dealId)
-        .in('doc_type', ['FUNDS_FLOW_MEMO', 'WIRE_SCHEDULE', 'BANK_INSTRUCTION_LETTER', 'ESCROW_INSTRUCTIONS', 'DEBT_PAYOFF_LETTER'] as any);
-
-      // Wire docs from contract_documents
-      setDocs((wireDocs || []).map((d: any) => ({
-        id: d.id,
-        doc_type: d.doc_type,
-        filename: d.filename,
-        status: d.status,
-        uploaded_at: d.uploaded_at,
-      })));
-
-      // Wire instructions start empty — only user-entered or document-extracted instructions
-      setWires([]);
-      setLoading(false);
-    };
-    fetchData();
+  const fetchDocs = useCallback(async () => {
+    if (!dealId) { setLoading(false); return; }
+    setLoading(true);
+    const { data: wireDocs } = await supabase
+      .from('contract_documents')
+      .select('id, doc_type, filename, file_url, status, uploaded_at')
+      .eq('deal_id', dealId)
+      .in('doc_type', ['FUNDS_FLOW_MEMO', 'WIRE_SCHEDULE', 'BANK_INSTRUCTION_LETTER', 'ESCROW_INSTRUCTIONS', 'DEBT_PAYOFF_LETTER'] as any);
+    setDocs((wireDocs || []).map((d: any) => ({
+      id: d.id, doc_type: d.doc_type, filename: d.filename, file_url: d.file_url,
+      status: d.status, uploaded_at: d.uploaded_at,
+    })));
+    setWires([]);
+    setLoading(false);
   }, [dealId]);
 
-  const handleDocUpload = useCallback(() => {
-    const label = WIRE_DOC_TYPES.find(t => t.value === selectedDocType)?.label || selectedDocType;
-    const newDoc: WireDoc = {
-      id: `wd-${Date.now()}`,
-      doc_type: selectedDocType,
-      filename: `${label.replace(/\s/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`,
-      status: 'UPLOADED',
-      uploaded_at: new Date().toISOString(),
-    };
-    setDocs(prev => [...prev, newDoc]);
-    toast.success(`Uploaded: ${newDoc.filename}`);
-  }, [selectedDocType]);
+  useEffect(() => { fetchDocs(); }, [fetchDocs]);
+
+  /* ── Real file upload ── */
+  const uploadFile = useCallback(async (file: File, docType: string, replacingDocId?: string) => {
+    if (!dealId || !user) {
+      toast.error('You must be signed in to upload documents.');
+      return;
+    }
+
+    // Validate type
+    if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
+      toast.error('This file type is not supported. Please upload a PDF, DOC, DOCX, or XLSX file.');
+      return;
+    }
+    // Validate size
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      toast.error(`File exceeds maximum size limit (${MAX_FILE_SIZE_MB}MB).`);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const ext = file.name.split('.').pop() || 'pdf';
+      const storagePath = `${dealId}/${docType}_${Date.now()}.${ext}`;
+
+      // Upload to storage
+      const { error: storageError } = await supabase.storage
+        .from('deal-documents')
+        .upload(storagePath, file, { upsert: false });
+      if (storageError) throw storageError;
+
+      const { data: urlData } = supabase.storage.from('deal-documents').getPublicUrl(storagePath);
+      const fileUrl = urlData?.publicUrl || storagePath;
+
+      if (replacingDocId) {
+        // Update existing record
+        const { error: updateError } = await supabase
+          .from('contract_documents')
+          .update({
+            filename: file.name,
+            file_url: fileUrl,
+            status: 'UPLOADED' as any,
+            uploaded_at: new Date().toISOString(),
+          } as any)
+          .eq('id', replacingDocId);
+        if (updateError) throw updateError;
+        toast.success('Funds flow memo updated successfully');
+      } else {
+        // Insert new record
+        const { error: insertError } = await supabase
+          .from('contract_documents')
+          .insert({
+            deal_id: dealId,
+            doc_type: docType as any,
+            filename: file.name,
+            file_url: fileUrl,
+            status: 'UPLOADED' as any,
+            uploaded_by: user.id,
+          } as any);
+        if (insertError) throw insertError;
+        toast.success(`Uploaded: ${file.name}`);
+      }
+
+      await fetchDocs();
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      toast.error('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  }, [dealId, user, fetchDocs]);
+
+  const handleFileSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file, selectedDocType);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [selectedDocType, uploadFile]);
+
+  const handleReplaceFileSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && replaceTarget) uploadFile(file, replaceTarget.doc_type, replaceTarget.id);
+    if (replaceInputRef.current) replaceInputRef.current.value = '';
+    setReplaceTarget(null);
+  }, [replaceTarget, uploadFile]);
+
+  /* ── Delete ── */
+  const handleDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    try {
+      const { error } = await supabase
+        .from('contract_documents')
+        .delete()
+        .eq('id', deleteTarget.id);
+      if (error) throw error;
+      toast.success('Funds flow memo deleted successfully');
+      await fetchDocs();
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      toast.error('Failed to delete document. Please try again.');
+    } finally {
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget, fetchDocs]);
+
+  /* ── View ── */
+  const handleView = useCallback((doc: WireDoc) => {
+    if (doc.file_url) {
+      window.open(doc.file_url, '_blank');
+    } else {
+      toast.error('No file URL available for this document.');
+    }
+  }, []);
 
   const getDocLabel = (type: string) => WIRE_DOC_TYPES.find(t => t.value === type)?.label || type;
 
@@ -143,6 +244,13 @@ export const WireInstructions: React.FC = () => {
     toast.success('Wire instruction added');
   }, [newWire]);
 
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return '';
+    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
+    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(0)} KB`;
+    return `${bytes} B`;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -153,6 +261,10 @@ export const WireInstructions: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Hidden file inputs */}
+      <input ref={fileInputRef} type="file" accept={ACCEPTED_EXTENSIONS} className="hidden" onChange={handleFileSelected} />
+      <input ref={replaceInputRef} type="file" accept={ACCEPTED_EXTENSIONS} className="hidden" onChange={handleReplaceFileSelected} />
+
       <motion.div {...fadeInUp}>
         <h2 className="text-xl font-semibold" style={{ letterSpacing: '-0.03em' }}>Wire Instructions</h2>
         <p className="text-sm text-muted-foreground mt-1">Payment destination information derived from funds flow memoranda or wire schedules.</p>
@@ -176,36 +288,69 @@ export const WireInstructions: React.FC = () => {
                 {WIRE_DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
-            <Button onClick={handleDocUpload} className="gap-1.5"><Upload className="w-3.5 h-3.5" /> Upload</Button>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="gap-1.5"
+            >
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              {uploading ? 'Uploading…' : 'Upload'}
+            </Button>
           </div>
 
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/30">
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Filename</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Uploaded</th>
-              </tr>
-            </thead>
-            <tbody>
-              {docs.map(doc => (
-                <tr key={doc.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-2.5 font-medium flex items-center gap-2">
-                    <Table2 className="w-4 h-4 text-emerald-500 shrink-0" />{doc.filename}
-                  </td>
-                  <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{getDocLabel(doc.doc_type)}</Badge></td>
-                  <td className="px-4 py-2.5">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${doc.status === 'PARSED' || doc.status === 'EXTRACTION_COMPLETE' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/60 text-muted-foreground'}`}>
-                      {doc.status === 'PARSED' || doc.status === 'EXTRACTION_COMPLETE' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+          {docs.length > 0 ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border/30">
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Filename</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
+                  <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Uploaded</th>
+                  <th className="text-right px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</th>
                 </tr>
-              ))}
-              {docs.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground text-sm">No wire instruction documents uploaded yet.</td></tr>}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {docs.map(doc => (
+                  <tr key={doc.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
+                    <td className="px-4 py-2.5 font-medium flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-emerald-500 shrink-0" />{doc.filename}
+                    </td>
+                    <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{getDocLabel(doc.doc_type)}</Badge></td>
+                    <td className="px-4 py-2.5">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${doc.status === 'PARSED' || doc.status === 'EXTRACTION_COMPLETE' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-muted/60 text-muted-foreground'}`}>
+                        {doc.status === 'PARSED' || doc.status === 'EXTRACTION_COMPLETE' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <div className="inline-flex items-center gap-1">
+                        {doc.file_url && (
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleView(doc)} title="View">
+                            <Eye className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setReplaceTarget(doc); replaceInputRef.current?.click(); }} title="Replace">
+                          <RefreshCw className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(doc)} title="Delete">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FileSpreadsheet className="w-10 h-10 text-muted-foreground/40 mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">No wire instruction documents uploaded yet.</p>
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
+                {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                Upload Funds Flow Memo
+              </Button>
+            </div>
+          )}
         </div>
       </motion.div>
 
@@ -275,6 +420,24 @@ export const WireInstructions: React.FC = () => {
           <div><Label className="text-xs text-muted-foreground">SWIFT / IBAN</Label><Input placeholder="CHASUS33" className="mt-1.5" /></div>
         </div>
       </motion.div>
+
+      {/* ── Delete Confirmation ── */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Document</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this funds flow memo? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Add Wire Instruction Dialog ── */}
       <Dialog open={showAddWire} onOpenChange={setShowAddWire}>
