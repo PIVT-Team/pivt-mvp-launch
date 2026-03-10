@@ -127,8 +127,8 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
         .upload(storagePath, file, { upsert: false });
       if (storageError) throw storageError;
 
-      const { data: urlData } = supabase.storage.from('deal-documents').getPublicUrl(storagePath);
-      const fileUrl = urlData?.publicUrl || storagePath;
+      // Store the storage path (bucket is private, use signed URLs for viewing)
+      const fileUrl = storagePath;
 
       if (replacingDocId) {
         const { error: updateError } = await supabase
@@ -188,9 +188,16 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
     }
   }, [deleteTarget, fetchDocs]);
 
-  const handleView = useCallback((doc: UploadedDoc) => {
-    if (doc.file_url) window.open(doc.file_url, '_blank');
-    else toast.error('No file URL available for this document.');
+  const handleView = useCallback(async (doc: UploadedDoc) => {
+    if (!doc.file_url) { toast.error('No file URL available for this document.'); return; }
+    // If it's a storage path (not a full URL), create a signed URL
+    if (!doc.file_url.startsWith('http')) {
+      const { data, error } = await supabase.storage.from('deal-documents').createSignedUrl(doc.file_url, 3600);
+      if (error || !data?.signedUrl) { toast.error('Could not generate download link.'); return; }
+      window.open(data.signedUrl, '_blank');
+    } else {
+      window.open(doc.file_url, '_blank');
+    }
   }, []);
 
   const getLabel = (type: string) => docTypes.find(t => t.value === type)?.label || type;
