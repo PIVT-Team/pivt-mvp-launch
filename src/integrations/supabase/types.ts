@@ -400,33 +400,87 @@ export type Database = {
       deal_approvals: {
         Row: {
           approval_side: string
+          approval_type: string | null
+          approver_email: string | null
+          approver_name: string | null
+          approver_role: string | null
+          blocker_reason: string | null
           comment: string | null
+          completed_at: string | null
           created_at: string
           deal_id: string
+          declined_at: string | null
+          delivery_method: string | null
+          envelope_id: string | null
+          expired_at: string | null
           id: string
+          last_reminder_at: string | null
+          recipient_id_ds: string | null
+          related_document_id: string | null
+          reminder_count: number | null
+          required: boolean | null
+          sent_at: string | null
+          signed_document_url: string | null
           status: string
           updated_at: string
           user_id: string
+          viewed_at: string | null
         }
         Insert: {
           approval_side: string
+          approval_type?: string | null
+          approver_email?: string | null
+          approver_name?: string | null
+          approver_role?: string | null
+          blocker_reason?: string | null
           comment?: string | null
+          completed_at?: string | null
           created_at?: string
           deal_id: string
+          declined_at?: string | null
+          delivery_method?: string | null
+          envelope_id?: string | null
+          expired_at?: string | null
           id?: string
+          last_reminder_at?: string | null
+          recipient_id_ds?: string | null
+          related_document_id?: string | null
+          reminder_count?: number | null
+          required?: boolean | null
+          sent_at?: string | null
+          signed_document_url?: string | null
           status?: string
           updated_at?: string
           user_id: string
+          viewed_at?: string | null
         }
         Update: {
           approval_side?: string
+          approval_type?: string | null
+          approver_email?: string | null
+          approver_name?: string | null
+          approver_role?: string | null
+          blocker_reason?: string | null
           comment?: string | null
+          completed_at?: string | null
           created_at?: string
           deal_id?: string
+          declined_at?: string | null
+          delivery_method?: string | null
+          envelope_id?: string | null
+          expired_at?: string | null
           id?: string
+          last_reminder_at?: string | null
+          recipient_id_ds?: string | null
+          related_document_id?: string | null
+          reminder_count?: number | null
+          required?: boolean | null
+          sent_at?: string | null
+          signed_document_url?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          viewed_at?: string | null
         }
         Relationships: [
           {
@@ -1035,6 +1089,62 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      docusign_connections: {
+        Row: {
+          access_token: string | null
+          account_id: string | null
+          account_name: string | null
+          base_uri: string | null
+          created_at: string
+          deal_id: string | null
+          email: string | null
+          id: string
+          refresh_token: string | null
+          status: string
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          base_uri?: string | null
+          created_at?: string
+          deal_id?: string | null
+          email?: string | null
+          id?: string
+          refresh_token?: string | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          account_id?: string | null
+          account_name?: string | null
+          base_uri?: string | null
+          created_at?: string
+          deal_id?: string | null
+          email?: string | null
+          id?: string
+          refresh_token?: string | null
+          status?: string
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "docusign_connections_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       escrow_accounts: {
         Row: {
