@@ -2462,6 +2462,10 @@ export type Database = {
         | "TEXT_EXTRACTED"
         | "EXTRACTION_COMPLETE"
         | "ERROR"
+        | "PROCESSING"
+        | "PARSED"
+        | "PARSE_FAILED"
+        | "VERIFIED"
       contract_doc_type:
         | "SPA"
         | "FUNDS_FLOW"
@@ -2790,6 +2794,10 @@ export const Constants = {
         "TEXT_EXTRACTED",
         "EXTRACTION_COMPLETE",
         "ERROR",
+        "PROCESSING",
+        "PARSED",
+        "PARSE_FAILED",
+        "VERIFIED",
       ],
       contract_doc_type: [
         "SPA",
