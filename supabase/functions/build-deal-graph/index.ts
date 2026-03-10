@@ -229,6 +229,49 @@ Deno.serve(async (req) => {
       edgeDefs.push({ from_source: tf.recipient_id, to_source: tf.id, edge_type: "HAS_TAX_FORM" });
     }
 
+    // 11. Wire Instructions — graph entities from extracted payment data
+    const { data: wireInstructions } = await supabase.from("wire_instructions").select("*").eq("deal_id", deal_id);
+    for (const w of wireInstructions || []) {
+      const wStatus = w.verification_status === "verified" ? "complete" : "in_progress";
+      nodes.push({
+        node_type: "wire_instruction",
+        label: `Wire → ${w.payee_entity} ($${Number(w.amount).toLocaleString()})`,
+        status: wStatus,
+        metadata: {
+          payee: w.payee_entity, payer: w.payer_entity, amount: w.amount,
+          payment_type: w.payment_type, verification_status: w.verification_status,
+          source_document_id: w.source_document_id,
+        },
+        source_entity_id: w.id,
+      });
+      edgeDefs.push({ from_source: deal.id, to_source: w.id, edge_type: "HAS_WIRE" });
+      if (w.source_document_id) {
+        edgeDefs.push({ from_source: w.id, to_source: w.source_document_id, edge_type: "DERIVED_FROM_DOCUMENT" });
+      }
+    }
+
+    // 12. Payment Allocations — linked to wires and documents
+    const { data: payAllocs } = await supabase.from("payment_allocations").select("*").eq("deal_id", deal_id);
+    for (const pa of payAllocs || []) {
+      const paStatus = pa.status === "matched" ? "complete" : "in_progress";
+      nodes.push({
+        node_type: "payment_allocation",
+        label: `${pa.allocation_type} → ${pa.recipient} ($${Number(pa.amount).toLocaleString()})`,
+        status: paStatus,
+        metadata: {
+          recipient: pa.recipient, amount: pa.amount, allocation_type: pa.allocation_type,
+          status: pa.status, source_document_id: pa.source_document_id,
+        },
+        source_entity_id: pa.id,
+      });
+      if (pa.source_wire_id) {
+        edgeDefs.push({ from_source: pa.source_wire_id, to_source: pa.id, edge_type: "ALLOCATES_TO" });
+      }
+      if (pa.source_document_id) {
+        edgeDefs.push({ from_source: pa.id, to_source: pa.source_document_id, edge_type: "DERIVED_FROM_DOCUMENT" });
+      }
+    }
+
     // ── Upsert: delete old graph, insert new ──
     await supabase.from("graph_edges").delete().eq("deal_id", deal_id);
     await supabase.from("graph_nodes").delete().eq("deal_id", deal_id);

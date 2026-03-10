@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import {
   Shield, CheckCircle2, Clock, AlertTriangle, ArrowRightLeft,
-  Search, FileWarning, RefreshCw, Loader2,
+  Search, FileWarning, Loader2, FileText, Link2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,6 +39,8 @@ interface WireInstruction {
   amount: number;
   payment_type: string;
   verification_status: VerificationStatus;
+  source_document_id: string | null;
+  created_at: string;
 }
 
 interface PaymentAllocation {
@@ -48,6 +50,14 @@ interface PaymentAllocation {
   currency: string;
   allocation_type: string;
   status: string;
+  source_document_id: string | null;
+  source_wire_id: string | null;
+}
+
+interface SourceDoc {
+  id: string;
+  filename: string;
+  doc_type: string;
 }
 
 const formatCurrency = (n: number) =>
@@ -61,6 +71,7 @@ export const PaymentVerificationCover: React.FC = () => {
   const [resolutionNote, setResolutionNote] = useState('');
   const [wireInstructions, setWireInstructions] = useState<WireInstruction[]>([]);
   const [allocations, setAllocations] = useState<PaymentAllocation[]>([]);
+  const [sourceDocs, setSourceDocs] = useState<Map<string, SourceDoc>>(new Map());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,18 +83,36 @@ export const PaymentVerificationCover: React.FC = () => {
       const [wiresRes, allocsRes] = await Promise.all([
         supabase
           .from('wire_instructions')
-          .select('id, payee_entity, payer_entity, bank_name, account_holder, account_number_last4, routing_number, swift_bic, currency, amount, payment_type, verification_status')
+          .select('id, payee_entity, payer_entity, bank_name, account_holder, account_number_last4, routing_number, swift_bic, currency, amount, payment_type, verification_status, source_document_id, created_at')
           .eq('deal_id', dealId)
           .order('created_at', { ascending: true }),
         supabase
           .from('payment_allocations')
-          .select('id, recipient, amount, currency, allocation_type, status')
+          .select('id, recipient, amount, currency, allocation_type, status, source_document_id, source_wire_id')
           .eq('deal_id', dealId)
           .order('created_at', { ascending: true }),
       ]);
 
-      setWireInstructions((wiresRes.data || []) as WireInstruction[]);
-      setAllocations((allocsRes.data || []) as PaymentAllocation[]);
+      const wires = (wiresRes.data || []) as WireInstruction[];
+      const allocs = (allocsRes.data || []) as PaymentAllocation[];
+      setWireInstructions(wires);
+      setAllocations(allocs);
+
+      // Fetch source documents for provenance
+      const docIds = new Set<string>();
+      wires.forEach(w => { if (w.source_document_id) docIds.add(w.source_document_id); });
+      allocs.forEach(a => { if (a.source_document_id) docIds.add(a.source_document_id); });
+
+      if (docIds.size > 0) {
+        const { data: docs } = await supabase
+          .from('contract_documents')
+          .select('id, filename, doc_type')
+          .in('id', Array.from(docIds));
+        const docMap = new Map<string, SourceDoc>();
+        (docs || []).forEach((d: any) => docMap.set(d.id, d));
+        setSourceDocs(docMap);
+      }
+
       setLoading(false);
     };
 
@@ -92,6 +121,7 @@ export const PaymentVerificationCover: React.FC = () => {
 
   const verifiedCount = wireInstructions.filter(w => w.verification_status === 'verified').length;
   const pendingCount = wireInstructions.filter(w => w.verification_status === 'pending' || w.verification_status === 'in_review').length;
+  const rejectedCount = wireInstructions.filter(w => w.verification_status === 'rejected').length;
   const totalCount = wireInstructions.length;
 
   const handleVerify = async (wire: WireInstruction) => {
@@ -103,7 +133,6 @@ export const PaymentVerificationCover: React.FC = () => {
     toast.success(`${wire.payee_entity} verified`);
     setWireInstructions(prev => prev.map(w => w.id === wire.id ? { ...w, verification_status: 'verified' as VerificationStatus } : w));
 
-    // Log audit
     if (dealId) {
       await supabase.from('audit_log').insert({
         deal_id: dealId,
@@ -131,6 +160,21 @@ export const PaymentVerificationCover: React.FC = () => {
     setResolveDialogOpen(false);
   };
 
+  const renderProvenance = (docId: string | null) => {
+    if (!docId) return null;
+    const doc = sourceDocs.get(docId);
+    if (!doc) return null;
+    return (
+      <div className="flex items-center gap-1.5 mt-1">
+        <Link2 className="w-3 h-3 text-muted-foreground" />
+        <span className="text-[10px] text-muted-foreground">
+          Source: <span className="text-foreground/70">{doc.filename}</span>
+        </span>
+        <Badge variant="outline" className="text-[9px] px-1 py-0">{doc.doc_type.replace(/_/g, ' ')}</Badge>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -154,7 +198,7 @@ export const PaymentVerificationCover: React.FC = () => {
           <div>
             <p className="font-medium">No wire instructions to verify</p>
             <p className="text-sm text-muted-foreground mt-1">
-              Upload a Funds Flow Memo in Deal Inputs → Wire Instructions. Parsed payment details will appear here automatically.
+              Upload a Funds Flow Memo in Deal Inputs → Wire Instructions. The orchestrator will automatically parse and populate wire records here.
             </p>
           </div>
         </div>
@@ -169,13 +213,13 @@ export const PaymentVerificationCover: React.FC = () => {
           <ArrowRightLeft className="w-5 h-5 text-accent" />
           Payment Verification
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">Wire instructions, bank details & payment allocation verification</p>
+        <p className="text-sm text-muted-foreground mt-1">Graph-derived wire instructions and payment allocations for verification</p>
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-xs text-muted-foreground font-normal">Total Instructions</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-xs text-muted-foreground font-normal">Total Wires</CardTitle></CardHeader>
           <CardContent><div className="text-2xl font-light">{totalCount}</div></CardContent>
         </Card>
         <Card>
@@ -190,6 +234,13 @@ export const PaymentVerificationCover: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-light">{pendingCount}</div>
             {pendingCount > 0 && <div className="flex items-center gap-1 mt-1"><Clock className="w-3 h-3 text-amber-500" /><span className="text-xs text-amber-500">Awaiting review</span></div>}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-xs text-muted-foreground font-normal">Flagged</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl font-light">{rejectedCount}</div>
+            {rejectedCount > 0 && <div className="flex items-center gap-1 mt-1"><AlertTriangle className="w-3 h-3 text-destructive" /><span className="text-xs text-destructive">Needs attention</span></div>}
           </CardContent>
         </Card>
         <Card>
@@ -225,6 +276,7 @@ export const PaymentVerificationCover: React.FC = () => {
                       <div><span className="text-muted-foreground">Account</span><p className="font-medium mt-0.5">{wire.account_number_last4 ? `••••${wire.account_number_last4}` : '—'}</p></div>
                       <div><span className="text-muted-foreground">Routing / SWIFT</span><p className="font-medium mt-0.5 font-mono">{wire.routing_number || wire.swift_bic || '—'}</p></div>
                     </div>
+                    {renderProvenance(wire.source_document_id)}
                   </div>
                   <div className="flex gap-2 ml-4">
                     {wire.verification_status !== 'verified' && (
@@ -256,18 +308,21 @@ export const PaymentVerificationCover: React.FC = () => {
             </div>
           ) : (
             allocations.map(alloc => (
-              <motion.div key={alloc.id} {...fadeInUp} className="pivt-card p-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{alloc.recipient}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(alloc.amount)} · {alloc.currency} · {alloc.allocation_type.replace(/_/g, ' ')}</p>
+              <motion.div key={alloc.id} {...fadeInUp} className="pivt-card p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{alloc.recipient}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{formatCurrency(alloc.amount)} · {alloc.currency} · {alloc.allocation_type.replace(/_/g, ' ')}</p>
+                    {renderProvenance(alloc.source_document_id)}
+                  </div>
+                  <Badge variant="outline" className={`text-xs ${
+                    alloc.status === 'matched' ? 'text-validated border-validated/20' :
+                    alloc.status === 'unmatched' ? 'text-amber-500 border-amber-500/20' :
+                    'text-muted-foreground border-border'
+                  }`}>
+                    {alloc.status === 'matched' ? '✓ Matched' : alloc.status === 'unmatched' ? '⏳ Pending Match' : alloc.status}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className={`text-xs ${
-                  alloc.status === 'matched' ? 'text-validated border-validated/20' :
-                  alloc.status === 'unmatched' ? 'text-amber-500 border-amber-500/20' :
-                  'text-muted-foreground border-border'
-                }`}>
-                  {alloc.status === 'matched' ? '✓ Matched' : alloc.status === 'unmatched' ? '⏳ Pending Match' : alloc.status}
-                </Badge>
               </motion.div>
             ))
           )}

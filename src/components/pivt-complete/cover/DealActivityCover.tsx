@@ -5,11 +5,12 @@ import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Bell, Clock, MessageSquare, CheckCircle2, AlertTriangle, XCircle, Info,
-  FileText, Users, CreditCard, Shield, Filter, Inbox,
+  FileText, Users, CreditCard, Shield, Filter, Inbox, Activity,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { WorkflowActivityFeed } from './WorkflowActivityFeed';
 
-type ActivityView = 'timeline' | 'discussions';
+type ActivityView = 'orchestration' | 'timeline' | 'discussions';
 
 const categoryConfig = {
   success: { icon: CheckCircle2, color: 'text-validated', bg: 'bg-validated/10', border: 'border-validated/20' },
@@ -55,7 +56,7 @@ function mapEventToCategory(eventType: string): string {
 
 export const DealActivityCover: React.FC = () => {
   const { dealId } = useDealWorkspace();
-  const [view, setView] = useState<ActivityView>('timeline');
+  const [view, setView] = useState<ActivityView>('orchestration');
   const [timelineFilter, setTimelineFilter] = useState<string>('all');
   const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
@@ -140,6 +141,7 @@ export const DealActivityCover: React.FC = () => {
   const timelineCategories = ['all', ...new Set(timeline.map(e => e.category))];
 
   const views: { id: ActivityView; label: string; icon: React.ElementType; count?: number }[] = [
+    { id: 'orchestration', label: 'Workflow', icon: Activity },
     { id: 'timeline', label: 'Timeline', icon: Clock, count: timeline.length },
     { id: 'discussions', label: 'Discussions', icon: MessageSquare, count: discussions.length },
   ];
@@ -187,6 +189,9 @@ export const DealActivityCover: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {/* ── Workflow Orchestration View ── */}
+          {view === 'orchestration' && <WorkflowActivityFeed />}
 
           {/* ── Timeline View ── */}
           {view === 'timeline' && (

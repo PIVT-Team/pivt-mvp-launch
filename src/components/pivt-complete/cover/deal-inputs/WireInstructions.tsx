@@ -140,19 +140,17 @@ export const WireInstructions: React.FC = () => {
 
   useEffect(() => { fetchDocs(); }, [fetchDocs]);
 
-  /* ── Real file upload ── */
+  /* ── Real file upload with AI parsing trigger ── */
   const uploadFile = useCallback(async (file: File, docType: string, replacingDocId?: string) => {
     if (!dealId || !user) {
       toast.error('You must be signed in to upload documents.');
       return;
     }
 
-    // Validate type
     if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
       toast.error('This file type is not supported. Please upload a PDF, DOC, DOCX, or XLSX file.');
       return;
     }
-    // Validate size
     if (file.size > MAX_FILE_SIZE_BYTES) {
       toast.error(`File exceeds maximum size limit (${MAX_FILE_SIZE_MB}MB).`);
       return;
@@ -163,17 +161,15 @@ export const WireInstructions: React.FC = () => {
       const ext = file.name.split('.').pop() || 'pdf';
       const storagePath = `${dealId}/${docType}_${Date.now()}.${ext}`;
 
-      // Upload to storage
       const { error: storageError } = await supabase.storage
         .from('deal-documents')
         .upload(storagePath, file, { upsert: false });
       if (storageError) throw storageError;
 
-      // Store the storage path (bucket is private, use signed URLs for viewing)
       const fileUrl = storagePath;
+      let newDocId = replacingDocId;
 
       if (replacingDocId) {
-        // Update existing record
         const { error: updateError } = await supabase
           .from('contract_documents')
           .update({
@@ -181,13 +177,14 @@ export const WireInstructions: React.FC = () => {
             file_url: fileUrl,
             status: 'UPLOADED' as any,
             uploaded_at: new Date().toISOString(),
+            extracted_fields: {} as any,
+            extraction_confidence: 0,
           } as any)
           .eq('id', replacingDocId);
         if (updateError) throw updateError;
-        toast.success('Funds flow memo updated successfully');
+        toast.success('Document replaced. Starting AI parsing…');
       } else {
-        // Insert new record
-        const { error: insertError } = await supabase
+        const { data: insertData, error: insertError } = await supabase
           .from('contract_documents')
           .insert({
             deal_id: dealId,
@@ -196,12 +193,34 @@ export const WireInstructions: React.FC = () => {
             file_url: fileUrl,
             status: 'UPLOADED' as any,
             uploaded_by: user.id,
-          } as any);
+          } as any)
+          .select('id')
+          .single();
         if (insertError) throw insertError;
-        toast.success(`Uploaded: ${file.name}`);
+        newDocId = insertData?.id;
+        toast.success('Uploaded. Starting AI parsing & orchestration…');
       }
 
       await fetchDocs();
+
+      // Trigger document-ai → orchestrator pipeline
+      if (newDocId) {
+        supabase.functions.invoke('document-ai', {
+          body: {
+            action: 'classify',
+            documentId: newDocId,
+            fileName: file.name,
+            dealId: dealId,
+            textContent: `[Document: ${file.name}, Type hint: ${docType}]`,
+          },
+        }).then(() => {
+          toast.success('Orchestrator pipeline complete. Downstream modules updated.');
+          fetchDocs();
+        }).catch((err: any) => {
+          console.error('AI parsing failed:', err);
+          toast.error('AI parsing failed. Wire data may not be extracted.');
+        });
+      }
     } catch (err: any) {
       console.error('Upload failed:', err);
       const msg = err?.message || err?.error || 'Unknown error';
