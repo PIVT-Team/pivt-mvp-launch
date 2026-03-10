@@ -491,7 +491,7 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
           <div className="pivt-card p-4">
             <p className="pivt-metric-label">Documents</p>
             <p className="font-mono text-lg font-medium mt-1">{summary.documentsCount}</p>
-            <p className="text-[10px] text-muted-foreground">uploaded</p>
+            <p className="text-[10px] text-muted-foreground">linked</p>
           </div>
           <div className="pivt-card p-4">
             <p className="pivt-metric-label">Payments</p>
