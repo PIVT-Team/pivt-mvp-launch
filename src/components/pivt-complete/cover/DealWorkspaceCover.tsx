@@ -48,6 +48,7 @@ import { VerificationReadinessBanner } from './VerificationReadinessBanner';
 import { ClosingCenterCover } from './ClosingCenterCover';
 import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
+import { DealStateInspector } from './DealStateInspector';
 // No hardcoded mock data — all data comes from deal-scoped DB queries
 
 // ── Step definitions ──
@@ -157,7 +158,7 @@ const useDealSummary = (dealId: string | undefined) => {
       const [conditions, approvals, documents, payments, escrow, stakeholders] = await Promise.all([
         supabase.from('conditions').select('id, status').eq('deal_id', dealId),
         supabase.from('ontology_approvals').select('id, status').eq('deal_id', dealId),
-        supabase.from('ontology_documents').select('id').eq('deal_id', dealId),
+        supabase.from('contract_documents').select('id').eq('deal_id', dealId),
         supabase.from('payment_instructions').select('id, status').eq('deal_id', dealId),
         supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
         supabase.from('cap_table_entries').select('id').eq('deal_id', dealId),
@@ -198,44 +199,66 @@ const useDealSummary = (dealId: string | undefined) => {
 const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDeal | null }> = ({ seedKey, realDeal }) => {
   const demoDeal = useSelectedDeal();
   const effectiveKey = seedKey || demoDeal.id;
+  const { dealId } = useDealWorkspace();
 
-  // Golden demo metrics keyed by seed
-  const DEMO_METRICS: Record<string, { conditions: string; approvals: string; approvalsPending: number; documents: number; payments: string; paymentsConfirmed: number; escrow: string }> = {
-    atlas: { conditions: '6/8', approvals: '5/7', approvalsPending: 2, documents: 108, payments: '0/12', paymentsConfirmed: 0, escrow: 'Active' },
-    beacon: { conditions: '3/6', approvals: '2/5', approvalsPending: 3, documents: 75, payments: '0/8', paymentsConfirmed: 0, escrow: 'Pending' },
-    cipher: { conditions: '9/10', approvals: '9/10', approvalsPending: 1, documents: 145, payments: '0/15', paymentsConfirmed: 0, escrow: 'Active' },
-  };
+  // Derive metrics from DB — same source as progress ribbon
+  const { summary: dbSummary } = useDealSummary(dealId);
 
+  // Demo-specific narrative blockers (these describe the story, not counts)
   const DEMO_NEXT_ACTIONS: Record<string, string> = {
-    atlas: '2 approvals pending — Waterfall Schedule v3 & Wire Authorization',
-    beacon: '7 discrepancies found — resolve KYC and wire instruction issues',
-    cipher: 'Final signature pending — 1 approval remaining before execution',
+    atlas: '2 wire instructions pending verification — a16z & GIC',
+    atlas_demo: '2 wire instructions pending verification — a16z & GIC',
+    beacon: 'KYC pending for Insight Partners & ESOP Trust',
+    beacon_demo: 'KYC pending for Insight Partners & ESOP Trust',
+    cipher: 'Transition Services Agreement pending upload',
+    cipher_demo: 'Transition Services Agreement pending upload',
   };
 
   const DEMO_BLOCKERS: Record<string, { label: string; severity: 'warning' | 'critical' }[]> = {
     atlas: [
-      { label: 'Waterfall Schedule v3 awaiting approval', severity: 'warning' },
       { label: 'Wire instructions missing for a16z', severity: 'critical' },
+      { label: 'GIC Private Limited KYC failed — requires re-submission', severity: 'critical' },
+    ],
+    atlas_demo: [
+      { label: 'Wire instructions missing for a16z', severity: 'critical' },
+      { label: 'GIC Private Limited KYC failed — requires re-submission', severity: 'critical' },
     ],
     beacon: [
-      { label: 'KYC failed for GIC Private Limited', severity: 'critical' },
-      { label: '7 discrepancies unresolved', severity: 'warning' },
-      { label: 'ESOP trust KYC pending', severity: 'warning' },
+      { label: 'Escrow agreement not yet verified', severity: 'warning' },
+      { label: 'Insight Partners verification pending', severity: 'warning' },
+    ],
+    beacon_demo: [
+      { label: 'Escrow agreement not yet verified', severity: 'warning' },
+      { label: 'Insight Partners verification pending', severity: 'warning' },
     ],
     cipher: [
-      { label: '1 board resolution pending final signature', severity: 'warning' },
+      { label: 'TSA document pending upload', severity: 'warning' },
+    ],
+    cipher_demo: [
+      { label: 'TSA document pending upload', severity: 'warning' },
     ],
   };
 
   const nextAction = DEMO_NEXT_ACTIONS[effectiveKey] || 'Review deal workspace';
   const blockers = DEMO_BLOCKERS[effectiveKey] || [];
-  const metrics = DEMO_METRICS[effectiveKey] || DEMO_METRICS.atlas;
 
   // Use DB deal value if available, otherwise pivtStore
   const dealValue = realDeal?.deal_value ?? demoDeal.consideration;
   const escrowValue = realDeal?.escrow_amount ?? 0;
   const closingDate = realDeal?.closing_date || demoDeal.closingDate;
   const status = realDeal?.status || demoDeal.status;
+
+  // DB-derived metrics (canonical source)
+  const conditionsLabel = dbSummary
+    ? `${dbSummary.conditionsSatisfied}/${dbSummary.conditionsTotal}`
+    : '—';
+  const approvalsLabel = dbSummary
+    ? `${dbSummary.approvalsApproved}/${dbSummary.approvalsTotal}`
+    : '—';
+  const docsCount = dbSummary?.documentsCount ?? 0;
+  const paymentsLabel = dbSummary
+    ? `${dbSummary.paymentsConfirmed}/${dbSummary.paymentsTotal}`
+    : '—';
 
   return (
     <div className="space-y-8">
@@ -268,27 +291,27 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Conditions</p>
-          <p className="font-mono text-lg font-medium mt-1">{metrics.conditions}</p>
+          <p className="font-mono text-lg font-medium mt-1">{conditionsLabel}</p>
           <p className="text-[10px] text-muted-foreground">satisfied</p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Approvals</p>
-          <p className="font-mono text-lg font-medium mt-1">{metrics.approvals}</p>
-          <p className="text-[10px] text-muted-foreground">{metrics.approvalsPending} pending</p>
+          <p className="font-mono text-lg font-medium mt-1">{approvalsLabel}</p>
+          <p className="text-[10px] text-muted-foreground">{dbSummary?.approvalsPending ?? 0} pending</p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Documents</p>
-          <p className="font-mono text-lg font-medium mt-1">{metrics.documents}</p>
-          <p className="text-[10px] text-muted-foreground">uploaded</p>
+          <p className="font-mono text-lg font-medium mt-1">{docsCount}</p>
+          <p className="text-[10px] text-muted-foreground">linked</p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Payments</p>
-          <p className="font-mono text-lg font-medium mt-1">{metrics.payments}</p>
-          <p className="text-[10px] text-muted-foreground">{metrics.paymentsConfirmed} confirmed</p>
+          <p className="font-mono text-lg font-medium mt-1">{paymentsLabel}</p>
+          <p className="text-[10px] text-muted-foreground">{dbSummary?.paymentsConfirmed ?? 0} confirmed</p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Escrow</p>
-          <p className="font-mono text-lg font-medium mt-1 capitalize">{metrics.escrow}</p>
+          <p className="font-mono text-lg font-medium mt-1 capitalize">{dbSummary?.escrowStatus || 'N/A'}</p>
         </div>
       </div>
 
@@ -1036,6 +1059,9 @@ export const DealWorkspaceCover: React.FC = () => {
           activeStepId === 'overview' ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} /> : <ContentComponent />
         )}
       </motion.div>
+
+      {/* ── Deal State Inspector (debug) ── */}
+      <DealStateInspector />
 
       {/* Edit Deal Drawer */}
       {realDeal && !isDemoDeal && (
