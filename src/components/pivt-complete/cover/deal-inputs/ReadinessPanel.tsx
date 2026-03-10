@@ -76,6 +76,7 @@ export const ReadinessPanel: React.FC = () => {
       const obligationsConfirmed = obligations.filter((o: any) => o.status === 'CONFIRMED').length;
       const wiresVerified = wires.filter((w: any) => w.verification_status === 'verified').length;
       const taxSatisfied = taxForms.filter((t: any) => t.status === 'received' || t.status === 'verified').length;
+      const wiresTotal = wires.length;
 
       setCategories([
         { label: 'Documents Complete', icon: FileText, current: docsComplete, total: Math.max(docs.length, 1), status: deriveStatus(docsComplete, docs.length) },
