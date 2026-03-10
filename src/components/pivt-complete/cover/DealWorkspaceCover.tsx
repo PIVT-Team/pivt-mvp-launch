@@ -48,6 +48,7 @@ import { VerificationReadinessBanner } from './VerificationReadinessBanner';
 import { ClosingCenterCover } from './ClosingCenterCover';
 import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
+import { DealStateInspector } from './DealStateInspector';
 // No hardcoded mock data — all data comes from deal-scoped DB queries
 
 // ── Step definitions ──
