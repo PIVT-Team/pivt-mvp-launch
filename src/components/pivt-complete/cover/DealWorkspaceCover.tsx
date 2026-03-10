@@ -821,9 +821,10 @@ export const DealWorkspaceCover: React.FC = () => {
   const progressData: DealProgressData = useMemo(() => {
     if (isDemoDeal) return DEMO_PROGRESS[demoDealSeedKey || ''] || DEMO_PROGRESS.atlas;
     const s = dealSummary;
+    const stkCount = s?.stakeholderCount || 0;
     return {
-      stakeholdersAdded: s ? (s.documentsCount > 0 ? 1 : 0) : 0,
-      stakeholdersRequired: 1,
+      stakeholdersAdded: stkCount,
+      stakeholdersRequired: Math.max(stkCount, 1),
       compliancePassed: s?.conditionsSatisfied || 0,
       complianceTotal: s?.conditionsTotal || 0,
       complianceBlocked: false,

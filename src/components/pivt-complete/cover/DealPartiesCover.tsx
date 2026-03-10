@@ -101,6 +101,14 @@ export const DealPartiesCover: React.FC = () => {
       side: PARTY_SIDE[p.party_type] || 'Neutral',
       source: 'parties_table' as const,
     })),
+    // Include cap_table_entries with deal-party roles
+    ...capTableParties.map(p => ({
+      id: p.id,
+      name: p.shareholder_name,
+      type: PARTY_LABEL[p.role.toLowerCase().replace(/ /g, '_')] || p.role,
+      side: PARTY_SIDE[p.role.toLowerCase().replace(/ /g, '_')] || 'Neutral',
+      source: 'parties_table' as const,
+    })),
   ];
 
   // Deduplicate by name+type
