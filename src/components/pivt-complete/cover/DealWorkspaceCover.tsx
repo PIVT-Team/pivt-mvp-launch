@@ -167,7 +167,7 @@ const useDealSummary = (dealId: string | undefined) => {
       const condData = conditions.data || [];
       const appData = approvals.data || [];
       const wireData = wires.data || [];
-      const satisfied = condData.filter(c => c.status === 'SATISFIED' || c.status === 'WAIVED' || c.status === 'MET').length;
+      const satisfied = condData.filter(c => (c.status as string) === 'SATISFIED' || (c.status as string) === 'WAIVED' || (c.status as string) === 'MET').length;
       const approved = appData.filter(a => a.status === 'approved' || a.status === 'completed').length;
       const pending = appData.filter(a => a.status === 'pending').length;
       const confirmed = wireData.filter(w => (w as any).verification_status === 'verified').length;
