@@ -154,7 +154,8 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
       await fetchDocs();
     } catch (err: any) {
       console.error('Upload failed:', err);
-      toast.error('Upload failed. Please try again.');
+      const msg = err?.message || err?.error || 'Unknown error';
+      toast.error(`Upload failed: ${msg}`);
     } finally {
       setUploading(false);
     }
