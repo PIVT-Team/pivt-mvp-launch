@@ -88,7 +88,7 @@ export const WireInstructions: React.FC = () => {
   const { user } = useAuth();
 
   const [docs, setDocs] = useState<WireDoc[]>([]);
-  const [selectedDocType, setSelectedDocType] = useState('FUNDS_FLOW_MEMO');
+  const [selectedDocType, setSelectedDocType] = useState('FUNDS_FLOW');
   const [wires, setWires] = useState<WireInstruction[]>([]);
   const [showAddWire, setShowAddWire] = useState(false);
   const [loading, setLoading] = useState(true);
