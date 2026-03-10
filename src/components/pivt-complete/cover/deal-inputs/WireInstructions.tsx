@@ -105,16 +105,36 @@ export const WireInstructions: React.FC = () => {
   const fetchDocs = useCallback(async () => {
     if (!dealId) { setLoading(false); return; }
     setLoading(true);
-    const { data: wireDocs } = await supabase
-      .from('contract_documents')
-      .select('id, doc_type, filename, file_url, status, uploaded_at')
-      .eq('deal_id', dealId)
-      .in('doc_type', ['FUNDS_FLOW', 'WIRE_INSTRUCTIONS', 'WIRE_AUTHORIZATION', 'ESCROW_AGREEMENT', 'PAYOFF_LETTER'] as any);
-    setDocs((wireDocs || []).map((d: any) => ({
+    const [docsRes, wiresRes] = await Promise.all([
+      supabase
+        .from('contract_documents')
+        .select('id, doc_type, filename, file_url, status, uploaded_at')
+        .eq('deal_id', dealId)
+        .in('doc_type', ['FUNDS_FLOW', 'WIRE_INSTRUCTIONS', 'WIRE_AUTHORIZATION', 'ESCROW_AGREEMENT', 'PAYOFF_LETTER'] as any),
+      supabase
+        .from('wire_instructions')
+        .select('id, payee_entity, payer_entity, payment_type, amount, currency, bank_name, account_holder, account_number_last4, routing_number, swift_bic, verification_status')
+        .eq('deal_id', dealId)
+        .order('created_at', { ascending: true }),
+    ]);
+    setDocs((docsRes.data || []).map((d: any) => ({
       id: d.id, doc_type: d.doc_type, filename: d.filename, file_url: d.file_url,
       status: d.status, uploaded_at: d.uploaded_at,
     })));
-    setWires([]);
+    // Map DB wire instructions to local format
+    setWires((wiresRes.data || []).map((w: any) => ({
+      id: w.id,
+      stakeholder: w.payee_entity,
+      payment_type: w.payment_type,
+      amount: String(w.amount),
+      currency: w.currency,
+      bank_name: w.bank_name || '',
+      account_name: w.account_holder || '',
+      account_number: w.account_number_last4 ? `••••${w.account_number_last4}` : '',
+      routing_aba: w.routing_number || '',
+      swift_iban: w.swift_bic || '',
+      status: w.verification_status === 'verified' ? 'Verified' : 'Pending',
+    })));
     setLoading(false);
   }, [dealId]);
 
