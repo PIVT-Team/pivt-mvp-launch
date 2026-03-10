@@ -155,22 +155,22 @@ const useDealSummary = (dealId: string | undefined) => {
 
     const fetchSummary = async () => {
       setLoading(true);
-      const [conditions, approvals, documents, payments, escrow, stakeholders] = await Promise.all([
+      const [conditions, approvals, documents, wires, escrow, stakeholders] = await Promise.all([
         supabase.from('conditions').select('id, status').eq('deal_id', dealId),
-        supabase.from('ontology_approvals').select('id, status').eq('deal_id', dealId),
+        supabase.from('deal_approvals').select('id, status').eq('deal_id', dealId),
         supabase.from('contract_documents').select('id').eq('deal_id', dealId),
-        supabase.from('payment_instructions').select('id, status').eq('deal_id', dealId),
+        supabase.from('wire_instructions').select('id, verification_status').eq('deal_id', dealId),
         supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
         supabase.from('cap_table_entries').select('id').eq('deal_id', dealId),
       ]);
 
       const condData = conditions.data || [];
       const appData = approvals.data || [];
-      const payData = payments.data || [];
-      const satisfied = condData.filter(c => c.status === 'SATISFIED' || c.status === 'WAIVED').length;
-      const approved = appData.filter(a => a.status === 'APPROVED').length;
-      const pending = appData.filter(a => a.status === 'PENDING').length;
-      const confirmed = payData.filter(p => p.status === 'CONFIRMED').length;
+      const wireData = wires.data || [];
+      const satisfied = condData.filter(c => c.status === 'SATISFIED' || c.status === 'WAIVED' || c.status === 'MET').length;
+      const approved = appData.filter(a => a.status === 'approved' || a.status === 'completed').length;
+      const pending = appData.filter(a => a.status === 'pending').length;
+      const confirmed = wireData.filter(w => (w as any).verification_status === 'verified').length;
 
       const s = {
         conditionsTotal: condData.length,
@@ -179,7 +179,7 @@ const useDealSummary = (dealId: string | undefined) => {
         approvalsApproved: approved,
         approvalsPending: pending,
         documentsCount: (documents.data || []).length,
-        paymentsTotal: payData.length,
+        paymentsTotal: wireData.length,
         paymentsConfirmed: confirmed,
         escrowStatus: escrow.data?.status || null,
         nextAction: '',

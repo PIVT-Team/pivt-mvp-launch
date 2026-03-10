@@ -172,18 +172,55 @@ export const DocumentsCover: React.FC = () => {
   const [qaResponse, setQaResponse] = useState('');
   const [qaLoading, setQaLoading] = useState(false);
 
-  // Load documents from DB on mount
+  // Load documents from DB on mount — unified across deal_documents + contract_documents
   useEffect(() => {
     loadDocuments();
   }, [selectedDealId]);
 
   const loadDocuments = async () => {
-    const { data } = await supabase
+    // Fetch user-uploaded documents
+    const { data: dealDocs } = await supabase
       .from('deal_documents')
       .select('*')
       .eq('deal_id', selectedDealId)
       .order('created_at', { ascending: false }) as any;
-    if (data) setDocuments(data);
+
+    // Fetch seeded/ingested contract documents (used by demo-reset & doc ingestion)
+    const { data: contractDocs } = await supabase
+      .from('contract_documents')
+      .select('id, deal_id, filename, doc_type, status, created_at, updated_at')
+      .eq('deal_id', selectedDealId)
+      .order('created_at', { ascending: false });
+
+    // Merge contract_documents into deal_documents format
+    const mappedContractDocs: DealDocument[] = (contractDocs || []).map((cd: any) => ({
+      id: cd.id,
+      deal_id: cd.deal_id,
+      file_name: cd.filename,
+      file_size: 0,
+      file_path: null,
+      mime_type: 'application/pdf',
+      page_count: 0,
+      status: cd.status === 'VERIFIED' ? 'verified' as DocStatus : 'processed' as DocStatus,
+      doc_type: (cd.doc_type || 'other').toLowerCase(),
+      doc_type_confidence: 1,
+      extracted_text: null,
+      extracted_fields: {},
+      validation_flags: [],
+      uploaded_by: 'System',
+      created_at: cd.created_at,
+      updated_at: cd.updated_at,
+    }));
+
+    // Deduplicate by id
+    const all = [...(dealDocs || []), ...mappedContractDocs];
+    const seen = new Set<string>();
+    const unique = all.filter(d => {
+      if (seen.has(d.id)) return false;
+      seen.add(d.id);
+      return true;
+    });
+    setDocuments(unique);
   };
 
   // ── Metrics ──

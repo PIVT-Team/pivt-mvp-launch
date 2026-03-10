@@ -112,22 +112,23 @@ const DealCard: React.FC<{
   const sts = STATUS_LABELS[deal.status] || STATUS_LABELS.draft;
   const letter = deal.deal_name.charAt(0).toUpperCase();
   const seedKey = (deal as any).seed_key as string | null;
-  const goldenDemo = isDemo && seedKey ? DEMO_GOLDEN_SUMMARIES[seedKey] : null;
+  const narrative = isDemo && seedKey ? DEMO_NARRATIVE[seedKey] : null;
 
-  const partiesCount = goldenDemo?.partiesCount ?? summary?.partiesCount ?? 0;
-  const docsCount = goldenDemo?.docsCount ?? summary?.docsCount ?? 0;
-  const capTableCount = goldenDemo?.capTableCount ?? summary?.capTableCount ?? 0;
-  const tierCount = goldenDemo?.waterfallTiers ?? summary?.waterfallTiers ?? 0;
-  const sector = goldenDemo?.sector || (deal as any).sector || '—';
-  const buyerBorrower = goldenDemo?.buyerBorrower || (deal as any).buyer || '—';
+  // All counts derived from DB summaries — same source for demo and live deals
+  const partiesCount = summary?.partiesCount ?? 0;
+  const docsCount = summary?.docsCount ?? 0;
+  const capTableCount = summary?.capTableCount ?? 0;
+  const tierCount = summary?.waterfallTiers ?? 0;
+  const sector = narrative?.sector || (deal as any).sector || '—';
+  const buyerBorrower = narrative?.buyerBorrower || (deal as any).buyer || '—';
   const dealType = (deal as any).deal_type || '';
-  const dealKindTags = goldenDemo?.dealKindTags || (dealType ? [dealType] : []);
-  const funded = goldenDemo?.funded ?? 0;
-  const fundedPct = goldenDemo?.fundedPct ?? 0;
+  const dealKindTags = narrative?.dealKindTags || (dealType ? [dealType] : []);
+  const funded = narrative?.funded ?? 0;
+  const fundedPct = narrative?.fundedPct ?? 0;
 
-  // For non-demo deals, use conditions-based progress
-  const conditionsMet = goldenDemo?.conditionsMet ?? summary?.conditionsMet ?? 0;
-  const conditionsTotal = goldenDemo?.conditionsTotal ?? summary?.conditionsTotal ?? 0;
+  // Conditions-based progress from DB
+  const conditionsMet = summary?.conditionsMet ?? 0;
+  const conditionsTotal = summary?.conditionsTotal ?? 0;
 
   return (
     <motion.div

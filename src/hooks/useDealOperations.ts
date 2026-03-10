@@ -186,11 +186,11 @@ export function useDealOperations() {
   const fetchDealSummaries = async (dealIds: string[]): Promise<Record<string, DealSummaryCounts>> => {
     if (dealIds.length === 0) return {};
 
-    const [parties, docs, capTable, tiers, conditions, approvals] = await Promise.all([
-      supabase.from("deal_participants").select("deal_id", { count: "exact", head: false }).in("deal_id", dealIds),
-      supabase.from("contract_documents").select("deal_id", { count: "exact", head: false }).in("deal_id", dealIds),
-      supabase.from("cap_table_entries").select("deal_id", { count: "exact", head: false }).in("deal_id", dealIds),
-      supabase.from("waterfall_tiers").select("deal_id", { count: "exact", head: false }).in("deal_id", dealIds),
+    const [stakeholders, docs, capTable, tiers, conditions, approvals] = await Promise.all([
+      supabase.from("cap_table_entries").select("deal_id, role, ownership_pct").in("deal_id", dealIds),
+      supabase.from("contract_documents").select("deal_id").in("deal_id", dealIds),
+      supabase.from("cap_table_entries").select("deal_id, ownership_pct").in("deal_id", dealIds),
+      supabase.from("waterfall_tiers").select("deal_id").in("deal_id", dealIds),
       supabase.from("conditions").select("deal_id, status").in("deal_id", dealIds),
       supabase.from("deal_approvals").select("deal_id, status").in("deal_id", dealIds),
     ]);
@@ -199,17 +199,19 @@ export function useDealOperations() {
 
     const result: Record<string, DealSummaryCounts> = {};
     for (const id of dealIds) {
+      const stkRows = (stakeholders.data || []).filter((r: any) => r.deal_id === id);
+      const capRows = (capTable.data || []).filter((r: any) => r.deal_id === id && Number(r.ownership_pct) > 0);
       const condRows = (conditions.data || []).filter((r: any) => r.deal_id === id);
       const appRows = (approvals.data || []).filter((r: any) => r.deal_id === id);
       result[id] = {
         deal_id: id,
-        partiesCount: count(parties.data, id),
+        partiesCount: stkRows.length,
         docsCount: count(docs.data, id),
-        capTableCount: count(capTable.data, id),
+        capTableCount: capRows.length,
         waterfallTiers: count(tiers.data, id),
-        conditionsMet: condRows.filter((c: any) => c.status === 'MET').length,
+        conditionsMet: condRows.filter((c: any) => c.status === 'MET' || c.status === 'SATISFIED' || c.status === 'WAIVED').length,
         conditionsTotal: condRows.length,
-        approvalsGranted: appRows.filter((a: any) => a.status === 'approved').length,
+        approvalsGranted: appRows.filter((a: any) => a.status === 'approved' || a.status === 'completed').length,
         approvalsTotal: appRows.length,
       };
     }
