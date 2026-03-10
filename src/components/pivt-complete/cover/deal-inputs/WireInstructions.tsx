@@ -109,7 +109,7 @@ export const WireInstructions: React.FC = () => {
       .from('contract_documents')
       .select('id, doc_type, filename, file_url, status, uploaded_at')
       .eq('deal_id', dealId)
-      .in('doc_type', ['FUNDS_FLOW_MEMO', 'WIRE_SCHEDULE', 'BANK_INSTRUCTION_LETTER', 'ESCROW_INSTRUCTIONS', 'DEBT_PAYOFF_LETTER'] as any);
+      .in('doc_type', ['FUNDS_FLOW', 'WIRE_INSTRUCTIONS', 'WIRE_AUTHORIZATION', 'ESCROW_AGREEMENT', 'PAYOFF_LETTER'] as any);
     setDocs((wireDocs || []).map((d: any) => ({
       id: d.id, doc_type: d.doc_type, filename: d.filename, file_url: d.file_url,
       status: d.status, uploaded_at: d.uploaded_at,
