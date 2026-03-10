@@ -84,27 +84,8 @@ export const DealPartiesCover: React.FC = () => {
     if (realDeal.target_company) inferredParties.push({ name: realDeal.target_company, type: 'Target', side: 'Target' });
   }
 
-  // For demo deals without realDeal OR where realDeal has no party fields, infer from pivtStore
-  const needsDemoInference = isDemoDeal && (!realDeal || (!realDeal.buyer && !realDeal.seller && !realDeal.target_company));
-  if (needsDemoInference) {
-    const demoDealData: Record<string, { buyer: string; seller: string; target: string }> = {
-      atlas: { buyer: 'Apex Capital Partners', seller: 'Northbridge Software', target: 'Northbridge Software' },
-      atlas_demo: { buyer: 'Apex Capital Partners', seller: 'Northbridge Software', target: 'Northbridge Software' },
-      beacon: { buyer: 'Meridian Holdings', seller: 'CloudVault Security', target: 'CloudVault Security' },
-      beacon_demo: { buyer: 'Meridian Holdings', seller: 'CloudVault Security', target: 'CloudVault Security' },
-      cipher: { buyer: 'Titan Strategic Group', seller: 'NeuralPath AI', target: 'NeuralPath AI' },
-      cipher_demo: { buyer: 'Titan Strategic Group', seller: 'NeuralPath AI', target: 'NeuralPath AI' },
-    };
-    const seedKey = realDeal?.seed_key || dealId || '';
-    const demoData = demoDealData[seedKey];
-    if (demoData && inferredParties.length === 0) {
-      inferredParties.push({ name: demoData.buyer, type: 'Buyer', side: 'Buyer-side' });
-      inferredParties.push({ name: demoData.seller, type: 'Seller', side: 'Seller-side' });
-      if (demoData.target !== demoData.seller) {
-        inferredParties.push({ name: demoData.target, type: 'Target', side: 'Target' });
-      }
-    }
-  }
+  // Demo deal fallback is no longer needed — stakeholders are now seeded in the DB
+  // via the demo-reset function. All data comes from cap_table_entries.
 
   const allParties = [
     ...inferredParties.map((p, i) => ({ id: `inferred-${i}`, name: p.name, type: p.type, side: p.side, source: 'deal' as const })),
