@@ -1,14 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
-import { Upload, FileText, CheckCircle2, Clock, Receipt, Loader2, Users } from 'lucide-react';
+import { CheckCircle2, Clock, Receipt, Loader2, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { DealDocumentUploader } from './DealDocumentUploader';
 
 const TAX_DOC_TYPES = [
   { value: 'W9', label: 'IRS W-9' },
@@ -28,39 +27,21 @@ interface TaxFormRecord {
   created_at: string;
 }
 
-interface TaxDoc { id: string; doc_type: string; filename: string; status: string; uploaded_at: string }
-
 export const TaxInputs: React.FC = () => {
   const { dealId, isDemoDeal } = useDealWorkspace();
-  const [docs, setDocs] = useState<TaxDoc[]>([]);
   const [taxForms, setTaxForms] = useState<TaxFormRecord[]>([]);
-  const [selectedType, setSelectedType] = useState('W9');
   const [loading, setLoading] = useState(true);
 
-  // Auto-populate from tax_forms table and contract_documents
   useEffect(() => {
-    if (!dealId || isDemoDeal) {
-      setLoading(false);
-      return;
-    }
+    if (!dealId || isDemoDeal) { setLoading(false); return; }
     const fetchData = async () => {
       setLoading(true);
-      const [taxFormsRes, taxDocs] = await Promise.all([
-        // Fetch tax forms linked to deal recipients
-        supabase
-          .from('tax_forms')
-          .select('id, form_type, status, recipient_id, tin_last4, created_at')
-          .eq('deal_id', dealId),
-        // Fetch tax-related uploaded documents
-        supabase
-          .from('contract_documents')
-          .select('id, doc_type, filename, status, uploaded_at')
-          .eq('deal_id', dealId)
-          .in('doc_type', ['W9', 'W8BEN', 'W8BENE', 'FATCA', 'WITHHOLDING', 'TAX_RESIDENCY'] as any),
-      ]);
+      const { data: taxFormsRes } = await supabase
+        .from('tax_forms')
+        .select('id, form_type, status, recipient_id, tin_last4, created_at')
+        .eq('deal_id', dealId);
 
-      // Get recipient names from cap_table_entries
-      const recipientIds = (taxFormsRes.data || []).map((f: any) => f.recipient_id);
+      const recipientIds = (taxFormsRes || []).map((f: any) => f.recipient_id);
       let recipientMap: Record<string, string> = {};
       if (recipientIds.length > 0) {
         const { data: recipients } = await supabase
@@ -68,41 +49,19 @@ export const TaxInputs: React.FC = () => {
           .select('id, shareholder_name')
           .in('id', recipientIds);
         recipientMap = (recipients || []).reduce((m: Record<string, string>, r: any) => {
-          m[r.id] = r.shareholder_name;
-          return m;
+          m[r.id] = r.shareholder_name; return m;
         }, {});
       }
 
-      setTaxForms((taxFormsRes.data || []).map((f: any) => ({
-        id: f.id,
-        form_type: f.form_type,
-        status: f.status,
+      setTaxForms((taxFormsRes || []).map((f: any) => ({
+        id: f.id, form_type: f.form_type, status: f.status,
         recipient_name: recipientMap[f.recipient_id] || 'Unknown',
-        tin_last4: f.tin_last4,
-        created_at: f.created_at,
+        tin_last4: f.tin_last4, created_at: f.created_at,
       })));
-
-      setDocs((taxDocs.data || []).map((d: any) => ({
-        id: d.id,
-        doc_type: d.doc_type,
-        filename: d.filename,
-        status: d.status,
-        uploaded_at: d.uploaded_at,
-      })));
-
       setLoading(false);
     };
     fetchData();
   }, [dealId, isDemoDeal]);
-
-  const handleUpload = useCallback(() => {
-    const label = TAX_DOC_TYPES.find(t => t.value === selectedType)?.label || selectedType;
-    const newDoc: TaxDoc = { id: `td-${Date.now()}`, doc_type: selectedType, filename: `${label.replace(/\s/g, '_')}_${Date.now()}.pdf`, status: 'UPLOADED', uploaded_at: new Date().toISOString() };
-    setDocs(prev => [...prev, newDoc]);
-    toast.success(`Uploaded: ${newDoc.filename}`);
-  }, [selectedType]);
-
-  const getLabel = (t: string) => TAX_DOC_TYPES.find(d => d.value === t)?.label || t;
 
   const statusBadge = (s: string) => {
     if (s === 'received' || s === 'verified' || s === 'VERIFIED') return 'bg-emerald-500/10 text-emerald-600';
@@ -153,53 +112,16 @@ export const TaxInputs: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Uploads */}
-      <motion.div {...fadeInUp} className="pivt-card overflow-hidden">
-        <div className="p-5 border-b border-border/30">
-          <div className="flex items-center gap-3"><Receipt className="w-5 h-5 text-orange-500" /><h3 className="font-semibold">Tax Form Uploads</h3></div>
-          <p className="text-xs text-muted-foreground ml-8 mt-1">⚠️ Do not upload full SSNs in free-text fields — use signed PDFs.</p>
-        </div>
-        <div className="p-5">
-          <div className="flex items-end gap-4 mb-5">
-            <div className="flex-1">
-              <label className="text-xs text-muted-foreground mb-1.5 block">Document Type</label>
-              <select value={selectedType} onChange={e => setSelectedType(e.target.value)}
-                className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-accent/40">
-                {TAX_DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-            <Button onClick={handleUpload} className="gap-1.5"><Upload className="w-3.5 h-3.5" /> Upload</Button>
-          </div>
-
-          {loading ? (
-            <div className="flex items-center justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
-          ) : (
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-border/30">
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Filename</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Type</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-2.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">Uploaded</th>
-              </tr></thead>
-              <tbody>
-                {docs.map(doc => (
-                  <tr key={doc.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-2.5 font-medium flex items-center gap-2"><FileText className="w-4 h-4 text-orange-500 shrink-0" />{doc.filename}</td>
-                    <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{getLabel(doc.doc_type)}</Badge></td>
-                    <td className="px-4 py-2.5">
-                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${statusBadge(doc.status)}`}>
-                        {doc.status === 'VERIFIED' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{doc.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5 text-muted-foreground text-xs">{new Date(doc.uploaded_at).toLocaleDateString()}</td>
-                  </tr>
-                ))}
-                {docs.length === 0 && <tr><td colSpan={4} className="px-4 py-8 text-center text-muted-foreground text-sm">No tax documents uploaded.</td></tr>}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </motion.div>
+      {/* Tax Form Uploads (reusable uploader) */}
+      <DealDocumentUploader
+        dealId={dealId}
+        isDemoDeal={isDemoDeal}
+        docTypes={TAX_DOC_TYPES}
+        icon={<Receipt className="w-5 h-5 text-orange-500" />}
+        title="Tax Form Uploads"
+        description="⚠️ Do not upload full SSNs in free-text fields — use signed PDFs."
+        emptyStateText="No tax documents uploaded."
+      />
 
       {/* Structured Tax Inputs */}
       <motion.div {...fadeInUp} className="pivt-card overflow-hidden">
