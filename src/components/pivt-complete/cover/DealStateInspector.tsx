@@ -117,7 +117,7 @@ export const DealStateInspector: React.FC = () => {
       contractDocuments: (contractDocs.data || []).length,
       dealDocuments: (dealDocs.data || []).length,
       conditions: conds.length,
-      conditionsMet: conds.filter(c => c.status === 'SATISFIED' || c.status === 'WAIVED' || c.status === 'MET').length,
+      conditionsMet: conds.filter(c => (c.status as string) === 'SATISFIED' || (c.status as string) === 'WAIVED' || (c.status as string) === 'MET').length,
       approvals: apps.length,
       approvalsApproved: apps.filter(a => a.status === 'approved').length,
       wireInstructions: (wires.data || []).length,
