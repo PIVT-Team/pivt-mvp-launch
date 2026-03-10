@@ -794,32 +794,9 @@ export const DealWorkspaceCover: React.FC = () => {
   }, [isDemoDeal, dealSummary, demoDeal.readyToPayPercent]);
 
   // ── Progress Ribbon Data ──
-  const DEMO_PROGRESS: Record<string, DealProgressData> = {
-    atlas: {
-      stakeholdersAdded: 28, stakeholdersRequired: 28,
-      compliancePassed: 24, complianceTotal: 28, complianceBlocked: false,
-      conditionsSatisfied: 6, conditionsTotal: 8, documentsUploaded: 108, documentsRequired: 112,
-      approvalsGranted: 5, approvalsTotal: 7, approvalsBlocked: false,
-      paymentsExecuted: 0, paymentsTotal: 12, paymentsFailed: false,
-    },
-    beacon: {
-      stakeholdersAdded: 25, stakeholdersRequired: 25,
-      compliancePassed: 18, complianceTotal: 25, complianceBlocked: true,
-      conditionsSatisfied: 3, conditionsTotal: 6, documentsUploaded: 75, documentsRequired: 80,
-      approvalsGranted: 2, approvalsTotal: 5, approvalsBlocked: false,
-      paymentsExecuted: 0, paymentsTotal: 8, paymentsFailed: false,
-    },
-    cipher: {
-      stakeholdersAdded: 48, stakeholdersRequired: 48,
-      compliancePassed: 46, complianceTotal: 48, complianceBlocked: false,
-      conditionsSatisfied: 9, conditionsTotal: 10, documentsUploaded: 145, documentsRequired: 145,
-      approvalsGranted: 9, approvalsTotal: 10, approvalsBlocked: false,
-      paymentsExecuted: 0, paymentsTotal: 15, paymentsFailed: false,
-    },
-  };
-
+  // All progress data is now computed from DB queries — no hardcoded demo values.
+  // This ensures the ribbon, Deal Parties, and Cap Table all read from the same source.
   const progressData: DealProgressData = useMemo(() => {
-    if (isDemoDeal) return DEMO_PROGRESS[demoDealSeedKey || ''] || DEMO_PROGRESS.atlas;
     const s = dealSummary;
     const stkCount = s?.stakeholderCount || 0;
     return {
@@ -839,7 +816,7 @@ export const DealWorkspaceCover: React.FC = () => {
       paymentsTotal: s?.paymentsTotal || 0,
       paymentsFailed: false,
     };
-  }, [isDemoDeal, demoDealSeedKey, dealSummary]);
+  }, [dealSummary]);
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
     if (isDemoDeal && !isRealDeal) {
