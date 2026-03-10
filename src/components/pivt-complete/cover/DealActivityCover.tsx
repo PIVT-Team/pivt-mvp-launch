@@ -141,6 +141,7 @@ export const DealActivityCover: React.FC = () => {
   const timelineCategories = ['all', ...new Set(timeline.map(e => e.category))];
 
   const views: { id: ActivityView; label: string; icon: React.ElementType; count?: number }[] = [
+    { id: 'orchestration', label: 'Workflow', icon: Activity },
     { id: 'timeline', label: 'Timeline', icon: Clock, count: timeline.length },
     { id: 'discussions', label: 'Discussions', icon: MessageSquare, count: discussions.length },
   ];
