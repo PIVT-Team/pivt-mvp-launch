@@ -196,13 +196,15 @@ Deno.serve(async (req) => {
   }
 
   // ── Seed canonical stakeholders (cap_table_entries) for each demo deal ──
+  const stkErrors: string[] = [];
   for (const dealId of dealIds) {
     const stakeholders = DEAL_STAKEHOLDERS[dealId] || [];
     for (const stk of stakeholders) {
-      await supabaseAdmin.from("cap_table_entries").insert({
+      const { error } = await supabaseAdmin.from("cap_table_entries").insert({
         deal_id: dealId,
         ...stk,
       } as any);
+      if (error) stkErrors.push(`${stk.shareholder_name}: ${error.message}`);
     }
   }
 
