@@ -743,15 +743,18 @@ export const DealWorkspaceCover: React.FC = () => {
   const { summary: dealSummary } = useDealSummary(resolvedDealId);
   const { completionPcts: wfPcts } = useWorkflowStatus(resolvedDealId);
   useEffect(() => {
-    if (isRealDeal) {
+    // For UUID-based deal IDs, fetch directly. For pivtStore IDs, resolve to UUID then fetch.
+    const fetchId = isRealDeal ? selectedDealId : DEMO_ID_MAP[selectedDealId];
+    if (fetchId) {
       setLoadingDeal(true);
-      supabase.from('deals').select('*').eq('id', selectedDealId).single()
+      supabase.from('deals').select('*').eq('id', fetchId).single()
         .then(({ data }) => {
           setRealDeal(data as RealDeal | null);
           setLoadingDeal(false);
         });
     } else {
       setRealDeal(null);
+      setLoadingDeal(false);
     }
   }, [selectedDealId, isRealDeal]);
 
