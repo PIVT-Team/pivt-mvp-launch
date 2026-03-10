@@ -36,21 +36,11 @@ const PARTY_LABEL: Record<string, string> = {
 };
 
 export const DealPartiesCover: React.FC = () => {
-  const { dealId, isDemoDeal, realDeal } = useDealWorkspace();
+  // dealId from DealWorkspaceContext is already resolved to a canonical UUID
+  const { dealId: resolvedDealId, isDemoDeal, realDeal } = useDealWorkspace();
   const [parties, setParties] = useState<DealParty[]>([]);
   const [capTableParties, setCapTableParties] = useState<{ id: string; shareholder_name: string; role: string }[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Resolve demo pivtStore IDs to actual UUIDs
-  const DEMO_ID_MAP: Record<string, string> = {
-    atlas: 'a0000000-0000-0000-0000-000000000001',
-    beacon: 'b0000000-0000-0000-0000-000000000002',
-    cipher: 'c0000000-0000-0000-0000-000000000003',
-    atlas_demo: 'a0000000-0000-0000-0000-000000000001',
-    beacon_demo: 'b0000000-0000-0000-0000-000000000002',
-    cipher_demo: 'c0000000-0000-0000-0000-000000000003',
-  };
-  const resolvedDealId = dealId ? (DEMO_ID_MAP[dealId] || dealId) : undefined;
 
   useEffect(() => {
     if (!resolvedDealId) { setLoading(false); return; }

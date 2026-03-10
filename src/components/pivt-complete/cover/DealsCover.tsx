@@ -225,9 +225,9 @@ const DealCard: React.FC<{
         <div className="flex items-center gap-4 flex-wrap">
           <span className="flex items-center gap-1"><CalendarIconLucide className="w-3.5 h-3.5" />{deal.closing_date || 'TBD'}</span>
           <span className="flex items-center gap-1"><Hash className="w-3.5 h-3.5" />{deal.deal_number}</span>
-          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{partiesCount} parties</span>
-          <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} docs</span>
-          <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{capTableCount} cap table</span>
+          <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" />{partiesCount} {partiesCount === 1 ? 'entity' : 'entities'}</span>
+          <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" />{docsCount} {docsCount === 1 ? 'doc' : 'docs'}</span>
+          <span className="flex items-center gap-1"><Table className="w-3.5 h-3.5" />{capTableCount} equity holders</span>
         </div>
         <div className="flex items-center gap-2">
           {!isDemo && onDelete && (

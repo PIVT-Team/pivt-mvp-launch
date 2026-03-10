@@ -186,10 +186,13 @@ export function useDealOperations() {
   const fetchDealSummaries = async (dealIds: string[]): Promise<Record<string, DealSummaryCounts>> => {
     if (dealIds.length === 0) return {};
 
-    const [stakeholders, docs, capTable, tiers, conditions, approvals] = await Promise.all([
+    // Query all canonical data sources — same tables used by workspace modules
+    const [capEntries, contractDocs, dealDocs, dealParties, deals, tiers, conditions, approvals] = await Promise.all([
       supabase.from("cap_table_entries").select("deal_id, role, ownership_pct").in("deal_id", dealIds),
-      supabase.from("contract_documents").select("deal_id").in("deal_id", dealIds),
-      supabase.from("cap_table_entries").select("deal_id, ownership_pct").in("deal_id", dealIds),
+      supabase.from("contract_documents").select("deal_id, id").in("deal_id", dealIds),
+      supabase.from("deal_documents").select("deal_id, id").in("deal_id", dealIds),
+      supabase.from("deal_parties").select("deal_id, id").in("deal_id", dealIds),
+      supabase.from("deals").select("id, buyer, seller, target_company").in("id", dealIds),
       supabase.from("waterfall_tiers").select("deal_id").in("deal_id", dealIds),
       supabase.from("conditions").select("deal_id, status").in("deal_id", dealIds),
       supabase.from("deal_approvals").select("deal_id, status").in("deal_id", dealIds),
@@ -199,15 +202,35 @@ export function useDealOperations() {
 
     const result: Record<string, DealSummaryCounts> = {};
     for (const id of dealIds) {
-      const stkRows = (stakeholders.data || []).filter((r: any) => r.deal_id === id);
-      const capRows = (capTable.data || []).filter((r: any) => r.deal_id === id && Number(r.ownership_pct) > 0);
+      // Parties: deal_parties rows + inferred from deal fields (buyer/seller/target) + cap_table party-role entries
+      const dpCount = count(dealParties.data, id);
+      const dealRecord = (deals.data || []).find((d: any) => d.id === id);
+      const inferredCount = [dealRecord?.buyer, dealRecord?.seller, dealRecord?.target_company].filter(Boolean).length;
+      const capRows = (capEntries.data || []).filter((r: any) => r.deal_id === id);
+      const partyRoleEntries = capRows.filter((r: any) =>
+        ['Buyer', 'Seller', 'Target', 'Escrow Agent', 'Lender', 'Buyer Counsel', 'Seller Counsel', 'Paying Agent'].includes(r.role)
+      );
+      // Deduplicate: unique party count = deal_parties + inferred deal fields + cap_table party roles
+      const totalParties = dpCount + inferredCount + partyRoleEntries.length;
+
+      // Cap table: equity holders only (ownership > 0, non-party roles)
+      const equityHolders = capRows.filter((r: any) =>
+        Number(r.ownership_pct) > 0 &&
+        !['Buyer', 'Seller', 'Target', 'Escrow Agent', 'Lender', 'Buyer Counsel', 'Seller Counsel', 'Paying Agent'].includes(r.role)
+      );
+
+      // Documents: union of contract_documents + deal_documents (deduplicated by id)
+      const contractDocIds = new Set((contractDocs.data || []).filter((r: any) => r.deal_id === id).map((r: any) => r.id));
+      const dealDocIds = new Set((dealDocs.data || []).filter((r: any) => r.deal_id === id).map((r: any) => r.id));
+      const allDocIds = new Set([...contractDocIds, ...dealDocIds]);
+
       const condRows = (conditions.data || []).filter((r: any) => r.deal_id === id);
       const appRows = (approvals.data || []).filter((r: any) => r.deal_id === id);
       result[id] = {
         deal_id: id,
-        partiesCount: stkRows.length,
-        docsCount: count(docs.data, id),
-        capTableCount: capRows.length,
+        partiesCount: totalParties,
+        docsCount: allDocIds.size,
+        capTableCount: equityHolders.length,
         waterfallTiers: count(tiers.data, id),
         conditionsMet: condRows.filter((c: any) => c.status === 'MET' || c.status === 'SATISFIED' || c.status === 'WAIVED').length,
         conditionsTotal: condRows.length,

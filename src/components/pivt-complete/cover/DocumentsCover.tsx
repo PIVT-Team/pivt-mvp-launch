@@ -223,14 +223,16 @@ export const DocumentsCover: React.FC = () => {
     setDocuments(unique);
   };
 
-  // ── Metrics ──
+  // ── Metrics with provenance ──
   const metrics = useMemo(() => {
     const total = documents.length;
     const processed = documents.filter(d => d.status === 'processed' || d.status === 'verified').length;
     const pending = documents.filter(d => d.status === 'pending_review' || d.status === 'processing').length;
     const flags = documents.reduce((acc, d) => acc + (d.validation_flags?.length || 0), 0);
     const entities = documents.reduce((acc, d) => acc + Object.keys(d.extracted_fields || {}).length, 0);
-    return { total, processed, pending, flags, entities };
+    const userUploaded = documents.filter(d => d.uploaded_by !== 'System').length;
+    const seeded = documents.filter(d => d.uploaded_by === 'System').length;
+    return { total, processed, pending, flags, entities, userUploaded, seeded };
   }, [documents]);
 
   const filteredDocs = useMemo(() => {
@@ -539,11 +541,11 @@ export const DocumentsCover: React.FC = () => {
       {/* Metrics */}
       <div className="grid grid-cols-5 gap-4">
         {[
-          { label: 'Total Documents', value: metrics.total, icon: FileText, color: '' },
-          { label: 'Processed', value: metrics.processed, icon: CheckCircle2, color: 'text-validated' },
-          { label: 'Pending', value: metrics.pending, icon: Clock, color: 'text-discrepancy' },
-          { label: 'Validation Flags', value: metrics.flags, icon: AlertTriangle, color: metrics.flags > 0 ? 'text-destructive' : 'text-validated' },
-          { label: 'Extracted Fields', value: metrics.entities, icon: Search, color: 'text-accent' },
+          { label: 'Total Documents', value: metrics.total, icon: FileText, color: '', subtitle: metrics.seeded > 0 ? `${metrics.userUploaded} uploaded · ${metrics.seeded} seeded` : undefined },
+          { label: 'Processed', value: metrics.processed, icon: CheckCircle2, color: 'text-validated', subtitle: undefined },
+          { label: 'Pending', value: metrics.pending, icon: Clock, color: 'text-discrepancy', subtitle: undefined },
+          { label: 'Validation Flags', value: metrics.flags, icon: AlertTriangle, color: metrics.flags > 0 ? 'text-destructive' : 'text-validated', subtitle: undefined },
+          { label: 'Extracted Fields', value: metrics.entities, icon: Search, color: 'text-accent', subtitle: undefined },
         ].map(card => (
           <motion.div key={card.label} {...fadeInUp} className="pivt-card p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -551,6 +553,7 @@ export const DocumentsCover: React.FC = () => {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{card.label}</p>
             </div>
             <p className={`font-mono text-xl font-semibold ${card.color}`}>{card.value}</p>
+            {card.subtitle && <p className="text-[10px] text-muted-foreground mt-0.5">{card.subtitle}</p>}
           </motion.div>
         ))}
       </div>
