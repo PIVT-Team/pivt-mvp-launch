@@ -5,6 +5,7 @@ import { usePIVTStore } from '@/stores/pivtStore';
 import { useAuditStore } from '@/stores/auditStore';
 import { fadeInUp } from '@/lib/animations';
 import { supabase } from '@/integrations/supabase/client';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import {
   CheckCircle2, Clock, XCircle, FileText, Upload, Eye,
   AlertTriangle, Loader2, Zap, ChevronDown, ChevronRight,

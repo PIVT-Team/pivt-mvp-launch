@@ -71,8 +71,6 @@ const DEMO_DEALS = [
 ];
 
 // ── Canonical demo stakeholders per deal ──
-// These are the SINGLE SOURCE OF TRUTH for demo stakeholder data.
-// Progress bars, Deal Parties, Cap Table, and all other modules derive from these.
 const ATLAS_STAKEHOLDERS = [
   { shareholder_name: "Sarah Chen", role: "Founder", stakeholder_type: "individual", ownership_pct: 30, payout_amount: 42750000, email: "schen@northbridge.io", verification_status: "verified" },
   { shareholder_name: "Marcus Williams", role: "Founder", stakeholder_type: "individual", ownership_pct: 20, payout_amount: 28500000, email: "mwilliams@northbridge.io", verification_status: "verified" },
@@ -82,7 +80,6 @@ const ATLAS_STAKEHOLDERS = [
   { shareholder_name: "Employee Option Pool", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 7, payout_amount: 9975000, email: "esop@northbridge.io", verification_status: "sent" },
   { shareholder_name: "Index Ventures", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 6, payout_amount: 8550000, email: "legal@indexventures.com", verification_status: "verified" },
   { shareholder_name: "GIC Private Limited", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 4, payout_amount: 5700000, email: "investments@gic.com.sg", verification_status: "failed" },
-  // Advisors / parties (0% ownership but part of the deal)
   { shareholder_name: "Apex Capital Partners", role: "Buyer", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "deals@apexcap.com", verification_status: "verified" },
   { shareholder_name: "Cooley LLP", role: "Buyer Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@cooley.com", verification_status: "verified" },
   { shareholder_name: "Wilson Sonsini", role: "Seller Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@wsgr.com", verification_status: "verified" },
@@ -96,7 +93,6 @@ const BEACON_STAKEHOLDERS = [
   { shareholder_name: "Insight Partners", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 10, payout_amount: 8900000, email: "ops@insightpartners.com", verification_status: "sent" },
   { shareholder_name: "Greylock Partners", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 8, payout_amount: 7120000, email: "legal@greylock.com", verification_status: "verified" },
   { shareholder_name: "ESOP Trust", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 7, payout_amount: 6230000, email: "esop@cloudvault.io", verification_status: "sent" },
-  // Parties
   { shareholder_name: "Meridian Holdings", role: "Buyer", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "deals@meridian.com", verification_status: "verified" },
   { shareholder_name: "Latham & Watkins", role: "Buyer Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@lw.com", verification_status: "verified" },
   { shareholder_name: "Fenwick & West", role: "Seller Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@fenwick.com", verification_status: "verified" },
@@ -114,7 +110,6 @@ const CIPHER_STAKEHOLDERS = [
   { shareholder_name: "NVIDIA Ventures", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 5, payout_amount: 10750000, email: "ventures@nvidia.com", verification_status: "verified" },
   { shareholder_name: "Employee Option Pool", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 7, payout_amount: 15050000, email: "esop@neuralpath.ai", verification_status: "verified" },
   { shareholder_name: "Angel Syndicate", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 5, payout_amount: 10750000, email: "admin@angelsyndicate.co", verification_status: "verified" },
-  // Parties
   { shareholder_name: "Titan Strategic Group", role: "Buyer", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "deals@titanstrategic.com", verification_status: "verified" },
   { shareholder_name: "Sullivan & Cromwell", role: "Buyer Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@sullcrom.com", verification_status: "verified" },
   { shareholder_name: "Goodwin Procter", role: "Seller Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@goodwin.com", verification_status: "verified" },
@@ -125,6 +120,82 @@ const DEAL_STAKEHOLDERS: Record<string, typeof ATLAS_STAKEHOLDERS> = {
   "a0000000-0000-0000-0000-000000000001": ATLAS_STAKEHOLDERS,
   "b0000000-0000-0000-0000-000000000002": BEACON_STAKEHOLDERS,
   "c0000000-0000-0000-0000-000000000003": CIPHER_STAKEHOLDERS,
+};
+
+// ── Canonical demo documents per deal ──
+// These are seeded into contract_documents so document counts are accurate everywhere.
+const ATLAS_DOCUMENTS = [
+  { filename: "Merger_Agreement_Northbridge_v4.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "CapTable_Northbridge_Final.xlsx", doc_type: "CAP_TABLE", status: "VERIFIED" },
+  { filename: "Waterfall_Distribution_v3.xlsx", doc_type: "FUNDS_FLOW", status: "UPLOADED" },
+  { filename: "Wire_Instructions_Sequoia.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_a16z.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "UPLOADED" },
+  { filename: "Wire_Instructions_TigerGlobal.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_IndexVentures.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_GIC.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "UPLOADED" },
+  { filename: "Escrow_Agreement_JPMorgan.pdf", doc_type: "ESCROW_AGREEMENT", status: "VERIFIED" },
+  { filename: "Board_Resolutions_Northbridge.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Disclosure_Schedules_v2.pdf", doc_type: "DISCLOSURE_SCHEDULES", status: "VERIFIED" },
+  { filename: "KYC_Package_Sequoia.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "KYC_Package_a16z.pdf", doc_type: "SPA", status: "UPLOADED" },
+  { filename: "Tax_Certificates_Bundle.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Employment_Agreements_KeyExecs.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "IP_Assignment_Agreement.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Stockholder_Written_Consent.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "FIRPTA_Certificate.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Good_Standing_Certificate_DE.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Officers_Certificate.pdf", doc_type: "SPA", status: "VERIFIED" },
+];
+
+const BEACON_DOCUMENTS = [
+  { filename: "Credit_Agreement_Beacon.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Security_Agreement.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Guaranty_Agreement.pdf", doc_type: "SPA", status: "UPLOADED" },
+  { filename: "Intercreditor_Agreement.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Compliance_Certificate.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Financial_Statements_Q3.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Insurance_Certificate.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Wire_Instructions_Meridian.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_Accel.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_Insight.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "UPLOADED" },
+  { filename: "Escrow_Agreement_BofA.pdf", doc_type: "ESCROW_AGREEMENT", status: "UPLOADED" },
+  { filename: "Board_Resolution_CloudVault.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "IP_Due_Diligence_Report.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Penetration_Test_Results.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "SOC2_Type_II_Report.pdf", doc_type: "SPA", status: "VERIFIED" },
+];
+
+const CIPHER_DOCUMENTS = [
+  { filename: "Merger_Agreement_NeuralPath_v6.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "CapTable_NeuralPath_Final.xlsx", doc_type: "CAP_TABLE", status: "VERIFIED" },
+  { filename: "Waterfall_Distribution_NeuralPath.xlsx", doc_type: "FUNDS_FLOW", status: "VERIFIED" },
+  { filename: "Escrow_Agreement_Citi.pdf", doc_type: "ESCROW_AGREEMENT", status: "VERIFIED" },
+  { filename: "Disclosure_Schedules_NeuralPath.pdf", doc_type: "DISCLOSURE_SCHEDULES", status: "VERIFIED" },
+  { filename: "Wire_Instructions_Lightspeed.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_Coatue.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_GeneralCatalyst.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_FoundersFund.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_Bessemer.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_NVIDIA.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_AngelSyndicate.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Wire_Instructions_ESOP.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+  { filename: "Board_Resolutions_NeuralPath.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "IP_Assignment_NeuralPath.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "AI_Model_License_Agreement.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Data_Processing_Agreement.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Employee_Offer_Letters_Bundle.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "FIRPTA_Certificate_NeuralPath.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Good_Standing_DE.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Officers_Certificate_NeuralPath.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Stockholder_Consent_NeuralPath.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Tax_Certificates_NeuralPath.pdf", doc_type: "SPA", status: "VERIFIED" },
+  { filename: "Transition_Services_Agreement.pdf", doc_type: "TSA", status: "UPLOADED" },
+];
+
+const DEAL_DOCUMENTS: Record<string, typeof ATLAS_DOCUMENTS> = {
+  "a0000000-0000-0000-0000-000000000001": ATLAS_DOCUMENTS,
+  "b0000000-0000-0000-0000-000000000002": BEACON_DOCUMENTS,
+  "c0000000-0000-0000-0000-000000000003": CIPHER_DOCUMENTS,
 };
 
 Deno.serve(async (req) => {
@@ -208,6 +279,21 @@ Deno.serve(async (req) => {
     }
   }
 
+  // ── Seed canonical documents (contract_documents) for each demo deal ──
+  const docErrors: string[] = [];
+  for (const dealId of dealIds) {
+    const docs = DEAL_DOCUMENTS[dealId] || [];
+    for (const doc of docs) {
+      const { error } = await supabaseAdmin.from("contract_documents").insert({
+        deal_id: dealId,
+        filename: doc.filename,
+        doc_type: doc.doc_type,
+        status: doc.status,
+      } as any);
+      if (error) docErrors.push(`${doc.filename}: ${error.message}`);
+    }
+  }
+
   // Seed conditions for ATLAS (example golden state)
   const atlasConditions = [
     "SPA Fully Executed",
@@ -246,7 +332,6 @@ Deno.serve(async (req) => {
     if (data) insertedRecipients.push(data);
   }
 
-  // Seed tax forms — most have W-9s on file, but David Patel and Seed Fund I are MISSING
   for (const r of insertedRecipients) {
     const isMissing = r.name === "David Patel" || r.name === "Seed Fund I LP";
     if (!isMissing) {
@@ -262,7 +347,18 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ success: true, reset_at: new Date().toISOString(), deals: dealIds.length, stakeholder_errors: stkErrors }),
+    JSON.stringify({
+      success: true,
+      reset_at: new Date().toISOString(),
+      deals: dealIds.length,
+      stakeholder_errors: stkErrors,
+      document_errors: docErrors,
+      seeded: {
+        atlas: { stakeholders: ATLAS_STAKEHOLDERS.length, documents: ATLAS_DOCUMENTS.length },
+        beacon: { stakeholders: BEACON_STAKEHOLDERS.length, documents: BEACON_DOCUMENTS.length },
+        cipher: { stakeholders: CIPHER_STAKEHOLDERS.length, documents: CIPHER_DOCUMENTS.length },
+      },
+    }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
