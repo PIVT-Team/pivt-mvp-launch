@@ -730,7 +730,17 @@ export const DealWorkspaceCover: React.FC = () => {
     if (!isRealDeal) return selectedDealId; // 'atlas', 'beacon', 'cipher'
     return realDeal?.seed_key || null;
   }, [isRealDeal, realDeal, selectedDealId]);
-  const { summary: dealSummary } = useDealSummary(isRealDeal ? selectedDealId : undefined);
+  // Always compute deal summary from DB — for both demo and real deals.
+  // Demo deals have UUIDs in the deals table and seeded cap_table_entries.
+  const effectiveDealId = isRealDeal ? selectedDealId : undefined;
+  // For pivtStore demo IDs ('atlas', 'beacon', 'cipher'), resolve to their UUID
+  const DEMO_ID_MAP: Record<string, string> = {
+    atlas: 'a0000000-0000-0000-0000-000000000001',
+    beacon: 'b0000000-0000-0000-0000-000000000002',
+    cipher: 'c0000000-0000-0000-0000-000000000003',
+  };
+  const resolvedDealId = effectiveDealId || DEMO_ID_MAP[selectedDealId] || undefined;
+  const { summary: dealSummary } = useDealSummary(resolvedDealId);
   const { completionPcts: wfPcts } = useWorkflowStatus(isRealDeal ? selectedDealId : undefined);
   useEffect(() => {
     if (isRealDeal) {
