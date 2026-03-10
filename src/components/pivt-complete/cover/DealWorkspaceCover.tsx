@@ -1060,6 +1060,9 @@ export const DealWorkspaceCover: React.FC = () => {
         )}
       </motion.div>
 
+      {/* ── Deal State Inspector (debug) ── */}
+      <DealStateInspector />
+
       {/* Edit Deal Drawer */}
       {realDeal && !isDemoDeal && (
         <EditDealDrawer
