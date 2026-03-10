@@ -51,6 +51,7 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       capTable,
       deal,
       escrow,
+      dealParties,
     ] = await Promise.all([
       supabase.from('cap_table_entries').select('id, role, verification_status, ownership_pct').eq('deal_id', dealId),
       supabase.from('contract_documents').select('id, doc_type, status').eq('deal_id', dealId),
@@ -60,6 +61,7 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       supabase.from('waterfall_tiers').select('id').eq('deal_id', dealId),
       supabase.from('deals').select('deal_value, closing_date, buyer, seller, target_company, deal_type, status').eq('id', dealId).single(),
       supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
+      supabase.from('deal_parties').select('id').eq('deal_id', dealId),
     ]);
 
     const stk = stakeholders.data || [];
