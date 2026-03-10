@@ -730,18 +730,31 @@ export const DealWorkspaceCover: React.FC = () => {
     if (!isRealDeal) return selectedDealId; // 'atlas', 'beacon', 'cipher'
     return realDeal?.seed_key || null;
   }, [isRealDeal, realDeal, selectedDealId]);
-  const { summary: dealSummary } = useDealSummary(isRealDeal ? selectedDealId : undefined);
-  const { completionPcts: wfPcts } = useWorkflowStatus(isRealDeal ? selectedDealId : undefined);
+  // Always compute deal summary from DB — for both demo and real deals.
+  // Demo deals have UUIDs in the deals table and seeded cap_table_entries.
+  const effectiveDealId = isRealDeal ? selectedDealId : undefined;
+  // For pivtStore demo IDs ('atlas', 'beacon', 'cipher'), resolve to their UUID
+  const DEMO_ID_MAP: Record<string, string> = {
+    atlas: 'a0000000-0000-0000-0000-000000000001',
+    beacon: 'b0000000-0000-0000-0000-000000000002',
+    cipher: 'c0000000-0000-0000-0000-000000000003',
+  };
+  const resolvedDealId = effectiveDealId || DEMO_ID_MAP[selectedDealId] || undefined;
+  const { summary: dealSummary } = useDealSummary(resolvedDealId);
+  const { completionPcts: wfPcts } = useWorkflowStatus(resolvedDealId);
   useEffect(() => {
-    if (isRealDeal) {
+    // For UUID-based deal IDs, fetch directly. For pivtStore IDs, resolve to UUID then fetch.
+    const fetchId = isRealDeal ? selectedDealId : DEMO_ID_MAP[selectedDealId];
+    if (fetchId) {
       setLoadingDeal(true);
-      supabase.from('deals').select('*').eq('id', selectedDealId).single()
+      supabase.from('deals').select('*').eq('id', fetchId).single()
         .then(({ data }) => {
           setRealDeal(data as RealDeal | null);
           setLoadingDeal(false);
         });
     } else {
       setRealDeal(null);
+      setLoadingDeal(false);
     }
   }, [selectedDealId, isRealDeal]);
 
@@ -794,32 +807,9 @@ export const DealWorkspaceCover: React.FC = () => {
   }, [isDemoDeal, dealSummary, demoDeal.readyToPayPercent]);
 
   // ── Progress Ribbon Data ──
-  const DEMO_PROGRESS: Record<string, DealProgressData> = {
-    atlas: {
-      stakeholdersAdded: 28, stakeholdersRequired: 28,
-      compliancePassed: 24, complianceTotal: 28, complianceBlocked: false,
-      conditionsSatisfied: 6, conditionsTotal: 8, documentsUploaded: 108, documentsRequired: 112,
-      approvalsGranted: 5, approvalsTotal: 7, approvalsBlocked: false,
-      paymentsExecuted: 0, paymentsTotal: 12, paymentsFailed: false,
-    },
-    beacon: {
-      stakeholdersAdded: 25, stakeholdersRequired: 25,
-      compliancePassed: 18, complianceTotal: 25, complianceBlocked: true,
-      conditionsSatisfied: 3, conditionsTotal: 6, documentsUploaded: 75, documentsRequired: 80,
-      approvalsGranted: 2, approvalsTotal: 5, approvalsBlocked: false,
-      paymentsExecuted: 0, paymentsTotal: 8, paymentsFailed: false,
-    },
-    cipher: {
-      stakeholdersAdded: 48, stakeholdersRequired: 48,
-      compliancePassed: 46, complianceTotal: 48, complianceBlocked: false,
-      conditionsSatisfied: 9, conditionsTotal: 10, documentsUploaded: 145, documentsRequired: 145,
-      approvalsGranted: 9, approvalsTotal: 10, approvalsBlocked: false,
-      paymentsExecuted: 0, paymentsTotal: 15, paymentsFailed: false,
-    },
-  };
-
+  // All progress data is now computed from DB queries — no hardcoded demo values.
+  // This ensures the ribbon, Deal Parties, and Cap Table all read from the same source.
   const progressData: DealProgressData = useMemo(() => {
-    if (isDemoDeal) return DEMO_PROGRESS[demoDealSeedKey || ''] || DEMO_PROGRESS.atlas;
     const s = dealSummary;
     const stkCount = s?.stakeholderCount || 0;
     return {
@@ -839,48 +829,10 @@ export const DealWorkspaceCover: React.FC = () => {
       paymentsTotal: s?.paymentsTotal || 0,
       paymentsFailed: false,
     };
-  }, [isDemoDeal, demoDealSeedKey, dealSummary]);
+  }, [dealSummary]);
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
-    if (isDemoDeal && !isRealDeal) {
-      const DEMO_STEPS: Record<string, WorkflowStep[]> = {
-        atlas: [
-          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 92, blockers: 0 },
-          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 90, blockers: 0 },
-          { id: 'verification', number: 4, label: 'Verification', completionPct: 85, blockers: 1 },
-          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 70, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 64, blockers: 2 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
-        ],
-        beacon: [
-          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 75, blockers: 1 },
-          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 60, blockers: 0 },
-          { id: 'verification', number: 4, label: 'Verification', completionPct: 50, blockers: 2 },
-          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 0, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 20, blockers: 3 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 55, blockers: 1 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
-        ],
-        cipher: [
-          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 100, blockers: 0 },
-          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 100, blockers: 0 },
-          { id: 'verification', number: 4, label: 'Verification', completionPct: 95, blockers: 0 },
-          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 90, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 88, blockers: 1 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
-        ],
-      };
-      return DEMO_STEPS[demoDealSeedKey || ''] || DEMO_STEPS.atlas;
-    }
-
+    // All deals (including demo) now compute from DB via useWorkflowStatus
     const pct = (key: string) => wfPcts[key] ?? 0;
 
     return [
@@ -894,7 +846,7 @@ export const DealWorkspaceCover: React.FC = () => {
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
     ];
-  }, [isDemoDeal, demoDealSeedKey, wfPcts]);
+  }, [wfPcts]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
@@ -928,7 +880,7 @@ export const DealWorkspaceCover: React.FC = () => {
 
   return (
     <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
-    <DealWorkspaceProvider dealId={selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal}>
+    <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal}>
     <motion.div {...staggerChildren} className="space-y-8">
       {/* Back */}
       <button

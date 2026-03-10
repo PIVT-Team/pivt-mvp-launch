@@ -70,6 +70,63 @@ const DEMO_DEALS = [
   },
 ];
 
+// ── Canonical demo stakeholders per deal ──
+// These are the SINGLE SOURCE OF TRUTH for demo stakeholder data.
+// Progress bars, Deal Parties, Cap Table, and all other modules derive from these.
+const ATLAS_STAKEHOLDERS = [
+  { shareholder_name: "Sarah Chen", role: "Founder", stakeholder_type: "individual", ownership_pct: 30, payout_amount: 42750000, email: "schen@northbridge.io", verification_status: "verified" },
+  { shareholder_name: "Marcus Williams", role: "Founder", stakeholder_type: "individual", ownership_pct: 20, payout_amount: 28500000, email: "mwilliams@northbridge.io", verification_status: "verified" },
+  { shareholder_name: "Sequoia Capital Fund XIV", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 15, payout_amount: 21375000, email: "legal@sequoia.com", verification_status: "verified" },
+  { shareholder_name: "Andreessen Horowitz", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 10, payout_amount: 14250000, email: "closings@a16z.com", verification_status: "sent" },
+  { shareholder_name: "Tiger Global Management", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 8, payout_amount: 11400000, email: "ops@tigerglobal.com", verification_status: "verified" },
+  { shareholder_name: "Employee Option Pool", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 7, payout_amount: 9975000, email: "esop@northbridge.io", verification_status: "sent" },
+  { shareholder_name: "Index Ventures", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 6, payout_amount: 8550000, email: "legal@indexventures.com", verification_status: "verified" },
+  { shareholder_name: "GIC Private Limited", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 4, payout_amount: 5700000, email: "investments@gic.com.sg", verification_status: "failed" },
+  // Advisors / parties (0% ownership but part of the deal)
+  { shareholder_name: "Apex Capital Partners", role: "Buyer", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "deals@apexcap.com", verification_status: "verified" },
+  { shareholder_name: "Cooley LLP", role: "Buyer Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@cooley.com", verification_status: "verified" },
+  { shareholder_name: "Wilson Sonsini", role: "Seller Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@wsgr.com", verification_status: "verified" },
+  { shareholder_name: "JPMorgan Chase", role: "Escrow Agent", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "escrow@jpmorgan.com", verification_status: "verified" },
+];
+
+const BEACON_STAKEHOLDERS = [
+  { shareholder_name: "James Rodriguez", role: "Founder", stakeholder_type: "individual", ownership_pct: 35, payout_amount: 31150000, email: "jrod@cloudvault.io", verification_status: "verified" },
+  { shareholder_name: "Priya Sharma", role: "Founder", stakeholder_type: "individual", ownership_pct: 25, payout_amount: 22250000, email: "psharma@cloudvault.io", verification_status: "verified" },
+  { shareholder_name: "Accel Partners", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 15, payout_amount: 13350000, email: "legal@accel.com", verification_status: "verified" },
+  { shareholder_name: "Insight Partners", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 10, payout_amount: 8900000, email: "ops@insightpartners.com", verification_status: "sent" },
+  { shareholder_name: "Greylock Partners", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 8, payout_amount: 7120000, email: "legal@greylock.com", verification_status: "verified" },
+  { shareholder_name: "ESOP Trust", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 7, payout_amount: 6230000, email: "esop@cloudvault.io", verification_status: "sent" },
+  // Parties
+  { shareholder_name: "Meridian Holdings", role: "Buyer", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "deals@meridian.com", verification_status: "verified" },
+  { shareholder_name: "Latham & Watkins", role: "Buyer Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@lw.com", verification_status: "verified" },
+  { shareholder_name: "Fenwick & West", role: "Seller Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@fenwick.com", verification_status: "verified" },
+  { shareholder_name: "Bank of America", role: "Escrow Agent", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "escrow@bofa.com", verification_status: "sent" },
+];
+
+const CIPHER_STAKEHOLDERS = [
+  { shareholder_name: "Dr. Anika Patel", role: "Founder", stakeholder_type: "individual", ownership_pct: 22, payout_amount: 47300000, email: "apatel@neuralpath.ai", verification_status: "verified" },
+  { shareholder_name: "Ryan Kim", role: "Founder", stakeholder_type: "individual", ownership_pct: 18, payout_amount: 38700000, email: "rkim@neuralpath.ai", verification_status: "verified" },
+  { shareholder_name: "Lightspeed Venture Partners", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 12, payout_amount: 25800000, email: "legal@lsvp.com", verification_status: "verified" },
+  { shareholder_name: "Coatue Management", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 10, payout_amount: 21500000, email: "ops@coatue.com", verification_status: "verified" },
+  { shareholder_name: "General Catalyst", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 8, payout_amount: 17200000, email: "legal@generalcatalyst.com", verification_status: "verified" },
+  { shareholder_name: "Founders Fund", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 7, payout_amount: 15050000, email: "closings@foundersfund.com", verification_status: "verified" },
+  { shareholder_name: "Bessemer Venture Partners", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 6, payout_amount: 12900000, email: "legal@bvp.com", verification_status: "verified" },
+  { shareholder_name: "NVIDIA Ventures", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 5, payout_amount: 10750000, email: "ventures@nvidia.com", verification_status: "verified" },
+  { shareholder_name: "Employee Option Pool", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 7, payout_amount: 15050000, email: "esop@neuralpath.ai", verification_status: "verified" },
+  { shareholder_name: "Angel Syndicate", role: "Shareholder", stakeholder_type: "entity", ownership_pct: 5, payout_amount: 10750000, email: "admin@angelsyndicate.co", verification_status: "verified" },
+  // Parties
+  { shareholder_name: "Titan Strategic Group", role: "Buyer", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "deals@titanstrategic.com", verification_status: "verified" },
+  { shareholder_name: "Sullivan & Cromwell", role: "Buyer Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@sullcrom.com", verification_status: "verified" },
+  { shareholder_name: "Goodwin Procter", role: "Seller Counsel", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "closings@goodwin.com", verification_status: "verified" },
+  { shareholder_name: "Citibank N.A.", role: "Escrow Agent", stakeholder_type: "entity", ownership_pct: 0, payout_amount: 0, email: "escrow@citi.com", verification_status: "sent" },
+];
+
+const DEAL_STAKEHOLDERS: Record<string, typeof ATLAS_STAKEHOLDERS> = {
+  "a0000000-0000-0000-0000-000000000001": ATLAS_STAKEHOLDERS,
+  "b0000000-0000-0000-0000-000000000002": BEACON_STAKEHOLDERS,
+  "c0000000-0000-0000-0000-000000000003": CIPHER_STAKEHOLDERS,
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -113,6 +170,10 @@ Deno.serve(async (req) => {
     "validation_results",
     "tax_forms",
     "tax_recipients",
+    "wire_instructions",
+    "payment_allocations",
+    "verification_documents",
+    "verification_requests",
   ];
 
   for (const table of childTables) {
@@ -132,6 +193,19 @@ Deno.serve(async (req) => {
       party_role: "admin",
     });
     await supabaseAdmin.from("deal_settings").insert({ deal_id: id });
+  }
+
+  // ── Seed canonical stakeholders (cap_table_entries) for each demo deal ──
+  const stkErrors: string[] = [];
+  for (const dealId of dealIds) {
+    const stakeholders = DEAL_STAKEHOLDERS[dealId] || [];
+    for (const stk of stakeholders) {
+      const { error } = await supabaseAdmin.from("cap_table_entries").insert({
+        deal_id: dealId,
+        ...stk,
+      } as any);
+      if (error) stkErrors.push(`${stk.shareholder_name}: ${error.message}`);
+    }
   }
 
   // Seed conditions for ATLAS (example golden state)
@@ -188,7 +262,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ success: true, reset_at: new Date().toISOString(), deals: dealIds.length }),
+    JSON.stringify({ success: true, reset_at: new Date().toISOString(), deals: dealIds.length, stakeholder_errors: stkErrors }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
