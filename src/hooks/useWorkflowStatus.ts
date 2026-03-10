@@ -71,6 +71,7 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
     const conds = conditions.data || [];
     const tiers = capTable.data || [];
     const d = deal.data;
+    const dp = dealParties.data || [];
 
     // ── Overview: always complete (it's a summary page)
     const overviewStatus: WorkflowStepStatus = 'COMPLETED';
