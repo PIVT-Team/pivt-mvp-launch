@@ -41,8 +41,19 @@ export const DealPartiesCover: React.FC = () => {
   const [capTableParties, setCapTableParties] = useState<{ id: string; shareholder_name: string; role: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Resolve demo pivtStore IDs to actual UUIDs
+  const DEMO_ID_MAP: Record<string, string> = {
+    atlas: 'a0000000-0000-0000-0000-000000000001',
+    beacon: 'b0000000-0000-0000-0000-000000000002',
+    cipher: 'c0000000-0000-0000-0000-000000000003',
+    atlas_demo: 'a0000000-0000-0000-0000-000000000001',
+    beacon_demo: 'b0000000-0000-0000-0000-000000000002',
+    cipher_demo: 'c0000000-0000-0000-0000-000000000003',
+  };
+  const resolvedDealId = dealId ? (DEMO_ID_MAP[dealId] || dealId) : undefined;
+
   useEffect(() => {
-    if (!dealId) { setLoading(false); return; }
+    if (!resolvedDealId) { setLoading(false); return; }
 
     const fetchParties = async () => {
       setLoading(true);
@@ -50,12 +61,12 @@ export const DealPartiesCover: React.FC = () => {
         supabase
           .from('deal_parties')
           .select('id, party_type, organization:organizations(id, name)')
-          .eq('deal_id', dealId),
+          .eq('deal_id', resolvedDealId),
         // Also fetch cap_table_entries with deal-party roles (Buyer, Seller, Target, etc.)
         supabase
           .from('cap_table_entries')
           .select('id, shareholder_name, role')
-          .eq('deal_id', dealId)
+          .eq('deal_id', resolvedDealId)
           .in('role', ['Buyer', 'Seller', 'Target', 'Merger Sub', 'Escrow Agent', 'Lender', 'Buyer Counsel', 'Seller Counsel', 'Paying Agent', 'Administrative Agent']),
       ]);
       setParties((dpResult.data as any[]) || []);
@@ -63,7 +74,7 @@ export const DealPartiesCover: React.FC = () => {
       setLoading(false);
     };
     fetchParties();
-  }, [dealId]);
+  }, [resolvedDealId]);
 
   // Derive party-like info from deal record itself
   const inferredParties: { name: string; type: string; side: string }[] = [];

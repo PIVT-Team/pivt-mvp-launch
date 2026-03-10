@@ -829,45 +829,7 @@ export const DealWorkspaceCover: React.FC = () => {
   }, [dealSummary]);
 
   const workflowSteps: WorkflowStep[] = useMemo(() => {
-    if (isDemoDeal && !isRealDeal) {
-      const DEMO_STEPS: Record<string, WorkflowStep[]> = {
-        atlas: [
-          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 92, blockers: 0 },
-          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 90, blockers: 0 },
-          { id: 'verification', number: 4, label: 'Verification', completionPct: 85, blockers: 1 },
-          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 70, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 64, blockers: 2 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
-        ],
-        beacon: [
-          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 75, blockers: 1 },
-          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 60, blockers: 0 },
-          { id: 'verification', number: 4, label: 'Verification', completionPct: 50, blockers: 2 },
-          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 0, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 20, blockers: 3 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 55, blockers: 1 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
-        ],
-        cipher: [
-          { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-          { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: 100, blockers: 0 },
-          { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: 100, blockers: 0 },
-          { id: 'verification', number: 4, label: 'Verification', completionPct: 95, blockers: 0 },
-          { id: 'approvals', number: 5, label: 'Approvals', completionPct: 90, blockers: 0 },
-          { id: 'execution', number: 6, label: 'Execution', completionPct: 88, blockers: 1 },
-          { id: 'compliance', number: 7, label: 'Compliance', completionPct: 100, blockers: 0 },
-          { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
-          { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
-        ],
-      };
-      return DEMO_STEPS[demoDealSeedKey || ''] || DEMO_STEPS.atlas;
-    }
-
+    // All deals (including demo) now compute from DB via useWorkflowStatus
     const pct = (key: string) => wfPcts[key] ?? 0;
 
     return [
@@ -881,7 +843,7 @@ export const DealWorkspaceCover: React.FC = () => {
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
     ];
-  }, [isDemoDeal, demoDealSeedKey, wfPcts]);
+  }, [wfPcts]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
