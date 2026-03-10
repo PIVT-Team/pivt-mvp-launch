@@ -10,7 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { WorkflowActivityFeed } from './WorkflowActivityFeed';
 
-type ActivityView = 'timeline' | 'discussions';
+type ActivityView = 'orchestration' | 'timeline' | 'discussions';
 
 const categoryConfig = {
   success: { icon: CheckCircle2, color: 'text-validated', bg: 'bg-validated/10', border: 'border-validated/20' },
