@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ success: true, reset_at: new Date().toISOString(), deals: dealIds.length }),
+    JSON.stringify({ success: true, reset_at: new Date().toISOString(), deals: dealIds.length, stakeholder_errors: stkErrors }),
     { headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
