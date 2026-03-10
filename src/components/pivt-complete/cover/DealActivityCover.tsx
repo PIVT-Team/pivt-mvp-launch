@@ -5,9 +5,10 @@ import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Bell, Clock, MessageSquare, CheckCircle2, AlertTriangle, XCircle, Info,
-  FileText, Users, CreditCard, Shield, Filter, Inbox,
+  FileText, Users, CreditCard, Shield, Filter, Inbox, Activity,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { WorkflowActivityFeed } from './WorkflowActivityFeed';
 
 type ActivityView = 'timeline' | 'discussions';
 
