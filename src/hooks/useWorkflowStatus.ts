@@ -76,14 +76,16 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
     // ── Overview: always complete (it's a summary page)
     const overviewStatus: WorkflowStepStatus = 'COMPLETED';
 
-    // ── Stakeholders
+    // ── Stakeholders: combine cap_table_entries + deal_parties + inferred deal parties
+    const inferredPartyCount = [d?.buyer, d?.seller, d?.target_company].filter(Boolean).length;
+    const totalStakeholders = stk.length + dp.length + inferredPartyCount;
+    // Deduplicate isn't critical for status — if any exist, it's at least IN_PROGRESS
     const stkStatus: WorkflowStepStatus =
-      stk.length === 0 ? 'NOT_STARTED' :
-      stk.every(s => s.verification_status === 'verified') ? 'COMPLETED' :
+      totalStakeholders === 0 ? 'NOT_STARTED' :
+      stk.length > 0 && stk.every(s => s.verification_status === 'verified') ? 'COMPLETED' :
       'IN_PROGRESS';
-    // Stakeholder pct: having stakeholders = 50% base, verification progress = remaining 50%
-    const stkPct = stk.length === 0 ? 0 :
-      Math.round(50 + (stk.filter(s => s.verification_status === 'verified').length / stk.length) * 50);
+    const stkPct = totalStakeholders === 0 ? 0 :
+      Math.round(50 + (stk.filter(s => s.verification_status === 'verified').length / Math.max(stk.length, 1)) * 50);
 
     // ── Verification
     const ACTIVE_STATUSES = ['sent', 'in_progress', 'submitted', 'pending', 'verified', 'failed', 'not_sent'];
