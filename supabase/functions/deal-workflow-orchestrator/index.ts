@@ -6,13 +6,12 @@ const corsHeaders = {
 };
 
 /**
- * Deal Workflow Orchestrator
- * 
- * Triggered after document upload + classification to:
- * 1. Parse extracted data into wire_instructions & payment_allocations
- * 2. Trigger the discrepancy engine
- * 3. Log audit events
- * 4. Update readiness indicators
+ * Deal Workflow Orchestrator — Central Pipeline
+ *
+ * Document Upload → Classification → Extraction → Ontology Mapping →
+ * Graph Update → Workflow Triggers → Verification → Readiness → Compliance Log
+ *
+ * Handles re-uploads by superseding prior extracted data from the same document.
  */
 
 Deno.serve(async (req) => {
@@ -35,13 +34,13 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
 
     const results: Record<string, unknown> = { deal_id, document_id };
+    const auditEvents: Array<{ action: string; details: Record<string, unknown> }> = [];
 
     // ── Action: process_document ──
-    // Called after document-ai classifies a document
     if (action === "process_document" || !action) {
       const docType = (doc_type || "").toUpperCase();
 
-      // If no extracted_fields passed, fetch from contract_documents
+      // Fetch fields from DB if not provided
       let fields = extracted_fields;
       if (!fields && document_id) {
         const { data: doc } = await admin
@@ -52,188 +51,97 @@ Deno.serve(async (req) => {
         fields = doc?.extracted_fields || {};
       }
 
-      // ── FUNDS_FLOW processing ──
+      // ── Step 1: Supersede prior extracted data from this document ──
+      if (document_id) {
+        const [delWires, delAllocs] = await Promise.all([
+          admin.from("wire_instructions").delete().eq("source_document_id", document_id),
+          admin.from("payment_allocations").delete().eq("source_document_id", document_id),
+        ]);
+        if (delWires.data || delAllocs.data) {
+          auditEvents.push({
+            action: "prior_extraction_superseded",
+            details: { document_id, doc_type: docType },
+          });
+        }
+      }
+
+      // ── Step 2: Ontology Mapping + Entity Creation by doc type ──
+
       if (docType === "FUNDS_FLOW" || docType === "WIRE_INSTRUCTIONS") {
-        const lineItems = fields?.line_items;
-
-        if (Array.isArray(lineItems) && lineItems.length > 0) {
-          // Clear old wire instructions from this document
-          if (document_id) {
-            await admin.from("wire_instructions").delete().eq("source_document_id", document_id);
-            await admin.from("payment_allocations").delete().eq("source_document_id", document_id);
-          }
-
-          // Insert wire instructions from line items
-          const wireRows = lineItems.map((item: any) => ({
-            deal_id,
-            source_document_id: document_id || null,
-            payer_entity: item.payor || item.payer || null,
-            payee_entity: item.recipient_name || item.payee || "Unknown",
-            bank_name: item.bank_name || null,
-            account_holder: item.account_holder || item.recipient_name || null,
-            account_number_last4: item.account_last4 || null,
-            routing_number: item.routing_number || null,
-            swift_bic: item.swift_bic || item.swift || null,
-            iban: item.iban || null,
-            currency: item.currency || "USD",
-            amount: Number(item.amount) || 0,
-            payment_type: mapItemType(item.item_type || item.payment_type),
-            verification_status: "pending",
-          }));
-
-          const { data: insertedWires, error: wireErr } = await admin
-            .from("wire_instructions")
-            .insert(wireRows)
-            .select("id");
-
-          if (wireErr) {
-            console.error("Failed to insert wire instructions:", wireErr);
-          } else {
-            results.wires_created = insertedWires?.length || 0;
-          }
-
-          // Insert payment allocations
-          const allocRows = lineItems.map((item: any, idx: number) => ({
-            deal_id,
-            source_document_id: document_id || null,
-            source_wire_id: insertedWires?.[idx]?.id || null,
-            recipient: item.recipient_name || item.payee || "Unknown",
-            amount: Number(item.amount) || 0,
-            currency: item.currency || "USD",
-            allocation_type: item.item_type || "other",
-            status: "unmatched",
-          }));
-
-          const { data: insertedAllocs, error: allocErr } = await admin
-            .from("payment_allocations")
-            .insert(allocRows)
-            .select("id");
-
-          if (allocErr) {
-            console.error("Failed to insert allocations:", allocErr);
-          } else {
-            results.allocations_created = insertedAllocs?.length || 0;
-          }
-        } else {
-          // Even without line_items, create allocations from top-level fields
-          const topLevelAllocs: any[] = [];
-          if (fields?.total_sources) {
-            topLevelAllocs.push({
-              deal_id,
-              source_document_id: document_id || null,
-              recipient: "Total Sources",
-              amount: Number(fields.total_sources) || 0,
-              allocation_type: "source",
-              status: "unmatched",
-            });
-          }
-          if (fields?.total_uses) {
-            topLevelAllocs.push({
-              deal_id,
-              source_document_id: document_id || null,
-              recipient: "Total Uses",
-              amount: Number(fields.total_uses) || 0,
-              allocation_type: "use",
-              status: "unmatched",
-            });
-          }
-          if (fields?.escrow_amount) {
-            topLevelAllocs.push({
-              deal_id,
-              source_document_id: document_id || null,
-              recipient: "Escrow Agent",
-              amount: Number(fields.escrow_amount) || 0,
-              allocation_type: "escrow",
-              status: "unmatched",
-            });
-          }
-
-          if (topLevelAllocs.length > 0) {
-            if (document_id) {
-              await admin.from("payment_allocations").delete().eq("source_document_id", document_id);
-            }
-            await admin.from("payment_allocations").insert(topLevelAllocs);
-            results.allocations_created = topLevelAllocs.length;
-          }
-        }
-
-        // Log audit event
-        await admin.from("audit_log").insert({
-          deal_id,
-          action: "funds_flow_processed",
-          details: {
-            document_id,
-            doc_type: docType,
-            wires_created: results.wires_created || 0,
-            allocations_created: results.allocations_created || 0,
-          },
-        });
+        await processFundsFlow(admin, deal_id, document_id, fields, results, auditEvents);
       }
 
-      // ── ESCROW_AGREEMENT processing ──
       if (docType === "ESCROW_AGREEMENT") {
-        const escrowAmount = Number(fields?.escrow_amount || 0);
-        const escrowAgent = fields?.escrow_agent;
-
-        if (escrowAmount > 0 && escrowAgent) {
-          // Create wire instruction for escrow deposit
-          await admin.from("wire_instructions").insert({
-            deal_id,
-            source_document_id: document_id || null,
-            payee_entity: escrowAgent,
-            amount: escrowAmount,
-            payment_type: "Escrow",
-            verification_status: "pending",
-          });
-          results.escrow_wire_created = true;
-        }
-
-        await admin.from("audit_log").insert({
-          deal_id,
-          action: "escrow_agreement_processed",
-          details: { document_id, escrow_amount: escrowAmount, escrow_agent: escrowAgent },
-        });
+        await processEscrowAgreement(admin, deal_id, document_id, fields, results, auditEvents);
       }
 
-      // ── PAYOFF_LETTER processing ──
       if (docType === "PAYOFF_LETTER") {
-        const payoffAmount = Number(fields?.payoff_amount || fields?.amount || 0);
-        const lender = fields?.lender_name || fields?.payoff_lender || "Lender";
-
-        if (payoffAmount > 0) {
-          await admin.from("wire_instructions").insert({
-            deal_id,
-            source_document_id: document_id || null,
-            payee_entity: lender,
-            amount: payoffAmount,
-            payment_type: "Debt Payoff",
-            verification_status: "pending",
-          });
-          results.payoff_wire_created = true;
-        }
+        await processPayoffLetter(admin, deal_id, document_id, fields, results, auditEvents);
       }
 
-      // ── Always trigger discrepancy engine after processing ──
+      if (docType === "CAP_TABLE") {
+        await processCapTable(admin, deal_id, document_id, fields, results, auditEvents);
+      }
+
+      if (docType === "SPA") {
+        await processSPA(admin, deal_id, document_id, fields, results, auditEvents);
+      }
+
+      // ── Step 3: Run Discrepancy Engine ──
       try {
-        await admin.functions.invoke("discrepancy-engine", {
-          body: { deal_id },
-        });
+        await admin.functions.invoke("discrepancy-engine", { body: { deal_id } });
         results.discrepancy_engine_triggered = true;
+        auditEvents.push({ action: "discrepancy_engine_triggered", details: { deal_id } });
       } catch (e) {
         console.error("Discrepancy engine trigger failed:", e);
         results.discrepancy_engine_triggered = false;
       }
 
-      // Log general document processing event
-      await admin.from("audit_log").insert({
+      // ── Step 4: Rebuild Deal Graph ──
+      try {
+        const graphRes = await admin.functions.invoke("build-deal-graph", { body: { deal_id } });
+        results.graph_rebuilt = true;
+        results.graph_state = graphRes?.data?.deal_state || null;
+        results.graph_nodes = graphRes?.data?.node_count || 0;
+        results.graph_edges = graphRes?.data?.edge_count || 0;
+        auditEvents.push({
+          action: "deal_graph_rebuilt",
+          details: {
+            node_count: results.graph_nodes,
+            edge_count: results.graph_edges,
+            deal_state: results.graph_state,
+          },
+        });
+      } catch (e) {
+        console.error("Graph rebuild failed:", e);
+        results.graph_rebuilt = false;
+      }
+
+      // ── Step 5: Write all audit events ──
+      const auditRows = auditEvents.map((evt) => ({
+        deal_id,
+        action: evt.action,
+        details: { ...evt.details, document_id, doc_type: docType, orchestrator_version: "2.0" },
+      }));
+
+      // Add the main processing event
+      auditRows.push({
         deal_id,
         action: "document_workflow_processed",
         details: {
           document_id,
           doc_type: docType,
           fields_extracted: fields ? Object.keys(fields).length : 0,
+          wires_created: results.wires_created || 0,
+          allocations_created: results.allocations_created || 0,
+          graph_rebuilt: results.graph_rebuilt || false,
+          orchestrator_version: "2.0",
         },
       });
+
+      if (auditRows.length > 0) {
+        await admin.from("audit_log").insert(auditRows);
+      }
     }
 
     return new Response(JSON.stringify({ success: true, ...results }), {
@@ -248,7 +156,256 @@ Deno.serve(async (req) => {
   }
 });
 
-function mapItemType(type: string): string {
+// ═══════════════════════════════════════════════════════════════
+// Document Type Processors — Ontology-aware entity creation
+// ═══════════════════════════════════════════════════════════════
+
+async function processFundsFlow(
+  admin: any, deal_id: string, document_id: string | null,
+  fields: any, results: Record<string, unknown>,
+  auditEvents: Array<{ action: string; details: Record<string, unknown> }>
+) {
+  const lineItems = fields?.line_items;
+
+  if (Array.isArray(lineItems) && lineItems.length > 0) {
+    // Create wire instruction records from line items
+    const wireRows = lineItems.map((item: any) => ({
+      deal_id,
+      source_document_id: document_id || null,
+      payer_entity: item.payor || item.payer || null,
+      payee_entity: item.recipient_name || item.payee || "Unknown",
+      bank_name: item.bank_name || null,
+      account_holder: item.account_holder || item.recipient_name || null,
+      account_number_last4: item.account_last4 || null,
+      routing_number: item.routing_number || null,
+      swift_bic: item.swift_bic || item.swift || null,
+      iban: item.iban || null,
+      currency: item.currency || "USD",
+      amount: Number(item.amount) || 0,
+      payment_type: mapPaymentType(item.item_type || item.payment_type),
+      verification_status: "pending",
+    }));
+
+    const { data: insertedWires, error: wireErr } = await admin
+      .from("wire_instructions")
+      .insert(wireRows)
+      .select("id");
+
+    if (wireErr) {
+      console.error("Failed to insert wire instructions:", wireErr);
+    } else {
+      results.wires_created = insertedWires?.length || 0;
+      auditEvents.push({
+        action: "wire_instructions_created",
+        details: { count: results.wires_created, source: "funds_flow_extraction" },
+      });
+    }
+
+    // Create payment allocation records
+    const allocRows = lineItems.map((item: any, idx: number) => ({
+      deal_id,
+      source_document_id: document_id || null,
+      source_wire_id: insertedWires?.[idx]?.id || null,
+      recipient: item.recipient_name || item.payee || "Unknown",
+      amount: Number(item.amount) || 0,
+      currency: item.currency || "USD",
+      allocation_type: item.item_type || "other",
+      status: "unmatched",
+    }));
+
+    const { data: insertedAllocs, error: allocErr } = await admin
+      .from("payment_allocations")
+      .insert(allocRows)
+      .select("id");
+
+    if (allocErr) {
+      console.error("Failed to insert allocations:", allocErr);
+    } else {
+      results.allocations_created = insertedAllocs?.length || 0;
+      auditEvents.push({
+        action: "payment_allocations_created",
+        details: { count: results.allocations_created, source: "funds_flow_extraction" },
+      });
+    }
+  } else {
+    // Top-level fields without line items
+    const topLevelAllocs: any[] = [];
+    if (fields?.total_sources) {
+      topLevelAllocs.push({
+        deal_id, source_document_id: document_id || null,
+        recipient: "Total Sources", amount: Number(fields.total_sources) || 0,
+        allocation_type: "source", status: "unmatched",
+      });
+    }
+    if (fields?.total_uses) {
+      topLevelAllocs.push({
+        deal_id, source_document_id: document_id || null,
+        recipient: "Total Uses", amount: Number(fields.total_uses) || 0,
+        allocation_type: "use", status: "unmatched",
+      });
+    }
+    if (fields?.escrow_amount) {
+      topLevelAllocs.push({
+        deal_id, source_document_id: document_id || null,
+        recipient: "Escrow Agent", amount: Number(fields.escrow_amount) || 0,
+        allocation_type: "escrow", status: "unmatched",
+      });
+    }
+
+    if (topLevelAllocs.length > 0) {
+      await admin.from("payment_allocations").insert(topLevelAllocs);
+      results.allocations_created = topLevelAllocs.length;
+      auditEvents.push({
+        action: "payment_allocations_created",
+        details: { count: topLevelAllocs.length, source: "funds_flow_top_level" },
+      });
+    }
+  }
+}
+
+async function processEscrowAgreement(
+  admin: any, deal_id: string, document_id: string | null,
+  fields: any, results: Record<string, unknown>,
+  auditEvents: Array<{ action: string; details: Record<string, unknown> }>
+) {
+  const escrowAmount = Number(fields?.escrow_amount || 0);
+  const escrowAgent = fields?.escrow_agent;
+
+  if (escrowAmount > 0 && escrowAgent) {
+    await admin.from("wire_instructions").insert({
+      deal_id,
+      source_document_id: document_id || null,
+      payee_entity: escrowAgent,
+      amount: escrowAmount,
+      payment_type: "Escrow",
+      verification_status: "pending",
+    });
+    results.escrow_wire_created = true;
+
+    // Update deal escrow_amount if available
+    await admin.from("deals").update({ escrow_amount: escrowAmount }).eq("id", deal_id);
+
+    auditEvents.push({
+      action: "escrow_agreement_processed",
+      details: { escrow_amount: escrowAmount, escrow_agent: escrowAgent },
+    });
+  }
+}
+
+async function processPayoffLetter(
+  admin: any, deal_id: string, document_id: string | null,
+  fields: any, results: Record<string, unknown>,
+  auditEvents: Array<{ action: string; details: Record<string, unknown> }>
+) {
+  const payoffAmount = Number(fields?.payoff_amount || fields?.amount || 0);
+  const lender = fields?.lender_name || fields?.payoff_lender || "Lender";
+
+  if (payoffAmount > 0) {
+    await admin.from("wire_instructions").insert({
+      deal_id,
+      source_document_id: document_id || null,
+      payee_entity: lender,
+      amount: payoffAmount,
+      payment_type: "Debt Payoff",
+      verification_status: "pending",
+    });
+    results.payoff_wire_created = true;
+    auditEvents.push({
+      action: "payoff_letter_processed",
+      details: { payoff_amount: payoffAmount, lender },
+    });
+  }
+}
+
+async function processCapTable(
+  admin: any, deal_id: string, document_id: string | null,
+  fields: any, results: Record<string, unknown>,
+  auditEvents: Array<{ action: string; details: Record<string, unknown> }>
+) {
+  const majorHolders = fields?.major_holders;
+  if (!Array.isArray(majorHolders) || majorHolders.length === 0) return;
+
+  // Get deal value for payout calculation
+  const { data: deal } = await admin.from("deals").select("deal_value").eq("id", deal_id).single();
+  const dealValue = Number(deal?.deal_value || 0);
+
+  let created = 0;
+  for (const holder of majorHolders) {
+    const name = holder.name;
+    const pct = Number(holder.percentage || 0);
+    if (!name || pct <= 0) continue;
+
+    // Check if shareholder already exists
+    const { data: existing } = await admin
+      .from("cap_table_entries")
+      .select("id")
+      .eq("deal_id", deal_id)
+      .eq("shareholder_name", name)
+      .maybeSingle();
+
+    if (existing) {
+      // Update existing
+      await admin.from("cap_table_entries").update({
+        ownership_pct: pct,
+        payout_amount: dealValue > 0 ? Math.round(dealValue * pct / 100) : 0,
+      }).eq("id", existing.id);
+    } else {
+      // Insert new
+      await admin.from("cap_table_entries").insert({
+        deal_id,
+        shareholder_name: name,
+        ownership_pct: pct,
+        payout_amount: dealValue > 0 ? Math.round(dealValue * pct / 100) : 0,
+        role: "Shareholder",
+        stakeholder_type: "individual",
+        verification_status: "not_sent",
+      });
+      created++;
+    }
+  }
+
+  results.shareholders_created = created;
+  results.shareholders_updated = majorHolders.length - created;
+  auditEvents.push({
+    action: "cap_table_processed",
+    details: {
+      holders_extracted: majorHolders.length,
+      created,
+      updated: majorHolders.length - created,
+    },
+  });
+}
+
+async function processSPA(
+  admin: any, deal_id: string, document_id: string | null,
+  fields: any, results: Record<string, unknown>,
+  auditEvents: Array<{ action: string; details: Record<string, unknown> }>
+) {
+  // Update deal metadata from SPA
+  const updates: Record<string, any> = {};
+  if (fields?.buyer_name) updates.buyer = fields.buyer_name;
+  if (fields?.seller_name) updates.seller = fields.seller_name;
+  if (fields?.target_name) updates.target_company = fields.target_name;
+  if (fields?.purchase_price) updates.deal_value = Number(fields.purchase_price);
+  if (fields?.closing_date) updates.closing_date = fields.closing_date;
+  if (fields?.escrow_amount) updates.escrow_amount = Number(fields.escrow_amount);
+  if (fields?.governing_law) updates.jurisdiction = fields.governing_law;
+
+  if (Object.keys(updates).length > 0) {
+    await admin.from("deals").update(updates).eq("id", deal_id);
+    results.deal_metadata_updated = Object.keys(updates);
+    auditEvents.push({
+      action: "spa_processed",
+      details: { fields_updated: Object.keys(updates), source_document_id: document_id },
+    });
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Helpers
+// ═══════════════════════════════════════════════════════════════
+
+function mapPaymentType(type: string): string {
   const map: Record<string, string> = {
     seller_proceeds: "Purchase Price",
     escrow: "Escrow",
