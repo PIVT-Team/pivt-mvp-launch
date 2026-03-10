@@ -877,7 +877,7 @@ export const DealWorkspaceCover: React.FC = () => {
 
   return (
     <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
-    <DealWorkspaceProvider dealId={selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal}>
+    <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal}>
     <motion.div {...staggerChildren} className="space-y-8">
       {/* Back */}
       <button
