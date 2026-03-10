@@ -82,7 +82,7 @@ export const ReadinessPanel: React.FC = () => {
         { label: 'Documents Complete', icon: FileText, current: docsComplete, total: Math.max(docs.length, 1), status: deriveStatus(docsComplete, docs.length) },
         { label: 'Stakeholders Verified', icon: Users, current: stakeholdersVerified, total: Math.max(stakeholders.length, 1), status: deriveStatus(stakeholdersVerified, stakeholders.length) },
         { label: 'Obligations Confirmed', icon: Shield, current: obligationsConfirmed, total: Math.max(obligations.length, 1), status: deriveStatus(obligationsConfirmed, obligations.length) },
-        { label: 'Wire Instructions Verified', icon: Landmark, current: wiresVerified, total: Math.max(wires.length, 1), status: deriveStatus(wiresVerified, wires.length) },
+        { label: 'Wire Instructions Verified', icon: Landmark, current: wiresVerified, total: Math.max(wiresTotal, 1), status: deriveStatus(wiresVerified, wiresTotal) },
         { label: 'Tax Forms Collected', icon: FileText, current: taxSatisfied, total: Math.max(taxForms.length, 1), status: deriveStatus(taxSatisfied, taxForms.length) },
         { label: 'Governance Docs Uploaded', icon: Shield, current: govDocs.length, total: Math.max(govDocs.length, 1), status: deriveStatus(govDocs.length, 1) },
       ]);

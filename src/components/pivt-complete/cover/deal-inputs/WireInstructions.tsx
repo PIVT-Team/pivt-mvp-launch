@@ -257,16 +257,38 @@ export const WireInstructions: React.FC = () => {
 
   const getDocLabel = (type: string) => WIRE_DOC_TYPES.find(t => t.value === type)?.label || type;
 
-  const handleAddWire = useCallback(() => {
+  const handleAddWire = useCallback(async () => {
     if (!newWire.stakeholder || !newWire.amount) {
       toast.error('Stakeholder and Amount are required');
       return;
     }
-    setWires(prev => [...prev, { ...newWire, id: `w-${Date.now()}`, status: 'Pending' }]);
+    if (!dealId) return;
+
+    // Insert into wire_instructions table
+    const { error } = await supabase.from('wire_instructions').insert({
+      deal_id: dealId,
+      payee_entity: newWire.stakeholder,
+      payment_type: newWire.payment_type,
+      amount: parseFloat(newWire.amount.replace(/[^0-9.]/g, '')) || 0,
+      currency: newWire.currency,
+      bank_name: newWire.bank_name || null,
+      account_holder: newWire.account_name || null,
+      account_number_last4: newWire.account_number ? newWire.account_number.slice(-4) : null,
+      routing_number: newWire.routing_aba || null,
+      swift_bic: newWire.swift_iban || null,
+      verification_status: 'pending',
+    } as any);
+
+    if (error) {
+      toast.error('Failed to add wire instruction');
+      return;
+    }
+
     setNewWire({ stakeholder: '', payment_type: 'Purchase Price', amount: '', currency: 'USD', bank_name: '', account_name: '', account_number: '', routing_aba: '', swift_iban: '' });
     setShowAddWire(false);
     toast.success('Wire instruction added');
-  }, [newWire]);
+    await fetchDocs();
+  }, [newWire, dealId, fetchDocs]);
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '';
