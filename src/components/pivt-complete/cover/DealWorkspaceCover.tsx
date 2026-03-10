@@ -741,7 +741,7 @@ export const DealWorkspaceCover: React.FC = () => {
   };
   const resolvedDealId = effectiveDealId || DEMO_ID_MAP[selectedDealId] || undefined;
   const { summary: dealSummary } = useDealSummary(resolvedDealId);
-  const { completionPcts: wfPcts } = useWorkflowStatus(isRealDeal ? selectedDealId : undefined);
+  const { completionPcts: wfPcts } = useWorkflowStatus(resolvedDealId);
   useEffect(() => {
     if (isRealDeal) {
       setLoadingDeal(true);
