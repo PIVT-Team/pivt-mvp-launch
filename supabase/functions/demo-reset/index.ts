@@ -22,6 +22,11 @@ const DEMO_DEALS = [
     owner_id: null,
     visibility: "global_demo",
     is_demo: true,
+    buyer: "Apex Capital Partners",
+    seller: "Northbridge Software",
+    target_company: "Northbridge Software",
+    sector: "Enterprise SaaS",
+    deal_type: "Acquisition",
   },
   {
     id: "b0000000-0000-0000-0000-000000000002",
@@ -37,6 +42,11 @@ const DEMO_DEALS = [
     owner_id: null,
     visibility: "global_demo",
     is_demo: true,
+    buyer: "Meridian Holdings",
+    seller: "CloudVault Security",
+    target_company: "CloudVault Security",
+    sector: "Cybersecurity",
+    deal_type: "Acquisition",
   },
   {
     id: "c0000000-0000-0000-0000-000000000003",
@@ -52,6 +62,11 @@ const DEMO_DEALS = [
     owner_id: null,
     visibility: "global_demo",
     is_demo: true,
+    buyer: "Titan Strategic Group",
+    seller: "NeuralPath AI",
+    target_company: "NeuralPath AI",
+    sector: "Artificial Intelligence",
+    deal_type: "Acquisition",
   },
 ];
 
