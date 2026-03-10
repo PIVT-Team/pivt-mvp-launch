@@ -127,8 +127,8 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
         .upload(storagePath, file, { upsert: false });
       if (storageError) throw storageError;
 
-      const { data: urlData } = supabase.storage.from('deal-documents').getPublicUrl(storagePath);
-      const fileUrl = urlData?.publicUrl || storagePath;
+      // Store the storage path (bucket is private, use signed URLs for viewing)
+      const fileUrl = storagePath;
 
       if (replacingDocId) {
         const { error: updateError } = await supabase
