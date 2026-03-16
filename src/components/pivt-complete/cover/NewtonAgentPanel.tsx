@@ -613,7 +613,7 @@ const DealSelector: React.FC<{
   </div>
 );
 
-// ─── Agent Registry ──────────────────────────────────────────────────────────
+// ─── Active Agents Registry ──────────────────────────────────────────────────
 
 interface AgentDef {
   key: string;
@@ -621,12 +621,13 @@ interface AgentDef {
   icon: React.ElementType;
   edgeFunction: string | null; // null = coming soon
   description: string;
+  type: 'active' | 'manual';
 }
 
 const AGENT_REGISTRY: AgentDef[] = [
-  { key: 'funds_flow', label: 'Funds Flow Agent', icon: Activity, edgeFunction: 'funds-flow-agent', description: 'Wire reconciliation & payout validation' },
-  { key: 'document', label: 'Document Agent', icon: FileSearch, edgeFunction: null, description: 'Contract completeness & clause extraction' },
-  { key: 'closing_readiness', label: 'Closing Readiness Agent', icon: ClipboardCheck, edgeFunction: null, description: 'Pre-closing condition & approval check' },
+  { key: 'funds_flow', label: 'Funds Flow Scan', icon: Activity, edgeFunction: 'funds-flow-agent', description: 'Wire reconciliation & payout validation', type: 'manual' },
+  { key: 'document', label: 'Document Scan', icon: FileSearch, edgeFunction: null, description: 'Contract completeness & clause extraction', type: 'manual' },
+  { key: 'closing_readiness', label: 'Closing Readiness Check', icon: ClipboardCheck, edgeFunction: null, description: 'Pre-closing condition & approval check', type: 'active' },
 ];
 
 // ─── Full Deal Analysis Card ─────────────────────────────────────────────────
