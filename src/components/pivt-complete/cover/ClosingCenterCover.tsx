@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { useClosingReadiness } from '@/hooks/useClosingReadiness';
+import { useDealMetrics } from '@/hooks/useDealMetrics';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { dealStateMachineService } from '@/services/dealStateMachineService';
 import { fadeInUp } from '@/lib/animations';
