@@ -585,6 +585,10 @@ export const NewtonIntakePanel: React.FC<{ dealId: string | null; onComplete?: (
                   {proposals.filter(p => p.status === 'rejected').length} skipped ·{' '}
                   {proposals.filter(p => p.status === 'failed').length} failed
                 </p>
+                <p className="text-[10px] text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                  <Pencil className="w-3 h-3" />
+                  Imported records are marked "Needs review" and remain editable
+                </p>
                 <div className="flex gap-2 justify-center mt-3">
                   <Button size="sm" variant="outline" onClick={reset} className="text-xs gap-1.5">
                     <Upload className="w-3 h-3" /> Upload Another
