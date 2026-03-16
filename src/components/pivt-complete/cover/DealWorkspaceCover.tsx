@@ -31,6 +31,7 @@ import { EscrowCover } from './EscrowCover';
 import { DealReportsCover } from './DealReportsCover';
 import { DealActivityCover } from './DealActivityCover';
 import { AIDashboardCover } from './AIDashboardCover';
+import { NewtonAgentPanel } from './NewtonAgentPanel';
 import { CommentsCover } from './CommentsCover';
 import { DealInputsCover } from './DealInputsCover';
 import { FinancialInputs } from './deal-inputs/FinancialInputs';
@@ -51,7 +52,7 @@ import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 import { DealStateInspector } from './DealStateInspector';
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
+type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai' | 'newton-agents';
 
 interface SubNav { id: string; label: string }
 
@@ -577,6 +578,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       return DealAuditSection;
     case 'comments': return CommentsCover;
     case 'ai': return AIDashboardCover;
+    case 'newton-agents': return NewtonAgentPanel;
     default: return OverviewSection;
   }
 }
@@ -756,6 +758,7 @@ export const DealWorkspaceCover: React.FC = () => {
       { id: 'compliance', number: 7, label: 'Compliance', completionPct: pctFromStatus(ss?.compliance), blockers: 0 },
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+      { id: 'newton-agents', number: 10, label: 'Agents', completionPct: 0, blockers: 0 },
     ];
   }, [metrics]);
 
