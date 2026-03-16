@@ -14,6 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_runs: {
+        Row: {
+          agent_type: string
+          agent_version: string
+          completed_at: string | null
+          created_at: string
+          critical_count: number
+          deal_id: string
+          duration_ms: number | null
+          error_message: string | null
+          finding_count: number
+          findings: Json | null
+          id: string
+          input_snapshot: Json | null
+          started_at: string | null
+          status: string
+          summary_text: string | null
+          triggered_by: string | null
+        }
+        Insert: {
+          agent_type?: string
+          agent_version?: string
+          completed_at?: string | null
+          created_at?: string
+          critical_count?: number
+          deal_id: string
+          duration_ms?: number | null
+          error_message?: string | null
+          finding_count?: number
+          findings?: Json | null
+          id?: string
+          input_snapshot?: Json | null
+          started_at?: string | null
+          status?: string
+          summary_text?: string | null
+          triggered_by?: string | null
+        }
+        Update: {
+          agent_type?: string
+          agent_version?: string
+          completed_at?: string | null
+          created_at?: string
+          critical_count?: number
+          deal_id?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          finding_count?: number
+          findings?: Json | null
+          id?: string
+          input_snapshot?: Json | null
+          started_at?: string | null
+          status?: string
+          summary_text?: string | null
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_runs_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_events: {
         Row: {
           actor_id: string | null

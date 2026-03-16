@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.deal-workflow-orchestrator]
 verify_jwt = false
+
+[functions.funds-flow-agent]
+verify_jwt = false
