@@ -679,7 +679,7 @@ const DeepDealScanCard: React.FC<{
           </Button>
         </div>
 
-        {/* Agent pipeline */}
+        {/* Check pipeline */}
         <div className="mt-4 space-y-2">
           {AGENT_REGISTRY.map((agent) => {
             const status = agentStatuses[agent.key] || 'idle';
@@ -706,7 +706,12 @@ const DeepDealScanCard: React.FC<{
                   'text-muted-foreground'
                 )} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">{agent.label}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium">{agent.label}</p>
+                    <Badge variant="outline" className="text-[7px] px-1 py-0 text-muted-foreground border-border">
+                      {agent.type === 'active' ? 'Active' : 'Manual'}
+                    </Badge>
+                  </div>
                   <p className="text-[10px] text-muted-foreground">{agent.description}</p>
                 </div>
                 <div className="shrink-0">
