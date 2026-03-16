@@ -191,7 +191,7 @@ const AgentFindingsCard: React.FC<{
         <div>
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-accent" />
-            <p className="text-sm font-semibold">Agent Findings</p>
+            <p className="text-sm font-semibold">Scan Findings</p>
             {run && (
               <Badge variant="outline" className="text-[9px] px-1.5">
                 v{run.agent_version}
