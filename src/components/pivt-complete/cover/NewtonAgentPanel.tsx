@@ -167,14 +167,14 @@ const AgentFindingsCard: React.FC<{
             <Sparkles className="w-5 h-5 text-accent" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium">Funds Flow Validation</p>
+            <p className="text-sm font-medium">Deep Deal Scan</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
-              Run the AI agent to validate payout instructions, reconcile wire amounts, and detect discrepancies.
+              Run a full analysis to validate payout instructions, reconcile wire amounts, and detect discrepancies.
             </p>
           </div>
           <Button onClick={onRunAgent} size="sm" className="mt-2 gap-2">
             <Play className="w-3.5 h-3.5" />
-            Run Validation
+            Run Deep Scan
           </Button>
         </div>
       </motion.div>
