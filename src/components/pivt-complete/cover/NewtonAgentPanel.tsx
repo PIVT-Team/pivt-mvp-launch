@@ -1,0 +1,707 @@
+/**
+ * Newton Agent Operations Panel
+ * AI-powered deal health monitoring, agent findings, and discrepancy management.
+ */
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { fadeInUp, springConfig } from '@/lib/animations';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
+import {
+  Shield, ShieldCheck, ShieldAlert, ShieldX,
+  Activity, AlertTriangle, CheckCircle2, Clock, Info,
+  ArrowRight, Play, Loader2, RefreshCw, Sparkles,
+  FileWarning, ChevronDown, ChevronUp, ExternalLink,
+  XCircle, Check,
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { toast } from 'sonner';
+
+// ─── Types ───────────────────────────────────────────────────────────────────
+
+interface AgentFinding {
+  id: string;
+  rule_key: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  category: string;
+  title: string;
+  description: string;
+  affected_entities: { type: string; id: string; label: string }[];
+  expected_value?: string;
+  actual_value?: string;
+  recommendation: string;
+}
+
+interface AgentRun {
+  id: string;
+  deal_id: string;
+  agent_type: string;
+  agent_version: string;
+  status: string;
+  triggered_by: string | null;
+  input_snapshot: Record<string, any>;
+  findings: AgentFinding[];
+  finding_count: number;
+  critical_count: number;
+  summary_text: string | null;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_ms: number | null;
+  created_at: string;
+}
+
+interface Discrepancy {
+  id: string;
+  deal_id: string;
+  rule_key: string;
+  severity: string;
+  message: string;
+  status: string;
+  object_type: string;
+  object_id: string;
+  details: Record<string, any>;
+  created_at: string;
+}
+
+// ─── Severity Styling ────────────────────────────────────────────────────────
+
+const SEVERITY_CONFIG: Record<string, { bg: string; text: string; border: string; icon: React.ElementType }> = {
+  critical: { bg: 'bg-blocking/6', text: 'text-blocking', border: 'border-blocking/20', icon: ShieldX },
+  high: { bg: 'bg-discrepancy/6', text: 'text-discrepancy', border: 'border-discrepancy/20', icon: ShieldAlert },
+  medium: { bg: 'bg-amber-500/6', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-400/20', icon: AlertTriangle },
+  low: { bg: 'bg-muted/40', text: 'text-muted-foreground', border: 'border-border', icon: Info },
+};
+
+const STATUS_BADGES: Record<string, { label: string; className: string }> = {
+  open: { label: 'Open', className: 'bg-blocking/10 text-blocking border-blocking/20' },
+  acknowledged: { label: 'Acknowledged', className: 'bg-discrepancy/10 text-discrepancy border-discrepancy/20' },
+  resolved: { label: 'Resolved', className: 'bg-validated/10 text-validated border-validated/20' },
+};
+
+// ─── Deal Health Indicator ───────────────────────────────────────────────────
+
+const DealHealthCard: React.FC<{
+  latestRun: AgentRun | null;
+  openDiscrepancies: number;
+  criticalCount: number;
+}> = ({ latestRun, openDiscrepancies, criticalCount }) => {
+  const getHealthStatus = () => {
+    if (!latestRun) return { level: 'unknown', label: 'No Scan', color: 'text-muted-foreground', bg: 'bg-muted/40', Icon: Shield };
+    if (criticalCount > 0) return { level: 'critical', label: 'Critical Issues', color: 'text-blocking', bg: 'bg-blocking/6', Icon: ShieldX };
+    if (openDiscrepancies > 3) return { level: 'warning', label: 'Needs Attention', color: 'text-discrepancy', bg: 'bg-discrepancy/6', Icon: ShieldAlert };
+    if (openDiscrepancies > 0) return { level: 'caution', label: 'Minor Issues', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/6', Icon: AlertTriangle };
+    return { level: 'healthy', label: 'Healthy', color: 'text-validated', bg: 'bg-validated/6', Icon: ShieldCheck };
+  };
+
+  const health = getHealthStatus();
+  const { Icon } = health;
+
+  return (
+    <motion.div {...fadeInUp} className={cn('pivt-card p-5 border', health.bg, 'border-border')}>
+      <div className="flex items-start justify-between">
+        <div className="flex items-center gap-3">
+          <div className={cn('w-11 h-11 rounded-xl flex items-center justify-center', health.bg)}>
+            <Icon className={cn('w-5 h-5', health.color)} />
+          </div>
+          <div>
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Deal Health</p>
+            <p className={cn('text-lg font-semibold tracking-tight', health.color)}>{health.label}</p>
+          </div>
+        </div>
+        {latestRun && (
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground">Last scan</p>
+            <p className="text-xs font-mono text-muted-foreground">
+              {latestRun.completed_at
+                ? new Date(latestRun.completed_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : '—'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 mt-5">
+        <div className="text-center">
+          <p className="font-mono text-xl font-semibold">{openDiscrepancies}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Open Issues</p>
+        </div>
+        <div className="text-center">
+          <p className={cn('font-mono text-xl font-semibold', criticalCount > 0 ? 'text-blocking' : '')}>
+            {criticalCount}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Critical</p>
+        </div>
+        <div className="text-center">
+          <p className="font-mono text-xl font-semibold">
+            {latestRun?.finding_count ?? '—'}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Findings</p>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── Agent Findings Summary ──────────────────────────────────────────────────
+
+const AgentFindingsCard: React.FC<{
+  run: AgentRun | null;
+  isRunning: boolean;
+  onRunAgent: () => void;
+}> = ({ run, isRunning, onRunAgent }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!run && !isRunning) {
+    return (
+      <motion.div {...fadeInUp} className="pivt-card p-5 border border-dashed border-border">
+        <div className="flex flex-col items-center gap-3 py-4">
+          <div className="w-12 h-12 rounded-xl bg-accent/8 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-accent" />
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-medium">Funds Flow Validation</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
+              Run the AI agent to validate payout instructions, reconcile wire amounts, and detect discrepancies.
+            </p>
+          </div>
+          <Button onClick={onRunAgent} size="sm" className="mt-2 gap-2">
+            <Play className="w-3.5 h-3.5" />
+            Run Validation
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  const topFindings = run?.findings?.slice(0, expanded ? undefined : 5) || [];
+  const hasMore = (run?.findings?.length || 0) > 5;
+
+  return (
+    <motion.div {...fadeInUp} className="pivt-card border border-border overflow-hidden">
+      {/* Header */}
+      <div className="p-5 flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <Activity className="w-4 h-4 text-accent" />
+            <p className="text-sm font-semibold">Agent Findings</p>
+            {run && (
+              <Badge variant="outline" className="text-[9px] px-1.5">
+                v{run.agent_version}
+              </Badge>
+            )}
+          </div>
+          {run?.status === 'completed' && (
+            <p className="text-[10px] text-muted-foreground mt-1">
+              {run.finding_count} finding{run.finding_count !== 1 ? 's' : ''} · {run.duration_ms}ms
+            </p>
+          )}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRunAgent}
+          disabled={isRunning}
+          className="gap-1.5 text-xs"
+        >
+          {isRunning ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+          {isRunning ? 'Running…' : 'Re-run'}
+        </Button>
+      </div>
+
+      {/* AI Summary */}
+      {run?.summary_text && (
+        <div className="px-5 pb-4">
+          <div className="rounded-lg bg-accent/5 border border-accent/10 p-3.5">
+            <div className="flex items-start gap-2">
+              <Sparkles className="w-3.5 h-3.5 text-accent mt-0.5 shrink-0" />
+              <p className="text-xs leading-relaxed text-foreground/80">{run.summary_text}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading state */}
+      {isRunning && !run && (
+        <div className="px-5 pb-5">
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/30">
+            <Loader2 className="w-4 h-4 text-accent animate-spin" />
+            <div>
+              <p className="text-xs font-medium">Validating funds flow…</p>
+              <p className="text-[10px] text-muted-foreground">Analyzing wire instructions, cap table, and obligations</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Findings List */}
+      {topFindings.length > 0 && (
+        <div className="border-t border-border">
+          <div className="divide-y divide-border">
+            {topFindings.map((finding) => {
+              const sev = SEVERITY_CONFIG[finding.severity] || SEVERITY_CONFIG.low;
+              const SevIcon = sev.icon;
+              return (
+                <div key={finding.id} className={cn('px-5 py-3.5', sev.bg)}>
+                  <div className="flex items-start gap-2.5">
+                    <SevIcon className={cn('w-3.5 h-3.5 mt-0.5 shrink-0', sev.text)} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold truncate">{finding.title}</p>
+                        <Badge variant="outline" className={cn('text-[8px] px-1 py-0 shrink-0', sev.text, sev.border)}>
+                          {finding.severity}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{finding.description}</p>
+                      {finding.expected_value && finding.actual_value && (
+                        <div className="flex gap-4 mt-1.5">
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            Expected: <span className="text-foreground">{finding.expected_value}</span>
+                          </span>
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            Actual: <span className={sev.text}>{finding.actual_value}</span>
+                          </span>
+                        </div>
+                      )}
+                      <p className="text-[10px] text-accent mt-1.5 flex items-center gap-1">
+                        <ArrowRight className="w-2.5 h-2.5" />
+                        {finding.recommendation}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {hasMore && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="w-full px-5 py-2.5 flex items-center justify-center gap-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground transition-colors border-t border-border"
+            >
+              {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {expanded ? 'Show less' : `Show ${run!.findings.length - 5} more`}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Clean bill */}
+      {run?.status === 'completed' && run.finding_count === 0 && (
+        <div className="px-5 pb-5">
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-validated/5 border border-validated/15">
+            <CheckCircle2 className="w-5 h-5 text-validated" />
+            <div>
+              <p className="text-xs font-medium text-validated">All checks passed</p>
+              <p className="text-[10px] text-muted-foreground">No funds flow discrepancies detected.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error state */}
+      {run?.status === 'failed' && (
+        <div className="px-5 pb-5">
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-blocking/5 border border-blocking/15">
+            <XCircle className="w-4 h-4 text-blocking" />
+            <div>
+              <p className="text-xs font-medium text-blocking">Agent failed</p>
+              <p className="text-[10px] text-muted-foreground">{run.error_message || 'Unknown error'}</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+// ─── Recommended Next Step ───────────────────────────────────────────────────
+
+const RecommendedActionCard: React.FC<{ run: AgentRun | null }> = ({ run }) => {
+  if (!run || run.finding_count === 0) return null;
+
+  // Pick the highest-severity finding's recommendation
+  const topFinding = run.findings?.[0];
+  if (!topFinding) return null;
+
+  const sev = SEVERITY_CONFIG[topFinding.severity] || SEVERITY_CONFIG.medium;
+
+  return (
+    <motion.div {...fadeInUp} className="pivt-card p-5 border border-accent/15 bg-accent/3">
+      <div className="flex items-start gap-3">
+        <div className="w-9 h-9 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+          <ArrowRight className="w-4 h-4 text-accent" />
+        </div>
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Recommended Next Step</p>
+          <p className="text-sm font-semibold mt-1">{topFinding.recommendation}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <Badge variant="outline" className={cn('text-[9px]', sev.text, sev.border)}>
+              {topFinding.severity} priority
+            </Badge>
+            <span className="text-[10px] text-muted-foreground">from: {topFinding.title}</span>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── Agent Activity Log ──────────────────────────────────────────────────────
+
+const AgentActivityLog: React.FC<{ runs: AgentRun[] }> = ({ runs }) => {
+  if (runs.length === 0) {
+    return (
+      <div className="pivt-card p-5 border border-border">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">Agent Activity</p>
+        <p className="text-xs text-muted-foreground text-center py-4">No agent runs recorded yet.</p>
+      </div>
+    );
+  }
+
+  const statusIcon: Record<string, React.ElementType> = {
+    completed: CheckCircle2,
+    failed: XCircle,
+    running: Loader2,
+    queued: Clock,
+  };
+
+  const statusColor: Record<string, string> = {
+    completed: 'text-validated',
+    failed: 'text-blocking',
+    running: 'text-accent',
+    queued: 'text-muted-foreground',
+  };
+
+  return (
+    <div className="pivt-card border border-border overflow-hidden">
+      <div className="p-5 pb-3">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Agent Activity</p>
+      </div>
+      <div className="divide-y divide-border">
+        {runs.slice(0, 8).map((run) => {
+          const Icon = statusIcon[run.status] || Clock;
+          const color = statusColor[run.status] || 'text-muted-foreground';
+          return (
+            <div key={run.id} className="px-5 py-3 flex items-center gap-3">
+              <Icon className={cn('w-3.5 h-3.5 shrink-0', color, run.status === 'running' && 'animate-spin')} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-medium truncate">
+                    {run.agent_type === 'funds_flow_validation' ? 'Funds Flow Validation' : run.agent_type}
+                  </p>
+                  <Badge variant="outline" className={cn('text-[8px] px-1 py-0', color)}>
+                    {run.status}
+                  </Badge>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                  {run.finding_count} finding{run.finding_count !== 1 ? 's' : ''}
+                  {run.critical_count > 0 && ` · ${run.critical_count} critical`}
+                  {run.duration_ms ? ` · ${run.duration_ms}ms` : ''}
+                </p>
+              </div>
+              <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+                {run.completed_at
+                  ? new Date(run.completed_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+                  : run.started_at
+                    ? new Date(run.started_at).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit' })
+                    : '—'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// ─── Discrepancies Panel ─────────────────────────────────────────────────────
+
+const DiscrepanciesPanel: React.FC<{
+  discrepancies: Discrepancy[];
+  onResolve: (id: string) => void;
+  onAcknowledge: (id: string) => void;
+}> = ({ discrepancies, onResolve, onAcknowledge }) => {
+  const open = discrepancies.filter((d) => d.status === 'open');
+  const acknowledged = discrepancies.filter((d) => d.status === 'acknowledged');
+  const resolved = discrepancies.filter((d) => d.status === 'resolved');
+
+  const renderGroup = (label: string, items: Discrepancy[], showActions: boolean) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="space-y-2">
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground px-1">{label} ({items.length})</p>
+        {items.map((d) => {
+          const sev = SEVERITY_CONFIG[d.severity] || SEVERITY_CONFIG.low;
+          const SevIcon = sev.icon;
+          const statusBadge = STATUS_BADGES[d.status] || STATUS_BADGES.open;
+          return (
+            <motion.div
+              key={d.id}
+              layout
+              className={cn('pivt-card p-4 border', sev.border, sev.bg)}
+            >
+              <div className="flex items-start gap-2.5">
+                <SevIcon className={cn('w-3.5 h-3.5 mt-0.5 shrink-0', sev.text)} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-xs font-semibold">{d.message}</p>
+                    <Badge variant="outline" className={cn('text-[8px] px-1 py-0', sev.text, sev.border)}>
+                      {d.severity}
+                    </Badge>
+                    <Badge variant="outline" className={cn('text-[8px] px-1 py-0', statusBadge.className)}>
+                      {statusBadge.label}
+                    </Badge>
+                  </div>
+                  {d.details?.description && (
+                    <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                      {d.details.description}
+                    </p>
+                  )}
+                  {d.details?.recommendation && (
+                    <p className="text-[10px] text-accent mt-1.5 flex items-center gap-1">
+                      <ArrowRight className="w-2.5 h-2.5" />
+                      {d.details.recommendation}
+                    </p>
+                  )}
+                  {showActions && (
+                    <div className="flex items-center gap-2 mt-2.5">
+                      {d.status === 'open' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onAcknowledge(d.id)}
+                          className="h-6 text-[10px] px-2 gap-1"
+                        >
+                          <Check className="w-2.5 h-2.5" />
+                          Acknowledge
+                        </Button>
+                      )}
+                      {(d.status === 'open' || d.status === 'acknowledged') && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onResolve(d.id)}
+                          className="h-6 text-[10px] px-2 gap-1 text-validated border-validated/30 hover:bg-validated/10"
+                        >
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          Resolve
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-[9px] text-muted-foreground/60 mt-1.5 font-mono">
+                    {d.rule_key} · {new Date(d.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  return (
+    <div className="pivt-card border border-border overflow-hidden">
+      <div className="p-5 pb-3 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Discrepancies</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Agent-detected issues requiring review
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {open.length > 0 && (
+            <Badge variant="destructive" className="text-[9px] px-1.5">
+              {open.length} open
+            </Badge>
+          )}
+        </div>
+      </div>
+      <div className="px-5 pb-5 space-y-4">
+        {discrepancies.length === 0 ? (
+          <div className="text-center py-6">
+            <ShieldCheck className="w-8 h-8 text-validated/40 mx-auto" />
+            <p className="text-xs text-muted-foreground mt-2">No agent-detected discrepancies.</p>
+          </div>
+        ) : (
+          <>
+            {renderGroup('Open', open, true)}
+            {renderGroup('Acknowledged', acknowledged, true)}
+            {renderGroup('Resolved', resolved, false)}
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ──────────────────────────────────────────────────────────
+
+export const NewtonAgentPanel: React.FC = () => {
+  const { dealId } = useDealWorkspace();
+  const [runs, setRuns] = useState<AgentRun[]>([]);
+  const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch agent runs and discrepancies
+  const fetchData = useCallback(async () => {
+    if (!dealId) return;
+    setLoading(true);
+
+    const [runsRes, discRes] = await Promise.all([
+      supabase
+        .from('agent_runs')
+        .select('*')
+        .eq('deal_id', dealId)
+        .order('created_at', { ascending: false })
+        .limit(20),
+      supabase
+        .from('discrepancies')
+        .select('*')
+        .eq('deal_id', dealId)
+        .like('rule_key', 'agent.funds_flow.%')
+        .order('created_at', { ascending: false }),
+    ]);
+
+    if (runsRes.data) setRuns(runsRes.data as unknown as AgentRun[]);
+    if (discRes.data) setDiscrepancies(discRes.data as unknown as Discrepancy[]);
+    setLoading(false);
+  }, [dealId]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Run agent
+  const handleRunAgent = async () => {
+    if (!dealId || isRunning) return;
+    setIsRunning(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('funds-flow-agent', {
+        body: { deal_id: dealId },
+      });
+
+      if (error) {
+        toast.error('Agent failed to start', { description: error.message });
+        setIsRunning(false);
+        return;
+      }
+
+      if (data && !data.success) {
+        toast.error('Agent error', { description: data.error });
+        setIsRunning(false);
+        return;
+      }
+
+      toast.success('Validation complete', {
+        description: `${data.finding_count} finding${data.finding_count !== 1 ? 's' : ''} detected.`,
+      });
+
+      // Refresh data
+      await fetchData();
+    } catch (e) {
+      toast.error('Failed to run agent');
+      console.error(e);
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  // Resolve/Acknowledge discrepancy
+  const handleResolve = async (id: string) => {
+    const { error } = await supabase
+      .from('discrepancies')
+      .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to resolve');
+      return;
+    }
+    toast.success('Discrepancy resolved');
+    setDiscrepancies((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, status: 'resolved' } : d))
+    );
+  };
+
+  const handleAcknowledge = async (id: string) => {
+    const { error } = await supabase
+      .from('discrepancies')
+      .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Failed to acknowledge');
+      return;
+    }
+    toast.success('Discrepancy acknowledged');
+    setDiscrepancies((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, status: 'acknowledged' } : d))
+    );
+  };
+
+  const latestRun = runs[0] || null;
+  const openDiscrepancies = discrepancies.filter((d) => d.status === 'open').length;
+  const criticalCount = discrepancies.filter((d) => d.severity === 'critical' && d.status !== 'resolved').length;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-5 h-5 text-accent animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-accent/8 flex items-center justify-center">
+            <Sparkles className="w-5 h-5 text-accent" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">Newton Agent Operations</h2>
+            <p className="text-xs text-muted-foreground">
+              AI-powered validation and deal intelligence
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Deal Health */}
+      <DealHealthCard
+        latestRun={latestRun}
+        openDiscrepancies={openDiscrepancies}
+        criticalCount={criticalCount}
+      />
+
+      {/* Agent Findings */}
+      <AgentFindingsCard
+        run={latestRun}
+        isRunning={isRunning}
+        onRunAgent={handleRunAgent}
+      />
+
+      {/* Recommended Action */}
+      <RecommendedActionCard run={latestRun} />
+
+      {/* Discrepancies */}
+      <DiscrepanciesPanel
+        discrepancies={discrepancies}
+        onResolve={handleResolve}
+        onAcknowledge={handleAcknowledge}
+      />
+
+      {/* Agent Activity */}
+      <AgentActivityLog runs={runs} />
+    </div>
+  );
+};
