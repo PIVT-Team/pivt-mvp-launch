@@ -802,15 +802,28 @@ export const NewtonAgentPanel: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Run agent
+  // Run agent with retry logic
+  const invokeWithRetry = async (fnName: string, body: Record<string, any>, retries = 2): Promise<{ data: any; error: any }> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
+      if (!error) return { data, error: null };
+      // Only retry on transient errors (network / 5xx)
+      if (attempt < retries && (!data || error.message?.includes('network') || error.message?.includes('5'))) {
+        console.warn(`[Newton] Retry ${attempt + 1}/${retries} for ${fnName}`);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      return { data, error };
+    }
+    return { data: null, error: { message: 'Max retries exceeded' } };
+  };
+
   const handleRunAgent = async () => {
     if (!selectedDealId || isRunning) return;
     setIsRunning(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('funds-flow-agent', {
-        body: { deal_id: selectedDealId },
-      });
+      const { data, error } = await invokeWithRetry('funds-flow-agent', { deal_id: selectedDealId });
 
       if (error) {
         toast.error('Agent failed to start', { description: error.message });
@@ -854,9 +867,7 @@ export const NewtonAgentPanel: React.FC = () => {
     const results = await Promise.allSettled(
       availableAgents.map(async (agent) => {
         try {
-          const { data, error } = await supabase.functions.invoke(agent.edgeFunction!, {
-            body: { deal_id: selectedDealId },
-          });
+          const { data, error } = await invokeWithRetry(agent.edgeFunction!, { deal_id: selectedDealId });
 
           if (error || (data && !data.success)) {
             setAgentStatuses(prev => ({ ...prev, [agent.key]: 'error' }));
@@ -892,12 +903,23 @@ export const NewtonAgentPanel: React.FC = () => {
   };
 
   const handleResolve = async (id: string) => {
+    const disc = discrepancies.find(d => d.id === id);
     const { error } = await supabase
       .from('discrepancies')
       .update({ status: 'resolved', resolved_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) { toast.error('Failed to resolve'); return; }
+
+    // Audit log
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && selectedDealId) {
+      await supabase.from('audit_log').insert({
+        deal_id: selectedDealId, user_id: user.id, action: 'discrepancy_resolved',
+        details: { discrepancy_id: id, rule_key: disc?.rule_key, severity: disc?.severity },
+      });
+    }
+
     toast.success('Discrepancy resolved');
     setDiscrepancies((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status: 'resolved' } : d))
@@ -905,12 +927,23 @@ export const NewtonAgentPanel: React.FC = () => {
   };
 
   const handleAcknowledge = async (id: string) => {
+    const disc = discrepancies.find(d => d.id === id);
     const { error } = await supabase
       .from('discrepancies')
       .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) { toast.error('Failed to acknowledge'); return; }
+
+    // Audit log
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && selectedDealId) {
+      await supabase.from('audit_log').insert({
+        deal_id: selectedDealId, user_id: user.id, action: 'discrepancy_acknowledged',
+        details: { discrepancy_id: id, rule_key: disc?.rule_key, severity: disc?.severity },
+      });
+    }
+
     toast.success('Discrepancy acknowledged');
     setDiscrepancies((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status: 'acknowledged' } : d))
