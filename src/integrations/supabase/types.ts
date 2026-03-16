@@ -1547,6 +1547,204 @@ export type Database = {
         }
         Relationships: []
       }
+      newton_extractions: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          deal_id: string
+          extracted_data: Json
+          extraction_type: string
+          field_summary: Json | null
+          id: string
+          reviewed: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          upload_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          deal_id: string
+          extracted_data?: Json
+          extraction_type: string
+          field_summary?: Json | null
+          id?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          upload_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          deal_id?: string
+          extracted_data?: Json
+          extraction_type?: string
+          field_summary?: Json | null
+          id?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newton_extractions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newton_extractions_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "newton_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newton_proposed_actions: {
+        Row: {
+          action_label: string
+          action_type: string
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          deal_id: string
+          description: string | null
+          error_message: string | null
+          execution_result: Json | null
+          extraction_id: string | null
+          id: string
+          impact_level: string
+          preview_data: Json | null
+          rejected_at: string | null
+          rejected_by: string | null
+          status: string
+          updated_at: string
+          upload_id: string
+        }
+        Insert: {
+          action_label: string
+          action_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          deal_id: string
+          description?: string | null
+          error_message?: string | null
+          execution_result?: Json | null
+          extraction_id?: string | null
+          id?: string
+          impact_level?: string
+          preview_data?: Json | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: string
+          updated_at?: string
+          upload_id: string
+        }
+        Update: {
+          action_label?: string
+          action_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          deal_id?: string
+          description?: string | null
+          error_message?: string | null
+          execution_result?: Json | null
+          extraction_id?: string | null
+          id?: string
+          impact_level?: string
+          preview_data?: Json | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          status?: string
+          updated_at?: string
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newton_proposed_actions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newton_proposed_actions_extraction_id_fkey"
+            columns: ["extraction_id"]
+            isOneToOne: false
+            referencedRelation: "newton_extractions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "newton_proposed_actions_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "newton_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      newton_uploads: {
+        Row: {
+          created_at: string
+          deal_id: string
+          detected_type: string | null
+          error_message: string | null
+          file_name: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string | null
+          status: string
+          updated_at: string
+          uploaded_by: string
+          user_override_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          detected_type?: string | null
+          error_message?: string | null
+          file_name: string
+          file_path: string
+          file_size?: number
+          id?: string
+          mime_type?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by: string
+          user_override_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          detected_type?: string | null
+          error_message?: string | null
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string | null
+          status?: string
+          updated_at?: string
+          uploaded_by?: string
+          user_override_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newton_uploads_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       obligation_intent_map: {
         Row: {
           allocation_value_minor: number | null
