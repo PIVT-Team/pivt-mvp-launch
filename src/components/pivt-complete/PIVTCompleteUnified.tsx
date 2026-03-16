@@ -275,7 +275,7 @@ export const PIVTCompleteUnified: React.FC = () => {
                 )}
               </button>
             </TooltipTrigger>
-            <TooltipContent>Run AI scan to detect risks, missing items, and bottlenecks</TooltipContent>
+            <TooltipContent>Newton — Deep Deal Scan to detect risks and discrepancies</TooltipContent>
           </Tooltip>
 
           {/* Import */}
