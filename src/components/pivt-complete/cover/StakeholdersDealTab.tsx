@@ -4,6 +4,7 @@ import { usePIVTStore } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp } from '@/lib/animations';
 import { CheckCircle2, Clock, XCircle, Plus, DollarSign, Shield, Users, Percent, CreditCard, Lock, UserPlus, MoreHorizontal, Send, Copy, RotateCw, BadgeCheck, Eye, AlertTriangle, FileSearch, Mail, Pencil, Trash2 } from 'lucide-react';
+import { NewtonSourceBadge } from './NewtonSourceBadge';
 import { Badge } from '@/components/ui/badge';
 import { AddStakeholderModal } from './AddStakeholderModal';
 import { EditStakeholderModal } from './EditStakeholderModal';
