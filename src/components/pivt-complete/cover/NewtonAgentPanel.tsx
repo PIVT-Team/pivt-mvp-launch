@@ -321,16 +321,28 @@ const AgentFindingsCard: React.FC<{
   );
 };
 
-// ─── Recommended Next Step ───────────────────────────────────────────────────
+// ─── What Should Happen Next ─────────────────────────────────────────────────
 
-const RecommendedActionCard: React.FC<{ run: AgentRun | null }> = ({ run }) => {
-  if (!run || run.finding_count === 0) return null;
+const RecommendedActionCard: React.FC<{ run: AgentRun | null; openDiscrepancies: number }> = ({ run, openDiscrepancies }) => {
+  // Build a prioritized list of next steps
+  const steps: { text: string; severity: string; source: string }[] = [];
 
-  // Pick the highest-severity finding's recommendation
-  const topFinding = run.findings?.[0];
-  if (!topFinding) return null;
+  if (run?.findings) {
+    // Top finding recommendation
+    const topFinding = run.findings[0];
+    if (topFinding) {
+      steps.push({ text: topFinding.recommendation, severity: topFinding.severity, source: topFinding.title });
+    }
+  }
 
-  const sev = SEVERITY_CONFIG[topFinding.severity] || SEVERITY_CONFIG.medium;
+  if (openDiscrepancies > 0 && !steps.length) {
+    steps.push({ text: `Review and resolve ${openDiscrepancies} open discrepanc${openDiscrepancies === 1 ? 'y' : 'ies'} before proceeding.`, severity: 'high', source: 'Discrepancy Review' });
+  }
+
+  if (steps.length === 0) return null;
+
+  const top = steps[0];
+  const sev = SEVERITY_CONFIG[top.severity] || SEVERITY_CONFIG.medium;
 
   return (
     <motion.div {...fadeInUp} className="pivt-card p-5 border border-accent/15 bg-accent/3">
@@ -339,13 +351,13 @@ const RecommendedActionCard: React.FC<{ run: AgentRun | null }> = ({ run }) => {
           <ArrowRight className="w-4 h-4 text-accent" />
         </div>
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Recommended Next Step</p>
-          <p className="text-sm font-semibold mt-1">{topFinding.recommendation}</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">What Should Happen Next</p>
+          <p className="text-sm font-semibold mt-1">{top.text}</p>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className={cn('text-[9px]', sev.text, sev.border)}>
-              {topFinding.severity} priority
+              {top.severity} priority
             </Badge>
-            <span className="text-[10px] text-muted-foreground">from: {topFinding.title}</span>
+            <span className="text-[10px] text-muted-foreground">{top.source}</span>
           </div>
         </div>
       </div>
