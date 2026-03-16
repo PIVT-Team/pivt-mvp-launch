@@ -578,6 +578,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       return DealAuditSection;
     case 'comments': return CommentsCover;
     case 'ai': return AIDashboardCover;
+    case 'newton-agents': return NewtonAgentPanel;
     default: return OverviewSection;
   }
 }
