@@ -93,6 +93,9 @@ export const ExecutionReadinessPanel: React.FC = () => {
                   <Icon className={`w-5 h-5 ${check.passed ? 'text-validated' : 'text-muted-foreground'}`} />
                 </div>
                 <p className="text-xs font-medium leading-tight">{check.label}</p>
+                {check.detail && (
+                  <p className="text-[10px] text-muted-foreground font-mono leading-tight">{check.detail}</p>
+                )}
                 <div className="flex items-center gap-1">
                   {check.passed ? (
                     <>

@@ -110,7 +110,7 @@ export const ReadinessPanel: React.FC = () => {
         </div>
         <Progress value={overallPct} className="h-3" />
         <p className="text-xs text-muted-foreground mt-2">
-          {m.totalDealInputs} total deal inputs | {m.completedDealInputs}/{m.requiredDealInputs} required categories populated
+          {m.totalDealInputs} total deal inputs · {m.completedDealInputs}/{m.requiredDealInputs} required categories populated
         </p>
       </motion.div>
 
