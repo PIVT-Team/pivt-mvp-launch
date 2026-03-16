@@ -892,12 +892,23 @@ export const NewtonAgentPanel: React.FC = () => {
   };
 
   const handleResolve = async (id: string) => {
+    const disc = discrepancies.find(d => d.id === id);
     const { error } = await supabase
       .from('discrepancies')
       .update({ status: 'resolved', resolved_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) { toast.error('Failed to resolve'); return; }
+
+    // Audit log
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && selectedDealId) {
+      await supabase.from('audit_log').insert({
+        deal_id: selectedDealId, user_id: user.id, action: 'discrepancy_resolved',
+        details: { discrepancy_id: id, rule_key: disc?.rule_key, severity: disc?.severity },
+      });
+    }
+
     toast.success('Discrepancy resolved');
     setDiscrepancies((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status: 'resolved' } : d))
@@ -905,12 +916,23 @@ export const NewtonAgentPanel: React.FC = () => {
   };
 
   const handleAcknowledge = async (id: string) => {
+    const disc = discrepancies.find(d => d.id === id);
     const { error } = await supabase
       .from('discrepancies')
       .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
       .eq('id', id);
 
     if (error) { toast.error('Failed to acknowledge'); return; }
+
+    // Audit log
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && selectedDealId) {
+      await supabase.from('audit_log').insert({
+        deal_id: selectedDealId, user_id: user.id, action: 'discrepancy_acknowledged',
+        details: { discrepancy_id: id, rule_key: disc?.rule_key, severity: disc?.severity },
+      });
+    }
+
     toast.success('Discrepancy acknowledged');
     setDiscrepancies((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status: 'acknowledged' } : d))
