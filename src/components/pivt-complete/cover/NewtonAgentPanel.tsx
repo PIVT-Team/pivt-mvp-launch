@@ -903,12 +903,12 @@ export const NewtonAgentPanel: React.FC = () => {
     setAgentStatuses({});
   }, [selectedDealId]);
 
-  // Fetch agent runs and discrepancies for selected deal
+  // Fetch agent runs, discrepancies, events, and approvals for selected deal
   const fetchData = useCallback(async () => {
     if (!selectedDealId) { setLoading(false); return; }
     setLoading(true);
 
-    const [runsRes, discRes] = await Promise.all([
+    const [runsRes, discRes, eventsRes, approvalsRes] = await Promise.all([
       supabase
         .from('agent_runs')
         .select('*')
@@ -921,18 +921,22 @@ export const NewtonAgentPanel: React.FC = () => {
         .eq('deal_id', selectedDealId)
         .like('rule_key', 'agent.funds_flow.%')
         .order('created_at', { ascending: false }),
+      supabase
+        .from('deal_events')
+        .select('id, event_type, previous_state, new_state, created_at, payload')
+        .eq('deal_id', selectedDealId)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabase
+        .from('deal_approvals')
+        .select('id, approver_name, approver_role, approval_side, status, blocker_reason')
+        .eq('deal_id', selectedDealId),
     ]);
 
-    const agentRuns = (runsRes.data || []) as unknown as AgentRun[];
-    const discs = (discRes.data || []) as unknown as Discrepancy[];
-
-    // Debug logging for development verification
-    console.log('[Newton] selectedDealId:', selectedDealId);
-    console.log('[Newton] agent_runs count:', agentRuns.length);
-    console.log('[Newton] discrepancies count:', discs.length);
-
-    setRuns(agentRuns);
-    setDiscrepancies(discs);
+    setRuns((runsRes.data || []) as unknown as AgentRun[]);
+    setDiscrepancies((discRes.data || []) as unknown as Discrepancy[]);
+    setDealEvents((eventsRes.data || []) as unknown as DealEvent[]);
+    setDealApprovals((approvalsRes.data || []) as unknown as DealApproval[]);
     setLoading(false);
   }, [selectedDealId]);
 
