@@ -2,7 +2,7 @@
  * Newton – Deal Intelligence Engine
  * Floating AI assistant with role-aware, context-aware structured responses
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
 import { springConfig } from '@/lib/animations';
@@ -15,6 +15,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/integrations/supabase/client';
+import { useLocation, useParams } from 'react-router-dom';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
