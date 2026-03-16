@@ -822,6 +822,60 @@ export const NewtonAgentPanel: React.FC = () => {
     }
   };
 
+  // Run Full Deal Analysis — all available agents in parallel
+  const handleFullAnalysis = async () => {
+    if (!selectedDealId || isFullRunning) return;
+    setIsFullRunning(true);
+
+    // Initialize statuses
+    const initStatuses: Record<string, 'idle' | 'running' | 'done' | 'error' | 'unavailable'> = {};
+    AGENT_REGISTRY.forEach(a => {
+      initStatuses[a.key] = a.edgeFunction ? 'running' : 'unavailable';
+    });
+    setAgentStatuses(initStatuses);
+
+    const availableAgents = AGENT_REGISTRY.filter(a => a.edgeFunction);
+
+    const results = await Promise.allSettled(
+      availableAgents.map(async (agent) => {
+        try {
+          const { data, error } = await supabase.functions.invoke(agent.edgeFunction!, {
+            body: { deal_id: selectedDealId },
+          });
+
+          if (error || (data && !data.success)) {
+            setAgentStatuses(prev => ({ ...prev, [agent.key]: 'error' }));
+            return { agent: agent.key, success: false, error: error?.message || data?.error };
+          }
+
+          setAgentStatuses(prev => ({ ...prev, [agent.key]: 'done' }));
+          return { agent: agent.key, success: true, findings: data?.finding_count || 0 };
+        } catch (e) {
+          setAgentStatuses(prev => ({ ...prev, [agent.key]: 'error' }));
+          return { agent: agent.key, success: false, error: (e as Error).message };
+        }
+      })
+    );
+
+    const successCount = results.filter(r => r.status === 'fulfilled' && (r.value as any)?.success).length;
+    const totalFindings = results
+      .filter(r => r.status === 'fulfilled' && (r.value as any)?.success)
+      .reduce((sum, r) => sum + ((r as any).value?.findings || 0), 0);
+
+    if (successCount === availableAgents.length) {
+      toast.success('Full analysis complete', {
+        description: `${availableAgents.length} agent${availableAgents.length !== 1 ? 's' : ''} completed · ${totalFindings} total finding${totalFindings !== 1 ? 's' : ''}`,
+      });
+    } else {
+      toast.warning('Analysis partially complete', {
+        description: `${successCount}/${availableAgents.length} agents succeeded`,
+      });
+    }
+
+    await fetchData();
+    setIsFullRunning(false);
+  };
+
   const handleResolve = async (id: string) => {
     const { error } = await supabase
       .from('discrepancies')
