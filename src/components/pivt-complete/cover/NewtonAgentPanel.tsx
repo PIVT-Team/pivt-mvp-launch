@@ -1,6 +1,6 @@
 /**
  * Newton — Deal Intelligence Panel
- * Active monitoring, Deep Deal Scan, discrepancy management, and approval tracking.
+ * Active monitoring, Deep Deal Scan, intake, discrepancy management, and approval tracking.
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,11 +11,12 @@ import { cn } from '@/lib/utils';
 import {
   Shield, ShieldCheck, ShieldAlert, ShieldX,
   Activity, AlertTriangle, CheckCircle2, Clock, Info,
-  ArrowRight, Play, Loader2, RefreshCw, Sparkles,
+  ArrowRight, Play, Loader2, RefreshCw, Sparkles, Upload,
   FileWarning, ChevronDown, ChevronUp, ExternalLink,
   XCircle, Check, Zap, FileSearch, ClipboardCheck,
   GitCommitHorizontal, UserCheck,
 } from 'lucide-react';
+import { NewtonIntakePanel } from './NewtonIntakePanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
