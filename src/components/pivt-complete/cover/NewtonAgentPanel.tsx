@@ -365,14 +365,20 @@ const RecommendedActionCard: React.FC<{ run: AgentRun | null; openDiscrepancies:
   );
 };
 
-// ─── Agent Activity Log ──────────────────────────────────────────────────────
+// ─── Scan History ────────────────────────────────────────────────────────────
 
-const AgentActivityLog: React.FC<{ runs: AgentRun[] }> = ({ runs }) => {
+const AGENT_LABELS: Record<string, string> = {
+  funds_flow_validation: 'Funds Flow Scan',
+  document_analysis: 'Document Scan',
+  closing_readiness: 'Closing Readiness Check',
+};
+
+const ScanHistoryLog: React.FC<{ runs: AgentRun[] }> = ({ runs }) => {
   if (runs.length === 0) {
     return (
       <div className="pivt-card p-5 border border-border">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">Agent Activity</p>
-        <p className="text-xs text-muted-foreground text-center py-4">No agent runs recorded yet.</p>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">Scan History</p>
+        <p className="text-xs text-muted-foreground text-center py-4">No scans have been run yet. Trigger a Deep Deal Scan above.</p>
       </div>
     );
   }
@@ -391,31 +397,39 @@ const AgentActivityLog: React.FC<{ runs: AgentRun[] }> = ({ runs }) => {
     queued: 'text-muted-foreground',
   };
 
+  const statusLabel: Record<string, string> = {
+    completed: 'Completed',
+    failed: 'Failed',
+    running: 'Running',
+    queued: 'Queued',
+  };
+
   return (
     <div className="pivt-card border border-border overflow-hidden">
       <div className="p-5 pb-3">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Agent Activity</p>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Scan History</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">Each scan is logged with its findings and outcome</p>
       </div>
       <div className="divide-y divide-border">
         {runs.slice(0, 8).map((run) => {
           const Icon = statusIcon[run.status] || Clock;
           const color = statusColor[run.status] || 'text-muted-foreground';
+          const label = AGENT_LABELS[run.agent_type] || run.agent_type;
           return (
             <div key={run.id} className="px-5 py-3 flex items-center gap-3">
               <Icon className={cn('w-3.5 h-3.5 shrink-0', color, run.status === 'running' && 'animate-spin')} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-medium truncate">
-                    {run.agent_type === 'funds_flow_validation' ? 'Funds Flow Validation' : run.agent_type}
-                  </p>
+                  <p className="text-xs font-medium truncate">{label}</p>
                   <Badge variant="outline" className={cn('text-[8px] px-1 py-0', color)}>
-                    {run.status}
+                    {statusLabel[run.status] || run.status}
                   </Badge>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                   {run.finding_count} finding{run.finding_count !== 1 ? 's' : ''}
                   {run.critical_count > 0 && ` · ${run.critical_count} critical`}
                   {run.duration_ms ? ` · ${run.duration_ms}ms` : ''}
+                  {run.triggered_by ? ' · triggered by user' : ''}
                 </p>
               </div>
               <span className="text-[10px] font-mono text-muted-foreground shrink-0">
