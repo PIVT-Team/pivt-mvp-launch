@@ -437,8 +437,20 @@ export const StakeholdersDealTab: React.FC = () => {
                 {dbStakeholders.map((s) => (
                   <tr key={s.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-4">
-                      <p className="font-medium text-sm truncate">{s.shareholder_name}</p>
-                      {s.email && <p className="text-xs text-muted-foreground truncate mt-0.5">{s.email}</p>}
+                      <div className="flex items-center gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{s.shareholder_name}</p>
+                          {s.email && <p className="text-xs text-muted-foreground truncate mt-0.5">{s.email}</p>}
+                        </div>
+                        <NewtonSourceBadge
+                          created_by_source={s.created_by_source}
+                          needs_review={s.needs_review}
+                          confidence_status={s.confidence_status}
+                          locked={s.locked}
+                          locked_reason={s.locked_reason}
+                          compact
+                        />
+                      </div>
                     </td>
                     <td className="px-3 py-4 text-sm text-muted-foreground whitespace-nowrap">{s.role}</td>
                     <td className="px-3 py-4 text-right font-mono text-sm whitespace-nowrap">{s.ownership_pct}%</td>
