@@ -540,31 +540,104 @@ const DiscrepanciesPanel: React.FC<{
   );
 };
 
+// ─── Deal Selector ───────────────────────────────────────────────────────────
+
+interface DealOption {
+  id: string;
+  deal_name: string;
+  deal_number: string;
+  status: string;
+  is_demo: boolean;
+}
+
+const DealSelector: React.FC<{
+  deals: DealOption[];
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
+  loading: boolean;
+}> = ({ deals, selectedId, onSelect, loading }) => (
+  <div className="flex items-center gap-2">
+    <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground shrink-0">Deal:</span>
+    <select
+      value={selectedId || ''}
+      onChange={(e) => onSelect(e.target.value)}
+      disabled={loading || deals.length === 0}
+      className="flex-1 h-8 rounded-lg border border-border bg-card px-2.5 pr-7 text-xs font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-accent/40 appearance-none cursor-pointer truncate"
+      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}
+    >
+      {deals.length === 0 && <option value="">No deals available</option>}
+      {deals.filter(d => d.is_demo).length > 0 && (
+        <optgroup label="Demo Deals">
+          {deals.filter(d => d.is_demo).map(d => (
+            <option key={d.id} value={d.id}>{d.deal_name} ({d.deal_number})</option>
+          ))}
+        </optgroup>
+      )}
+      {deals.filter(d => !d.is_demo).length > 0 && (
+        <optgroup label="Your Deals">
+          {deals.filter(d => !d.is_demo).map(d => (
+            <option key={d.id} value={d.id}>{d.deal_name} ({d.deal_number})</option>
+          ))}
+        </optgroup>
+      )}
+    </select>
+  </div>
+);
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export const NewtonAgentPanel: React.FC = () => {
-  const { dealId } = useDealWorkspace();
+  const { dealId: contextDealId } = useDealWorkspace();
+  const [allDeals, setAllDeals] = useState<DealOption[]>([]);
+  const [selectedDealId, setSelectedDealId] = useState<string | undefined>(contextDealId);
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [dealsLoading, setDealsLoading] = useState(true);
 
-  // Fetch agent runs and discrepancies
+  // Sync context deal id when it changes
+  useEffect(() => {
+    if (contextDealId) setSelectedDealId(contextDealId);
+  }, [contextDealId]);
+
+  // Fetch all available deals for the selector
+  useEffect(() => {
+    const fetchDeals = async () => {
+      setDealsLoading(true);
+      const { data } = await supabase
+        .from('deals')
+        .select('id, deal_name, deal_number, status, is_demo')
+        .is('deleted_at', null)
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        setAllDeals(data as DealOption[]);
+        if (!selectedDealId && data.length > 0) {
+          setSelectedDealId(data[0].id);
+        }
+      }
+      setDealsLoading(false);
+    };
+    fetchDeals();
+  }, []);
+
+  // Fetch agent runs and discrepancies for selected deal
   const fetchData = useCallback(async () => {
-    if (!dealId) return;
+    if (!selectedDealId) { setLoading(false); return; }
     setLoading(true);
 
     const [runsRes, discRes] = await Promise.all([
       supabase
         .from('agent_runs')
         .select('*')
-        .eq('deal_id', dealId)
+        .eq('deal_id', selectedDealId)
         .order('created_at', { ascending: false })
         .limit(20),
       supabase
         .from('discrepancies')
         .select('*')
-        .eq('deal_id', dealId)
+        .eq('deal_id', selectedDealId)
         .like('rule_key', 'agent.funds_flow.%')
         .order('created_at', { ascending: false }),
     ]);
@@ -572,7 +645,7 @@ export const NewtonAgentPanel: React.FC = () => {
     if (runsRes.data) setRuns(runsRes.data as unknown as AgentRun[]);
     if (discRes.data) setDiscrepancies(discRes.data as unknown as Discrepancy[]);
     setLoading(false);
-  }, [dealId]);
+  }, [selectedDealId]);
 
   useEffect(() => {
     fetchData();
@@ -580,12 +653,12 @@ export const NewtonAgentPanel: React.FC = () => {
 
   // Run agent
   const handleRunAgent = async () => {
-    if (!dealId || isRunning) return;
+    if (!selectedDealId || isRunning) return;
     setIsRunning(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('funds-flow-agent', {
-        body: { deal_id: dealId },
+        body: { deal_id: selectedDealId },
       });
 
       if (error) {
@@ -604,7 +677,6 @@ export const NewtonAgentPanel: React.FC = () => {
         description: `${data.finding_count} finding${data.finding_count !== 1 ? 's' : ''} detected.`,
       });
 
-      // Refresh data
       await fetchData();
     } catch (e) {
       toast.error('Failed to run agent');
@@ -614,17 +686,13 @@ export const NewtonAgentPanel: React.FC = () => {
     }
   };
 
-  // Resolve/Acknowledge discrepancy
   const handleResolve = async (id: string) => {
     const { error } = await supabase
       .from('discrepancies')
       .update({ status: 'resolved', resolved_at: new Date().toISOString() })
       .eq('id', id);
 
-    if (error) {
-      toast.error('Failed to resolve');
-      return;
-    }
+    if (error) { toast.error('Failed to resolve'); return; }
     toast.success('Discrepancy resolved');
     setDiscrepancies((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status: 'resolved' } : d))
@@ -637,10 +705,7 @@ export const NewtonAgentPanel: React.FC = () => {
       .update({ status: 'acknowledged', acknowledged_at: new Date().toISOString() })
       .eq('id', id);
 
-    if (error) {
-      toast.error('Failed to acknowledge');
-      return;
-    }
+    if (error) { toast.error('Failed to acknowledge'); return; }
     toast.success('Discrepancy acknowledged');
     setDiscrepancies((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status: 'acknowledged' } : d))
@@ -651,7 +716,7 @@ export const NewtonAgentPanel: React.FC = () => {
   const openDiscrepancies = discrepancies.filter((d) => d.status === 'open').length;
   const criticalCount = discrepancies.filter((d) => d.severity === 'critical' && d.status !== 'resolved').length;
 
-  if (loading) {
+  if (dealsLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="w-5 h-5 text-accent animate-spin" />
@@ -661,47 +726,57 @@ export const NewtonAgentPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div>
+      {/* Page Header with Deal Selector */}
+      <div className="space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-accent/8 flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-accent" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Newton Agent Operations</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Newton — Deal Intelligence</h2>
             <p className="text-xs text-muted-foreground">
               AI-powered validation and deal intelligence
             </p>
           </div>
         </div>
+
+        <DealSelector
+          deals={allDeals}
+          selectedId={selectedDealId}
+          onSelect={setSelectedDealId}
+          loading={dealsLoading}
+        />
       </div>
 
-      {/* Deal Health */}
-      <DealHealthCard
-        latestRun={latestRun}
-        openDiscrepancies={openDiscrepancies}
-        criticalCount={criticalCount}
-      />
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-5 h-5 text-accent animate-spin" />
+        </div>
+      ) : (
+        <>
+          <DealHealthCard
+            latestRun={latestRun}
+            openDiscrepancies={openDiscrepancies}
+            criticalCount={criticalCount}
+          />
 
-      {/* Agent Findings */}
-      <AgentFindingsCard
-        run={latestRun}
-        isRunning={isRunning}
-        onRunAgent={handleRunAgent}
-      />
+          <AgentFindingsCard
+            run={latestRun}
+            isRunning={isRunning}
+            onRunAgent={handleRunAgent}
+          />
 
-      {/* Recommended Action */}
-      <RecommendedActionCard run={latestRun} />
+          <RecommendedActionCard run={latestRun} />
 
-      {/* Discrepancies */}
-      <DiscrepanciesPanel
-        discrepancies={discrepancies}
-        onResolve={handleResolve}
-        onAcknowledge={handleAcknowledge}
-      />
+          <DiscrepanciesPanel
+            discrepancies={discrepancies}
+            onResolve={handleResolve}
+            onAcknowledge={handleAcknowledge}
+          />
 
-      {/* Agent Activity */}
-      <AgentActivityLog runs={runs} />
+          <AgentActivityLog runs={runs} />
+        </>
+      )}
     </div>
   );
 };
