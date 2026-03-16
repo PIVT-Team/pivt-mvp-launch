@@ -91,11 +91,11 @@ const DealHealthCard: React.FC<{
   criticalCount: number;
 }> = ({ latestRun, openDiscrepancies, criticalCount }) => {
   const getHealthStatus = () => {
-    if (!latestRun) return { level: 'unknown', label: 'No Scan', color: 'text-muted-foreground', bg: 'bg-muted/40', Icon: Shield };
-    if (criticalCount > 0) return { level: 'critical', label: 'Critical Issues', color: 'text-blocking', bg: 'bg-blocking/6', Icon: ShieldX };
-    if (openDiscrepancies > 3) return { level: 'warning', label: 'Needs Attention', color: 'text-discrepancy', bg: 'bg-discrepancy/6', Icon: ShieldAlert };
-    if (openDiscrepancies > 0) return { level: 'caution', label: 'Minor Issues', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/6', Icon: AlertTriangle };
-    return { level: 'healthy', label: 'Healthy', color: 'text-validated', bg: 'bg-validated/6', Icon: ShieldCheck };
+    if (!latestRun) return { level: 'unknown', label: 'Awaiting First Scan', color: 'text-muted-foreground', bg: 'bg-muted/40', Icon: Shield, summary: 'Run a Deep Deal Scan to assess this transaction.' };
+    if (criticalCount > 0) return { level: 'critical', label: 'Critical Issues Found', color: 'text-blocking', bg: 'bg-blocking/6', Icon: ShieldX, summary: `${criticalCount} critical issue${criticalCount !== 1 ? 's' : ''} require immediate attention before this deal can close.` };
+    if (openDiscrepancies > 3) return { level: 'warning', label: 'Needs Attention', color: 'text-discrepancy', bg: 'bg-discrepancy/6', Icon: ShieldAlert, summary: `${openDiscrepancies} open discrepancies detected. Review and resolve before proceeding.` };
+    if (openDiscrepancies > 0) return { level: 'caution', label: 'Minor Issues', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/6', Icon: AlertTriangle, summary: `${openDiscrepancies} minor issue${openDiscrepancies !== 1 ? 's' : ''} found — not blocking, but should be reviewed.` };
+    return { level: 'healthy', label: 'Ready to Close', color: 'text-validated', bg: 'bg-validated/6', Icon: ShieldCheck, summary: 'All checks passed. No discrepancies detected. This deal is clear to proceed.' };
   };
 
   const health = getHealthStatus();
@@ -125,7 +125,10 @@ const DealHealthCard: React.FC<{
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mt-5">
+      {/* Plain-English summary */}
+      <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{health.summary}</p>
+
+      <div className="grid grid-cols-3 gap-4 mt-4">
         <div className="text-center">
           <p className="font-mono text-xl font-semibold">{openDiscrepancies}</p>
           <p className="text-[10px] text-muted-foreground mt-0.5">Open Issues</p>
