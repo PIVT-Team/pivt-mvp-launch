@@ -758,6 +758,7 @@ export const DealWorkspaceCover: React.FC = () => {
       { id: 'compliance', number: 7, label: 'Compliance', completionPct: pctFromStatus(ss?.compliance), blockers: 0 },
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
+      { id: 'newton-agents', number: 10, label: 'Agents', completionPct: 0, blockers: 0 },
     ];
   }, [metrics]);
 
