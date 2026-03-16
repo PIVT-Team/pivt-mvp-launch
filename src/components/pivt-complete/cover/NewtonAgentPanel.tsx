@@ -938,6 +938,13 @@ export const NewtonAgentPanel: React.FC = () => {
         />
       </div>
 
+      {/* Full Deal Analysis */}
+      <FullDealAnalysisCard
+        onRun={handleFullAnalysis}
+        isRunning={isFullRunning}
+        agentStatuses={agentStatuses}
+      />
+
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-5 h-5 text-accent animate-spin" />
