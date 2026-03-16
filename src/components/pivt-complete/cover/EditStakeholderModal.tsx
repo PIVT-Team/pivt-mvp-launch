@@ -144,7 +144,14 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
         >
           {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-border">
-            <h2 className="text-lg font-semibold">Edit Stakeholder</h2>
+            <div>
+              <h2 className="text-lg font-semibold">Edit Stakeholder</h2>
+              {isLocked && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <Lock className="w-3 h-3" /> {stakeholder.locked_reason || 'Locked by downstream workflow'}
+                </p>
+              )}
+            </div>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
               <X className="w-4 h-4" />
             </button>
