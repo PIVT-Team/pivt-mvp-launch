@@ -31,6 +31,7 @@ import { EscrowCover } from './EscrowCover';
 import { DealReportsCover } from './DealReportsCover';
 import { DealActivityCover } from './DealActivityCover';
 import { AIDashboardCover } from './AIDashboardCover';
+import { NewtonAgentPanel } from './NewtonAgentPanel';
 import { CommentsCover } from './CommentsCover';
 import { DealInputsCover } from './DealInputsCover';
 import { FinancialInputs } from './deal-inputs/FinancialInputs';
