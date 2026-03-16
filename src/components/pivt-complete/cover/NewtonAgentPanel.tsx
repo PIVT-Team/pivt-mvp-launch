@@ -1006,9 +1006,9 @@ export const NewtonAgentPanel: React.FC = () => {
             <Sparkles className="w-5 h-5 text-accent" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Newton — Deal Intelligence</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Newton</h2>
             <p className="text-xs text-muted-foreground">
-              AI-powered validation and deal intelligence
+              Deal intelligence — what changed, what's at risk, what needs approval
             </p>
           </div>
         </div>
@@ -1019,10 +1019,22 @@ export const NewtonAgentPanel: React.FC = () => {
           onSelect={setSelectedDealId}
           loading={dealsLoading}
         />
+
+        {/* Active vs Manual explainer */}
+        <div className="flex items-center gap-4 px-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-validated" />
+            <span className="text-[10px] text-muted-foreground"><strong>Active Agents</strong> — monitor continuously</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span className="text-[10px] text-muted-foreground"><strong>Deep Scan</strong> — triggered manually</span>
+          </div>
+        </div>
       </div>
 
-      {/* Full Deal Analysis */}
-      <FullDealAnalysisCard
+      {/* Deep Deal Scan */}
+      <DeepDealScanCard
         onRun={handleFullAnalysis}
         isRunning={isFullRunning}
         agentStatuses={agentStatuses}
@@ -1046,7 +1058,7 @@ export const NewtonAgentPanel: React.FC = () => {
             onRunAgent={handleRunAgent}
           />
 
-          <RecommendedActionCard run={latestRun} />
+          <RecommendedActionCard run={latestRun} openDiscrepancies={openDiscrepancies} />
 
           <DiscrepanciesPanel
             discrepancies={discrepancies}
@@ -1054,7 +1066,7 @@ export const NewtonAgentPanel: React.FC = () => {
             onAcknowledge={handleAcknowledge}
           />
 
-          <AgentActivityLog runs={runs} />
+          <ScanHistoryLog runs={runs} />
         </>
       )}
     </div>
