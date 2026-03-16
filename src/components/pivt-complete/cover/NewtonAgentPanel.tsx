@@ -1,6 +1,6 @@
 /**
- * Newton Agent Operations Panel
- * AI-powered deal health monitoring, agent findings, and discrepancy management.
+ * Newton — Deal Intelligence Panel
+ * Active monitoring, Deep Deal Scan, discrepancy management, and approval tracking.
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -91,11 +91,11 @@ const DealHealthCard: React.FC<{
   criticalCount: number;
 }> = ({ latestRun, openDiscrepancies, criticalCount }) => {
   const getHealthStatus = () => {
-    if (!latestRun) return { level: 'unknown', label: 'No Scan', color: 'text-muted-foreground', bg: 'bg-muted/40', Icon: Shield };
-    if (criticalCount > 0) return { level: 'critical', label: 'Critical Issues', color: 'text-blocking', bg: 'bg-blocking/6', Icon: ShieldX };
-    if (openDiscrepancies > 3) return { level: 'warning', label: 'Needs Attention', color: 'text-discrepancy', bg: 'bg-discrepancy/6', Icon: ShieldAlert };
-    if (openDiscrepancies > 0) return { level: 'caution', label: 'Minor Issues', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/6', Icon: AlertTriangle };
-    return { level: 'healthy', label: 'Healthy', color: 'text-validated', bg: 'bg-validated/6', Icon: ShieldCheck };
+    if (!latestRun) return { level: 'unknown', label: 'Awaiting First Scan', color: 'text-muted-foreground', bg: 'bg-muted/40', Icon: Shield, summary: 'Run a Deep Deal Scan to assess this transaction.' };
+    if (criticalCount > 0) return { level: 'critical', label: 'Critical Issues Found', color: 'text-blocking', bg: 'bg-blocking/6', Icon: ShieldX, summary: `${criticalCount} critical issue${criticalCount !== 1 ? 's' : ''} require immediate attention before this deal can close.` };
+    if (openDiscrepancies > 3) return { level: 'warning', label: 'Needs Attention', color: 'text-discrepancy', bg: 'bg-discrepancy/6', Icon: ShieldAlert, summary: `${openDiscrepancies} open discrepancies detected. Review and resolve before proceeding.` };
+    if (openDiscrepancies > 0) return { level: 'caution', label: 'Minor Issues', color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-500/6', Icon: AlertTriangle, summary: `${openDiscrepancies} minor issue${openDiscrepancies !== 1 ? 's' : ''} found — not blocking, but should be reviewed.` };
+    return { level: 'healthy', label: 'Ready to Close', color: 'text-validated', bg: 'bg-validated/6', Icon: ShieldCheck, summary: 'All checks passed. No discrepancies detected. This deal is clear to proceed.' };
   };
 
   const health = getHealthStatus();
@@ -125,7 +125,10 @@ const DealHealthCard: React.FC<{
         )}
       </div>
 
-      <div className="grid grid-cols-3 gap-4 mt-5">
+      {/* Plain-English summary */}
+      <p className="text-xs text-muted-foreground mt-3 leading-relaxed">{health.summary}</p>
+
+      <div className="grid grid-cols-3 gap-4 mt-4">
         <div className="text-center">
           <p className="font-mono text-xl font-semibold">{openDiscrepancies}</p>
           <p className="text-[10px] text-muted-foreground mt-0.5">Open Issues</p>
@@ -164,14 +167,14 @@ const AgentFindingsCard: React.FC<{
             <Sparkles className="w-5 h-5 text-accent" />
           </div>
           <div className="text-center">
-            <p className="text-sm font-medium">Funds Flow Validation</p>
+            <p className="text-sm font-medium">Deep Deal Scan</p>
             <p className="text-xs text-muted-foreground mt-1 max-w-[280px]">
-              Run the AI agent to validate payout instructions, reconcile wire amounts, and detect discrepancies.
+              Run a full analysis to validate payout instructions, reconcile wire amounts, and detect discrepancies.
             </p>
           </div>
           <Button onClick={onRunAgent} size="sm" className="mt-2 gap-2">
             <Play className="w-3.5 h-3.5" />
-            Run Validation
+            Run Deep Scan
           </Button>
         </div>
       </motion.div>
@@ -188,7 +191,7 @@ const AgentFindingsCard: React.FC<{
         <div>
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-accent" />
-            <p className="text-sm font-semibold">Agent Findings</p>
+            <p className="text-sm font-semibold">Scan Findings</p>
             {run && (
               <Badge variant="outline" className="text-[9px] px-1.5">
                 v{run.agent_version}
@@ -318,16 +321,28 @@ const AgentFindingsCard: React.FC<{
   );
 };
 
-// ─── Recommended Next Step ───────────────────────────────────────────────────
+// ─── What Should Happen Next ─────────────────────────────────────────────────
 
-const RecommendedActionCard: React.FC<{ run: AgentRun | null }> = ({ run }) => {
-  if (!run || run.finding_count === 0) return null;
+const RecommendedActionCard: React.FC<{ run: AgentRun | null; openDiscrepancies: number }> = ({ run, openDiscrepancies }) => {
+  // Build a prioritized list of next steps
+  const steps: { text: string; severity: string; source: string }[] = [];
 
-  // Pick the highest-severity finding's recommendation
-  const topFinding = run.findings?.[0];
-  if (!topFinding) return null;
+  if (run?.findings) {
+    // Top finding recommendation
+    const topFinding = run.findings[0];
+    if (topFinding) {
+      steps.push({ text: topFinding.recommendation, severity: topFinding.severity, source: topFinding.title });
+    }
+  }
 
-  const sev = SEVERITY_CONFIG[topFinding.severity] || SEVERITY_CONFIG.medium;
+  if (openDiscrepancies > 0 && !steps.length) {
+    steps.push({ text: `Review and resolve ${openDiscrepancies} open discrepanc${openDiscrepancies === 1 ? 'y' : 'ies'} before proceeding.`, severity: 'high', source: 'Discrepancy Review' });
+  }
+
+  if (steps.length === 0) return null;
+
+  const top = steps[0];
+  const sev = SEVERITY_CONFIG[top.severity] || SEVERITY_CONFIG.medium;
 
   return (
     <motion.div {...fadeInUp} className="pivt-card p-5 border border-accent/15 bg-accent/3">
@@ -336,13 +351,13 @@ const RecommendedActionCard: React.FC<{ run: AgentRun | null }> = ({ run }) => {
           <ArrowRight className="w-4 h-4 text-accent" />
         </div>
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Recommended Next Step</p>
-          <p className="text-sm font-semibold mt-1">{topFinding.recommendation}</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">What Should Happen Next</p>
+          <p className="text-sm font-semibold mt-1">{top.text}</p>
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className={cn('text-[9px]', sev.text, sev.border)}>
-              {topFinding.severity} priority
+              {top.severity} priority
             </Badge>
-            <span className="text-[10px] text-muted-foreground">from: {topFinding.title}</span>
+            <span className="text-[10px] text-muted-foreground">{top.source}</span>
           </div>
         </div>
       </div>
@@ -350,14 +365,20 @@ const RecommendedActionCard: React.FC<{ run: AgentRun | null }> = ({ run }) => {
   );
 };
 
-// ─── Agent Activity Log ──────────────────────────────────────────────────────
+// ─── Scan History ────────────────────────────────────────────────────────────
 
-const AgentActivityLog: React.FC<{ runs: AgentRun[] }> = ({ runs }) => {
+const AGENT_LABELS: Record<string, string> = {
+  funds_flow_validation: 'Funds Flow Scan',
+  document_analysis: 'Document Scan',
+  closing_readiness: 'Closing Readiness Check',
+};
+
+const ScanHistoryLog: React.FC<{ runs: AgentRun[] }> = ({ runs }) => {
   if (runs.length === 0) {
     return (
       <div className="pivt-card p-5 border border-border">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">Agent Activity</p>
-        <p className="text-xs text-muted-foreground text-center py-4">No agent runs recorded yet.</p>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-3">Scan History</p>
+        <p className="text-xs text-muted-foreground text-center py-4">No scans have been run yet. Trigger a Deep Deal Scan above.</p>
       </div>
     );
   }
@@ -376,31 +397,39 @@ const AgentActivityLog: React.FC<{ runs: AgentRun[] }> = ({ runs }) => {
     queued: 'text-muted-foreground',
   };
 
+  const statusLabel: Record<string, string> = {
+    completed: 'Completed',
+    failed: 'Failed',
+    running: 'Running',
+    queued: 'Queued',
+  };
+
   return (
     <div className="pivt-card border border-border overflow-hidden">
       <div className="p-5 pb-3">
-        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Agent Activity</p>
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Scan History</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">Each scan is logged with its findings and outcome</p>
       </div>
       <div className="divide-y divide-border">
         {runs.slice(0, 8).map((run) => {
           const Icon = statusIcon[run.status] || Clock;
           const color = statusColor[run.status] || 'text-muted-foreground';
+          const label = AGENT_LABELS[run.agent_type] || run.agent_type;
           return (
             <div key={run.id} className="px-5 py-3 flex items-center gap-3">
               <Icon className={cn('w-3.5 h-3.5 shrink-0', color, run.status === 'running' && 'animate-spin')} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-xs font-medium truncate">
-                    {run.agent_type === 'funds_flow_validation' ? 'Funds Flow Validation' : run.agent_type}
-                  </p>
+                  <p className="text-xs font-medium truncate">{label}</p>
                   <Badge variant="outline" className={cn('text-[8px] px-1 py-0', color)}>
-                    {run.status}
+                    {statusLabel[run.status] || run.status}
                   </Badge>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                   {run.finding_count} finding{run.finding_count !== 1 ? 's' : ''}
                   {run.critical_count > 0 && ` · ${run.critical_count} critical`}
                   {run.duration_ms ? ` · ${run.duration_ms}ms` : ''}
+                  {run.triggered_by ? ' · triggered by user' : ''}
                 </p>
               </div>
               <span className="text-[10px] font-mono text-muted-foreground shrink-0">
@@ -511,7 +540,7 @@ const DiscrepanciesPanel: React.FC<{
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Discrepancies</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Agent-detected issues requiring review
+            Detected issues requiring human review or approval
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -584,7 +613,7 @@ const DealSelector: React.FC<{
   </div>
 );
 
-// ─── Agent Registry ──────────────────────────────────────────────────────────
+// ─── Active Agents Registry ──────────────────────────────────────────────────
 
 interface AgentDef {
   key: string;
@@ -592,17 +621,18 @@ interface AgentDef {
   icon: React.ElementType;
   edgeFunction: string | null; // null = coming soon
   description: string;
+  type: 'active' | 'manual';
 }
 
 const AGENT_REGISTRY: AgentDef[] = [
-  { key: 'funds_flow', label: 'Funds Flow Agent', icon: Activity, edgeFunction: 'funds-flow-agent', description: 'Wire reconciliation & payout validation' },
-  { key: 'document', label: 'Document Agent', icon: FileSearch, edgeFunction: null, description: 'Contract completeness & clause extraction' },
-  { key: 'closing_readiness', label: 'Closing Readiness Agent', icon: ClipboardCheck, edgeFunction: null, description: 'Pre-closing condition & approval check' },
+  { key: 'funds_flow', label: 'Funds Flow Scan', icon: Activity, edgeFunction: 'funds-flow-agent', description: 'Wire reconciliation & payout validation', type: 'manual' },
+  { key: 'document', label: 'Document Scan', icon: FileSearch, edgeFunction: null, description: 'Contract completeness & clause extraction', type: 'manual' },
+  { key: 'closing_readiness', label: 'Closing Readiness Check', icon: ClipboardCheck, edgeFunction: null, description: 'Pre-closing condition & approval check', type: 'active' },
 ];
 
-// ─── Full Deal Analysis Card ─────────────────────────────────────────────────
+// ─── Deep Deal Scan Card ─────────────────────────────────────────────────────
 
-const FullDealAnalysisCard: React.FC<{
+const DeepDealScanCard: React.FC<{
   onRun: () => void;
   isRunning: boolean;
   agentStatuses: Record<string, 'idle' | 'running' | 'done' | 'error' | 'unavailable'>;
@@ -623,9 +653,9 @@ const FullDealAnalysisCard: React.FC<{
               <Zap className="w-5 h-5 text-accent" />
             </div>
             <div>
-              <p className="text-sm font-semibold">Run Full Deal Analysis</p>
+              <p className="text-sm font-semibold">Deep Deal Scan</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                Execute all available agents in parallel
+                Manually trigger a full analysis across all available checks
               </p>
             </div>
           </div>
@@ -638,18 +668,18 @@ const FullDealAnalysisCard: React.FC<{
             {isRunning ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Analyzing…
+                Scanning…
               </>
             ) : (
               <>
                 <Zap className="w-3.5 h-3.5" />
-                Run All Agents
+                Run Deep Scan
               </>
             )}
           </Button>
         </div>
 
-        {/* Agent pipeline */}
+        {/* Check pipeline */}
         <div className="mt-4 space-y-2">
           {AGENT_REGISTRY.map((agent) => {
             const status = agentStatuses[agent.key] || 'idle';
@@ -676,7 +706,12 @@ const FullDealAnalysisCard: React.FC<{
                   'text-muted-foreground'
                 )} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium">{agent.label}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium">{agent.label}</p>
+                    <Badge variant="outline" className="text-[7px] px-1 py-0 text-muted-foreground border-border">
+                      {agent.type === 'active' ? 'Active' : 'Manual'}
+                    </Badge>
+                  </div>
                   <p className="text-[10px] text-muted-foreground">{agent.description}</p>
                 </div>
                 <div className="shrink-0">
@@ -971,9 +1006,9 @@ export const NewtonAgentPanel: React.FC = () => {
             <Sparkles className="w-5 h-5 text-accent" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold tracking-tight">Newton — Deal Intelligence</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Newton</h2>
             <p className="text-xs text-muted-foreground">
-              AI-powered validation and deal intelligence
+              Deal intelligence — what changed, what's at risk, what needs approval
             </p>
           </div>
         </div>
@@ -984,10 +1019,22 @@ export const NewtonAgentPanel: React.FC = () => {
           onSelect={setSelectedDealId}
           loading={dealsLoading}
         />
+
+        {/* Active vs Manual explainer */}
+        <div className="flex items-center gap-4 px-1">
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-validated" />
+            <span className="text-[10px] text-muted-foreground"><strong>Active Agents</strong> — monitor continuously</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent" />
+            <span className="text-[10px] text-muted-foreground"><strong>Deep Scan</strong> — triggered manually</span>
+          </div>
+        </div>
       </div>
 
-      {/* Full Deal Analysis */}
-      <FullDealAnalysisCard
+      {/* Deep Deal Scan */}
+      <DeepDealScanCard
         onRun={handleFullAnalysis}
         isRunning={isFullRunning}
         agentStatuses={agentStatuses}
@@ -1011,7 +1058,7 @@ export const NewtonAgentPanel: React.FC = () => {
             onRunAgent={handleRunAgent}
           />
 
-          <RecommendedActionCard run={latestRun} />
+          <RecommendedActionCard run={latestRun} openDiscrepancies={openDiscrepancies} />
 
           <DiscrepanciesPanel
             discrepancies={discrepancies}
@@ -1019,7 +1066,7 @@ export const NewtonAgentPanel: React.FC = () => {
             onAcknowledge={handleAcknowledge}
           />
 
-          <AgentActivityLog runs={runs} />
+          <ScanHistoryLog runs={runs} />
         </>
       )}
     </div>
