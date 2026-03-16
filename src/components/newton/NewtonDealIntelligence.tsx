@@ -417,8 +417,8 @@ export const NewtonDealIntelligence: React.FC = () => {
                   <Sparkles className="w-5 h-5" style={{ color: 'hsl(var(--accent))' }} />
                 </div>
                 <div className="flex-1 min-w-0 space-y-1.5">
-                  <p className="text-sm font-semibold">Newton — Deal Intelligence</p>
-                  <p className="text-[10px] text-muted-foreground">Workflow & Risk Analysis Engine</p>
+                  <p className="text-sm font-semibold">Newton</p>
+                  <p className="text-[10px] text-muted-foreground">Deal Intelligence · What changed · What's at risk</p>
 
                   <div className="flex items-center gap-2 pt-0.5">
                     <span className="text-[10px] text-muted-foreground">Deal:</span>
