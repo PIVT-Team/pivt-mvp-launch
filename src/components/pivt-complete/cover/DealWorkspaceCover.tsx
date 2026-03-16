@@ -118,6 +118,14 @@ interface DealSummary {
   escrowStatus: string | null;
   nextAction: string;
   blockerCount: number;
+  stakeholderCount: number;
+  /** Total deal input records across ALL categories */
+  dealInputsCount: number;
+  capTableCount: number;
+  waterfallTierCount: number;
+  wireInstructionCount: number;
+  taxFormCount: number;
+  obligationCount: number;
 }
 
 function computeNextAction(s: DealSummary, status: string): string {
@@ -147,7 +155,7 @@ function computeNextAction(s: DealSummary, status: string): string {
 }
 
 const useDealSummary = (dealId: string | undefined) => {
-  const [summary, setSummary] = useState<(DealSummary & { stakeholderCount: number }) | null>(null);
+  const [summary, setSummary] = useState<DealSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -155,8 +163,8 @@ const useDealSummary = (dealId: string | undefined) => {
 
     const fetchSummary = async () => {
       setLoading(true);
-      // Query ALL canonical data sources — same tables used by every surface
-      const [conditions, approvals, contractDocs, dealDocs, wires, escrow, stakeholders] = await Promise.all([
+      // Query ALL canonical data sources — every input category
+      const [conditions, approvals, contractDocs, dealDocs, wires, escrow, stakeholders, waterfallTiers, taxForms, obligations] = await Promise.all([
         supabase.from('conditions').select('id, status').eq('deal_id', dealId),
         supabase.from('deal_approvals').select('id, status').eq('deal_id', dealId),
         supabase.from('contract_documents').select('id').eq('deal_id', dealId),
@@ -164,11 +172,18 @@ const useDealSummary = (dealId: string | undefined) => {
         supabase.from('wire_instructions').select('id, verification_status').eq('deal_id', dealId),
         supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
         supabase.from('cap_table_entries').select('id').eq('deal_id', dealId),
+        supabase.from('waterfall_tiers').select('id').eq('deal_id', dealId),
+        supabase.from('tax_forms').select('id').eq('deal_id', dealId),
+        supabase.from('obligations').select('id').eq('deal_id', dealId),
       ]);
 
       const condData = conditions.data || [];
       const appData = approvals.data || [];
       const wireData = wires.data || [];
+      const stkData = stakeholders.data || [];
+      const tiersData = waterfallTiers.data || [];
+      const taxData = taxForms.data || [];
+      const oblData = obligations.data || [];
       const satisfied = condData.filter(c => (c.status as string) === 'SATISFIED' || (c.status as string) === 'WAIVED' || (c.status as string) === 'MET').length;
       const approved = appData.filter(a => a.status === 'approved' || a.status === 'completed').length;
       const pending = appData.filter(a => a.status === 'pending').length;
@@ -179,7 +194,10 @@ const useDealSummary = (dealId: string | undefined) => {
       const dealDocIds = new Set((dealDocs.data || []).map(d => d.id));
       const totalDocs = new Set([...contractDocIds, ...dealDocIds]).size;
 
-      const s = {
+      // Total deal inputs = all records across input categories
+      const dealInputsCount = totalDocs + stkData.length + tiersData.length + wireData.length + taxData.length + oblData.length;
+
+      const s: DealSummary = {
         conditionsTotal: condData.length,
         conditionsSatisfied: satisfied,
         approvalsTotal: appData.length,
@@ -191,7 +209,13 @@ const useDealSummary = (dealId: string | undefined) => {
         escrowStatus: escrow.data?.status || null,
         nextAction: '',
         blockerCount: pending + (condData.length - satisfied),
-        stakeholderCount: (stakeholders.data || []).length,
+        stakeholderCount: stkData.length,
+        dealInputsCount,
+        capTableCount: stkData.length,
+        waterfallTierCount: tiersData.length,
+        wireInstructionCount: wireData.length,
+        taxFormCount: taxData.length,
+        obligationCount: oblData.length,
       };
       s.nextAction = computeNextAction(s, 'draft');
       setSummary(s);
