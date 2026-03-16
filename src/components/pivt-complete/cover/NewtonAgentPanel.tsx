@@ -1159,13 +1159,17 @@ export const NewtonAgentPanel: React.FC = () => {
             criticalCount={criticalCount}
           />
 
+          <WhatChangedCard events={dealEvents} />
+
+          <PendingApprovalsCard approvals={dealApprovals} />
+
+          <RecommendedActionCard run={latestRun} openDiscrepancies={openDiscrepancies} />
+
           <AgentFindingsCard
             run={latestRun}
             isRunning={isRunning}
             onRunAgent={handleRunAgent}
           />
-
-          <RecommendedActionCard run={latestRun} openDiscrepancies={openDiscrepancies} />
 
           <DiscrepanciesPanel
             discrepancies={discrepancies}
