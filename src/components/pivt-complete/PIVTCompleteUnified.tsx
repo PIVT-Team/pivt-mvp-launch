@@ -265,7 +265,7 @@ export const PIVTCompleteUnified: React.FC = () => {
                 className="pivt-btn-primary pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white relative group rounded-xl"
               >
                 <Brain className="w-4 h-4 pivt-spark" />
-                <span>AI Deal Scan</span>
+                <span>Newton Scan</span>
                 {activeSection === 'ai' && (
                   <motion.div
                     layoutId="ai-toolbar-underline"
