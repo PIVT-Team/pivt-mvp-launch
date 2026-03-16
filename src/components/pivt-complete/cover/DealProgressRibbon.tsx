@@ -39,16 +39,25 @@ export interface DealProgressData {
 // ── Computation ──
 function deriveStageStatus(done: number, total: number, blocked: boolean): RibbonStageStatus {
   if (blocked) return 'blocked';
-  if (total === 0) return 'not_started';
+  // Open-ended stages (total=0): complete if done > 0, not_started if 0
+  if (total === 0) {
+    return done > 0 ? 'in_progress' : 'not_started';
+  }
   if (done >= total) return 'completed';
   if (done > 0) return 'in_progress';
   return 'not_started';
 }
 
 export function computeRibbonStages(d: DealProgressData): RibbonStage[] {
-  const pct = (done: number, total: number) => total === 0 ? 0 : Math.round((done / total) * 100);
-  const detail = (done: number, total: number, unit: string) =>
-    total === 0 ? `No ${unit} yet` : `${done}/${total} ${unit}`;
+  const pct = (done: number, total: number) => {
+    if (total === 0) return done > 0 ? 50 : 0; // open-ended: 50% if any exist
+    return Math.round((done / total) * 100);
+  };
+  // For open-ended stages, show absolute count; for bounded stages, show done/total
+  const detail = (done: number, total: number, unit: string) => {
+    if (total === 0) return done === 0 ? `No ${unit} yet` : `${done} ${unit}`;
+    return `${done}/${total} ${unit}`;
+  };
 
   return [
     {
@@ -65,10 +74,13 @@ export function computeRibbonStages(d: DealProgressData): RibbonStage[] {
       icon: Layers,
       status: deriveStageStatus(
         d.documentsUploaded + d.conditionsSatisfied,
-        d.documentsRequired + d.conditionsTotal,
+        d.documentsRequired > 0 ? d.documentsRequired + d.conditionsTotal : 0,
         false
       ),
-      completionPct: pct(d.documentsUploaded + d.conditionsSatisfied, d.documentsRequired + d.conditionsTotal),
+      completionPct: pct(
+        d.documentsUploaded + d.conditionsSatisfied,
+        d.documentsRequired > 0 ? d.documentsRequired + d.conditionsTotal : 0
+      ),
       detail: detail(d.documentsUploaded, d.documentsRequired, 'uploaded'),
     },
     {

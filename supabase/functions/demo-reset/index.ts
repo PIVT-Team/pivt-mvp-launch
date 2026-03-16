@@ -294,25 +294,89 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Seed conditions for ATLAS (example golden state)
-  const atlasConditions = [
-    "SPA Fully Executed",
-    "Board Approvals Obtained",
-    "Funds Confirmed in Escrow",
-    "Escrow Account Established",
-    "Payment Instructions Verified",
-    "Third-Party Consents Received",
-    "Regulatory Approvals Cleared",
-    "Working Capital Adjustment Calculated",
-    "Closing Statement Delivered",
-  ];
+  // Seed conditions for all demo deals
+  const DEMO_CONDITIONS: Record<string, { title: string; status: string }[]> = {
+    "a0000000-0000-0000-0000-000000000001": [
+      { title: "SPA Fully Executed", status: "MET" },
+      { title: "Board Approvals Obtained", status: "MET" },
+      { title: "Funds Confirmed in Escrow", status: "MET" },
+      { title: "Escrow Account Established", status: "MET" },
+      { title: "Payment Instructions Verified", status: "MET" },
+      { title: "Third-Party Consents Received", status: "MET" },
+      { title: "Regulatory Approvals Cleared", status: "MET" },
+      { title: "Working Capital Adjustment Calculated", status: "MET" },
+      { title: "Closing Statement Delivered", status: "MET" },
+    ],
+    "b0000000-0000-0000-0000-000000000002": [
+      { title: "Credit Agreement Executed", status: "MET" },
+      { title: "Security Agreement Filed", status: "MET" },
+      { title: "Intercreditor Agreement Signed", status: "MET" },
+      { title: "Insurance Certificates Received", status: "MET" },
+      { title: "Board Resolution Obtained", status: "MET" },
+      { title: "Escrow Agreement Verified", status: "NOT_STARTED" },
+      { title: "Compliance Certificate Delivered", status: "IN_PROGRESS" },
+      { title: "IP Assignment Confirmed", status: "MET" },
+    ],
+    "c0000000-0000-0000-0000-000000000003": [
+      { title: "Merger Agreement Executed", status: "MET" },
+      { title: "Board Approvals (Buyer & Seller)", status: "MET" },
+      { title: "Escrow Account Funded", status: "MET" },
+      { title: "IP Assignment & License Agreements", status: "MET" },
+      { title: "Regulatory Filings Complete", status: "MET" },
+      { title: "Stockholder Written Consent", status: "MET" },
+      { title: "Data Processing Agreement Signed", status: "MET" },
+      { title: "AI Model License Transfer", status: "MET" },
+      { title: "Transition Services Agreement", status: "IN_PROGRESS" },
+      { title: "Key Employee Retention Agreements", status: "MET" },
+    ],
+  };
 
-  for (const title of atlasConditions) {
-    await supabaseAdmin.from("conditions").insert({
-      deal_id: DEMO_DEALS[0].id,
-      title,
-      status: "MET",
-    } as any);
+  for (const [dId, conditions] of Object.entries(DEMO_CONDITIONS)) {
+    for (const cond of conditions) {
+      await supabaseAdmin.from("conditions").insert({
+        deal_id: dId,
+        title: cond.title,
+        status: cond.status,
+      } as any);
+    }
+  }
+
+  // Seed deal_approvals for all demo deals
+  const DEMO_APPROVALS: Record<string, { approver_name: string; approval_side: string; status: string; approver_role: string }[]> = {
+    "a0000000-0000-0000-0000-000000000001": [
+      { approver_name: "Sarah Chen", approval_side: "seller", status: "approved", approver_role: "Founder" },
+      { approver_name: "Marcus Williams", approval_side: "seller", status: "approved", approver_role: "Founder" },
+      { approver_name: "Apex Capital Partners", approval_side: "buyer", status: "approved", approver_role: "Buyer" },
+      { approver_name: "Cooley LLP", approval_side: "buyer", status: "approved", approver_role: "Counsel" },
+      { approver_name: "Wilson Sonsini", approval_side: "seller", status: "pending", approver_role: "Counsel" },
+    ],
+    "b0000000-0000-0000-0000-000000000002": [
+      { approver_name: "James Rodriguez", approval_side: "seller", status: "approved", approver_role: "Founder" },
+      { approver_name: "Priya Sharma", approval_side: "seller", status: "approved", approver_role: "Founder" },
+      { approver_name: "Meridian Holdings", approval_side: "buyer", status: "approved", approver_role: "Buyer" },
+      { approver_name: "Latham & Watkins", approval_side: "buyer", status: "pending", approver_role: "Counsel" },
+      { approver_name: "Fenwick & West", approval_side: "seller", status: "pending", approver_role: "Counsel" },
+    ],
+    "c0000000-0000-0000-0000-000000000003": [
+      { approver_name: "Dr. Anika Patel", approval_side: "seller", status: "approved", approver_role: "Founder" },
+      { approver_name: "Ryan Kim", approval_side: "seller", status: "approved", approver_role: "Founder" },
+      { approver_name: "Titan Strategic Group", approval_side: "buyer", status: "approved", approver_role: "Buyer" },
+      { approver_name: "Sullivan & Cromwell", approval_side: "buyer", status: "approved", approver_role: "Counsel" },
+      { approver_name: "Goodwin Procter", approval_side: "seller", status: "approved", approver_role: "Counsel" },
+    ],
+  };
+
+  for (const [dId, approvals] of Object.entries(DEMO_APPROVALS)) {
+    for (const app of approvals) {
+      await supabaseAdmin.from("deal_approvals").insert({
+        deal_id: dId,
+        user_id: DEMO_USER_ID,
+        approver_name: app.approver_name,
+        approval_side: app.approval_side,
+        status: app.status,
+        approver_role: app.approver_role,
+      } as any);
+    }
   }
 
   // Seed tax recipients for ATLAS demo

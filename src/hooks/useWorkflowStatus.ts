@@ -52,6 +52,9 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       deal,
       escrow,
       dealParties,
+      dealDocs,
+      taxForms,
+      obligations,
     ] = await Promise.all([
       supabase.from('cap_table_entries').select('id, role, verification_status, ownership_pct').eq('deal_id', dealId),
       supabase.from('contract_documents').select('id, doc_type, status').eq('deal_id', dealId),
@@ -62,6 +65,9 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
       supabase.from('deals').select('deal_value, closing_date, buyer, seller, target_company, deal_type, status').eq('id', dealId).single(),
       supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
       supabase.from('deal_parties').select('id').eq('deal_id', dealId),
+      supabase.from('deal_documents').select('id').eq('deal_id', dealId),
+      supabase.from('tax_forms').select('id').eq('deal_id', dealId),
+      supabase.from('obligations').select('id').eq('deal_id', dealId),
     ]);
 
     const stk = stakeholders.data || [];
@@ -110,13 +116,19 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
     const structPct = !hasStructuring ? 0 :
       Math.min(100, Math.round(((ownershipTotal >= 99.9 ? 50 : ownershipTotal / 2) + (tiers.length > 0 ? 50 : 0))));
 
-    // ── Deal Inputs (documents + deal metadata)
+    // ── Deal Inputs (documents + deal metadata + all input categories)
     const hasRequiredMeta = !!(d?.deal_value && d?.closing_date);
+    const ddocs = dealDocs.data || [];
+    const tforms = taxForms.data || [];
+    const obls = obligations.data || [];
+    const totalInputRecords = docs.length + ddocs.length + tiers.length + pays.length + tforms.length + obls.length;
     const dealInputsStatus: WorkflowStepStatus =
-      docs.length === 0 && !hasRequiredMeta ? 'NOT_STARTED' :
-      docs.length > 0 && hasRequiredMeta ? 'COMPLETED' :
+      totalInputRecords === 0 && !hasRequiredMeta ? 'NOT_STARTED' :
+      totalInputRecords > 0 && hasRequiredMeta ? 'COMPLETED' :
       'IN_PROGRESS';
-    const inputPct = (docs.length > 0 ? 50 : 0) + (hasRequiredMeta ? 50 : 0);
+    const inputPct = Math.min(100, Math.round(
+      (totalInputRecords > 0 ? 50 : 0) + (hasRequiredMeta ? 25 : 0) + (docs.length > 0 ? 25 : 0)
+    ));
 
     // ── Execution (payments + escrow)
     const paysConfirmed = pays.filter(p => {
