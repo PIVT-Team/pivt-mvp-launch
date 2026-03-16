@@ -509,12 +509,16 @@ export const NewtonIntakePanel: React.FC<{ dealId: string | null; onComplete?: (
 
                           {/* Preview details */}
                           {action.preview_data && Object.keys(action.preview_data).length > 0 && action.status === 'proposed' && (
-                            <div className="mt-2 px-2 py-1.5 rounded bg-muted/30 text-[10px] text-muted-foreground">
-                              {action.preview_data.names && (
-                                <span>Names: {action.preview_data.names.slice(0, 3).join(', ')}{action.preview_data.names.length > 3 ? ` +${action.preview_data.names.length - 3}` : ''}</span>
+                            <div className="mt-2 px-2 py-1.5 rounded bg-muted/30 text-[10px] text-muted-foreground space-y-0.5">
+                              {action.preview_data.new_count != null && (
+                                <span className="block">{action.preview_data.new_count} new records to create</span>
                               )}
-                              {action.preview_data.row_count && <span>Rows: {action.preview_data.row_count}</span>}
+                              {action.preview_data.names && (
+                                <span className="block">Names: {action.preview_data.names.slice(0, 3).join(', ')}{action.preview_data.names.length > 3 ? ` +${action.preview_data.names.length - 3}` : ''}</span>
+                              )}
+                              {action.preview_data.row_count && <span className="block">Rows: {action.preview_data.row_count}</span>}
                               {action.preview_data.total_amount && <span> · Total: ${(action.preview_data.total_amount / 1e6).toFixed(1)}M</span>}
+                              <span className="block text-accent/80">→ Records will be marked "Needs review"</span>
                             </div>
                           )}
 
