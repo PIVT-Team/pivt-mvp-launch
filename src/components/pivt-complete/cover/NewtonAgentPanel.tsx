@@ -14,6 +14,7 @@ import {
   ArrowRight, Play, Loader2, RefreshCw, Sparkles,
   FileWarning, ChevronDown, ChevronUp, ExternalLink,
   XCircle, Check, Zap, FileSearch, ClipboardCheck,
+  GitCommitHorizontal, UserCheck,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
