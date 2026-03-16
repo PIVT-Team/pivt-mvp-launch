@@ -630,9 +630,9 @@ const AGENT_REGISTRY: AgentDef[] = [
   { key: 'closing_readiness', label: 'Closing Readiness Check', icon: ClipboardCheck, edgeFunction: null, description: 'Pre-closing condition & approval check', type: 'active' },
 ];
 
-// ─── Full Deal Analysis Card ─────────────────────────────────────────────────
+// ─── Deep Deal Scan Card ─────────────────────────────────────────────────────
 
-const FullDealAnalysisCard: React.FC<{
+const DeepDealScanCard: React.FC<{
   onRun: () => void;
   isRunning: boolean;
   agentStatuses: Record<string, 'idle' | 'running' | 'done' | 'error' | 'unavailable'>;
@@ -653,9 +653,9 @@ const FullDealAnalysisCard: React.FC<{
               <Zap className="w-5 h-5 text-accent" />
             </div>
             <div>
-              <p className="text-sm font-semibold">Run Full Deal Analysis</p>
+              <p className="text-sm font-semibold">Deep Deal Scan</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">
-                Execute all available agents in parallel
+                Manually trigger a full analysis across all available checks
               </p>
             </div>
           </div>
@@ -668,12 +668,12 @@ const FullDealAnalysisCard: React.FC<{
             {isRunning ? (
               <>
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Analyzing…
+                Scanning…
               </>
             ) : (
               <>
                 <Zap className="w-3.5 h-3.5" />
-                Run All Agents
+                Run Deep Scan
               </>
             )}
           </Button>
