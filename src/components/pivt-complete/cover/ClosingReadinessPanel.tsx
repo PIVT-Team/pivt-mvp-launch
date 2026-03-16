@@ -81,19 +81,19 @@ export const ClosingReadinessPanel: React.FC<ClosingReadinessPanelProps> = ({ de
       label: 'Stakeholders',
       icon: Users,
       score: m.gates.stakeholdersConfigured ? Math.max(stakeholderScore, 25) : 0,
-      detail: `${m.totalStakeholders} total | ${m.requiredVerifiedStakeholders}/${m.requiredStakeholders} required verified`,
+      detail: `${m.totalStakeholders} total · ${m.requiredVerifiedStakeholders}/${m.requiredStakeholders} required verified`,
     },
     {
       label: 'Documents',
       icon: FileText,
       score: docScore,
-      detail: `${m.totalUploadedDocuments} uploaded | ${m.completedRequiredDocuments}/${m.requiredDocuments} required complete`,
+      detail: `${m.totalUploadedDocuments} uploaded · ${m.completedRequiredDocuments}/${m.requiredDocuments} required complete`,
     },
     {
       label: 'Approvals',
       icon: ClipboardCheck,
       score: approvalScore,
-      detail: `${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved`,
+      detail: `${m.grantedApprovals}/${m.totalApprovals} total · ${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved`,
     },
     {
       label: 'Payments',

@@ -26,14 +26,15 @@ export const ExecutionReadinessPanel: React.FC = () => {
     );
   }
 
+  const m = metrics;
   const checks = [
-    { label: 'Stakeholders Configured', passed: readiness.stakeholdersConfigured, icon: Users },
-    { label: 'Seller Verified', passed: readiness.sellerVerified, icon: Shield },
-    { label: 'Buyer Verified', passed: readiness.buyerVerified, icon: Shield },
-    { label: 'SPA / Agreement Uploaded', passed: readiness.spaUploaded, icon: FileText },
-    { label: 'Wire Instructions Uploaded', passed: readiness.wireInstructionsUploaded, icon: FileText },
-    { label: 'Payments Approved', passed: readiness.paymentApproved, icon: CreditCard },
-    { label: 'Approvals Complete', passed: readiness.approvalsComplete, icon: ClipboardCheck },
+    { label: 'Stakeholders Configured', passed: readiness.stakeholdersConfigured, icon: Users, detail: m ? `${m.totalStakeholders} total · ${m.buyerSideStakeholders} buyer / ${m.sellerSideStakeholders} seller` : '' },
+    { label: 'Seller Verified', passed: readiness.sellerVerified, icon: Shield, detail: m ? `${m.sellerSideStakeholders} seller-side` : '' },
+    { label: 'Buyer Verified', passed: readiness.buyerVerified, icon: Shield, detail: m ? `${m.buyerSideStakeholders} buyer-side` : '' },
+    { label: 'SPA / Agreement Uploaded', passed: readiness.spaUploaded, icon: FileText, detail: m ? `${m.totalUploadedDocuments} docs uploaded` : '' },
+    { label: 'Wire Instructions Uploaded', passed: readiness.wireInstructionsUploaded, icon: FileText, detail: m ? `${m.totalWireInstructions} on file` : '' },
+    { label: 'Payments Approved', passed: readiness.paymentApproved, icon: CreditCard, detail: m ? `${m.verifiedWireInstructions}/${m.totalWireInstructions} verified` : '' },
+    { label: 'Approvals Complete', passed: readiness.approvalsComplete, icon: ClipboardCheck, detail: m ? `${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved` : '' },
   ];
 
   const passedCount = checks.filter(c => c.passed).length;

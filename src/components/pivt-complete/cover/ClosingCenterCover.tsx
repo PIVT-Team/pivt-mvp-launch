@@ -48,6 +48,8 @@ export const ClosingCenterCover: React.FC = () => {
   const [confirmNotes, setConfirmNotes] = useState('');
   const [executing, setExecuting] = useState(false);
 
+  const m = readinessMetrics;
+
   const gates: GateItem[] = [
     {
       id: 'stakeholders-configured',
@@ -55,7 +57,7 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'At least one buyer and one seller have been added to the deal',
       icon: Users,
       passed: readiness.stakeholdersConfigured,
-      detail: `${readiness.stakeholdersTotal} stakeholders`,
+      detail: `${m?.totalStakeholders ?? 0} total · ${m?.buyerSideStakeholders ?? 0} buyer / ${m?.sellerSideStakeholders ?? 0} seller`,
     },
     {
       id: 'seller-verified',
@@ -63,6 +65,7 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'All seller-side stakeholders have completed KYC/KYB verification',
       icon: Users,
       passed: readiness.sellerVerified,
+      detail: m ? `${m.sellerSideStakeholders} seller-side stakeholders` : undefined,
     },
     {
       id: 'buyer-verified',
@@ -70,6 +73,7 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'All buyer-side stakeholders have completed KYC/KYB verification',
       icon: Users,
       passed: readiness.buyerVerified,
+      detail: m ? `${m.buyerSideStakeholders} buyer-side stakeholders` : undefined,
     },
     {
       id: 'spa-uploaded',
@@ -77,7 +81,7 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'Primary transaction agreement has been uploaded and processed',
       icon: FileText,
       passed: readiness.spaUploaded,
-      detail: `${readiness.documentsUploaded} documents`,
+      detail: `${m?.totalUploadedDocuments ?? 0} documents uploaded · ${m?.completedRequiredDocuments ?? 0}/${m?.requiredDocuments ?? 0} required complete`,
     },
     {
       id: 'wire-uploaded',
@@ -85,6 +89,7 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'Banking and wire transfer instructions are on file',
       icon: FileText,
       passed: readiness.wireInstructionsUploaded,
+      detail: m ? `${m.totalWireInstructions} wire instruction${m.totalWireInstructions !== 1 ? 's' : ''} on file` : undefined,
     },
     {
       id: 'payment-approved',
@@ -92,7 +97,7 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'All payment instructions have been confirmed and authorized',
       icon: CreditCard,
       passed: readiness.paymentApproved,
-      detail: readiness.paymentsTotal > 0 ? `${readiness.paymentsConfigured}/${readiness.paymentsTotal}` : undefined,
+      detail: m && m.totalWireInstructions > 0 ? `${m.verifiedWireInstructions}/${m.totalWireInstructions} verified` : undefined,
     },
     {
       id: 'approvals-complete',
@@ -100,7 +105,7 @@ export const ClosingCenterCover: React.FC = () => {
       description: 'All required approvals from buyer and seller counsel have been granted',
       icon: ClipboardCheck,
       passed: readiness.approvalsComplete,
-      detail: readiness.approvalsTotal > 0 ? `${readiness.approvalsGranted}/${readiness.approvalsTotal}` : undefined,
+      detail: m && m.totalApprovals > 0 ? `${m.grantedApprovals}/${m.totalApprovals} total · ${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved` : undefined,
     },
   ];
 
