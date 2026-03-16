@@ -540,7 +540,7 @@ const DiscrepanciesPanel: React.FC<{
         <div>
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Discrepancies</p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Agent-detected issues requiring review
+            Detected issues requiring human review or approval
           </p>
         </div>
         <div className="flex items-center gap-2">
