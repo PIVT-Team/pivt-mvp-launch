@@ -26,7 +26,24 @@ interface GateItem {
 
 export const ClosingCenterCover: React.FC = () => {
   const { dealId, realDeal } = useDealWorkspace();
-  const readiness = useClosingReadiness(dealId || undefined);
+  const { metrics: readinessMetrics, loading: readinessLoading } = useDealMetrics(dealId || undefined);
+  const readiness = {
+    stakeholdersConfigured: readinessMetrics?.gates.stakeholdersConfigured ?? false,
+    sellerVerified: readinessMetrics?.gates.sellerVerified ?? false,
+    buyerVerified: readinessMetrics?.gates.buyerVerified ?? false,
+    spaUploaded: readinessMetrics?.gates.spaUploaded ?? false,
+    wireInstructionsUploaded: readinessMetrics?.gates.wireInstructionsUploaded ?? false,
+    paymentApproved: readinessMetrics?.gates.paymentsApproved ?? false,
+    approvalsComplete: readinessMetrics?.gates.approvalsComplete ?? false,
+    readyToClose: readinessMetrics?.gates.readyToClose ?? false,
+    stakeholdersTotal: readinessMetrics?.totalStakeholders ?? 0,
+    documentsUploaded: readinessMetrics?.totalUploadedDocuments ?? 0,
+    paymentsConfigured: readinessMetrics?.verifiedWireInstructions ?? 0,
+    paymentsTotal: readinessMetrics?.totalWireInstructions ?? 0,
+    approvalsGranted: readinessMetrics?.grantedApprovals ?? 0,
+    approvalsTotal: readinessMetrics?.totalApprovals ?? 0,
+    loading: readinessLoading,
+  };
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmNotes, setConfirmNotes] = useState('');
   const [executing, setExecuting] = useState(false);
