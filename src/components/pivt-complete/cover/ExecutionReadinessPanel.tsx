@@ -1,12 +1,22 @@
 import React from 'react';
 import { Shield, CheckCircle2, Clock, AlertTriangle, FileText, Users, CreditCard, ClipboardCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useClosingReadiness } from '@/hooks/useClosingReadiness';
+import { useDealMetrics } from '@/hooks/useDealMetrics';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 
 export const ExecutionReadinessPanel: React.FC = () => {
   const { dealId } = useDealWorkspace();
-  const readiness = useClosingReadiness(dealId || undefined);
+  const { metrics, loading } = useDealMetrics(dealId || undefined);
+  const readiness = {
+    stakeholdersConfigured: metrics?.gates.stakeholdersConfigured ?? false,
+    sellerVerified: metrics?.gates.sellerVerified ?? false,
+    buyerVerified: metrics?.gates.buyerVerified ?? false,
+    spaUploaded: metrics?.gates.spaUploaded ?? false,
+    wireInstructionsUploaded: metrics?.gates.wireInstructionsUploaded ?? false,
+    paymentApproved: metrics?.gates.paymentsApproved ?? false,
+    approvalsComplete: metrics?.gates.approvalsComplete ?? false,
+    loading,
+  };
 
   if (readiness.loading) {
     return (

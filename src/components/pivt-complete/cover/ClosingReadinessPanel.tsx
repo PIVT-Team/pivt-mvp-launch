@@ -2,7 +2,8 @@ import React from 'react';
 import { Shield, FileText, Users, CreditCard, CheckCircle2, AlertTriangle, ArrowRight, ClipboardCheck } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { useClosingReadiness, ClosingReadinessResult } from '@/hooks/useClosingReadiness';
+import { useDealMetrics } from '@/hooks/useDealMetrics';
+import type { DealMetrics } from '@/services/dealMetricsService';
 
 interface PillarScore {
   label: string;
@@ -34,15 +35,15 @@ const getOverallBg = (score: number) => {
   return 'border-red-500/20 bg-red-500/5';
 };
 
-function deriveNextSteps(r: ClosingReadinessResult): NextStep[] {
+function deriveNextSteps(g: DealMetrics['gates']): NextStep[] {
   const steps: NextStep[] = [];
-  if (!r.stakeholdersConfigured) steps.push({ label: 'Add buyer and seller stakeholders', severity: 'blocker' });
-  if (!r.sellerVerified) steps.push({ label: 'Complete seller-side verification', severity: 'blocker' });
-  if (!r.buyerVerified) steps.push({ label: 'Complete buyer-side verification', severity: 'blocker' });
-  if (!r.spaUploaded) steps.push({ label: 'Upload SPA / Purchase Agreement', severity: 'blocker' });
-  if (!r.wireInstructionsUploaded) steps.push({ label: 'Upload wire instructions', severity: 'blocker' });
-  if (!r.paymentApproved) steps.push({ label: 'Approve all payment instructions', severity: 'warning' });
-  if (!r.approvalsComplete) steps.push({ label: 'Complete required approvals', severity: 'warning' });
+  if (!g.stakeholdersConfigured) steps.push({ label: 'Add buyer and seller stakeholders', severity: 'blocker' });
+  if (!g.sellerVerified) steps.push({ label: 'Complete seller-side verification', severity: 'blocker' });
+  if (!g.buyerVerified) steps.push({ label: 'Complete buyer-side verification', severity: 'blocker' });
+  if (!g.spaUploaded) steps.push({ label: 'Upload SPA / Purchase Agreement', severity: 'blocker' });
+  if (!g.wireInstructionsUploaded) steps.push({ label: 'Upload wire instructions', severity: 'blocker' });
+  if (!g.paymentsApproved) steps.push({ label: 'Approve all payment instructions', severity: 'warning' });
+  if (!g.approvalsComplete) steps.push({ label: 'Complete required approvals', severity: 'warning' });
   return steps;
 }
 
@@ -51,9 +52,9 @@ interface ClosingReadinessPanelProps {
 }
 
 export const ClosingReadinessPanel: React.FC<ClosingReadinessPanelProps> = ({ dealId }) => {
-  const readiness = useClosingReadiness(dealId);
+  const { metrics, loading } = useDealMetrics(dealId);
 
-  if (readiness.loading) {
+  if (loading || !metrics) {
     return (
       <div className="pivt-card border border-border/50 p-5 flex items-center justify-center h-32">
         <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -61,48 +62,52 @@ export const ClosingReadinessPanel: React.FC<ClosingReadinessPanelProps> = ({ de
     );
   }
 
-  const stakeholderScore = readiness.stakeholdersTotal > 0
-    ? Math.round((readiness.stakeholdersVerified / readiness.stakeholdersTotal) * 100) : 0;
-  const docScore = readiness.spaUploaded && readiness.wireInstructionsUploaded ? 100
-    : readiness.spaUploaded || readiness.wireInstructionsUploaded ? 50 : 0;
-  const approvalScore = readiness.approvalsTotal > 0
-    ? Math.round((readiness.approvalsGranted / readiness.approvalsTotal) * 100) : 0;
-  const paymentScore = readiness.paymentsTotal > 0
-    ? Math.round((readiness.paymentsConfigured / readiness.paymentsTotal) * 100) : 0;
+  const m = metrics;
+  const stakeholderScore = m.requiredStakeholders > 0
+    ? Math.round((m.requiredVerifiedStakeholders / m.requiredStakeholders) * 100)
+    : 0;
+  const docScore = m.requiredDocuments > 0
+    ? Math.round((m.completedRequiredDocuments / m.requiredDocuments) * 100)
+    : 0;
+  const approvalScore = m.requiredApprovals > 0
+    ? Math.round((m.grantedRequiredApprovals / m.requiredApprovals) * 100)
+    : 0;
+  const paymentScore = m.totalWireInstructions > 0
+    ? Math.round((m.verifiedWireInstructions / m.totalWireInstructions) * 100)
+    : 0;
 
   const pillars: PillarScore[] = [
     {
       label: 'Stakeholders',
       icon: Users,
-      score: readiness.stakeholdersConfigured ? Math.max(stakeholderScore, 25) : 0,
-      detail: `${readiness.stakeholdersVerified}/${readiness.stakeholdersTotal}`,
+      score: m.gates.stakeholdersConfigured ? Math.max(stakeholderScore, 25) : 0,
+      detail: `${m.totalStakeholders} total | ${m.requiredVerifiedStakeholders}/${m.requiredStakeholders} required verified`,
     },
     {
       label: 'Documents',
       icon: FileText,
       score: docScore,
-      detail: `${readiness.documentsUploaded} uploaded`,
+      detail: `${m.totalUploadedDocuments} uploaded | ${m.completedRequiredDocuments}/${m.requiredDocuments} required complete`,
     },
     {
       label: 'Approvals',
       icon: ClipboardCheck,
       score: approvalScore,
-      detail: `${readiness.approvalsGranted}/${readiness.approvalsTotal}`,
+      detail: `${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved`,
     },
     {
       label: 'Payments',
       icon: CreditCard,
       score: paymentScore,
-      detail: `${readiness.paymentsConfigured}/${readiness.paymentsTotal}`,
+      detail: `${m.verifiedWireInstructions}/${m.totalWireInstructions} wires verified`,
     },
   ];
 
   const overallScore = Math.round(pillars.reduce((s, p) => s + p.score, 0) / pillars.length);
-  const nextSteps = deriveNextSteps(readiness);
+  const nextSteps = deriveNextSteps(m.gates);
 
   return (
     <div className="pivt-card border border-border/50 p-5 space-y-5">
-      {/* Header with overall score */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <CheckCircle2 className="w-5 h-5 text-primary" />
@@ -110,7 +115,7 @@ export const ClosingReadinessPanel: React.FC<ClosingReadinessPanelProps> = ({ de
         </div>
         <div className="flex items-center gap-3">
           <Badge className={`text-xs font-mono ${getOverallBg(overallScore)}`}>
-            {readiness.readyToClose ? 'Ready' : overallScore >= 50 ? 'In Progress' : 'Blocked'}
+            {m.gates.readyToClose ? 'Ready' : overallScore >= 50 ? 'In Progress' : 'Blocked'}
           </Badge>
           <span className={`text-2xl font-bold font-mono ${getScoreColor(overallScore)}`}>
             {overallScore}%
@@ -118,7 +123,6 @@ export const ClosingReadinessPanel: React.FC<ClosingReadinessPanelProps> = ({ de
         </div>
       </div>
 
-      {/* 4 Pillar Progress Bars */}
       <div className="space-y-3">
         {pillars.map((pillar) => {
           const Icon = pillar.icon;
@@ -142,7 +146,6 @@ export const ClosingReadinessPanel: React.FC<ClosingReadinessPanelProps> = ({ de
         })}
       </div>
 
-      {/* Next Steps */}
       {nextSteps.length > 0 && (
         <div className="space-y-2 pt-2 border-t border-border/30">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Next Steps</p>
@@ -167,7 +170,7 @@ export const ClosingReadinessPanel: React.FC<ClosingReadinessPanelProps> = ({ de
         </div>
       )}
 
-      {readiness.readyToClose && (
+      {m.gates.readyToClose && (
         <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-lg p-3 text-center">
           <p className="text-xs font-medium text-emerald-600">All gates clear — ready for execution</p>
         </div>
