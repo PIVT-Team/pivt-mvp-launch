@@ -16,7 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
 import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspaceContext';
-import { useWorkflowStatus } from '@/hooks/useWorkflowStatus';
+import { useDealMetrics } from '@/hooks/useDealMetrics';
 
 // Import existing cover pages
 import { DealPartiesCover } from './DealPartiesCover';
@@ -49,7 +49,6 @@ import { ClosingCenterCover } from './ClosingCenterCover';
 import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 import { DealStateInspector } from './DealStateInspector';
-// No hardcoded mock data — all data comes from deal-scoped DB queries
 
 // ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
@@ -106,134 +105,14 @@ const formatCurrency = (n: number) =>
   new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
 
 // ── Section Components ──
-interface DealSummary {
-  conditionsTotal: number;
-  conditionsSatisfied: number;
-  approvalsTotal: number;
-  approvalsApproved: number;
-  approvalsPending: number;
-  documentsCount: number;
-  paymentsTotal: number;
-  paymentsConfirmed: number;
-  escrowStatus: string | null;
-  nextAction: string;
-  blockerCount: number;
-  stakeholderCount: number;
-  /** Total deal input records across ALL categories */
-  dealInputsCount: number;
-  capTableCount: number;
-  waterfallTierCount: number;
-  wireInstructionCount: number;
-  taxFormCount: number;
-  obligationCount: number;
-}
-
-function computeNextAction(s: DealSummary, status: string): string {
-  if (s.conditionsTotal === 0 && s.approvalsTotal === 0 && s.documentsCount === 0) {
-    return 'Begin deal setup — add stakeholders and upload documents';
-  }
-  if (s.approvalsPending > 0) {
-    return `${s.approvalsPending} approval${s.approvalsPending > 1 ? 's' : ''} pending sign-off`;
-  }
-  const unsatisfied = s.conditionsTotal - s.conditionsSatisfied;
-  if (unsatisfied > 0) {
-    return `${unsatisfied} condition${unsatisfied > 1 ? 's' : ''} outstanding — resolve to advance`;
-  }
-  if (s.paymentsTotal > 0 && s.paymentsConfirmed < s.paymentsTotal) {
-    return `Confirm ${s.paymentsTotal - s.paymentsConfirmed} draft payment instruction${s.paymentsTotal - s.paymentsConfirmed > 1 ? 's' : ''}`;
-  }
-  if (s.escrowStatus === 'pending') {
-    return 'Escrow account activation pending';
-  }
-  if (status === 'draft') {
-    return 'Upload Seller Cap Table to begin structuring';
-  }
-  if (status === 'closing' || status === 'active') {
-    return 'All gates clear — ready for execution';
-  }
-  return 'Review deal workspace';
-}
-
-const useDealSummary = (dealId: string | undefined) => {
-  const [summary, setSummary] = useState<DealSummary | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!dealId) { setLoading(false); return; }
-
-    const fetchSummary = async () => {
-      setLoading(true);
-      // Query ALL canonical data sources — every input category
-      const [conditions, approvals, contractDocs, dealDocs, wires, escrow, stakeholders, waterfallTiers, taxForms, obligations] = await Promise.all([
-        supabase.from('conditions').select('id, status').eq('deal_id', dealId),
-        supabase.from('deal_approvals').select('id, status').eq('deal_id', dealId),
-        supabase.from('contract_documents').select('id').eq('deal_id', dealId),
-        supabase.from('deal_documents').select('id').eq('deal_id', dealId),
-        supabase.from('wire_instructions').select('id, verification_status').eq('deal_id', dealId),
-        supabase.from('escrow_accounts').select('status').eq('deal_id', dealId).maybeSingle(),
-        supabase.from('cap_table_entries').select('id').eq('deal_id', dealId),
-        supabase.from('waterfall_tiers').select('id').eq('deal_id', dealId),
-        supabase.from('tax_forms').select('id').eq('deal_id', dealId),
-        supabase.from('obligations').select('id').eq('deal_id', dealId),
-      ]);
-
-      const condData = conditions.data || [];
-      const appData = approvals.data || [];
-      const wireData = wires.data || [];
-      const stkData = stakeholders.data || [];
-      const tiersData = waterfallTiers.data || [];
-      const taxData = taxForms.data || [];
-      const oblData = obligations.data || [];
-      const satisfied = condData.filter(c => (c.status as string) === 'SATISFIED' || (c.status as string) === 'WAIVED' || (c.status as string) === 'MET').length;
-      const approved = appData.filter(a => a.status === 'approved' || a.status === 'completed').length;
-      const pending = appData.filter(a => a.status === 'pending').length;
-      const confirmed = wireData.filter(w => (w as any).verification_status === 'verified').length;
-
-      // Unified document count: contract_documents + deal_documents (deduplicated)
-      const contractDocIds = new Set((contractDocs.data || []).map(d => d.id));
-      const dealDocIds = new Set((dealDocs.data || []).map(d => d.id));
-      const totalDocs = new Set([...contractDocIds, ...dealDocIds]).size;
-
-      // Total deal inputs = all records across input categories
-      const dealInputsCount = totalDocs + stkData.length + tiersData.length + wireData.length + taxData.length + oblData.length;
-
-      const s: DealSummary = {
-        conditionsTotal: condData.length,
-        conditionsSatisfied: satisfied,
-        approvalsTotal: appData.length,
-        approvalsApproved: approved,
-        approvalsPending: pending,
-        documentsCount: totalDocs,
-        paymentsTotal: wireData.length,
-        paymentsConfirmed: confirmed,
-        escrowStatus: escrow.data?.status || null,
-        nextAction: '',
-        blockerCount: pending + (condData.length - satisfied),
-        stakeholderCount: stkData.length,
-        dealInputsCount,
-        capTableCount: stkData.length,
-        waterfallTierCount: tiersData.length,
-        wireInstructionCount: wireData.length,
-        taxFormCount: taxData.length,
-        obligationCount: oblData.length,
-      };
-      s.nextAction = computeNextAction(s, 'draft');
-      setSummary(s);
-      setLoading(false);
-    };
-    fetchSummary();
-  }, [dealId]);
-
-  return { summary, loading };
-};
 
 const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDeal | null }> = ({ seedKey, realDeal }) => {
   const demoDeal = useSelectedDeal();
   const effectiveKey = seedKey || demoDeal.id;
   const { dealId } = useDealWorkspace();
 
-  // Derive metrics from DB — same source as progress ribbon
-  const { summary: dbSummary } = useDealSummary(dealId);
+  // Derive metrics from canonical service
+  const { metrics } = useDealMetrics(dealId);
 
   // Demo-specific narrative blockers (these describe the story, not counts)
   const DEMO_NEXT_ACTIONS: Record<string, string> = {
@@ -270,26 +149,13 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
     ],
   };
 
-  const nextAction = DEMO_NEXT_ACTIONS[effectiveKey] || 'Review deal workspace';
+  const nextAction = DEMO_NEXT_ACTIONS[effectiveKey] || (metrics?.nextRequiredAction ?? 'Review deal workspace');
   const blockers = DEMO_BLOCKERS[effectiveKey] || [];
 
-  // Use DB deal value if available, otherwise pivtStore
   const dealValue = realDeal?.deal_value ?? demoDeal.consideration;
   const escrowValue = realDeal?.escrow_amount ?? 0;
   const closingDate = realDeal?.closing_date || demoDeal.closingDate;
   const status = realDeal?.status || demoDeal.status;
-
-  // DB-derived metrics (canonical source)
-  const conditionsLabel = dbSummary
-    ? `${dbSummary.conditionsSatisfied}/${dbSummary.conditionsTotal}`
-    : '—';
-  const approvalsLabel = dbSummary
-    ? `${dbSummary.approvalsApproved}/${dbSummary.approvalsTotal}`
-    : '—';
-  const docsCount = dbSummary?.documentsCount ?? 0;
-  const paymentsLabel = dbSummary
-    ? `${dbSummary.paymentsConfirmed}/${dbSummary.paymentsTotal}`
-    : '—';
 
   return (
     <div className="space-y-8">
@@ -322,27 +188,39 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Conditions</p>
-          <p className="font-mono text-lg font-medium mt-1">{conditionsLabel}</p>
+          <p className="font-mono text-lg font-medium mt-1">
+            {metrics ? `${metrics.conditionsSatisfied}/${metrics.totalConditions}` : '—'}
+          </p>
           <p className="text-[10px] text-muted-foreground">satisfied</p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Approvals</p>
-          <p className="font-mono text-lg font-medium mt-1">{approvalsLabel}</p>
-          <p className="text-[10px] text-muted-foreground">{dbSummary?.approvalsPending ?? 0} pending</p>
+          <p className="font-mono text-lg font-medium mt-1">
+            {metrics ? `${metrics.grantedApprovals}/${metrics.totalApprovals}` : '—'}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {metrics ? `${metrics.totalApprovals - metrics.grantedApprovals} pending` : ''}
+          </p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Documents</p>
-          <p className="font-mono text-lg font-medium mt-1">{docsCount}</p>
+          <p className="font-mono text-lg font-medium mt-1">{metrics?.totalUploadedDocuments ?? 0}</p>
           <p className="text-[10px] text-muted-foreground">linked</p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Payments</p>
-          <p className="font-mono text-lg font-medium mt-1">{paymentsLabel}</p>
-          <p className="text-[10px] text-muted-foreground">{dbSummary?.paymentsConfirmed ?? 0} confirmed</p>
+          <p className="font-mono text-lg font-medium mt-1">
+            {metrics ? `${metrics.verifiedWireInstructions}/${metrics.totalWireInstructions}` : '—'}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {metrics?.verifiedWireInstructions ?? 0} confirmed
+          </p>
         </div>
         <div className="pivt-card p-4">
           <p className="pivt-metric-label">Escrow</p>
-          <p className="font-mono text-lg font-medium mt-1 capitalize">{dbSummary?.escrowStatus || 'N/A'}</p>
+          <p className="font-mono text-lg font-medium mt-1 capitalize">
+            {metrics?.totalSettlementRecords ? `${metrics.settledRecords}/${metrics.totalSettlementRecords}` : 'N/A'}
+          </p>
         </div>
       </div>
 
@@ -367,28 +245,16 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
 };
 
 const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> = ({ realDeal, dealId }) => {
-  const { summary } = useDealSummary(dealId);
+  const { metrics } = useDealMetrics(dealId);
   const { toast } = useToast();
   const status = realDeal.status;
   const [activating, setActivating] = useState(false);
-  const [stakeholderCount, setStakeholderCount] = useState(0);
-  const [paymentCount, setPaymentCount] = useState(0);
 
-  // Fetch activation prerequisites
-  useEffect(() => {
-    if (!dealId) return;
-    Promise.all([
-      supabase.from('cap_table_entries').select('id', { count: 'exact', head: true }).eq('deal_id', dealId),
-      supabase.from('waterfall_tiers').select('id', { count: 'exact', head: true }).eq('deal_id', dealId),
-    ]).then(([stkRes, payRes]) => {
-      setStakeholderCount(stkRes.count || 0);
-      setPaymentCount(payRes.count || 0);
-    });
-  }, [dealId]);
+  const stakeholderCount = metrics?.totalStakeholders ?? 0;
+  const paymentCount = metrics?.totalWireInstructions ?? 0;
 
-  const nextAction = summary
-    ? computeNextAction(summary, status)
-    : (status === 'draft' ? 'Activate this deal to unlock workflows' : 'Loading...');
+  const nextAction = metrics?.nextRequiredAction
+    ?? (status === 'draft' ? 'Activate this deal to unlock workflows' : 'Loading...');
 
   // Activation prerequisites
   const prereqs = [
@@ -414,9 +280,7 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
       toast({ title: 'Activation failed', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Deal Activated', description: 'Workflows are now unlocked.' });
-      // Force realDeal refresh by reloading window state
       window.dispatchEvent(new CustomEvent('deal-activated', { detail: { dealId } }));
-      // Update local state immediately
       (realDeal as any).status = 'active';
     }
   };
@@ -425,7 +289,6 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
     <div className="space-y-8">
       <VerificationReadinessBanner />
 
-      {/* Activation Card for Draft deals */}
       {isDraft && (
         <motion.div {...fadeInUp} className="pivt-card p-6 border-l-4 border-accent">
           <div className="flex items-start justify-between gap-6">
@@ -500,31 +363,33 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
         ))}
       </div>
 
-      {summary && (
+      {metrics && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div className="pivt-card p-4">
             <p className="pivt-metric-label">Conditions</p>
-            <p className="font-mono text-lg font-medium mt-1">{summary.conditionsSatisfied}/{summary.conditionsTotal}</p>
+            <p className="font-mono text-lg font-medium mt-1">{metrics.conditionsSatisfied}/{metrics.totalConditions}</p>
             <p className="text-[10px] text-muted-foreground">satisfied</p>
           </div>
           <div className="pivt-card p-4">
             <p className="pivt-metric-label">Approvals</p>
-            <p className="font-mono text-lg font-medium mt-1">{summary.approvalsApproved}/{summary.approvalsTotal}</p>
-            <p className="text-[10px] text-muted-foreground">{summary.approvalsPending} pending</p>
+            <p className="font-mono text-lg font-medium mt-1">{metrics.grantedApprovals}/{metrics.totalApprovals}</p>
+            <p className="text-[10px] text-muted-foreground">{metrics.totalApprovals - metrics.grantedApprovals} pending</p>
           </div>
           <div className="pivt-card p-4">
             <p className="pivt-metric-label">Documents</p>
-            <p className="font-mono text-lg font-medium mt-1">{summary.documentsCount}</p>
+            <p className="font-mono text-lg font-medium mt-1">{metrics.totalUploadedDocuments}</p>
             <p className="text-[10px] text-muted-foreground">linked</p>
           </div>
           <div className="pivt-card p-4">
             <p className="pivt-metric-label">Payments</p>
-            <p className="font-mono text-lg font-medium mt-1">{summary.paymentsConfirmed}/{summary.paymentsTotal}</p>
-            <p className="text-[10px] text-muted-foreground">confirmed</p>
+            <p className="font-mono text-lg font-medium mt-1">{metrics.verifiedWireInstructions}/{metrics.totalWireInstructions}</p>
+            <p className="text-[10px] text-muted-foreground">{metrics.verifiedWireInstructions} confirmed</p>
           </div>
           <div className="pivt-card p-4">
             <p className="pivt-metric-label">Escrow</p>
-            <p className="font-mono text-lg font-medium mt-1 capitalize">{summary.escrowStatus || 'N/A'}</p>
+            <p className="font-mono text-lg font-medium mt-1 capitalize">
+              {metrics.totalSettlementRecords > 0 ? `${metrics.settledRecords}/${metrics.totalSettlementRecords}` : 'N/A'}
+            </p>
           </div>
         </div>
       )}
@@ -773,31 +638,29 @@ export const DealWorkspaceCover: React.FC = () => {
   const [loadingDeal, setLoadingDeal] = useState(false);
   const [editDrawerOpen, setEditDrawerOpen] = useState(false);
 
-  // Demo deals: detect by seed_key or is_demo flag on the fetched real deal
   const isRealDeal = selectedDealId && selectedDealId.includes('-') && selectedDealId.length > 10;
   const isDemoDeal = useMemo(() => {
-    if (!isRealDeal) return true; // pivtStore ID like 'atlas'
+    if (!isRealDeal) return true;
     if (realDeal) return !!(realDeal.is_demo || realDeal.seed_key);
     return false;
   }, [isRealDeal, realDeal]);
   const demoDealSeedKey = useMemo(() => {
-    if (!isRealDeal) return selectedDealId; // 'atlas', 'beacon', 'cipher'
+    if (!isRealDeal) return selectedDealId;
     return realDeal?.seed_key || null;
   }, [isRealDeal, realDeal, selectedDealId]);
-  // Always compute deal summary from DB — for both demo and real deals.
-  // Demo deals have UUIDs in the deals table and seeded cap_table_entries.
+
   const effectiveDealId = isRealDeal ? selectedDealId : undefined;
-  // For pivtStore demo IDs ('atlas', 'beacon', 'cipher'), resolve to their UUID
   const DEMO_ID_MAP: Record<string, string> = {
     atlas: 'a0000000-0000-0000-0000-000000000001',
     beacon: 'b0000000-0000-0000-0000-000000000002',
     cipher: 'c0000000-0000-0000-0000-000000000003',
   };
   const resolvedDealId = effectiveDealId || DEMO_ID_MAP[selectedDealId] || undefined;
-  const { summary: dealSummary } = useDealSummary(resolvedDealId);
-  const { completionPcts: wfPcts } = useWorkflowStatus(resolvedDealId);
+
+  // ── SINGLE SOURCE OF TRUTH: canonical metrics ──
+  const { metrics, loading: metricsLoading } = useDealMetrics(resolvedDealId);
+
   useEffect(() => {
-    // For UUID-based deal IDs, fetch directly. For pivtStore IDs, resolve to UUID then fetch.
     const fetchId = isRealDeal ? selectedDealId : DEMO_ID_MAP[selectedDealId];
     if (fetchId) {
       setLoadingDeal(true);
@@ -812,14 +675,12 @@ export const DealWorkspaceCover: React.FC = () => {
     }
   }, [selectedDealId, isRealDeal]);
 
-  // If no deal selected, redirect
   useEffect(() => {
     if (!selectedDealId) {
       setActiveSection('deals');
     }
   }, [selectedDealId]);
 
-  // Replay pending action after duplication redirect
   useEffect(() => {
     if (!loadingDeal && realDeal && !isDemoDeal) {
       const pending = consumePendingAction();
@@ -843,63 +704,60 @@ export const DealWorkspaceCover: React.FC = () => {
     setActiveSubNav(subs ? subs[0].id : undefined);
   };
 
-  // Derive display values
   const dealName = realDeal?.deal_name || demoDeal.codeName;
   const dealNumber = realDeal?.deal_number || demoDeal.dealNumber;
   const dealValue = realDeal ? realDeal.deal_value : demoDeal.consideration;
   const closingDate = realDeal?.closing_date || demoDeal.closingDate;
   const dealStatus = realDeal?.status || demoDeal.status;
   const hasBlocker = isDemoDeal && demoDeal.hasBlocker;
-  // Compute readiness from deal summary
-  // Readiness always derived from DB — no demo fallback
-  const readyPct = useMemo(() => {
-    if (!dealSummary) return 0;
-    const total = dealSummary.conditionsTotal + dealSummary.approvalsTotal + dealSummary.paymentsTotal;
-    if (total === 0) return 0;
-    const done = dealSummary.conditionsSatisfied + dealSummary.approvalsApproved + dealSummary.paymentsConfirmed;
-    return Math.round((done / total) * 100);
-  }, [dealSummary]);
 
-  // ── Progress Ribbon Data ──
-  // All progress data is now computed from DB queries — no hardcoded demo values.
-  // This ensures the ribbon, Deal Parties, and Cap Table all read from the same source.
+  // Readiness from canonical metrics
+  const readyPct = metrics?.readinessPercent ?? 0;
+
+  // ── Progress Ribbon Data — all from canonical metrics ──
   const progressData: DealProgressData = useMemo(() => {
-    const s = dealSummary;
+    const m = metrics;
     return {
-      stakeholdersAdded: s?.stakeholderCount || 0,
-      stakeholdersRequired: 0, // open-ended — no artificial target
-      compliancePassed: s?.conditionsSatisfied || 0,
-      complianceTotal: s?.conditionsTotal || 0,
+      stakeholdersAdded: m?.totalStakeholders || 0,
+      stakeholdersRequired: 0, // open-ended
+      compliancePassed: m?.verifiedStakeholders || 0,
+      complianceTotal: m?.totalStakeholders || 0,
       complianceBlocked: false,
-      conditionsSatisfied: s?.conditionsSatisfied || 0,
-      conditionsTotal: s?.conditionsTotal || 0,
-      documentsUploaded: s?.dealInputsCount || 0,
-      documentsRequired: 0, // open-ended — no artificial target
-      approvalsGranted: s?.approvalsApproved || 0,
-      approvalsTotal: s?.approvalsTotal || 0,
+      conditionsSatisfied: m?.conditionsSatisfied || 0,
+      conditionsTotal: m?.totalConditions || 0,
+      documentsUploaded: m?.totalDealInputs || 0,
+      documentsRequired: 0, // open-ended
+      approvalsGranted: m?.grantedApprovals || 0,
+      approvalsTotal: m?.totalApprovals || 0,
       approvalsBlocked: false,
-      paymentsExecuted: s?.paymentsConfirmed || 0,
-      paymentsTotal: s?.paymentsTotal || 0,
+      paymentsExecuted: m?.settledRecords || 0,
+      paymentsTotal: m?.totalSettlementRecords || 0,
       paymentsFailed: false,
     };
-  }, [dealSummary]);
+  }, [metrics]);
 
+  // ── Workflow Steps — derived from canonical stage statuses ──
   const workflowSteps: WorkflowStep[] = useMemo(() => {
-    // All deals (including demo) now compute from DB via useWorkflowStatus
-    const pct = (key: string) => wfPcts[key] ?? 0;
-
+    const ss = metrics?.stageStatuses;
+    const pctFromStatus = (s: string | undefined) => {
+      if (!s) return 0;
+      if (s === 'complete') return 100;
+      if (s === 'in_progress') return 50;
+      if (s === 'blocked') return 25;
+      return 0;
+    };
     return [
       { id: 'overview', number: 1, label: 'Overview', completionPct: 100, blockers: 0 },
-      { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: pct('stakeholders'), blockers: 0 },
-      { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: pct('deal-inputs'), blockers: 0 },
-      { id: 'verification', number: 4, label: 'Verification', completionPct: pct('verification'), blockers: 0 },
-      { id: 'approvals', number: 5, label: 'Approvals', completionPct: pct('compliance'), blockers: 0 },
-      { id: 'execution', number: 6, label: 'Execution', completionPct: pct('execution'), blockers: 0 },
-      { id: 'compliance', number: 7, label: 'Compliance', completionPct: pct('compliance'), blockers: 0 },
+      { id: 'stakeholders', number: 2, label: 'Stakeholders', completionPct: pctFromStatus(ss?.stakeholders), blockers: 0 },
+      { id: 'deal-inputs', number: 3, label: 'Deal Inputs', completionPct: pctFromStatus(ss?.deal_inputs), blockers: 0 },
+      { id: 'verification', number: 4, label: 'Verification', completionPct: pctFromStatus(ss?.verification), blockers: 0 },
+      { id: 'approvals', number: 5, label: 'Approvals', completionPct: pctFromStatus(ss?.compliance), blockers: 0 },
+      { id: 'execution', number: 6, label: 'Execution', completionPct: pctFromStatus(ss?.execution), blockers: ss?.execution === 'blocked' ? 1 : 0 },
+      { id: 'compliance', number: 7, label: 'Compliance', completionPct: pctFromStatus(ss?.compliance), blockers: 0 },
       { id: 'comments', number: 8, label: 'Comments', completionPct: 100, blockers: 0 },
       { id: 'ai', number: 9, label: 'AI', completionPct: 0, blockers: 0 },
     ];
-  }, [wfPcts]);
+  }, [metrics]);
 
   const totalBlockers = useMemo(() => workflowSteps.reduce((sum, s) => sum + s.blockers, 0), [workflowSteps]);
   const sectionsWithBlockers = useMemo(() => workflowSteps.filter(s => s.blockers > 0).length, [workflowSteps]);
@@ -935,7 +793,6 @@ export const DealWorkspaceCover: React.FC = () => {
     <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
     <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal}>
     <motion.div {...staggerChildren} className="space-y-8">
-      {/* Back */}
       <button
         onClick={() => setActiveSection('deals')}
         className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
@@ -944,13 +801,11 @@ export const DealWorkspaceCover: React.FC = () => {
         Back to Deals
       </button>
 
-      {/* ── Read-only banner for protected deals ── */}
       <ProtectedDealBanner />
 
       {/* ── Deal Header ── */}
       <div className="pivt-panel p-6 lg:p-8">
         <div className="flex flex-col gap-5">
-          {/* Row 1: Deal name + action buttons */}
           <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
             <div className="min-w-0">
               <div className="flex items-center gap-3">
@@ -1001,7 +856,6 @@ export const DealWorkspaceCover: React.FC = () => {
             </div>
           </div>
 
-          {/* Row 2: Metrics */}
           <div className="flex items-center gap-6 flex-wrap border-t border-border/30 pt-4">
             <div>
               <p className="pivt-metric-label">Deal Value</p>
@@ -1090,10 +944,8 @@ export const DealWorkspaceCover: React.FC = () => {
         )}
       </motion.div>
 
-      {/* ── Deal State Inspector (debug) ── */}
       <DealStateInspector />
 
-      {/* Edit Deal Drawer */}
       {realDeal && !isDemoDeal && (
         <EditDealDrawer
           open={editDrawerOpen}
