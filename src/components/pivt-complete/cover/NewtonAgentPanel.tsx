@@ -802,15 +802,28 @@ export const NewtonAgentPanel: React.FC = () => {
     fetchData();
   }, [fetchData]);
 
-  // Run agent
+  // Run agent with retry logic
+  const invokeWithRetry = async (fnName: string, body: Record<string, any>, retries = 2): Promise<{ data: any; error: any }> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      const { data, error } = await supabase.functions.invoke(fnName, { body });
+      if (!error) return { data, error: null };
+      // Only retry on transient errors (network / 5xx)
+      if (attempt < retries && (!data || error.message?.includes('network') || error.message?.includes('5'))) {
+        console.warn(`[Newton] Retry ${attempt + 1}/${retries} for ${fnName}`);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+        continue;
+      }
+      return { data, error };
+    }
+    return { data: null, error: { message: 'Max retries exceeded' } };
+  };
+
   const handleRunAgent = async () => {
     if (!selectedDealId || isRunning) return;
     setIsRunning(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('funds-flow-agent', {
-        body: { deal_id: selectedDealId },
-      });
+      const { data, error } = await invokeWithRetry('funds-flow-agent', { deal_id: selectedDealId });
 
       if (error) {
         toast.error('Agent failed to start', { description: error.message });
