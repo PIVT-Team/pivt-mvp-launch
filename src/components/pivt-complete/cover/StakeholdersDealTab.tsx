@@ -40,6 +40,12 @@ interface DbStakeholder {
   verification_rejection_reason: string | null;
   verification_provider: string | null;
   verification_reference_id: string | null;
+  // Source metadata
+  created_by_source?: string;
+  needs_review?: boolean;
+  confidence_status?: string;
+  locked?: boolean;
+  locked_reason?: string | null;
 }
 
 const STATUS_CHIP: Record<string, { label: string; className: string; tooltip: string }> = {
