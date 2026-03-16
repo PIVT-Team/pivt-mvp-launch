@@ -116,13 +116,19 @@ export function useWorkflowStatus(dealId: string | undefined): WorkflowStatusRes
     const structPct = !hasStructuring ? 0 :
       Math.min(100, Math.round(((ownershipTotal >= 99.9 ? 50 : ownershipTotal / 2) + (tiers.length > 0 ? 50 : 0))));
 
-    // ── Deal Inputs (documents + deal metadata)
+    // ── Deal Inputs (documents + deal metadata + all input categories)
     const hasRequiredMeta = !!(d?.deal_value && d?.closing_date);
+    const ddocs = dealDocs.data || [];
+    const tforms = taxForms.data || [];
+    const obls = obligations.data || [];
+    const totalInputRecords = docs.length + ddocs.length + tiers.length + pays.length + tforms.length + obls.length;
     const dealInputsStatus: WorkflowStepStatus =
-      docs.length === 0 && !hasRequiredMeta ? 'NOT_STARTED' :
-      docs.length > 0 && hasRequiredMeta ? 'COMPLETED' :
+      totalInputRecords === 0 && !hasRequiredMeta ? 'NOT_STARTED' :
+      totalInputRecords > 0 && hasRequiredMeta ? 'COMPLETED' :
       'IN_PROGRESS';
-    const inputPct = (docs.length > 0 ? 50 : 0) + (hasRequiredMeta ? 50 : 0);
+    const inputPct = Math.min(100, Math.round(
+      (totalInputRecords > 0 ? 50 : 0) + (hasRequiredMeta ? 25 : 0) + (docs.length > 0 ? 25 : 0)
+    ));
 
     // ── Execution (payments + escrow)
     const paysConfirmed = pays.filter(p => {
