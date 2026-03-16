@@ -13,7 +13,7 @@ import {
   Activity, AlertTriangle, CheckCircle2, Clock, Info,
   ArrowRight, Play, Loader2, RefreshCw, Sparkles,
   FileWarning, ChevronDown, ChevronUp, ExternalLink,
-  XCircle, Check,
+  XCircle, Check, Zap, FileSearch, ClipboardCheck,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
