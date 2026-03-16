@@ -898,6 +898,8 @@ export const NewtonAgentPanel: React.FC = () => {
   useEffect(() => {
     setRuns([]);
     setDiscrepancies([]);
+    setDealEvents([]);
+    setDealApprovals([]);
     setAgentStatuses({});
   }, [selectedDealId]);
 
