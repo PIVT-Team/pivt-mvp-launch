@@ -867,9 +867,7 @@ export const NewtonAgentPanel: React.FC = () => {
     const results = await Promise.allSettled(
       availableAgents.map(async (agent) => {
         try {
-          const { data, error } = await supabase.functions.invoke(agent.edgeFunction!, {
-            body: { deal_id: selectedDealId },
-          });
+          const { data, error } = await invokeWithRetry(agent.edgeFunction!, { deal_id: selectedDealId });
 
           if (error || (data && !data.success)) {
             setAgentStatuses(prev => ({ ...prev, [agent.key]: 'error' }));
