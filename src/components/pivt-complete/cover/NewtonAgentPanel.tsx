@@ -754,6 +754,104 @@ const DeepDealScanCard: React.FC<{
   );
 };
 
+// ─── What Changed Card ───────────────────────────────────────────────────────
+
+interface DealEvent {
+  id: string;
+  event_type: string;
+  previous_state: string | null;
+  new_state: string | null;
+  created_at: string;
+  payload: Record<string, any>;
+}
+
+const WhatChangedCard: React.FC<{ events: DealEvent[] }> = ({ events }) => {
+  if (events.length === 0) return null;
+
+  const formatEvent = (e: DealEvent) => {
+    const type = e.event_type.replace(/_/g, ' ');
+    if (e.previous_state && e.new_state) {
+      return `${type}: ${e.previous_state.replace(/_/g, ' ')} → ${e.new_state.replace(/_/g, ' ')}`;
+    }
+    return type;
+  };
+
+  return (
+    <motion.div {...fadeInUp} className="pivt-card border border-border overflow-hidden">
+      <div className="p-5 pb-3 flex items-center gap-2">
+        <GitCommitHorizontal className="w-4 h-4 text-accent" />
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">What Changed</p>
+        <span className="text-[10px] text-muted-foreground ml-auto">{events.length} recent</span>
+      </div>
+      <div className="divide-y divide-border">
+        {events.slice(0, 5).map((e) => (
+          <div key={e.id} className="px-5 py-2.5 flex items-center gap-3">
+            <div className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs truncate">{formatEvent(e)}</p>
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+              {new Date(e.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+};
+
+// ─── Pending Approvals Card ──────────────────────────────────────────────────
+
+interface DealApproval {
+  id: string;
+  approver_name: string | null;
+  approver_role: string | null;
+  approval_side: string;
+  status: string;
+  blocker_reason: string | null;
+}
+
+const PendingApprovalsCard: React.FC<{ approvals: DealApproval[] }> = ({ approvals }) => {
+  const pending = approvals.filter(a => a.status === 'pending');
+  const declined = approvals.filter(a => a.status === 'declined');
+  const blocking = [...pending, ...declined];
+
+  if (blocking.length === 0) return null;
+
+  return (
+    <motion.div {...fadeInUp} className="pivt-card border border-discrepancy/20 bg-discrepancy/3 overflow-hidden">
+      <div className="p-5 pb-3 flex items-center gap-2">
+        <UserCheck className="w-4 h-4 text-discrepancy" />
+        <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Requires Human Approval</p>
+        <Badge variant="destructive" className="text-[9px] px-1.5 ml-auto">{blocking.length}</Badge>
+      </div>
+      <div className="px-5 pb-4 space-y-2">
+        {blocking.map((a) => (
+          <div key={a.id} className={cn(
+            'p-3 rounded-lg border',
+            a.status === 'declined' ? 'border-blocking/20 bg-blocking/5' : 'border-discrepancy/15 bg-card'
+          )}>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-medium">{a.approver_name || 'Unknown'}</p>
+              <Badge variant="outline" className={cn('text-[8px] px-1 py-0',
+                a.status === 'declined' ? 'text-blocking border-blocking/30' : 'text-discrepancy border-discrepancy/30'
+              )}>
+                {a.status === 'declined' ? 'Declined' : 'Pending'}
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {a.approver_role} · {a.approval_side.replace('_', ' ')} side
+            </p>
+            {a.blocker_reason && (
+              <p className="text-[10px] text-blocking mt-1">{a.blocker_reason}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+};
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export const NewtonAgentPanel: React.FC = () => {
@@ -762,6 +860,8 @@ export const NewtonAgentPanel: React.FC = () => {
   const [selectedDealId, setSelectedDealId] = useState<string | undefined>(contextDealId);
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
+  const [dealEvents, setDealEvents] = useState<DealEvent[]>([]);
+  const [dealApprovals, setDealApprovals] = useState<DealApproval[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isFullRunning, setIsFullRunning] = useState(false);
   const [agentStatuses, setAgentStatuses] = useState<Record<string, 'idle' | 'running' | 'done' | 'error' | 'unavailable'>>({});
