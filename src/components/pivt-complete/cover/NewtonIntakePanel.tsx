@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import {
   Upload, FileSpreadsheet, FileText, Users, Landmark, DollarSign,
   CheckCircle2, XCircle, AlertTriangle, Loader2, ChevronDown, ChevronUp,
-  Play, X, Eye, Shield, ArrowRight, RotateCw, Sparkles,
+  Play, X, Eye, Shield, ArrowRight, RotateCw, Sparkles, Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -465,6 +465,16 @@ export const NewtonIntakePanel: React.FC<{ dealId: string | null; onComplete?: (
                 )}
               </div>
 
+              {/* Editability notice */}
+              {proposals.some(p => p.status === 'proposed') && (
+                <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-accent/5 border border-accent/10 mb-3">
+                  <Pencil className="w-3 h-3 text-accent mt-0.5 shrink-0" />
+                  <p className="text-[10px] text-muted-foreground leading-relaxed">
+                    Records created by Newton are fully editable in the standard interface and marked for review. No records are locked unless a downstream approval step requires it.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-2">
                 {proposals.map(action => {
                   const impact = IMPACT_CONFIG[action.impact_level as keyof typeof IMPACT_CONFIG] || IMPACT_CONFIG.low;
@@ -499,12 +509,16 @@ export const NewtonIntakePanel: React.FC<{ dealId: string | null; onComplete?: (
 
                           {/* Preview details */}
                           {action.preview_data && Object.keys(action.preview_data).length > 0 && action.status === 'proposed' && (
-                            <div className="mt-2 px-2 py-1.5 rounded bg-muted/30 text-[10px] text-muted-foreground">
-                              {action.preview_data.names && (
-                                <span>Names: {action.preview_data.names.slice(0, 3).join(', ')}{action.preview_data.names.length > 3 ? ` +${action.preview_data.names.length - 3}` : ''}</span>
+                            <div className="mt-2 px-2 py-1.5 rounded bg-muted/30 text-[10px] text-muted-foreground space-y-0.5">
+                              {action.preview_data.new_count != null && (
+                                <span className="block">{action.preview_data.new_count} new records to create</span>
                               )}
-                              {action.preview_data.row_count && <span>Rows: {action.preview_data.row_count}</span>}
+                              {action.preview_data.names && (
+                                <span className="block">Names: {action.preview_data.names.slice(0, 3).join(', ')}{action.preview_data.names.length > 3 ? ` +${action.preview_data.names.length - 3}` : ''}</span>
+                              )}
+                              {action.preview_data.row_count && <span className="block">Rows: {action.preview_data.row_count}</span>}
                               {action.preview_data.total_amount && <span> · Total: ${(action.preview_data.total_amount / 1e6).toFixed(1)}M</span>}
+                              <span className="block text-accent/80">→ Records will be marked "Needs review"</span>
                             </div>
                           )}
 
@@ -574,6 +588,10 @@ export const NewtonIntakePanel: React.FC<{ dealId: string | null; onComplete?: (
                   {proposals.filter(p => p.status === 'completed').length} completed ·{' '}
                   {proposals.filter(p => p.status === 'rejected').length} skipped ·{' '}
                   {proposals.filter(p => p.status === 'failed').length} failed
+                </p>
+                <p className="text-[10px] text-muted-foreground mt-2 flex items-center justify-center gap-1">
+                  <Pencil className="w-3 h-3" />
+                  Imported records are marked "Needs review" and remain editable
                 </p>
                 <div className="flex gap-2 justify-center mt-3">
                   <Button size="sm" variant="outline" onClick={reset} className="text-xs gap-1.5">
