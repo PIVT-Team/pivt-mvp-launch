@@ -1,6 +1,6 @@
 /**
- * Newton Agent Operations Panel
- * AI-powered deal health monitoring, agent findings, and discrepancy management.
+ * Newton — Deal Intelligence Panel
+ * Active monitoring, Deep Deal Scan, discrepancy management, and approval tracking.
  */
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
