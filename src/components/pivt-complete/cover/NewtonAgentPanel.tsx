@@ -1141,6 +1141,9 @@ export const NewtonAgentPanel: React.FC = () => {
         </div>
       </div>
 
+      {/* Newton Intake — Document Upload & Action System */}
+      <NewtonIntakePanel dealId={selectedDealId} onComplete={fetchData} />
+
       {/* Deep Deal Scan */}
       <DeepDealScanCard
         onRun={handleFullAnalysis}
