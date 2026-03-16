@@ -2,7 +2,7 @@
  * Newton – Deal Intelligence Engine
  * Floating AI assistant with role-aware, context-aware structured responses
  */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
 import { springConfig } from '@/lib/animations';
@@ -15,6 +15,8 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { supabase } from '@/integrations/supabase/client';
+import { useLocation, useParams } from 'react-router-dom';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -78,46 +80,64 @@ async function streamChat(
   onDone();
 }
 
+type DealOption = {
+  id: string;
+  deal_name: string;
+  deal_number: string;
+  status: string;
+  deal_state: string;
+  is_demo: boolean;
+};
+
 export const NewtonDealIntelligence: React.FC = () => {
+  const location = useLocation();
+  const params = useParams<{ id?: string }>();
+
   const deal = useSelectedDeal();
-  const { activeSection, stakeholders, documents, payments, waterfallTiers, pendingApprovals } = usePIVTStore();
+  const {
+    activeSection,
+    stakeholders,
+    documents,
+    payments,
+    waterfallTiers,
+    pendingApprovals,
+    selectedDealId: storeSelectedDealId,
+    setSelectedDealId,
+  } = usePIVTStore();
+
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isRunningDealAnalysis, setIsRunningDealAnalysis] = useState(false);
+  const [availableDeals, setAvailableDeals] = useState<DealOption[]>([]);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
+  const [liveDealContext, setLiveDealContext] = useState<Record<string, unknown> | null>(null);
+  const [agentRunCount, setAgentRunCount] = useState(0);
+  const [discrepancyCount, setDiscrepancyCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // ⌘J toggle
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
-        e.preventDefault();
-        setIsOpen(p => !p);
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+  const routeTransactionId = useMemo(() => {
+    const search = new URLSearchParams(location.search);
+    return params.id || search.get('transaction_id') || search.get('deal_id');
+  }, [location.search, params.id]);
 
-  // Listen for search-to-Newton handoff
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      setIsOpen(true);
-      if (detail?.query) {
-        setTimeout(() => send(detail.query), 300);
-      }
-    };
-    window.addEventListener('pivt:open-newton', handler);
-    return () => window.removeEventListener('pivt:open-newton', handler);
-  }, []);
+  const selectedDeal = useMemo(
+    () => availableDeals.find((d) => d.id === selectedTransactionId) || null,
+    [availableDeals, selectedTransactionId]
+  );
 
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
+  const groupedDeals = useMemo(
+    () => ({
+      demo: availableDeals.filter((d) => d.is_demo),
+      user: availableDeals.filter((d) => !d.is_demo),
+    }),
+    [availableDeals]
+  );
 
-  const buildDealContext = () => ({
+  const buildFallbackContext = useCallback(() => ({
     deal: {
+      id: selectedTransactionId,
       name: deal.name,
       codeName: deal.codeName,
       consideration: deal.consideration,
@@ -134,28 +154,184 @@ export const NewtonDealIntelligence: React.FC = () => {
       pendingApprovals: deal.pendingApprovals,
       hasBlocker: deal.hasBlocker,
     },
-    stakeholders: stakeholders.map(s => ({
+    stakeholders: stakeholders.map((s) => ({
       name: s.name, role: s.role, kycStatus: s.kycStatus,
       payoutAmount: s.payoutAmount, ownershipPct: s.ownershipPct,
     })),
-    documents: documents.map(d => ({
+    documents: documents.map((d) => ({
       name: d.name, type: d.type, status: d.status, uploadedAt: d.uploadedAt,
     })),
-    payments: payments.map(p => ({
+    payments: payments.map((p) => ({
       recipientName: p.recipientName, amount: p.amount, status: p.status,
     })),
-    waterfallTiers: waterfallTiers.map(w => ({
+    waterfallTiers: waterfallTiers.map((w) => ({
       name: w.name, amount: w.amount, percentage: w.percentage, recipients: w.recipients,
     })),
-    pendingApprovals: pendingApprovals.map(a => ({
+    pendingApprovals: pendingApprovals.map((a) => ({
       type: a.type, dealName: a.dealName, description: a.description,
       urgency: a.urgency, createdAt: a.createdAt,
     })),
     currentView: activeSection,
-  });
+    selectedTransactionId,
+  }), [
+    selectedTransactionId,
+    deal,
+    stakeholders,
+    documents,
+    payments,
+    waterfallTiers,
+    pendingApprovals,
+    activeSection,
+  ]);
+
+  const buildDealContext = useCallback(() => {
+    if (liveDealContext) {
+      return {
+        ...liveDealContext,
+        currentView: activeSection,
+        selectedTransactionId,
+      };
+    }
+    return buildFallbackContext();
+  }, [liveDealContext, activeSection, selectedTransactionId, buildFallbackContext]);
+
+  const fetchDeals = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('deals')
+      .select('id, deal_name, deal_number, status, deal_state, is_demo')
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[Newton] failed to fetch deals:', error.message);
+      return;
+    }
+
+    const dealRows = (data || []) as DealOption[];
+    setAvailableDeals(dealRows);
+
+    setSelectedTransactionId((prev) => {
+      if (routeTransactionId && dealRows.some((d) => d.id === routeTransactionId)) return routeTransactionId;
+      if (storeSelectedDealId && dealRows.some((d) => d.id === storeSelectedDealId)) return storeSelectedDealId;
+      if (prev && dealRows.some((d) => d.id === prev)) return prev;
+      if (dealRows.some((d) => d.id === deal.id)) return deal.id;
+      return dealRows[0]?.id ?? null;
+    });
+  }, [routeTransactionId, storeSelectedDealId, deal.id]);
+
+  const fetchDealScopedData = useCallback(async (dealId: string) => {
+    const [contextRes, runsRes, discRes] = await Promise.all([
+      supabase.functions.invoke('get-deal-context', { body: { deal_id: dealId } }),
+      supabase.from('agent_runs').select('id').eq('deal_id', dealId),
+      supabase.from('discrepancies').select('id').eq('deal_id', dealId),
+    ]);
+
+    if (!contextRes.error && contextRes.data && typeof contextRes.data === 'object') {
+      setLiveDealContext(contextRes.data as Record<string, unknown>);
+    } else {
+      setLiveDealContext(null);
+    }
+
+    const runCount = runsRes.data?.length || 0;
+    const discCount = discRes.data?.length || 0;
+
+    setAgentRunCount(runCount);
+    setDiscrepancyCount(discCount);
+
+    // Temporary debug output for transaction switching verification
+    console.log('[Newton] selectedTransactionId:', dealId);
+    console.log('[Newton] agent_runs count:', runCount);
+    console.log('[Newton] discrepancies count:', discCount);
+  }, []);
+
+  // ⌘J toggle
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+        e.preventDefault();
+        setIsOpen((p) => !p);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Load deals whenever Newton opens (captures newly-created deals)
+  useEffect(() => {
+    if (isOpen) {
+      void fetchDeals();
+    }
+  }, [isOpen, fetchDeals]);
+
+  // Keep global selected deal in sync with Newton selector
+  useEffect(() => {
+    if (selectedTransactionId && selectedTransactionId !== storeSelectedDealId) {
+      setSelectedDealId(selectedTransactionId);
+    }
+  }, [selectedTransactionId, storeSelectedDealId, setSelectedDealId]);
+
+  // Load live scoped context when selected transaction changes
+  useEffect(() => {
+    if (!isOpen || !selectedTransactionId) return;
+    void fetchDealScopedData(selectedTransactionId);
+  }, [isOpen, selectedTransactionId, fetchDealScopedData]);
+
+  // Listen for search-to-Newton handoff
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      setIsOpen(true);
+      if (detail?.query) {
+        setTimeout(() => send(detail.query), 300);
+      }
+    };
+    window.addEventListener('pivt:open-newton', handler);
+    return () => window.removeEventListener('pivt:open-newton', handler);
+  }, [selectedTransactionId, liveDealContext]);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages]);
+
+  const handleRunDealAnalysis = async () => {
+    if (!selectedTransactionId || isRunningDealAnalysis) return;
+    setIsRunningDealAnalysis(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('funds-flow-agent', {
+        body: { deal_id: selectedTransactionId },
+      });
+
+      if (error || (data && !data.success)) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `⚠️ Failed to run analysis for this deal.` },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'assistant', content: `✅ Deal analysis completed. I can now review this deal's findings.` },
+        ]);
+      }
+
+      await fetchDealScopedData(selectedTransactionId);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: '⚠️ Failed to start analysis.' },
+      ]);
+    } finally {
+      setIsRunningDealAnalysis(false);
+    }
+  };
 
   const send = async (text: string) => {
     if (!text.trim() || isLoading) return;
+    if (!selectedTransactionId) {
+      setMessages((prev) => [...prev, { role: 'assistant', content: '⚠️ Select a deal first to continue.' }]);
+      return;
+    }
+
     const userMsg: Msg = { role: 'user', content: text };
     const all = [...messages, userMsg];
     setMessages(all);
@@ -165,9 +341,9 @@ export const NewtonDealIntelligence: React.FC = () => {
     let soFar = '';
     const upsert = (chunk: string) => {
       soFar += chunk;
-      setMessages(prev => {
+      setMessages((prev) => {
         const last = prev[prev.length - 1];
-        if (last?.role === 'assistant') return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: soFar } : m);
+        if (last?.role === 'assistant') return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: soFar } : m));
         return [...prev, { role: 'assistant', content: soFar }];
       });
     };
@@ -175,11 +351,11 @@ export const NewtonDealIntelligence: React.FC = () => {
     try {
       await streamChat(all, buildDealContext(), upsert, () => setIsLoading(false), (err) => {
         setIsLoading(false);
-        setMessages(p => [...p, { role: 'assistant', content: `⚠️ ${err}` }]);
+        setMessages((p) => [...p, { role: 'assistant', content: `⚠️ ${err}` }]);
       });
     } catch {
       setIsLoading(false);
-      setMessages(p => [...p, { role: 'assistant', content: '⚠️ Failed to connect' }]);
+      setMessages((p) => [...p, { role: 'assistant', content: '⚠️ Failed to connect' }]);
     }
   };
 
@@ -198,7 +374,7 @@ export const NewtonDealIntelligence: React.FC = () => {
                 className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center group pivt-gradient-interactive"
                 style={{
                   background: 'var(--pivt-gradient-primary)',
-                  color: '#FFFFFF',
+                  color: 'hsl(var(--primary-foreground))',
                   boxShadow: 'var(--pivt-gradient-glow)',
                 }}
               >
@@ -236,17 +412,38 @@ export const NewtonDealIntelligence: React.FC = () => {
               }}
             >
               {/* Header */}
-              <div className="px-5 py-4 border-b flex items-center gap-3 shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
+              <div className="px-5 py-4 border-b flex items-start gap-3 shrink-0" style={{ borderColor: 'hsl(var(--border))' }}>
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'hsl(var(--accent) / 0.15)' }}>
                   <Sparkles className="w-5 h-5" style={{ color: 'hsl(var(--accent))' }} />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold">Newton – Deal Intelligence</p>
+                <div className="flex-1 min-w-0 space-y-1.5">
+                  <p className="text-sm font-semibold">Newton — Deal Intelligence</p>
                   <p className="text-[10px] text-muted-foreground">Workflow & Risk Analysis Engine</p>
+
+                  <div className="flex items-center gap-2 pt-0.5">
+                    <span className="text-[10px] text-muted-foreground">Deal:</span>
+                    <select
+                      value={selectedTransactionId ?? ''}
+                      onChange={(e) => setSelectedTransactionId(e.target.value || null)}
+                      className="h-7 min-w-0 flex-1 rounded-md border border-border bg-card px-2 text-[11px] focus:outline-none focus:ring-1 focus:ring-accent/40"
+                    >
+                      {groupedDeals.demo.length > 0 && (
+                        <optgroup label="Demo Deals">
+                          {groupedDeals.demo.map((d) => (
+                            <option key={d.id} value={d.id}>{d.deal_name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {groupedDeals.user.length > 0 && (
+                        <optgroup label="Your Deals">
+                          {groupedDeals.user.map((d) => (
+                            <option key={d.id} value={d.id}>{d.deal_name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </select>
+                  </div>
                 </div>
-                <span className="text-[10px] px-2 py-0.5 rounded-full border font-mono" style={{ borderColor: 'hsl(var(--border))', color: 'hsl(var(--muted-foreground))' }}>
-                  {deal.codeName}
-                </span>
                 <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setIsOpen(false)}>
                   <X className="w-4 h-4" />
                 </Button>
@@ -261,9 +458,28 @@ export const NewtonDealIntelligence: React.FC = () => {
                         <Sparkles className="w-8 h-8 mx-auto mb-3 opacity-30" style={{ color: 'hsl(var(--accent))' }} />
                         <p className="text-sm font-medium">Deal Intelligence Ready</p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Scoped to <span className="font-semibold">{deal.codeName}</span> · {deal.workflowState.replace('_', ' ')}
+                          Scoped to <span className="font-semibold">{selectedDeal?.deal_name || deal.name}</span>
+                          {' '}· {(selectedDeal?.deal_state || selectedDeal?.status || deal.workflowState).replace('_', ' ')}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {agentRunCount} run{agentRunCount !== 1 ? 's' : ''} · {discrepancyCount} discrepanc{discrepancyCount === 1 ? 'y' : 'ies'}
                         </p>
                       </div>
+
+                      {agentRunCount === 0 && (
+                        <div className="rounded-lg border border-dashed border-border p-3 text-center space-y-2">
+                          <p className="text-xs text-muted-foreground">No analysis has been run for this deal yet.</p>
+                          <Button
+                            size="sm"
+                            onClick={handleRunDealAnalysis}
+                            disabled={isRunningDealAnalysis || !selectedTransactionId}
+                            className="h-7 text-[11px]"
+                          >
+                            {isRunningDealAnalysis ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+                            Run Deal Analysis
+                          </Button>
+                        </div>
+                      )}
 
                       {/* Quick action buttons */}
                       <div className="space-y-1.5">
@@ -338,10 +554,10 @@ export const NewtonDealIntelligence: React.FC = () => {
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask Newton about this deal..."
                   className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
-                  disabled={isLoading}
+                  disabled={isLoading || !selectedTransactionId}
                 />
                 <kbd className="px-1.5 py-0.5 text-[9px] rounded border font-mono text-muted-foreground opacity-50" style={{ borderColor: 'hsl(var(--border))' }}>⌘J</kbd>
-                <Button type="submit" size="icon" className="h-8 w-8 shrink-0" disabled={!input.trim() || isLoading}>
+                <Button type="submit" size="icon" className="h-8 w-8 shrink-0" disabled={!input.trim() || isLoading || !selectedTransactionId}>
                   <Send className="w-3.5 h-3.5" />
                 </Button>
               </form>
