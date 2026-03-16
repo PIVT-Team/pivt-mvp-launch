@@ -865,17 +865,16 @@ export const DealWorkspaceCover: React.FC = () => {
   // This ensures the ribbon, Deal Parties, and Cap Table all read from the same source.
   const progressData: DealProgressData = useMemo(() => {
     const s = dealSummary;
-    const stkCount = s?.stakeholderCount || 0;
     return {
-      stakeholdersAdded: stkCount,
-      stakeholdersRequired: Math.max(stkCount, 1),
+      stakeholdersAdded: s?.stakeholderCount || 0,
+      stakeholdersRequired: 0, // open-ended — no artificial target
       compliancePassed: s?.conditionsSatisfied || 0,
       complianceTotal: s?.conditionsTotal || 0,
       complianceBlocked: false,
       conditionsSatisfied: s?.conditionsSatisfied || 0,
       conditionsTotal: s?.conditionsTotal || 0,
-      documentsUploaded: s?.documentsCount || 0,
-      documentsRequired: Math.max(s?.documentsCount || 0, 1),
+      documentsUploaded: s?.dealInputsCount || 0,
+      documentsRequired: 0, // open-ended — no artificial target
       approvalsGranted: s?.approvalsApproved || 0,
       approvalsTotal: s?.approvalsTotal || 0,
       approvalsBlocked: false,
