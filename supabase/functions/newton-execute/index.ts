@@ -8,9 +8,20 @@ const corsHeaders = {
 /**
  * Newton Execute — Executes approved proposed actions.
  *
- * Receives an action_id, validates it's approved, and executes the corresponding operation.
- * All actions write to core PIVT tables and are fully logged.
+ * Core rule: All Newton-created records are written to the same core PIVT tables
+ * used by manual workflows. Records include source metadata (created_by_source='newton',
+ * needs_review=true) and remain editable unless locked by a later approval-gated step.
  */
+
+// Source metadata defaults for Newton-created records
+const NEWTON_SOURCE_META = {
+  created_by_source: "newton",
+  last_updated_by_source: "newton",
+  needs_review: true,
+  confidence_status: "needs_review",
+  locked: false,
+  locked_reason: null,
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -96,6 +107,7 @@ Deno.serve(async (req) => {
           action_type: action.action_type,
           action_label: action.action_label,
           result_summary: result.summary || result,
+          source: "newton",
         },
       });
 
@@ -123,7 +135,7 @@ Deno.serve(async (req) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// Action Executors
+// Action Executors — All write to core PIVT tables with source metadata
 // ═══════════════════════════════════════════════════════════════
 
 async function executeImportStakeholders(admin: any, action: any) {
@@ -131,9 +143,11 @@ async function executeImportStakeholders(admin: any, action: any) {
   const data = extraction?.extracted_data || [];
   if (!Array.isArray(data) || data.length === 0) return { created: 0 };
 
-  // Get existing to avoid duplicates
   const { data: existing } = await admin.from("cap_table_entries").select("shareholder_name").eq("deal_id", action.deal_id);
   const existingNames = new Set((existing || []).map((e: any) => e.shareholder_name?.toLowerCase()));
+
+  const confidence = extraction?.confidence_score ?? 0;
+  const confidenceStatus = confidence >= 0.9 ? "high" : confidence >= 0.7 ? "medium" : "low";
 
   const newRows = data
     .filter((r: any) => r.name && !existingNames.has(r.name.toLowerCase()))
@@ -146,6 +160,8 @@ async function executeImportStakeholders(admin: any, action: any) {
       ownership_pct: Number(r.ownership_pct) || 0,
       payout_amount: 0,
       verification_status: "not_sent",
+      ...NEWTON_SOURCE_META,
+      confidence_status: confidenceStatus,
     }));
 
   if (newRows.length === 0) return { created: 0, message: "All stakeholders already exist" };
@@ -153,7 +169,7 @@ async function executeImportStakeholders(admin: any, action: any) {
   const { data: inserted, error } = await admin.from("cap_table_entries").insert(newRows).select("id");
   if (error) throw new Error(`Failed to import stakeholders: ${error.message}`);
 
-  return { created: inserted?.length || 0, summary: `${inserted?.length || 0} stakeholders imported` };
+  return { created: inserted?.length || 0, summary: `${inserted?.length || 0} stakeholders imported via Newton (needs review)` };
 }
 
 async function executeUpdateStakeholders(admin: any, action: any) {
@@ -164,23 +180,29 @@ async function executeUpdateStakeholders(admin: any, action: any) {
   for (const row of data) {
     if (!row.name) continue;
     const { data: existing } = await admin.from("cap_table_entries")
-      .select("id").eq("deal_id", action.deal_id)
+      .select("id, locked").eq("deal_id", action.deal_id)
       .ilike("shareholder_name", row.name).maybeSingle();
 
     if (existing) {
-      const updates: any = {};
+      // Respect lock — skip locked records
+      if (existing.locked) continue;
+
+      const updates: any = {
+        last_updated_by_source: "newton",
+        needs_review: true,
+      };
       if (row.email) updates.email = row.email;
       if (row.ownership_pct) updates.ownership_pct = Number(row.ownership_pct);
       if (row.role) updates.role = row.role;
 
-      if (Object.keys(updates).length > 0) {
+      if (Object.keys(updates).length > 2) { // more than just the source tracking fields
         await admin.from("cap_table_entries").update(updates).eq("id", existing.id);
         updated++;
       }
     }
   }
 
-  return { updated, summary: `${updated} stakeholders updated` };
+  return { updated, summary: `${updated} stakeholders updated via Newton` };
 }
 
 async function executePrepareKyc(admin: any, action: any) {
@@ -188,7 +210,6 @@ async function executePrepareKyc(admin: any, action: any) {
   const data = extraction?.extracted_data || [];
   const withEmail = data.filter((r: any) => r.email);
 
-  // Get stakeholder IDs for those with matching emails
   const { data: stakeholders } = await admin.from("cap_table_entries")
     .select("id, email, verification_status")
     .eq("deal_id", action.deal_id)
@@ -210,6 +231,9 @@ async function executeImportPayoutRows(admin: any, action: any) {
   const data = extraction?.extracted_data || [];
   if (!Array.isArray(data) || data.length === 0) return { created: 0 };
 
+  const confidence = extraction?.confidence_score ?? 0;
+  const confidenceStatus = confidence >= 0.9 ? "high" : confidence >= 0.7 ? "medium" : "low";
+
   const wireRows = data.map((r: any) => ({
     deal_id: action.deal_id,
     payee_entity: r.recipient || r.payee || "Unknown",
@@ -218,18 +242,23 @@ async function executeImportPayoutRows(admin: any, action: any) {
     payment_type: r.payment_type || "Purchase Price",
     verification_status: "pending",
     source_document_id: null,
+    ...NEWTON_SOURCE_META,
+    confidence_status: confidenceStatus,
   }));
 
   const { data: inserted, error } = await admin.from("wire_instructions").insert(wireRows).select("id");
   if (error) throw new Error(`Failed to import payout rows: ${error.message}`);
 
-  return { created: inserted?.length || 0, summary: `${inserted?.length || 0} payout rows imported` };
+  return { created: inserted?.length || 0, summary: `${inserted?.length || 0} payout rows imported via Newton (needs review)` };
 }
 
 async function executeParseWireInstructions(admin: any, action: any) {
   const extraction = action.newton_extractions;
   const data = extraction?.extracted_data || [];
   if (!Array.isArray(data) || data.length === 0) return { created: 0 };
+
+  const confidence = extraction?.confidence_score ?? 0;
+  const confidenceStatus = confidence >= 0.9 ? "high" : confidence >= 0.7 ? "medium" : "low";
 
   const wireRows = data.map((r: any) => ({
     deal_id: action.deal_id,
@@ -244,16 +273,17 @@ async function executeParseWireInstructions(admin: any, action: any) {
     currency: r.currency || "USD",
     payment_type: "Purchase Price",
     verification_status: "pending",
+    ...NEWTON_SOURCE_META,
+    confidence_status: confidenceStatus,
   }));
 
   const { data: inserted, error } = await admin.from("wire_instructions").insert(wireRows).select("id");
   if (error) throw new Error(`Failed to import wire instructions: ${error.message}`);
 
-  return { created: inserted?.length || 0, summary: `${inserted?.length || 0} wire instructions imported` };
+  return { created: inserted?.length || 0, summary: `${inserted?.length || 0} wire instructions imported via Newton (needs review)` };
 }
 
 async function executeRunValidation(admin: any, action: any) {
-  // Trigger the existing funds-flow-agent
   try {
     const { data, error } = await admin.functions.invoke("funds-flow-agent", {
       body: { deal_id: action.deal_id },
