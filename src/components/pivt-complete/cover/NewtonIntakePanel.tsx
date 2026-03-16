@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import {
   Upload, FileSpreadsheet, FileText, Users, Landmark, DollarSign,
   CheckCircle2, XCircle, AlertTriangle, Loader2, ChevronDown, ChevronUp,
-  Play, X, Eye, Shield, ArrowRight, RotateCw, Sparkles,
+  Play, X, Eye, Shield, ArrowRight, RotateCw, Sparkles, Pencil,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
