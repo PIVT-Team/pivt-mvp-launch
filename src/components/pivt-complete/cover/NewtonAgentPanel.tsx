@@ -758,6 +758,13 @@ export const NewtonAgentPanel: React.FC = () => {
     fetchDeals();
   }, []);
 
+  // Reset state when deal changes
+  useEffect(() => {
+    setRuns([]);
+    setDiscrepancies([]);
+    setAgentStatuses({});
+  }, [selectedDealId]);
+
   // Fetch agent runs and discrepancies for selected deal
   const fetchData = useCallback(async () => {
     if (!selectedDealId) { setLoading(false); return; }
@@ -778,8 +785,16 @@ export const NewtonAgentPanel: React.FC = () => {
         .order('created_at', { ascending: false }),
     ]);
 
-    if (runsRes.data) setRuns(runsRes.data as unknown as AgentRun[]);
-    if (discRes.data) setDiscrepancies(discRes.data as unknown as Discrepancy[]);
+    const agentRuns = (runsRes.data || []) as unknown as AgentRun[];
+    const discs = (discRes.data || []) as unknown as Discrepancy[];
+
+    // Debug logging for development verification
+    console.log('[Newton] selectedDealId:', selectedDealId);
+    console.log('[Newton] agent_runs count:', agentRuns.length);
+    console.log('[Newton] discrepancies count:', discs.length);
+
+    setRuns(agentRuns);
+    setDiscrepancies(discs);
     setLoading(false);
   }, [selectedDealId]);
 
