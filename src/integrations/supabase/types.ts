@@ -160,12 +160,20 @@ export type Database = {
       }
       cap_table_entries: {
         Row: {
+          confidence_status: string
           created_at: string
+          created_by_source: string
+          created_by_user_id: string | null
           deal_id: string
           email: string | null
           escrow_holdback: number | null
           fees: number | null
           id: string
+          last_updated_by_source: string
+          last_updated_by_user_id: string | null
+          locked: boolean
+          locked_reason: string | null
+          needs_review: boolean
           net_payout: number | null
           ownership_pct: number
           payout_amount: number
@@ -181,12 +189,20 @@ export type Database = {
           verification_status: string
         }
         Insert: {
+          confidence_status?: string
           created_at?: string
+          created_by_source?: string
+          created_by_user_id?: string | null
           deal_id: string
           email?: string | null
           escrow_holdback?: number | null
           fees?: number | null
           id?: string
+          last_updated_by_source?: string
+          last_updated_by_user_id?: string | null
+          locked?: boolean
+          locked_reason?: string | null
+          needs_review?: boolean
           net_payout?: number | null
           ownership_pct?: number
           payout_amount?: number
@@ -202,12 +218,20 @@ export type Database = {
           verification_status?: string
         }
         Update: {
+          confidence_status?: string
           created_at?: string
+          created_by_source?: string
+          created_by_user_id?: string | null
           deal_id?: string
           email?: string | null
           escrow_holdback?: number | null
           fees?: number | null
           id?: string
+          last_updated_by_source?: string
+          last_updated_by_user_id?: string | null
+          locked?: boolean
+          locked_reason?: string | null
+          needs_review?: boolean
           net_payout?: number | null
           ownership_pct?: number
           payout_amount?: number
@@ -1064,11 +1088,19 @@ export type Database = {
         Row: {
           acknowledged_at: string | null
           acknowledged_by: string | null
+          confidence_status: string
           created_at: string
+          created_by_source: string
+          created_by_user_id: string | null
           deal_id: string
           details: Json
           id: string
+          last_updated_by_source: string
+          last_updated_by_user_id: string | null
+          locked: boolean
+          locked_reason: string | null
           message: string
+          needs_review: boolean
           object_id: string
           object_type: string
           resolved_at: string | null
@@ -1079,11 +1111,19 @@ export type Database = {
         Insert: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          confidence_status?: string
           created_at?: string
+          created_by_source?: string
+          created_by_user_id?: string | null
           deal_id: string
           details?: Json
           id?: string
+          last_updated_by_source?: string
+          last_updated_by_user_id?: string | null
+          locked?: boolean
+          locked_reason?: string | null
           message: string
+          needs_review?: boolean
           object_id: string
           object_type: string
           resolved_at?: string | null
@@ -1094,11 +1134,19 @@ export type Database = {
         Update: {
           acknowledged_at?: string | null
           acknowledged_by?: string | null
+          confidence_status?: string
           created_at?: string
+          created_by_source?: string
+          created_by_user_id?: string | null
           deal_id?: string
           details?: Json
           id?: string
+          last_updated_by_source?: string
+          last_updated_by_user_id?: string | null
+          locked?: boolean
+          locked_reason?: string | null
           message?: string
+          needs_review?: boolean
           object_id?: string
           object_type?: string
           resolved_at?: string | null
@@ -2090,10 +2138,18 @@ export type Database = {
         Row: {
           allocation_type: string
           amount: number
+          confidence_status: string
           created_at: string
+          created_by_source: string
+          created_by_user_id: string | null
           currency: string
           deal_id: string
           id: string
+          last_updated_by_source: string
+          last_updated_by_user_id: string | null
+          locked: boolean
+          locked_reason: string | null
+          needs_review: boolean
           recipient: string
           source_document_id: string | null
           source_wire_id: string | null
@@ -2103,10 +2159,18 @@ export type Database = {
         Insert: {
           allocation_type?: string
           amount?: number
+          confidence_status?: string
           created_at?: string
+          created_by_source?: string
+          created_by_user_id?: string | null
           currency?: string
           deal_id: string
           id?: string
+          last_updated_by_source?: string
+          last_updated_by_user_id?: string | null
+          locked?: boolean
+          locked_reason?: string | null
+          needs_review?: boolean
           recipient: string
           source_document_id?: string | null
           source_wire_id?: string | null
@@ -2116,10 +2180,18 @@ export type Database = {
         Update: {
           allocation_type?: string
           amount?: number
+          confidence_status?: string
           created_at?: string
+          created_by_source?: string
+          created_by_user_id?: string | null
           currency?: string
           deal_id?: string
           id?: string
+          last_updated_by_source?: string
+          last_updated_by_user_id?: string | null
+          locked?: boolean
+          locked_reason?: string | null
+          needs_review?: boolean
           recipient?: string
           source_document_id?: string | null
           source_wire_id?: string | null
@@ -2835,11 +2907,19 @@ export type Database = {
           account_number_last4: string | null
           amount: number
           bank_name: string | null
+          confidence_status: string
           created_at: string
+          created_by_source: string
+          created_by_user_id: string | null
           currency: string
           deal_id: string
           iban: string | null
           id: string
+          last_updated_by_source: string
+          last_updated_by_user_id: string | null
+          locked: boolean
+          locked_reason: string | null
+          needs_review: boolean
           payee_entity: string
           payer_entity: string | null
           payment_type: string
@@ -2856,11 +2936,19 @@ export type Database = {
           account_number_last4?: string | null
           amount?: number
           bank_name?: string | null
+          confidence_status?: string
           created_at?: string
+          created_by_source?: string
+          created_by_user_id?: string | null
           currency?: string
           deal_id: string
           iban?: string | null
           id?: string
+          last_updated_by_source?: string
+          last_updated_by_user_id?: string | null
+          locked?: boolean
+          locked_reason?: string | null
+          needs_review?: boolean
           payee_entity: string
           payer_entity?: string | null
           payment_type?: string
@@ -2877,11 +2965,19 @@ export type Database = {
           account_number_last4?: string | null
           amount?: number
           bank_name?: string | null
+          confidence_status?: string
           created_at?: string
+          created_by_source?: string
+          created_by_user_id?: string | null
           currency?: string
           deal_id?: string
           iban?: string | null
           id?: string
+          last_updated_by_source?: string
+          last_updated_by_user_id?: string | null
+          locked?: boolean
+          locked_reason?: string | null
+          needs_review?: boolean
           payee_entity?: string
           payer_entity?: string | null
           payment_type?: string
