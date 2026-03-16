@@ -26,6 +26,9 @@ interface StakeholderData {
   stakeholder_type: string;
   ownership_pct: number;
   payout_amount: number;
+  created_by_source?: string;
+  locked?: boolean;
+  locked_reason?: string | null;
 }
 
 interface EditStakeholderModalProps {
