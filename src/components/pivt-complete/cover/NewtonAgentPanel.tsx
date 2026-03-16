@@ -584,6 +584,140 @@ const DealSelector: React.FC<{
   </div>
 );
 
+// ─── Agent Registry ──────────────────────────────────────────────────────────
+
+interface AgentDef {
+  key: string;
+  label: string;
+  icon: React.ElementType;
+  edgeFunction: string | null; // null = coming soon
+  description: string;
+}
+
+const AGENT_REGISTRY: AgentDef[] = [
+  { key: 'funds_flow', label: 'Funds Flow Agent', icon: Activity, edgeFunction: 'funds-flow-agent', description: 'Wire reconciliation & payout validation' },
+  { key: 'document', label: 'Document Agent', icon: FileSearch, edgeFunction: null, description: 'Contract completeness & clause extraction' },
+  { key: 'closing_readiness', label: 'Closing Readiness Agent', icon: ClipboardCheck, edgeFunction: null, description: 'Pre-closing condition & approval check' },
+];
+
+// ─── Full Deal Analysis Card ─────────────────────────────────────────────────
+
+const FullDealAnalysisCard: React.FC<{
+  onRun: () => void;
+  isRunning: boolean;
+  agentStatuses: Record<string, 'idle' | 'running' | 'done' | 'error' | 'unavailable'>;
+}> = ({ onRun, isRunning, agentStatuses }) => {
+  const completedCount = Object.values(agentStatuses).filter(s => s === 'done').length;
+  const totalAvailable = AGENT_REGISTRY.filter(a => a.edgeFunction).length;
+  const hasResults = completedCount > 0;
+
+  return (
+    <motion.div {...fadeInUp} className="pivt-card border border-accent/20 overflow-hidden">
+      {/* Gradient accent bar */}
+      <div className="h-1 w-full bg-gradient-to-r from-accent via-accent/60 to-accent/20" />
+
+      <div className="p-5">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-accent" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">Run Full Deal Analysis</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Execute all available agents in parallel
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={onRun}
+            disabled={isRunning}
+            size="sm"
+            className="gap-2 bg-accent hover:bg-accent/90 text-accent-foreground"
+          >
+            {isRunning ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Analyzing…
+              </>
+            ) : (
+              <>
+                <Zap className="w-3.5 h-3.5" />
+                Run All Agents
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Agent pipeline */}
+        <div className="mt-4 space-y-2">
+          {AGENT_REGISTRY.map((agent) => {
+            const status = agentStatuses[agent.key] || 'idle';
+            const available = !!agent.edgeFunction;
+            const AgentIcon = agent.icon;
+
+            return (
+              <div
+                key={agent.key}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all',
+                  status === 'running' ? 'border-accent/30 bg-accent/5' :
+                  status === 'done' ? 'border-validated/20 bg-validated/3' :
+                  status === 'error' ? 'border-blocking/20 bg-blocking/3' :
+                  !available ? 'border-border bg-muted/20 opacity-60' :
+                  'border-border bg-card'
+                )}
+              >
+                <AgentIcon className={cn(
+                  'w-4 h-4 shrink-0',
+                  status === 'running' ? 'text-accent animate-pulse' :
+                  status === 'done' ? 'text-validated' :
+                  status === 'error' ? 'text-blocking' :
+                  'text-muted-foreground'
+                )} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium">{agent.label}</p>
+                  <p className="text-[10px] text-muted-foreground">{agent.description}</p>
+                </div>
+                <div className="shrink-0">
+                  {status === 'running' && <Loader2 className="w-3.5 h-3.5 text-accent animate-spin" />}
+                  {status === 'done' && <CheckCircle2 className="w-3.5 h-3.5 text-validated" />}
+                  {status === 'error' && <XCircle className="w-3.5 h-3.5 text-blocking" />}
+                  {!available && (
+                    <Badge variant="outline" className="text-[8px] px-1.5 py-0 text-muted-foreground border-border">
+                      Coming Soon
+                    </Badge>
+                  )}
+                  {available && status === 'idle' && (
+                    <div className="w-3.5 h-3.5 rounded-full border-2 border-muted-foreground/30" />
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Progress summary */}
+        {(isRunning || hasResults) && (
+          <div className="mt-3 flex items-center gap-2">
+            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+              <motion.div
+                className="h-full rounded-full bg-accent"
+                initial={{ width: 0 }}
+                animate={{ width: `${totalAvailable > 0 ? (completedCount / totalAvailable) * 100 : 0}%` }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+              />
+            </div>
+            <span className="text-[10px] font-mono text-muted-foreground">
+              {completedCount}/{totalAvailable}
+            </span>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 
 export const NewtonAgentPanel: React.FC = () => {
@@ -593,6 +727,8 @@ export const NewtonAgentPanel: React.FC = () => {
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [discrepancies, setDiscrepancies] = useState<Discrepancy[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [isFullRunning, setIsFullRunning] = useState(false);
+  const [agentStatuses, setAgentStatuses] = useState<Record<string, 'idle' | 'running' | 'done' | 'error' | 'unavailable'>>({});
   const [loading, setLoading] = useState(true);
   const [dealsLoading, setDealsLoading] = useState(true);
 
