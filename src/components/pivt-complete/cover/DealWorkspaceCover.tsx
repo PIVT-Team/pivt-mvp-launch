@@ -720,15 +720,15 @@ export const DealWorkspaceCover: React.FC = () => {
     return {
       stakeholdersAdded: m?.totalStakeholders || 0,
       stakeholdersRequired: 0, // open-ended
-      compliancePassed: m?.verifiedStakeholders || 0,
-      complianceTotal: m?.totalStakeholders || 0,
+      compliancePassed: m?.requiredVerifiedStakeholders || 0,
+      complianceTotal: m?.requiredStakeholders || 0,
       complianceBlocked: false,
       conditionsSatisfied: m?.conditionsSatisfied || 0,
       conditionsTotal: m?.totalConditions || 0,
-      documentsUploaded: m?.totalDealInputs || 0,
-      documentsRequired: 0, // open-ended
-      approvalsGranted: m?.grantedApprovals || 0,
-      approvalsTotal: m?.totalApprovals || 0,
+      documentsUploaded: m?.totalUploadedDocuments || 0,
+      documentsRequired: 0, // open-ended — readiness uses requiredDocuments separately
+      approvalsGranted: m?.grantedRequiredApprovals || 0,
+      approvalsTotal: m?.requiredApprovals || 0,
       approvalsBlocked: false,
       paymentsExecuted: m?.settledRecords || 0,
       paymentsTotal: m?.totalSettlementRecords || 0,

@@ -46,39 +46,39 @@ export const ReadinessPanel: React.FC = () => {
 
   const categories: ReadinessCategory[] = [
     {
-      label: 'Documents Complete', icon: FileText,
+      label: 'Required Documents', icon: FileText,
       current: m.completedRequiredDocuments, total: m.requiredDocuments,
       rawTotal: m.totalUploadedDocuments,
       status: deriveStatus(m.completedRequiredDocuments, m.requiredDocuments),
-      detail: `${m.totalUploadedDocuments} uploaded | ${m.completedRequiredDocuments}/${m.requiredDocuments} required complete`,
+      detail: `${m.totalUploadedDocuments} uploaded · ${m.completedRequiredDocuments}/${m.requiredDocuments} required complete`,
     },
     {
-      label: 'Stakeholders Verified', icon: Users,
+      label: 'Required Stakeholders', icon: Users,
       current: m.requiredVerifiedStakeholders, total: m.requiredStakeholders,
       rawTotal: m.totalStakeholders,
       status: deriveStatus(m.requiredVerifiedStakeholders, m.requiredStakeholders),
-      detail: `${m.totalStakeholders} total | ${m.requiredVerifiedStakeholders}/${m.requiredStakeholders} required verified`,
+      detail: `${m.totalStakeholders} total · ${m.requiredVerifiedStakeholders}/${m.requiredStakeholders} required verified`,
     },
     {
-      label: 'Obligations Confirmed', icon: Shield,
+      label: 'Obligations', icon: Shield,
       current: m.confirmedObligations, total: Math.max(m.totalObligations, 1),
       status: deriveStatus(m.confirmedObligations, m.totalObligations),
       detail: m.totalObligations === 0 ? 'No obligations extracted yet' : `${m.confirmedObligations}/${m.totalObligations} confirmed`,
     },
     {
-      label: 'Wire Instructions Verified', icon: Landmark,
+      label: 'Wire Instructions', icon: Landmark,
       current: m.verifiedWireInstructions, total: Math.max(m.totalWireInstructions, 1),
       status: deriveStatus(m.verifiedWireInstructions, m.totalWireInstructions),
-      detail: m.totalWireInstructions === 0 ? 'No wires extracted yet' : `${m.verifiedWireInstructions}/${m.totalWireInstructions} verified`,
+      detail: m.totalWireInstructions === 0 ? 'No wire instructions yet' : `${m.verifiedWireInstructions}/${m.totalWireInstructions} verified`,
     },
     {
-      label: 'Approvals Completed', icon: CheckCircle2,
+      label: 'Required Approvals', icon: CheckCircle2,
       current: m.grantedRequiredApprovals, total: Math.max(m.requiredApprovals, 1),
       status: deriveStatus(m.grantedRequiredApprovals, m.requiredApprovals),
-      detail: m.requiredApprovals === 0 ? 'No approvals configured' : `${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved`,
+      detail: m.requiredApprovals === 0 ? 'No approvals configured' : `${m.grantedApprovals}/${m.totalApprovals} total · ${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved`,
     },
     {
-      label: 'Conditions Satisfied', icon: Shield,
+      label: 'Conditions', icon: Shield,
       current: m.conditionsSatisfied, total: Math.max(m.totalConditions, 1),
       status: deriveStatus(m.conditionsSatisfied, m.totalConditions),
       detail: m.totalConditions === 0 ? 'No conditions configured' : `${m.conditionsSatisfied}/${m.totalConditions} satisfied`,
@@ -110,7 +110,7 @@ export const ReadinessPanel: React.FC = () => {
         </div>
         <Progress value={overallPct} className="h-3" />
         <p className="text-xs text-muted-foreground mt-2">
-          {m.totalDealInputs} total deal inputs | {m.completedDealInputs}/{m.requiredDealInputs} required categories populated
+          {m.totalDealInputs} total deal inputs · {m.completedDealInputs}/{m.requiredDealInputs} required categories populated
         </p>
       </motion.div>
 

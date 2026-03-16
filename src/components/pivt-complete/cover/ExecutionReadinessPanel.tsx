@@ -26,14 +26,15 @@ export const ExecutionReadinessPanel: React.FC = () => {
     );
   }
 
+  const m = metrics;
   const checks = [
-    { label: 'Stakeholders Configured', passed: readiness.stakeholdersConfigured, icon: Users },
-    { label: 'Seller Verified', passed: readiness.sellerVerified, icon: Shield },
-    { label: 'Buyer Verified', passed: readiness.buyerVerified, icon: Shield },
-    { label: 'SPA / Agreement Uploaded', passed: readiness.spaUploaded, icon: FileText },
-    { label: 'Wire Instructions Uploaded', passed: readiness.wireInstructionsUploaded, icon: FileText },
-    { label: 'Payments Approved', passed: readiness.paymentApproved, icon: CreditCard },
-    { label: 'Approvals Complete', passed: readiness.approvalsComplete, icon: ClipboardCheck },
+    { label: 'Stakeholders Configured', passed: readiness.stakeholdersConfigured, icon: Users, detail: m ? `${m.totalStakeholders} total · ${m.buyerSideStakeholders} buyer / ${m.sellerSideStakeholders} seller` : '' },
+    { label: 'Seller Verified', passed: readiness.sellerVerified, icon: Shield, detail: m ? `${m.sellerSideStakeholders} seller-side` : '' },
+    { label: 'Buyer Verified', passed: readiness.buyerVerified, icon: Shield, detail: m ? `${m.buyerSideStakeholders} buyer-side` : '' },
+    { label: 'SPA / Agreement Uploaded', passed: readiness.spaUploaded, icon: FileText, detail: m ? `${m.totalUploadedDocuments} docs uploaded` : '' },
+    { label: 'Wire Instructions Uploaded', passed: readiness.wireInstructionsUploaded, icon: FileText, detail: m ? `${m.totalWireInstructions} on file` : '' },
+    { label: 'Payments Approved', passed: readiness.paymentApproved, icon: CreditCard, detail: m ? `${m.verifiedWireInstructions}/${m.totalWireInstructions} verified` : '' },
+    { label: 'Approvals Complete', passed: readiness.approvalsComplete, icon: ClipboardCheck, detail: m ? `${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved` : '' },
   ];
 
   const passedCount = checks.filter(c => c.passed).length;
@@ -92,6 +93,9 @@ export const ExecutionReadinessPanel: React.FC = () => {
                   <Icon className={`w-5 h-5 ${check.passed ? 'text-validated' : 'text-muted-foreground'}`} />
                 </div>
                 <p className="text-xs font-medium leading-tight">{check.label}</p>
+                {check.detail && (
+                  <p className="text-[10px] text-muted-foreground font-mono leading-tight">{check.detail}</p>
+                )}
                 <div className="flex items-center gap-1">
                   {check.passed ? (
                     <>
