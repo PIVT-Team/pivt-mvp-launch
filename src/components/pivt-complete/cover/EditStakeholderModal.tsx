@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Building2 } from 'lucide-react';
+import { X, User, Building2, Lock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 type StakeholderType = 'individual' | 'entity';
@@ -25,6 +26,9 @@ interface StakeholderData {
   stakeholder_type: string;
   ownership_pct: number;
   payout_amount: number;
+  created_by_source?: string;
+  locked?: boolean;
+  locked_reason?: string | null;
 }
 
 interface EditStakeholderModalProps {
@@ -36,6 +40,7 @@ interface EditStakeholderModalProps {
 }
 
 export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open, onClose, stakeholder, dealId, onUpdated }) => {
+  const { user } = useAuth();
   const [type, setType] = useState<StakeholderType>('individual');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -44,6 +49,8 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
   const [role, setRole] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
+
+  const isLocked = stakeholder?.locked === true;
 
   useEffect(() => {
     if (stakeholder && open) {
@@ -70,7 +77,14 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
 
   const handleSave = async () => {
     if (!validate() || !stakeholder || !dealId) return;
+    if (isLocked) {
+      toast.error(`This record is locked: ${stakeholder.locked_reason || 'downstream workflow step'}`);
+      return;
+    }
     setSaving(true);
+
+    const wasNewtonCreated = stakeholder.created_by_source === 'newton' || stakeholder.created_by_source === 'agent';
+
     const { error } = await supabase
       .from('cap_table_entries')
       .update({
@@ -80,12 +94,29 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
         stakeholder_type: type,
         ownership_pct: parseFloat(ownership) || 0,
         payout_amount: parseFloat(payout) || 0,
+        last_updated_by_source: 'manual',
+        last_updated_by_user_id: user?.id || null,
+        needs_review: false, // User has reviewed by editing
       })
       .eq('id', stakeholder.id);
 
     if (error) {
       toast.error(`Failed to update stakeholder: ${error.message}`);
     } else {
+      // Log manual edit of Newton-created record
+      if (wasNewtonCreated && user?.id) {
+        await supabase.from('audit_log').insert({
+          deal_id: dealId,
+          user_id: user.id,
+          action: 'newton_record_manually_edited',
+          details: {
+            entity_type: 'cap_table_entries',
+            entity_id: stakeholder.id,
+            original_source: stakeholder.created_by_source,
+            edited_fields: ['shareholder_name', 'email', 'role', 'stakeholder_type', 'ownership_pct', 'payout_amount'],
+          },
+        });
+      }
       toast.success('Stakeholder updated');
       onUpdated?.();
       onClose();
@@ -113,7 +144,14 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
         >
           {/* Header */}
           <div className="flex items-center justify-between p-5 border-b border-border">
-            <h2 className="text-lg font-semibold">Edit Stakeholder</h2>
+            <div>
+              <h2 className="text-lg font-semibold">Edit Stakeholder</h2>
+              {isLocked && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                  <Lock className="w-3 h-3" /> {stakeholder.locked_reason || 'Locked by downstream workflow'}
+                </p>
+              )}
+            </div>
             <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
               <X className="w-4 h-4" />
             </button>
