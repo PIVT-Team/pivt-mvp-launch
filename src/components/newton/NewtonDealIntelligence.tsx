@@ -381,7 +381,7 @@ export const NewtonDealIntelligence: React.FC = () => {
                 <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
               </motion.button>
             </TooltipTrigger>
-            <TooltipContent side="left">Ask PIVT AI</TooltipContent>
+            <TooltipContent side="left">Newton · Deal Intelligence (⌘J)</TooltipContent>
           </Tooltip>
         )}
       </AnimatePresence>

@@ -37,12 +37,13 @@ Deno.serve(async (req) => {
   const results: Record<string, string> = {};
 
   // ─── Demo 1: Healthy Deal — no blocking issues ───
+  // Mid-market scale: $185M enterprise value
   const { data: deal1 } = await admin.from("deals").insert({
     deal_name: "Demo — Healthy Close (Greenfield Solar)",
     deal_number: "",
-    deal_value: 15000000,
+    deal_value: 185000000,
     currency: "USD",
-    escrow_amount: 750000,
+    escrow_amount: 9250000,
     owner_id: userId,
     created_by: userId,
     visibility: "private",
@@ -59,20 +60,17 @@ Deno.serve(async (req) => {
 
   if (deal1) {
     results.healthy = deal1.id;
-    // Wire instructions that exactly match deal value
     await admin.from("wire_instructions").insert([
-      { deal_id: deal1.id, payee_entity: "Greenfield Solar Holdings", amount: 14250000, currency: "USD", payment_type: "Purchase Price", verification_status: "verified", bank_name: "JPMorgan Chase", account_holder: "Greenfield Solar Holdings LLC", account_number_last4: "4567", routing_number: "021000021" },
-      { deal_id: deal1.id, payee_entity: "Escrow Agent — First American", amount: 750000, currency: "USD", payment_type: "Escrow Deposit", verification_status: "verified", bank_name: "First American Trust", account_holder: "First American Title Insurance", account_number_last4: "8901", routing_number: "021000089" },
+      { deal_id: deal1.id, payee_entity: "Greenfield Solar Holdings", amount: 175750000, currency: "USD", payment_type: "Purchase Price", verification_status: "verified", bank_name: "JPMorgan Chase", account_holder: "Greenfield Solar Holdings LLC", account_number_last4: "4567", routing_number: "021000021" },
+      { deal_id: deal1.id, payee_entity: "Escrow Agent — First American", amount: 9250000, currency: "USD", payment_type: "Escrow Deposit", verification_status: "verified", bank_name: "First American Trust", account_holder: "First American Title Insurance", account_number_last4: "8901", routing_number: "021000089" },
     ]);
     await admin.from("cap_table_entries").insert([
-      { deal_id: deal1.id, shareholder_name: "Greenfield Solar Holdings", ownership_pct: 100, payout_amount: 14250000, escrow_holdback: 750000, role: "Seller" },
+      { deal_id: deal1.id, shareholder_name: "Greenfield Solar Holdings", ownership_pct: 100, payout_amount: 175750000, escrow_holdback: 9250000, role: "Seller" },
     ]);
-    // Add approvals — all completed
     await admin.from("deal_approvals").insert([
       { deal_id: deal1.id, user_id: userId, approval_side: "buyer", approver_name: "Sarah Chen", approver_email: "sarah@cleantech.com", approver_role: "General Counsel", status: "completed", completed_at: new Date().toISOString() },
       { deal_id: deal1.id, user_id: userId, approval_side: "seller", approver_name: "James Rivera", approver_email: "james@greenfield.com", approver_role: "CFO", status: "completed", completed_at: new Date().toISOString() },
     ]);
-    // Add conditions — all satisfied
     await admin.from("conditions").insert([
       { deal_id: deal1.id, title: "Environmental assessment complete", status: "SATISFIED" },
       { deal_id: deal1.id, title: "Board approval obtained", status: "SATISFIED" },
@@ -81,12 +79,13 @@ Deno.serve(async (req) => {
   }
 
   // ─── Demo 2: Payout Mismatch Discrepancy ───
+  // Mid-market scale: $95M enterprise value
   const { data: deal2 } = await admin.from("deals").insert({
     deal_name: "Demo — Payout Mismatch (Meridian Logistics)",
     deal_number: "",
-    deal_value: 8000000,
+    deal_value: 95000000,
     currency: "USD",
-    escrow_amount: 400000,
+    escrow_amount: 4750000,
     owner_id: userId,
     created_by: userId,
     visibility: "private",
@@ -103,13 +102,12 @@ Deno.serve(async (req) => {
 
   if (deal2) {
     results.mismatch = deal2.id;
-    // Wires intentionally exceed deal value ($8M deal, $9.25M in wires)
+    // Wires intentionally exceed deal value ($95M deal, $108.5M in wires)
     await admin.from("wire_instructions").insert([
-      { deal_id: deal2.id, payee_entity: "Meridian Logistics Group", amount: 7200000, currency: "USD", payment_type: "Purchase Price", verification_status: "verified", bank_name: "Bank of America", account_holder: "Meridian Logistics Group Inc", account_number_last4: "1234", routing_number: "026009593" },
-      { deal_id: deal2.id, payee_entity: "Advisory Fee — Lazard", amount: 1250000, currency: "USD", payment_type: "Advisory Fee", verification_status: "verified", bank_name: "Lazard Ltd", account_holder: "Lazard Frères & Co", account_number_last4: "5678", routing_number: "021000018" },
-      { deal_id: deal2.id, payee_entity: "Escrow Agent — Wilmington Trust", amount: 800000, currency: "USD", payment_type: "Escrow Deposit", verification_status: "pending", bank_name: "Wilmington Trust", account_holder: "WT Escrow Services", account_number_last4: "9012", routing_number: "031100092" },
+      { deal_id: deal2.id, payee_entity: "Meridian Logistics Group", amount: 85500000, currency: "USD", payment_type: "Purchase Price", verification_status: "verified", bank_name: "Bank of America", account_holder: "Meridian Logistics Group Inc", account_number_last4: "1234", routing_number: "026009593" },
+      { deal_id: deal2.id, payee_entity: "Advisory Fee — Lazard", amount: 14250000, currency: "USD", payment_type: "Advisory Fee", verification_status: "verified", bank_name: "Lazard Ltd", account_holder: "Lazard Frères & Co", account_number_last4: "5678", routing_number: "021000018" },
+      { deal_id: deal2.id, payee_entity: "Escrow Agent — Wilmington Trust", amount: 8750000, currency: "USD", payment_type: "Escrow Deposit", verification_status: "pending", bank_name: "Wilmington Trust", account_holder: "WT Escrow Services", account_number_last4: "9012", routing_number: "031100092" },
     ]);
-    // Approvals — buyer done, seller pending
     await admin.from("deal_approvals").insert([
       { deal_id: deal2.id, user_id: userId, approval_side: "buyer", approver_name: "Michael Torres", approver_email: "mtorres@atlasfreight.com", approver_role: "VP Corporate Development", status: "completed", completed_at: new Date().toISOString() },
       { deal_id: deal2.id, user_id: userId, approval_side: "seller", approver_name: "Linda Park", approver_email: "lpark@meridian.com", approver_role: "General Counsel", status: "pending" },
@@ -117,12 +115,13 @@ Deno.serve(async (req) => {
   }
 
   // ─── Demo 3: Unresolved Approval / Closing Blocker ───
+  // Mid-market scale: $275M enterprise value
   const { data: deal3 } = await admin.from("deals").insert({
     deal_name: "Demo — Blocked Close (Cipher Health)",
     deal_number: "",
-    deal_value: 22000000,
+    deal_value: 275000000,
     currency: "USD",
-    escrow_amount: 2200000,
+    escrow_amount: 27500000,
     owner_id: userId,
     created_by: userId,
     visibility: "private",
@@ -140,18 +139,15 @@ Deno.serve(async (req) => {
 
   if (deal3) {
     results.blocked = deal3.id;
-    // Wires are valid
     await admin.from("wire_instructions").insert([
-      { deal_id: deal3.id, payee_entity: "Cipher Health Partners", amount: 19800000, currency: "USD", payment_type: "Purchase Price", verification_status: "verified", bank_name: "Goldman Sachs", account_holder: "Cipher Health Partners LP", account_number_last4: "3456", routing_number: "021000018" },
-      { deal_id: deal3.id, payee_entity: "Escrow Agent — BNY Mellon", amount: 2200000, currency: "USD", payment_type: "Escrow Deposit", verification_status: "verified", bank_name: "BNY Mellon", account_holder: "BNY Mellon Escrow", account_number_last4: "7890", routing_number: "021000018" },
+      { deal_id: deal3.id, payee_entity: "Cipher Health Partners", amount: 247500000, currency: "USD", payment_type: "Purchase Price", verification_status: "verified", bank_name: "Goldman Sachs", account_holder: "Cipher Health Partners LP", account_number_last4: "3456", routing_number: "021000018" },
+      { deal_id: deal3.id, payee_entity: "Escrow Agent — BNY Mellon", amount: 27500000, currency: "USD", payment_type: "Escrow Deposit", verification_status: "verified", bank_name: "BNY Mellon", account_holder: "BNY Mellon Escrow", account_number_last4: "7890", routing_number: "021000018" },
     ]);
-    // Approvals — one declined, one pending
     await admin.from("deal_approvals").insert([
       { deal_id: deal3.id, user_id: userId, approval_side: "buyer", approver_name: "David Kim", approver_email: "dkim@titan.com", approver_role: "CEO", status: "completed", completed_at: new Date().toISOString() },
       { deal_id: deal3.id, user_id: userId, approval_side: "seller", approver_name: "Rachel Nguyen", approver_email: "rnguyen@cipher.com", approver_role: "General Counsel", status: "declined", declined_at: new Date().toISOString(), blocker_reason: "Outstanding regulatory clearance from FDA" },
       { deal_id: deal3.id, user_id: userId, approval_side: "regulatory", approver_name: "FDA CDRH Division", approver_email: "regulatory@fda.gov", approver_role: "Regulatory Body", status: "pending" },
     ]);
-    // Conditions — some unmet
     await admin.from("conditions").insert([
       { deal_id: deal3.id, title: "FDA 510(k) clearance obtained", status: "NOT_STARTED" },
       { deal_id: deal3.id, title: "HSR Act filing approved", status: "IN_PROGRESS" },
@@ -164,7 +160,7 @@ Deno.serve(async (req) => {
     JSON.stringify({
       success: true,
       deals: results,
-      message: "3 polished demo scenarios created: Healthy Close, Payout Mismatch, Blocked Close",
+      message: "3 polished demo scenarios created: Healthy Close ($185M), Payout Mismatch ($95M), Blocked Close ($275M)",
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
