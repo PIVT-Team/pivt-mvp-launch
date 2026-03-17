@@ -3,12 +3,11 @@
  * Gradient design system: G1-G5 tokens applied throughout
  */
 import React, { useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
-import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Search, ChevronLeft, ChevronRight, Bell, Upload, User, Brain, LogOut } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import pivtLogo from '@/assets/pivt-logo.png';
