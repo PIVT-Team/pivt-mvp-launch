@@ -46,14 +46,6 @@ export const DealReadinessHeader: React.FC<Props> = ({
 
   return (
     <div className="pivt-card border border-border overflow-hidden">
-      <svg width="0" height="0" className="absolute">
-        <defs>
-          <linearGradient id="newton-icon-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#3b82f6" />
-            <stop offset="100%" stopColor="#22d3ee" />
-          </linearGradient>
-        </defs>
-      </svg>
       {/* Readiness progress bar */}
       <div className="h-1.5 w-full bg-muted">
         <motion.div
@@ -67,9 +59,19 @@ export const DealReadinessHeader: React.FC<Props> = ({
       <div className="p-4 space-y-4">
         {/* ── Row 1: Branding + Deal Selector ── */}
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-400/10 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4" style={{ stroke: 'url(#newton-icon-grad)' }} />
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 cursor-pointer"
+                  style={{ background: 'linear-gradient(135deg, #3b82f6, #06b6d4)' }}>
+                  <Sparkles className="w-4 h-4 text-white" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="bg-yellow-400 text-black text-xs font-medium border-0">
+                Ask the Newton Chatbot
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div className="flex-1 min-w-0 space-y-1.5">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold tracking-tight">Newton</h2>
