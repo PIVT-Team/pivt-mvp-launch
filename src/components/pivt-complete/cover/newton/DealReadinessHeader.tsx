@@ -10,6 +10,8 @@ import {
   XCircle, ArrowRight, Shield, Zap,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
 
 interface DealOption {
   id: string;
