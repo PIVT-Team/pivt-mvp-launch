@@ -7,12 +7,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
 import { springConfig } from '@/lib/animations';
 import {
-  Sparkles, Send, Loader2, X, Minus, Command,
+  Send, Loader2, X, Minus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import pivtLogo from '@/assets/pivt-logo.png';
+import newtonIcon from '@/assets/newton-icon.png';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -130,15 +132,28 @@ export const NewtonGlobalChat: React.FC = () => {
       {/* Floating button */}
       <AnimatePresence>
         {!isOpen && (
-          <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            onClick={() => { setIsOpen(true); setIsMinimized(false); }}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-accent text-accent-foreground shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
-          >
-            <Sparkles className="w-6 h-6" />
-          </motion.button>
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  onClick={() => { setIsOpen(true); setIsMinimized(false); }}
+                  className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%))' }}
+                >
+                  <img src={newtonIcon} alt="Newton" className="w-7 h-7 brightness-0 invert drop-shadow-sm" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent
+                side="left"
+                className="bg-yellow-400 text-yellow-950 border-yellow-500 font-semibold"
+              >
+                Ask the Newton chatbot
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </AnimatePresence>
 
@@ -178,7 +193,7 @@ export const NewtonGlobalChat: React.FC = () => {
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                   {messages.length === 0 && (
                     <div className="text-center py-8">
-                      <Sparkles className="w-6 h-6 text-accent mx-auto mb-2 opacity-50" />
+                      <img src={newtonIcon} alt="Newton" className="w-6 h-6 mx-auto mb-2 opacity-50" />
                       <p className="text-xs text-muted-foreground">Ask Newton about {deal.codeName}</p>
                     </div>
                   )}
