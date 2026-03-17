@@ -70,6 +70,17 @@ export const NewtonAgentPanel: React.FC = () => {
     obligations: 0, confirmedObligations: 0,
   });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [localActivity, setLocalActivity] = useState<ActivityEntry[]>([]);
+
+  const addActivity = (description: string, status: ActivityEntry['status'] = 'info') => {
+    setLocalActivity(prev => [{
+      id: `local-${Date.now()}`,
+      description,
+      timestamp: new Date(),
+      status,
+      source: 'user' as const,
+    }, ...prev]);
+  };
 
   useEffect(() => {
     if (contextDealId) setSelectedDealId(contextDealId);
