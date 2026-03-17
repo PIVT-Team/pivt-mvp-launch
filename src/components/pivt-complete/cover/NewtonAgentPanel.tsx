@@ -288,6 +288,7 @@ export const NewtonAgentPanel: React.FC = () => {
 
   const readinessPct = calcReadiness();
   const blockers = buildBlockers();
+  const recommendations = buildRecommendations();
 
   return (
     <div className="space-y-4">
@@ -299,8 +300,10 @@ export const NewtonAgentPanel: React.FC = () => {
         dealState={selectedDeal?.deal_state}
         readinessPct={readinessPct}
         blockers={blockers}
+        recommendations={recommendations}
         lastUpdated={lastUpdated}
         onRefresh={fetchCounts}
+        onAction={handleComposerSubmit}
       />
 
       {/* ── Chat Composer (Primary Interaction) ── */}
