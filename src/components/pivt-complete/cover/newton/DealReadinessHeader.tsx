@@ -1,10 +1,14 @@
 /**
- * Deal Readiness Header — Shows deal context and closing readiness at the top of Newton.
+ * Deal Readiness Header — Shows deal context, closing readiness score,
+ * blockers, and recommended next actions at the top of Newton.
  */
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, CheckCircle2, RefreshCw, Sparkles } from 'lucide-react';
+import {
+  AlertTriangle, CheckCircle2, RefreshCw, Sparkles,
+  XCircle, ArrowRight, Shield, Zap,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface DealOption {
@@ -23,36 +27,38 @@ interface Props {
   dealState: string | undefined;
   readinessPct: number;
   blockers: string[];
+  recommendations: { label: string; prompt: string }[];
   lastUpdated: Date | null;
   onRefresh: () => void;
+  onAction?: (prompt: string) => void;
 }
 
 export const DealReadinessHeader: React.FC<Props> = ({
-  deals, selectedDealId, onSelectDeal, dealState, readinessPct, blockers, lastUpdated, onRefresh,
+  deals, selectedDealId, onSelectDeal, dealState, readinessPct, blockers,
+  recommendations, lastUpdated, onRefresh, onAction,
 }) => {
   const selectedDeal = deals.find(d => d.id === selectedDealId);
   const readinessColor = readinessPct >= 80 ? 'text-validated' : readinessPct >= 40 ? 'text-accent' : 'text-blocking';
+  const ringColor = readinessPct >= 80 ? 'stroke-validated' : readinessPct >= 40 ? 'stroke-accent' : 'stroke-blocking';
+  const barColor = readinessPct >= 80 ? 'bg-validated' : readinessPct >= 40 ? 'bg-accent' : 'bg-blocking';
 
   return (
     <div className="pivt-card border border-border overflow-hidden">
       {/* Readiness progress bar */}
-      <div className="h-1 w-full bg-muted">
+      <div className="h-1.5 w-full bg-muted">
         <motion.div
-          className={cn(
-            'h-full',
-            readinessPct >= 80 ? 'bg-validated' : readinessPct >= 40 ? 'bg-accent' : 'bg-blocking'
-          )}
+          className={cn('h-full', barColor)}
           initial={{ width: 0 }}
           animate={{ width: `${readinessPct}%` }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
         />
       </div>
 
-      <div className="p-4 space-y-3">
-        {/* Top row: Newton branding + deal selector */}
+      <div className="p-4 space-y-4">
+        {/* ── Row 1: Branding + Deal Selector ── */}
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-xl bg-accent/8 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4.5 h-4.5 text-accent" />
+            <Sparkles className="w-4 h-4 text-accent" />
           </div>
           <div className="flex-1 min-w-0 space-y-1.5">
             <div className="flex items-center gap-2">
@@ -64,8 +70,6 @@ export const DealReadinessHeader: React.FC<Props> = ({
                 </button>
               )}
             </div>
-
-            {/* Deal selector */}
             <div className="flex items-center gap-2">
               <select
                 value={selectedDealId || ''}
@@ -99,32 +103,83 @@ export const DealReadinessHeader: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Readiness summary */}
+        {/* ── Row 2: Closing Readiness Score ── */}
         {selectedDeal && (
-          <div className="flex items-center gap-3 pt-1">
-            <div className="flex items-center gap-1.5">
-              {readinessPct >= 80 ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-validated" />
-              ) : (
-                <AlertTriangle className="w-3.5 h-3.5 text-blocking" />
-              )}
-              <span className={cn('text-xs font-semibold', readinessColor)}>
-                {readinessPct}% Closing Readiness
-              </span>
+          <div className="flex items-center gap-4 px-1">
+            {/* Circular readiness gauge */}
+            <div className="relative w-14 h-14 shrink-0">
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-muted/40" />
+                <circle
+                  cx="18" cy="18" r="15.5" fill="none" strokeWidth="2.5"
+                  strokeDasharray={`${readinessPct * 0.975} 100`}
+                  strokeLinecap="round"
+                  className={ringColor}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className={cn('text-sm font-bold', readinessColor)}>{readinessPct}%</span>
+              </div>
             </div>
-            {blockers.length > 0 && (
-              <div className="flex-1 flex items-center gap-1.5 overflow-x-auto">
-                <span className="text-[10px] text-muted-foreground shrink-0">·</span>
-                {blockers.slice(0, 3).map((b, i) => (
-                  <Badge key={i} variant="outline" className="text-[9px] px-1.5 text-blocking border-blocking/20 whitespace-nowrap shrink-0">
-                    {b}
-                  </Badge>
-                ))}
-                {blockers.length > 3 && (
-                  <span className="text-[9px] text-muted-foreground shrink-0">+{blockers.length - 3} more</span>
-                )}
+
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold">Closing Readiness</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                {readinessPct === 100
+                  ? 'All pre-conditions met — ready for execution'
+                  : readinessPct >= 80
+                    ? 'Nearly ready — a few items remain'
+                    : `${blockers.length} blocker${blockers.length !== 1 ? 's' : ''} preventing closing`}
+              </p>
+            </div>
+
+            {readinessPct === 100 && (
+              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-validated/10 border border-validated/20">
+                <CheckCircle2 className="w-3 h-3 text-validated" />
+                <span className="text-[10px] font-medium text-validated">Ready</span>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Row 3: Blockers ── */}
+        {blockers.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <AlertTriangle className="w-3 h-3 text-blocking" />
+              Blockers
+            </p>
+            <div className="space-y-1">
+              {blockers.map((b, i) => (
+                <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-blocking/5 border border-blocking/10">
+                  <XCircle className="w-3 h-3 text-blocking shrink-0" />
+                  <span className="text-[11px] text-foreground">{b}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Row 4: Recommended Next Actions ── */}
+        {recommendations.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+              <Zap className="w-3 h-3 text-accent" />
+              Recommended Actions
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {recommendations.map((rec, i) => (
+                <button
+                  key={i}
+                  onClick={() => onAction?.(rec.prompt)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-accent/20 bg-accent/5 hover:bg-accent/10 transition-colors group"
+                >
+                  <Sparkles className="w-3 h-3 text-accent shrink-0" />
+                  <span className="text-[11px] text-foreground whitespace-nowrap">{rec.label}</span>
+                  <ArrowRight className="w-3 h-3 text-accent/40 group-hover:text-accent shrink-0" />
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

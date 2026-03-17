@@ -156,7 +156,28 @@ export const NewtonAgentPanel: React.FC = () => {
     if (counts.openDiscrepancies > 0) blockers.push(`${counts.openDiscrepancies} unresolved discrepancies`);
     if (counts.taxForms > 0 && counts.taxComplete < counts.taxForms) blockers.push(`${counts.taxForms - counts.taxComplete} tax forms incomplete`);
     if (counts.obligations > 0 && counts.confirmedObligations < counts.obligations) blockers.push(`${counts.obligations - counts.confirmedObligations} obligations unconfirmed`);
+    if (counts.stakeholders === 0) blockers.push('No stakeholders imported');
+    if (counts.documents === 0) blockers.push('No documents uploaded');
+    if (counts.wires === 0) blockers.push('No wire instructions on file');
     return blockers;
+  };
+
+  // Build recommended next actions
+  const buildRecommendations = (): { label: string; prompt: string }[] => {
+    const recs: { label: string; prompt: string }[] = [];
+    if (counts.stakeholders === 0) recs.push({ label: 'Import stakeholder spreadsheet', prompt: 'Import stakeholder spreadsheet' });
+    if (counts.unverified > 0) recs.push({ label: 'Generate KYC/KYB requests', prompt: 'Generate KYC/KYB requests' });
+    if (counts.documents === 0) recs.push({ label: 'Upload deal documents', prompt: 'Upload deal documents' });
+    if (counts.documents > 0 && counts.parsedDocs < counts.documents) recs.push({ label: 'Review uploaded documents', prompt: 'Review deal documents' });
+    if (counts.wires === 0) recs.push({ label: 'Upload wire instructions', prompt: 'Upload wire instructions' });
+    if (counts.pendingWires > 0) recs.push({ label: 'Match wire instructions', prompt: 'Match wire instructions' });
+    if (counts.taxForms > 0 && counts.taxComplete < counts.taxForms) recs.push({ label: 'Review tax forms', prompt: 'Review tax forms' });
+    if (counts.approvals === 0 && counts.stakeholders > 0) recs.push({ label: 'Prepare approval package', prompt: 'Prepare approval package' });
+    if (counts.pendingApprovals > 0) recs.push({ label: 'Send approvals via DocuSign', prompt: 'Send approvals via DocuSign' });
+    if (counts.openDiscrepancies > 0) recs.push({ label: 'Resolve discrepancies', prompt: 'Review discrepancies' });
+    if (counts.obligations > 0 && counts.confirmedObligations < counts.obligations) recs.push({ label: 'Confirm payment obligations', prompt: 'Review payment obligations' });
+    if (recs.length === 0 && counts.stakeholders > 0) recs.push({ label: 'Check closing readiness', prompt: 'Check closing readiness' });
+    return recs.slice(0, 4);
   };
 
   // Closing readiness %
@@ -267,6 +288,7 @@ export const NewtonAgentPanel: React.FC = () => {
 
   const readinessPct = calcReadiness();
   const blockers = buildBlockers();
+  const recommendations = buildRecommendations();
 
   return (
     <div className="space-y-4">
@@ -278,8 +300,10 @@ export const NewtonAgentPanel: React.FC = () => {
         dealState={selectedDeal?.deal_state}
         readinessPct={readinessPct}
         blockers={blockers}
+        recommendations={recommendations}
         lastUpdated={lastUpdated}
         onRefresh={fetchCounts}
+        onAction={handleComposerSubmit}
       />
 
       {/* ── Chat Composer (Primary Interaction) ── */}
