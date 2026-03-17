@@ -290,11 +290,11 @@ export const PIVTCompleteUnified: React.FC = () => {
         <AnimatePresence mode="wait">
           <motion.div
             key={`cover-${activeSection}`}
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={springConfig.standard}
-            className={activeSection === 'intelligence-map' ? 'p-4 w-full flex-1' : 'p-10 lg:p-14 max-w-6xl mx-auto w-full'}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className={activeSection === 'intelligence-map' ? 'p-6 w-full flex-1' : 'p-8 lg:p-12 max-w-5xl mx-auto w-full'}
           >
             <ActiveCoverSection />
           </motion.div>
