@@ -306,6 +306,9 @@ export const NewtonAgentPanel: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* ── Newton Activity Timeline ── */}
+      <NewtonActivityTimeline dealId={selectedDealId || null} localEntries={localActivity} />
+
       {/* ── Workflow Tracker (compact) ── */}
       <NewtonWorkflowTracker stages={buildStages()} onStageClick={handleStageClick} />
 
