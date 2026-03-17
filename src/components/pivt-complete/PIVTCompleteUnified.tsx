@@ -214,19 +214,16 @@ export const PIVTCompleteUnified: React.FC = () => {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* Top bar */}
-        <div
-          className="shrink-0 px-6 py-3 flex items-center gap-4 pivt-glass-nav"
-        >
+        {/* Top bar — cleaner, less clutter */}
+        <div className="shrink-0 px-8 py-3.5 flex items-center gap-4 border-b border-border">
           {/* Search */}
           <button
             onClick={() => setCommandOpen(true)}
-            className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl border text-sm text-muted-foreground hover:bg-muted/40 transition-all flex-1 max-w-md"
-            style={{ borderColor: 'hsl(var(--border))' }}
+            className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-border text-sm text-muted-foreground hover:bg-muted/30 transition-all flex-1 max-w-sm"
           >
-            <Search className="w-4 h-4 shrink-0 opacity-50" />
-            <span className="flex-1 text-left">Search deals, stakeholders...</span>
-            <kbd className="px-1.5 py-0.5 text-[10px] rounded border bg-muted/50 font-mono opacity-60">⌘K</kbd>
+            <Search className="w-4 h-4 shrink-0 opacity-40" />
+            <span className="flex-1 text-left">Search...</span>
+            <kbd className="px-1.5 py-0.5 text-[10px] rounded border border-border bg-muted/40 font-mono opacity-50">⌘K</kbd>
           </button>
 
           <div className="flex-1" />
@@ -235,7 +232,7 @@ export const PIVTCompleteUnified: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground font-medium">Glass Mode</span>
+                <span className="text-[11px] text-muted-foreground font-medium">Glass</span>
                 <button
                   onClick={toggleGlassMode}
                   className="glass-toggle"
@@ -245,45 +242,18 @@ export const PIVTCompleteUnified: React.FC = () => {
                 </button>
               </div>
             </TooltipTrigger>
-            <TooltipContent>Simplified view for presentations</TooltipContent>
+            <TooltipContent>Toggle dark mode</TooltipContent>
           </Tooltip>
 
-          <div className="h-5 w-px bg-border mx-1" />
-
-          {/* V2 AI Tab — visual superiority */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setActiveSection('ai' as ActiveSection)}
-                className="pivt-btn-primary pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white relative group rounded-xl"
-              >
-                <Brain className="w-4 h-4 pivt-spark" />
-                <span>Newton Scan</span>
-                {activeSection === 'ai' && (
-                  <motion.div
-                    layoutId="ai-toolbar-underline"
-                    className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
-                    style={{ background: 'var(--pivt-gradient-accent)' }}
-                  />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Newton — Deep Deal Scan to detect risks and discrepancies</TooltipContent>
-          </Tooltip>
-
-          {/* Import */}
-          <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-sm">
-            <Upload className="w-4 h-4" />
-            <span>Import Data</span>
-          </button>
+          <div className="h-5 w-px bg-border" />
 
           {/* Notifications */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button onClick={() => setNotifOpen(true)} className="relative p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground">
+              <button onClick={() => setNotifOpen(true)} className="relative p-2.5 rounded-xl hover:bg-muted/30 transition-colors text-muted-foreground">
                 <Bell className="w-4 h-4" />
                 {unreadCount() > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold px-1">
                     {unreadCount()}
                   </span>
                 )}
@@ -294,12 +264,10 @@ export const PIVTCompleteUnified: React.FC = () => {
 
           {/* Profile */}
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold cursor-pointer pivt-gradient-interactive"
+            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold"
             style={{
               background: 'var(--pivt-gradient-primary)',
               color: '#FFFFFF',
-              boxShadow: 'var(--pivt-gradient-glow)',
-              letterSpacing: '-0.02em',
             }}
           >
             JW
@@ -310,7 +278,7 @@ export const PIVTCompleteUnified: React.FC = () => {
             <TooltipTrigger asChild>
               <button
                 onClick={signOut}
-                className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground"
+                className="p-2.5 rounded-xl hover:bg-muted/30 transition-colors text-muted-foreground"
               >
                 <LogOut className="w-4 h-4" />
               </button>
