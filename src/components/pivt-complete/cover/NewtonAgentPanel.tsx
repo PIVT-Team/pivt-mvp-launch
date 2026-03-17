@@ -209,29 +209,39 @@ export const NewtonAgentPanel: React.FC = () => {
 
   const handleComposerSubmit = (prompt: string) => {
     const lower = prompt.toLowerCase();
+    addActivity(`User: "${prompt}"`, 'info');
     if (lower.includes('prepare deal for closing') || lower.includes('closing readiness') || lower.includes('full review')) {
       handleRunAnalysis();
       setActiveTab('execution');
+      addActivity('Running full deal review…', 'info');
       toast.info('Running full deal review…', { description: 'Newton is checking stakeholders, documents, wires, tax, and approvals.' });
     } else if (lower.includes('import') || lower.includes('upload') || lower.includes('spreadsheet')) {
       setShowIntake(true);
+      addActivity('Opened file intake panel', 'info');
     } else if (lower.includes('kyc') || lower.includes('kyb') || lower.includes('verification')) {
       setActiveTab('stakeholders');
-      toast.info('Navigate to Stakeholders to manage KYC/KYB');
+      addActivity('Navigated to stakeholder verification', 'info');
     } else if (lower.includes('funds flow') || lower.includes('payout')) {
       setActiveTab('funds_flow');
+      addActivity('Navigated to funds flow review', 'info');
     } else if (lower.includes('wire')) {
       setActiveTab('wire');
+      addActivity('Navigated to wire instructions', 'info');
     } else if (lower.includes('tax')) {
       setActiveTab('tax');
+      addActivity('Navigated to tax forms', 'info');
     } else if (lower.includes('approval') || lower.includes('docusign') || lower.includes('signature')) {
       setActiveTab('approvals');
+      addActivity('Navigated to approvals', 'info');
     } else if (lower.includes('ready') || lower.includes('execution') || lower.includes('close') || lower.includes('blocker')) {
       setActiveTab('execution');
+      addActivity('Checking execution readiness', 'info');
     } else if (lower.includes('analysis') || lower.includes('scan') || lower.includes('discrepan')) {
       handleRunAnalysis();
+      addActivity('Started deal analysis', 'info');
     } else if (lower.includes('document') || lower.includes('agreement') || lower.includes('obligation')) {
       setActiveTab('documents');
+      addActivity('Navigated to document review', 'info');
     } else {
       toast.info('Newton received your request', { description: `Processing: "${prompt}"` });
     }
