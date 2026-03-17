@@ -146,27 +146,20 @@ export const PIVTCompleteUnified: React.FC = () => {
           borderRight: '1px solid hsl(var(--sidebar-border))',
         }}
       >
-        {/* Logo */}
+      {/* Logo — simplified, no excessive animation */}
         <button
           onClick={() => setActiveSection('home' as ActiveSection)}
-          className="px-5 pt-5 pb-3 flex flex-col items-center gap-1.5 w-full cursor-pointer"
+          className="px-5 pt-5 pb-4 flex flex-col items-center gap-2 w-full cursor-pointer"
         >
-          <motion.img
+          <img
             src={pivtLogo}
             alt="PIVT"
-            className={`${sidebarCollapsed ? 'h-8' : 'h-16'} w-auto shrink-0 transition-all duration-300`}
-            style={{ transformStyle: 'preserve-3d' }}
-            animate={{ rotateY: [0, 0, -180, -180, 0, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', times: [0, 0.15, 0.4, 0.6, 0.85, 1] }}
+            className={`${sidebarCollapsed ? 'h-7' : 'h-12'} w-auto shrink-0 transition-all duration-300`}
           />
           {!sidebarCollapsed && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-[13px] text-sidebar-foreground/50 italic text-center whitespace-nowrap"
-            >
-              The intelligence layer behind every close.
-            </motion.p>
+            <p className="text-[11px] text-muted-foreground/50 text-center whitespace-nowrap">
+              Intelligence layer for every close
+            </p>
           )}
         </button>
 
