@@ -15,6 +15,7 @@ import { NewtonWorkflowTracker, type WorkflowStage } from './newton/NewtonWorkfl
 import { NewtonWorkAreaTabs } from './newton/NewtonWorkAreaTabs';
 import { NewtonComposer } from './newton/NewtonComposer';
 import { DealReadinessHeader } from './newton/DealReadinessHeader';
+import { NewtonActivityTimeline, type ActivityEntry } from './newton/NewtonActivityTimeline';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
@@ -69,6 +70,17 @@ export const NewtonAgentPanel: React.FC = () => {
     obligations: 0, confirmedObligations: 0,
   });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [localActivity, setLocalActivity] = useState<ActivityEntry[]>([]);
+
+  const addActivity = (description: string, status: ActivityEntry['status'] = 'info') => {
+    setLocalActivity(prev => [{
+      id: `local-${Date.now()}`,
+      description,
+      timestamp: new Date(),
+      status,
+      source: 'user' as const,
+    }, ...prev]);
+  };
 
   useEffect(() => {
     if (contextDealId) setSelectedDealId(contextDealId);
@@ -197,29 +209,39 @@ export const NewtonAgentPanel: React.FC = () => {
 
   const handleComposerSubmit = (prompt: string) => {
     const lower = prompt.toLowerCase();
+    addActivity(`User: "${prompt}"`, 'info');
     if (lower.includes('prepare deal for closing') || lower.includes('closing readiness') || lower.includes('full review')) {
       handleRunAnalysis();
       setActiveTab('execution');
+      addActivity('Running full deal review…', 'info');
       toast.info('Running full deal review…', { description: 'Newton is checking stakeholders, documents, wires, tax, and approvals.' });
     } else if (lower.includes('import') || lower.includes('upload') || lower.includes('spreadsheet')) {
       setShowIntake(true);
+      addActivity('Opened file intake panel', 'info');
     } else if (lower.includes('kyc') || lower.includes('kyb') || lower.includes('verification')) {
       setActiveTab('stakeholders');
-      toast.info('Navigate to Stakeholders to manage KYC/KYB');
+      addActivity('Navigated to stakeholder verification', 'info');
     } else if (lower.includes('funds flow') || lower.includes('payout')) {
       setActiveTab('funds_flow');
+      addActivity('Navigated to funds flow review', 'info');
     } else if (lower.includes('wire')) {
       setActiveTab('wire');
+      addActivity('Navigated to wire instructions', 'info');
     } else if (lower.includes('tax')) {
       setActiveTab('tax');
+      addActivity('Navigated to tax forms', 'info');
     } else if (lower.includes('approval') || lower.includes('docusign') || lower.includes('signature')) {
       setActiveTab('approvals');
+      addActivity('Navigated to approvals', 'info');
     } else if (lower.includes('ready') || lower.includes('execution') || lower.includes('close') || lower.includes('blocker')) {
       setActiveTab('execution');
+      addActivity('Checking execution readiness', 'info');
     } else if (lower.includes('analysis') || lower.includes('scan') || lower.includes('discrepan')) {
       handleRunAnalysis();
+      addActivity('Started deal analysis', 'info');
     } else if (lower.includes('document') || lower.includes('agreement') || lower.includes('obligation')) {
       setActiveTab('documents');
+      addActivity('Navigated to document review', 'info');
     } else {
       toast.info('Newton received your request', { description: `Processing: "${prompt}"` });
     }
@@ -283,6 +305,9 @@ export const NewtonAgentPanel: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Newton Activity Timeline ── */}
+      <NewtonActivityTimeline dealId={selectedDealId || null} localEntries={localActivity} />
 
       {/* ── Workflow Tracker (compact) ── */}
       <NewtonWorkflowTracker stages={buildStages()} onStageClick={handleStageClick} />
