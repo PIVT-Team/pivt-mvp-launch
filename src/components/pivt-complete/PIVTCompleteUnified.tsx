@@ -347,6 +347,7 @@ export const PIVTCompleteUnified: React.FC = () => {
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />
       <NotificationsDrawer open={notifOpen} onOpenChange={setNotifOpen} />
+      <NewtonGlobalChat />
     </div>
     </TooltipProvider>
   );
