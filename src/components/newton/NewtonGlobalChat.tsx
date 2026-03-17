@@ -10,6 +10,7 @@ import {
   Sparkles, Send, Loader2, X, Minus, Command,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import pivtLogo from '@/assets/pivt-logo.png';
@@ -130,15 +131,25 @@ export const NewtonGlobalChat: React.FC = () => {
       {/* Floating button */}
       <AnimatePresence>
         {!isOpen && (
-          <motion.button
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-            onClick={() => { setIsOpen(true); setIsMinimized(false); }}
-            className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-accent text-accent-foreground shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
-          >
-            <Sparkles className="w-6 h-6" />
-          </motion.button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <motion.button
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                  onClick={() => { setIsOpen(true); setIsMinimized(false); }}
+                  className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #3b82f6, #06b6d4)' }}
+                >
+                  <Sparkles className="w-6 h-6 text-white" />
+                </motion.button>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="bg-yellow-400 text-black text-xs font-medium border-0">
+                Ask the Newton Chatbot
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </AnimatePresence>
 
