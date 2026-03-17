@@ -193,7 +193,7 @@ export const NewtonGlobalChat: React.FC = () => {
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                   {messages.length === 0 && (
                     <div className="text-center py-8">
-                      <Sparkles className="w-6 h-6 text-accent mx-auto mb-2 opacity-50" />
+                      <img src={newtonIcon} alt="Newton" className="w-6 h-6 mx-auto mb-2 opacity-50" />
                       <p className="text-xs text-muted-foreground">Ask Newton about {deal.codeName}</p>
                     </div>
                   )}
