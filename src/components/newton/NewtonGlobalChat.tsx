@@ -1,6 +1,7 @@
 /**
  * Newton Global Chat - Floating launcher + structured modal overlay
  * Available on any page via ⌘J keyboard shortcut
+ * v2 — Structured layout with deal context selector and quick actions
  */
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
