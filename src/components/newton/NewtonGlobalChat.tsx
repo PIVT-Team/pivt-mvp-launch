@@ -143,7 +143,7 @@ export const NewtonGlobalChat: React.FC = () => {
                   className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%))' }}
                 >
-                  <img src={newtonIcon} alt="Newton" className="w-7 h-7 brightness-0 invert drop-shadow-sm" />
+                  <img src={newtonIcon} alt="Newton" className="w-8 h-8 drop-shadow-sm" />
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent
