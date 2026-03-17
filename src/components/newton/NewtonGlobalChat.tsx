@@ -7,12 +7,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
 import { springConfig } from '@/lib/animations';
 import {
-  Sparkles, Send, Loader2, X, Minus, Command,
+  Send, Loader2, X, Minus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import pivtLogo from '@/assets/pivt-logo.png';
+import newtonIcon from '@/assets/newton-icon.png';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
