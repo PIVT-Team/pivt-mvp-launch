@@ -138,7 +138,7 @@ export const PIVTCompleteUnified: React.FC = () => {
       {/* Sidebar — wider, workflow-driven */}
       <motion.aside
         animate={{ width: sidebarCollapsed ? 56 : 260 }}
-        transition={springConfig.standard}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         className="h-full flex flex-col shrink-0 overflow-hidden"
         style={{
           background: 'hsl(var(--sidebar-background))',
