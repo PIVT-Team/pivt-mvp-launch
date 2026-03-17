@@ -1,88 +1,39 @@
 /**
  * Newton Work Area Tabs — Stakeholders, Documents, Funds Flow, Wire, Tax, Approvals, Execution
- * Each tab shows real data with editable fields and Newton source indicators.
+ * Each tab shows real data with editable fields and actionable empty states.
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
-import { fadeInUp } from '@/lib/animations';
 import { NewtonSourceBadge } from '../NewtonSourceBadge';
 import {
   Users, FileText, DollarSign, Landmark, Receipt,
-  CheckSquare, Shield, Pencil, Eye, AlertTriangle,
-  CheckCircle2, Clock, XCircle, ExternalLink, Send,
-  Loader2, RefreshCw,
+  CheckSquare, Shield, AlertTriangle,
+  CheckCircle2, XCircle, Loader2, Sparkles,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from 'sonner';
 
 // ─── Types ───────────────────────────────────────────────────
 
-interface TabConfig {
-  key: string;
-  label: string;
-  icon: React.ElementType;
-  count?: number;
-  alert?: number;
-}
-
 interface StakeholderRow {
-  id: string;
-  shareholder_name: string;
-  email: string | null;
-  role: string;
-  ownership_pct: number;
-  payout_amount: number;
-  verification_status: string;
-  created_by_source?: string;
-  needs_review?: boolean;
-  confidence_status?: string;
-  locked?: boolean;
-  locked_reason?: string | null;
+  id: string; shareholder_name: string; email: string | null; role: string;
+  ownership_pct: number; payout_amount: number; verification_status: string;
+  created_by_source?: string; needs_review?: boolean; confidence_status?: string;
+  locked?: boolean; locked_reason?: string | null;
 }
 
 interface WireRow {
-  id: string;
-  payee_entity: string;
-  amount: number;
-  currency: string;
-  payment_type: string;
-  bank_name: string | null;
-  verification_status: string;
-  created_by_source?: string;
-  needs_review?: boolean;
-  confidence_status?: string;
-  locked?: boolean;
+  id: string; payee_entity: string; amount: number; currency: string;
+  payment_type: string; bank_name: string | null; verification_status: string;
+  created_by_source?: string; needs_review?: boolean; confidence_status?: string; locked?: boolean;
 }
 
-interface DocRow {
-  id: string;
-  filename: string;
-  doc_type: string;
-  status: string;
-  uploaded_at: string;
-}
-
-interface ApprovalRow {
-  id: string;
-  approver_name: string | null;
-  approver_email: string | null;
-  approver_role: string | null;
-  approval_side: string;
-  status: string;
-  delivery_method: string | null;
-  envelope_id: string | null;
-}
-
-interface TaxFormRow {
-  id: string;
-  form_type: string;
-  status: string;
-  recipient_id: string;
-}
+interface DocRow { id: string; filename: string; doc_type: string; status: string; uploaded_at: string; }
+interface ApprovalRow { id: string; approver_name: string | null; approver_email: string | null; approver_role: string | null; approval_side: string; status: string; delivery_method: string | null; envelope_id: string | null; }
+interface TaxFormRow { id: string; form_type: string; status: string; recipient_id: string; }
+interface TabConfig { key: string; label: string; icon: React.ElementType; count?: number; alert?: number; }
 
 // ─── Component ───────────────────────────────────────────────
 
@@ -90,9 +41,10 @@ interface Props {
   dealId: string | null;
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onComposerAction?: (prompt: string) => void;
 }
 
-export const NewtonWorkAreaTabs: React.FC<Props> = ({ dealId, activeTab, onTabChange }) => {
+export const NewtonWorkAreaTabs: React.FC<Props> = ({ dealId, activeTab, onTabChange, onComposerAction }) => {
   const [stakeholders, setStakeholders] = useState<StakeholderRow[]>([]);
   const [wires, setWires] = useState<WireRow[]>([]);
   const [docs, setDocs] = useState<DocRow[]>([]);
@@ -122,7 +74,6 @@ export const NewtonWorkAreaTabs: React.FC<Props> = ({ dealId, activeTab, onTabCh
 
   const pendingApprovals = approvals.filter(a => a.status === 'pending').length;
   const needsReviewStk = stakeholders.filter(s => s.needs_review).length;
-  const unverifiedStk = stakeholders.filter(s => !['verified'].includes(s.verification_status)).length;
   const pendingWires = wires.filter(w => w.verification_status === 'pending').length;
   const missingTax = taxForms.filter(t => t.status === 'required').length;
 
@@ -140,7 +91,6 @@ export const NewtonWorkAreaTabs: React.FC<Props> = ({ dealId, activeTab, onTabCh
 
   return (
     <div className="pivt-card border border-border overflow-hidden">
-      {/* Tab bar */}
       <div className="border-b border-border overflow-x-auto">
         <div className="flex min-w-max">
           {tabs.map(tab => (
@@ -149,27 +99,18 @@ export const NewtonWorkAreaTabs: React.FC<Props> = ({ dealId, activeTab, onTabCh
               onClick={() => onTabChange(tab.key)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-medium border-b-2 transition-colors whitespace-nowrap',
-                activeTab === tab.key
-                  ? 'border-accent text-accent'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                activeTab === tab.key ? 'border-accent text-accent' : 'border-transparent text-muted-foreground hover:text-foreground'
               )}
             >
               <tab.icon className="w-3 h-3" />
               {tab.label}
-              {tab.count != null && tab.count > 0 && (
-                <span className="text-[9px] text-muted-foreground">({tab.count})</span>
-              )}
-              {(tab.alert ?? 0) > 0 && (
-                <span className="w-4 h-4 rounded-full bg-blocking/15 text-blocking text-[8px] font-bold flex items-center justify-center">
-                  {tab.alert}
-                </span>
-              )}
+              {tab.count != null && tab.count > 0 && <span className="text-[9px] text-muted-foreground">({tab.count})</span>}
+              {(tab.alert ?? 0) > 0 && <span className="w-4 h-4 rounded-full bg-blocking/15 text-blocking text-[8px] font-bold flex items-center justify-center">{tab.alert}</span>}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Tab content */}
       <div className="p-4">
         {loading ? (
           <div className="flex items-center justify-center py-12">
@@ -177,21 +118,11 @@ export const NewtonWorkAreaTabs: React.FC<Props> = ({ dealId, activeTab, onTabCh
           </div>
         ) : (
           <>
-            {activeTab === 'stakeholders' && (
-              <StakeholdersPane rows={stakeholders} onRefresh={fetchAll} />
-            )}
-            {activeTab === 'documents' && (
-              <DocumentsPane rows={docs} />
-            )}
-            {(activeTab === 'funds_flow' || activeTab === 'wire') && (
-              <WiresPane rows={wires} mode={activeTab} />
-            )}
-            {activeTab === 'tax' && (
-              <TaxPane rows={taxForms} stakeholders={stakeholders} />
-            )}
-            {activeTab === 'approvals' && (
-              <ApprovalsPane rows={approvals} dealId={dealId} onRefresh={fetchAll} />
-            )}
+            {activeTab === 'stakeholders' && <StakeholdersPane rows={stakeholders} onAction={onComposerAction} />}
+            {activeTab === 'documents' && <DocumentsPane rows={docs} onAction={onComposerAction} />}
+            {(activeTab === 'funds_flow' || activeTab === 'wire') && <WiresPane rows={wires} mode={activeTab} onAction={onComposerAction} />}
+            {activeTab === 'tax' && <TaxPane rows={taxForms} stakeholders={stakeholders} onAction={onComposerAction} />}
+            {activeTab === 'approvals' && <ApprovalsPane rows={approvals} onAction={onComposerAction} />}
             {activeTab === 'execution' && (
               <ExecutionPane
                 stakeholderCount={stakeholders.length}
@@ -202,6 +133,7 @@ export const NewtonWorkAreaTabs: React.FC<Props> = ({ dealId, activeTab, onTabCh
                 taxComplete={taxForms.filter(t => ['received', 'verified', 'satisfied'].includes(t.status)).length}
                 taxTotal={taxForms.length}
                 discrepancies={0}
+                onAction={onComposerAction}
               />
             )}
           </>
@@ -211,17 +143,39 @@ export const NewtonWorkAreaTabs: React.FC<Props> = ({ dealId, activeTab, onTabCh
   );
 };
 
-// ─── Sub-panes ───────────────────────────────────────────────
+// ─── Actionable Empty State ──────────────────────────────────
 
-const EmptyState: React.FC<{ icon: React.ElementType; message: string }> = ({ icon: Icon, message }) => (
-  <div className="text-center py-10">
-    <Icon className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-    <p className="text-xs text-muted-foreground">{message}</p>
+const ActionableEmpty: React.FC<{
+  icon: React.ElementType;
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}> = ({ icon: Icon, message, actionLabel, onAction }) => (
+  <div className="text-center py-10 space-y-3">
+    <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto">
+      <Icon className="w-6 h-6 text-muted-foreground/30" />
+    </div>
+    <p className="text-xs text-muted-foreground max-w-[280px] mx-auto leading-relaxed">{message}</p>
+    {actionLabel && onAction && (
+      <Button size="sm" variant="outline" onClick={onAction} className="gap-1.5 text-xs h-8">
+        <Sparkles className="w-3 h-3" />
+        {actionLabel}
+      </Button>
+    )}
   </div>
 );
 
-const StakeholdersPane: React.FC<{ rows: StakeholderRow[]; onRefresh: () => void }> = ({ rows, onRefresh }) => {
-  if (rows.length === 0) return <EmptyState icon={Users} message="No stakeholders imported yet. Upload a spreadsheet via Newton Intake." />;
+// ─── Sub-panes ───────────────────────────────────────────────
+
+const StakeholdersPane: React.FC<{ rows: StakeholderRow[]; onAction?: (p: string) => void }> = ({ rows, onAction }) => {
+  if (rows.length === 0) return (
+    <ActionableEmpty
+      icon={Users}
+      message="No stakeholders imported yet. Newton can parse a spreadsheet and import stakeholder data automatically."
+      actionLabel="Import stakeholder spreadsheet"
+      onAction={() => onAction?.('Import stakeholder spreadsheet')}
+    />
+  );
 
   const verStatusColor = (s: string) =>
     s === 'verified' ? 'bg-validated/10 text-validated border-validated/20' :
@@ -258,14 +212,7 @@ const StakeholdersPane: React.FC<{ rows: StakeholderRow[]; onRefresh: () => void
                 </Badge>
               </td>
               <td className="px-2 py-2 text-center">
-                <NewtonSourceBadge
-                  created_by_source={r.created_by_source}
-                  needs_review={r.needs_review}
-                  confidence_status={r.confidence_status}
-                  locked={r.locked}
-                  locked_reason={r.locked_reason}
-                  compact
-                />
+                <NewtonSourceBadge created_by_source={r.created_by_source} needs_review={r.needs_review} confidence_status={r.confidence_status} locked={r.locked} locked_reason={r.locked_reason} compact />
               </td>
             </tr>
           ))}
@@ -275,8 +222,15 @@ const StakeholdersPane: React.FC<{ rows: StakeholderRow[]; onRefresh: () => void
   );
 };
 
-const DocumentsPane: React.FC<{ rows: DocRow[] }> = ({ rows }) => {
-  if (rows.length === 0) return <EmptyState icon={FileText} message="No documents uploaded. Use Newton Intake to upload agreements, spreadsheets, or wire instructions." />;
+const DocumentsPane: React.FC<{ rows: DocRow[]; onAction?: (p: string) => void }> = ({ rows, onAction }) => {
+  if (rows.length === 0) return (
+    <ActionableEmpty
+      icon={FileText}
+      message="No documents uploaded yet. Newton can review agreements and extract payment obligations, sign-off requirements, and conditions precedent."
+      actionLabel="Upload deal documents"
+      onAction={() => onAction?.('Upload deal documents')}
+    />
+  );
   return (
     <ScrollArea className="max-h-[400px]">
       <div className="space-y-2">
@@ -299,8 +253,17 @@ const DocumentsPane: React.FC<{ rows: DocRow[] }> = ({ rows }) => {
   );
 };
 
-const WiresPane: React.FC<{ rows: WireRow[]; mode: string }> = ({ rows, mode }) => {
-  if (rows.length === 0) return <EmptyState icon={Landmark} message="No wire instructions found. Upload a funds flow or wire schedule via Newton Intake." />;
+const WiresPane: React.FC<{ rows: WireRow[]; mode: string; onAction?: (p: string) => void }> = ({ rows, mode, onAction }) => {
+  if (rows.length === 0) return (
+    <ActionableEmpty
+      icon={mode === 'wire' ? Landmark : DollarSign}
+      message={mode === 'wire'
+        ? "No wire instructions found. Newton can parse wire schedules and match instructions to payees automatically."
+        : "No funds flow data yet. Newton can parse a funds flow spreadsheet and flag discrepancies."}
+      actionLabel={mode === 'wire' ? "Match wire instructions" : "Parse funds flow"}
+      onAction={() => onAction?.(mode === 'wire' ? 'Match wire instructions' : 'Parse funds flow')}
+    />
+  );
   return (
     <ScrollArea className="max-h-[400px]">
       <table className="w-full text-[11px]">
@@ -320,9 +283,7 @@ const WiresPane: React.FC<{ rows: WireRow[]; mode: string }> = ({ rows, mode }) 
               <td className="px-2 py-2 text-right font-mono">{w.currency} {w.amount.toLocaleString()}</td>
               <td className="px-2 py-2 text-muted-foreground">{mode === 'wire' ? (w.bank_name || '—') : w.payment_type}</td>
               <td className="px-2 py-2 text-center">
-                <Badge variant="outline" className={cn('text-[8px]',
-                  w.verification_status === 'verified' ? 'text-validated border-validated/20' : 'text-muted-foreground border-border'
-                )}>{w.verification_status}</Badge>
+                <Badge variant="outline" className={cn('text-[8px]', w.verification_status === 'verified' ? 'text-validated border-validated/20' : 'text-muted-foreground border-border')}>{w.verification_status}</Badge>
               </td>
               <td className="px-2 py-2 text-center">
                 <NewtonSourceBadge created_by_source={w.created_by_source} needs_review={w.needs_review} confidence_status={w.confidence_status} locked={w.locked} compact />
@@ -335,8 +296,15 @@ const WiresPane: React.FC<{ rows: WireRow[]; mode: string }> = ({ rows, mode }) 
   );
 };
 
-const TaxPane: React.FC<{ rows: TaxFormRow[]; stakeholders: StakeholderRow[] }> = ({ rows, stakeholders }) => {
-  if (rows.length === 0) return <EmptyState icon={Receipt} message="No tax forms tracked. Newton can identify required forms from stakeholder data." />;
+const TaxPane: React.FC<{ rows: TaxFormRow[]; stakeholders: StakeholderRow[]; onAction?: (p: string) => void }> = ({ rows, stakeholders, onAction }) => {
+  if (rows.length === 0) return (
+    <ActionableEmpty
+      icon={Receipt}
+      message="No tax forms tracked yet. Newton can identify required forms from stakeholder data and flag missing or incomplete submissions."
+      actionLabel="Review tax forms"
+      onAction={() => onAction?.('Review tax forms')}
+    />
+  );
   const getName = (recipientId: string) => stakeholders.find(s => s.id === recipientId)?.shareholder_name || recipientId.slice(0, 8);
   return (
     <ScrollArea className="max-h-[400px]">
@@ -360,8 +328,15 @@ const TaxPane: React.FC<{ rows: TaxFormRow[]; stakeholders: StakeholderRow[] }> 
   );
 };
 
-const ApprovalsPane: React.FC<{ rows: ApprovalRow[]; dealId: string; onRefresh: () => void }> = ({ rows, dealId, onRefresh }) => {
-  if (rows.length === 0) return <EmptyState icon={CheckSquare} message="No approvals configured. Newton can prepare approval requests from deal participants." />;
+const ApprovalsPane: React.FC<{ rows: ApprovalRow[]; onAction?: (p: string) => void }> = ({ rows, onAction }) => {
+  if (rows.length === 0) return (
+    <ActionableEmpty
+      icon={CheckSquare}
+      message="No approvals configured yet. Newton can generate approval requests from deal participants and send them via DocuSign."
+      actionLabel="Generate approval requests"
+      onAction={() => onAction?.('Prepare approval package')}
+    />
+  );
 
   const statusColor = (s: string) =>
     s === 'completed' ? 'text-validated border-validated/20 bg-validated/5' :
@@ -391,15 +366,10 @@ const ApprovalsPane: React.FC<{ rows: ApprovalRow[]; dealId: string; onRefresh: 
 };
 
 const ExecutionPane: React.FC<{
-  stakeholderCount: number;
-  verifiedCount: number;
-  approvedCount: number;
-  totalApprovals: number;
-  wireCount: number;
-  taxComplete: number;
-  taxTotal: number;
-  discrepancies: number;
-}> = ({ stakeholderCount, verifiedCount, approvedCount, totalApprovals, wireCount, taxComplete, taxTotal, discrepancies }) => {
+  stakeholderCount: number; verifiedCount: number; approvedCount: number;
+  totalApprovals: number; wireCount: number; taxComplete: number;
+  taxTotal: number; discrepancies: number; onAction?: (p: string) => void;
+}> = ({ stakeholderCount, verifiedCount, approvedCount, totalApprovals, wireCount, taxComplete, taxTotal, discrepancies, onAction }) => {
   const checks = [
     { label: 'Stakeholders verified', done: verifiedCount === stakeholderCount && stakeholderCount > 0, value: `${verifiedCount}/${stakeholderCount}` },
     { label: 'Approvals complete', done: approvedCount === totalApprovals && totalApprovals > 0, value: `${approvedCount}/${totalApprovals}` },
@@ -413,25 +383,21 @@ const ExecutionPane: React.FC<{
 
   return (
     <div className="space-y-4">
-      <div className={cn(
-        'p-4 rounded-xl border text-center',
-        isReady ? 'border-validated/30 bg-validated/5' : 'border-border'
-      )}>
+      <div className={cn('p-4 rounded-xl border text-center', isReady ? 'border-validated/30 bg-validated/5' : 'border-border')}>
         <Shield className={cn('w-8 h-8 mx-auto mb-2', isReady ? 'text-validated' : 'text-muted-foreground/30')} />
-        <p className="text-sm font-semibold">{isReady ? 'Ready for Execution' : 'Not Ready'}</p>
-        <p className="text-[10px] text-muted-foreground mt-1">
-          {readyCount}/{checks.length} pre-conditions satisfied
-        </p>
+        <p className="text-sm font-semibold">{isReady ? 'Ready for Execution' : 'Not Ready for Execution'}</p>
+        <p className="text-[10px] text-muted-foreground mt-1">{readyCount}/{checks.length} pre-conditions satisfied</p>
+        {!isReady && onAction && (
+          <Button size="sm" variant="outline" onClick={() => onAction('Prepare deal for closing')} className="gap-1.5 text-xs h-7 mt-3">
+            <Sparkles className="w-3 h-3" />
+            Prepare deal for closing
+          </Button>
+        )}
       </div>
-
       <div className="space-y-2">
         {checks.map((c, i) => (
           <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg border border-border">
-            {c.done ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-validated shrink-0" />
-            ) : (
-              <XCircle className="w-3.5 h-3.5 text-blocking shrink-0" />
-            )}
+            {c.done ? <CheckCircle2 className="w-3.5 h-3.5 text-validated shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-blocking shrink-0" />}
             <span className="text-xs flex-1">{c.label}</span>
             <span className={cn('text-[10px] font-mono', c.done ? 'text-validated' : 'text-blocking')}>{c.value}</span>
           </div>
