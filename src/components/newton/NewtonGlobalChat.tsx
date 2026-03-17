@@ -1,19 +1,17 @@
 /**
- * Newton Global Chat - Floating chat button + panel overlay
- * Available on any page via ⌘J keyboard shortcut
+ * Newton Global Chat - Clean floating chat panel
+ * Minimal UI inspired by ChatGPT/Cursor
  */
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
-import { springConfig } from '@/lib/animations';
 import {
-  Sparkles, Send, Loader2, X, Minus, Command,
+  Sparkles, Send, Loader2, X, Minus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
-import pivtLogo from '@/assets/pivt-logo.png';
 
 type Msg = { role: 'user' | 'assistant'; content: string };
 
@@ -66,6 +64,12 @@ async function streamChat(
   }
   onDone();
 }
+
+const SUGGESTED_PROMPTS = [
+  'Summarize this deal',
+  'Check closing readiness',
+  'Review discrepancies',
+];
 
 export const NewtonGlobalChat: React.FC = () => {
   const deal = useSelectedDeal();
@@ -128,21 +132,22 @@ export const NewtonGlobalChat: React.FC = () => {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — clean, minimal */}
       <AnimatePresence>
         {!isOpen && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.button
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  exit={{ scale: 0 }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
                   onClick={() => { setIsOpen(true); setIsMinimized(false); }}
-                  className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
+                  className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-shadow flex items-center justify-center"
                   style={{ background: 'linear-gradient(135deg, #3b82f6, #06b6d4)' }}
                 >
-                  <Sparkles className="w-6 h-6 text-white" />
+                  <Sparkles className="w-5 h-5 text-white" />
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent side="left" className="bg-yellow-400 text-black text-xs font-medium border-0">
@@ -153,32 +158,36 @@ export const NewtonGlobalChat: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Chat panel */}
+      {/* Chat panel — clean, minimal design */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 12, scale: 0.97 }}
             animate={{
               opacity: 1,
               y: 0,
               scale: 1,
-              height: isMinimized ? 56 : 520,
+              height: isMinimized ? 52 : 480,
             }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={springConfig.standard}
-            className="fixed bottom-6 right-6 z-50 w-96 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col"
+            exit={{ opacity: 0, y: 12, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="fixed bottom-6 right-6 z-50 w-[380px] rounded-2xl border border-border bg-card shadow-xl overflow-hidden flex flex-col"
           >
-            {/* Header */}
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-border bg-muted/30 shrink-0">
-              <img src={pivtLogo} alt="Newton" className="w-6 h-6" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">Newton</p>
-                <p className="text-[10px] text-muted-foreground truncate">{deal.codeName} · AI Intelligence</p>
+            {/* Header — minimal */}
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
+              <div
+                className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                style={{ background: 'linear-gradient(135deg, #3b82f6, #06b6d4)' }}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-white" />
               </div>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsMinimized(!isMinimized)}>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Newton</p>
+              </div>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setIsMinimized(!isMinimized)}>
                 <Minus className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setIsOpen(false)}>
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setIsOpen(false)}>
                 <X className="w-3.5 h-3.5" />
               </Button>
             </div>
@@ -188,18 +197,28 @@ export const NewtonGlobalChat: React.FC = () => {
                 {/* Messages */}
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                   {messages.length === 0 && (
-                    <div className="text-center py-8">
-                      <Sparkles className="w-6 h-6 text-accent mx-auto mb-2 opacity-50" />
-                      <p className="text-xs text-muted-foreground">Ask Newton about {deal.codeName}</p>
+                    <div className="text-center py-10 space-y-4">
+                      <p className="text-sm text-muted-foreground">How can I help with {deal.codeName}?</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {SUGGESTED_PROMPTS.map((prompt) => (
+                          <button
+                            key={prompt}
+                            onClick={() => send(prompt)}
+                            className="px-3 py-1.5 rounded-full border border-border text-xs text-muted-foreground hover:text-foreground hover:border-accent/30 transition-colors"
+                          >
+                            {prompt}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {messages.map((msg, i) => (
                     <div key={i} className={cn('flex', msg.role === 'user' ? 'justify-end' : 'justify-start')}>
                       <div className={cn(
-                        'px-3 py-2 rounded-xl max-w-[85%] text-sm',
+                        'px-3.5 py-2.5 rounded-2xl max-w-[85%] text-sm',
                         msg.role === 'user'
-                          ? 'bg-accent text-accent-foreground'
-                          : 'bg-muted/50 border border-border'
+                          ? 'bg-accent text-accent-foreground rounded-br-md'
+                          : 'bg-muted/40 border border-border rounded-bl-md'
                       )}>
                         {msg.role === 'assistant' ? (
                           <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:my-1 [&_code]:text-xs">
@@ -211,26 +230,26 @@ export const NewtonGlobalChat: React.FC = () => {
                   ))}
                   {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
                     <div className="flex justify-start">
-                      <div className="px-3 py-2 rounded-xl bg-muted/50 border border-border">
-                        <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                      <div className="px-3.5 py-2.5 rounded-2xl bg-muted/40 border border-border rounded-bl-md">
+                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Input */}
+                {/* Input — clean single line */}
                 <form
                   onSubmit={(e) => { e.preventDefault(); send(input); }}
-                  className="flex items-center gap-2 px-3 py-2 border-t border-border"
+                  className="flex items-center gap-2 px-4 py-3 border-t border-border"
                 >
                   <input
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     placeholder="Ask Newton..."
-                    className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground"
+                    className="flex-1 bg-transparent text-sm focus:outline-none placeholder:text-muted-foreground/50"
                     disabled={isLoading}
                   />
-                  <Button type="submit" size="icon" className="h-7 w-7 shrink-0" disabled={!input.trim() || isLoading}>
+                  <Button type="submit" size="icon" className="h-8 w-8 rounded-xl shrink-0" disabled={!input.trim() || isLoading}>
                     <Send className="w-3.5 h-3.5" />
                   </Button>
                 </form>
