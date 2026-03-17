@@ -15,6 +15,7 @@ import { NewtonWorkflowTracker, type WorkflowStage } from './newton/NewtonWorkfl
 import { NewtonWorkAreaTabs } from './newton/NewtonWorkAreaTabs';
 import { NewtonComposer } from './newton/NewtonComposer';
 import { DealReadinessHeader } from './newton/DealReadinessHeader';
+import { NewtonActivityTimeline, type ActivityEntry } from './newton/NewtonActivityTimeline';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
