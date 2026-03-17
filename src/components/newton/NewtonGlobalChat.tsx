@@ -10,6 +10,7 @@ import {
   Sparkles, Send, Loader2, X, Minus, Command,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import pivtLogo from '@/assets/pivt-logo.png';
