@@ -57,8 +57,8 @@ export const DealReadinessHeader: React.FC<Props> = ({
       <div className="p-4 space-y-4">
         {/* ── Row 1: Branding + Deal Selector ── */}
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-accent/8 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-accent" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-400/10 flex items-center justify-center shrink-0">
+            <Sparkles className="w-4 h-4" style={{ stroke: 'url(#newton-icon-grad)' }} />
           </div>
           <div className="flex-1 min-w-0 space-y-1.5">
             <div className="flex items-center gap-2">
