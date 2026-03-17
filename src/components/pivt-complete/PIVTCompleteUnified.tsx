@@ -31,6 +31,7 @@ import { HomeCover } from './cover/HomeCover';
 import { CommunicationsHub } from './cover/CommunicationsHub';
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
+import { NewtonGlobalChat } from '../newton/NewtonGlobalChat';
 import { SupportPanel } from '../support/SupportPanel';
 import { OntologyCover } from './cover/OntologyCover';
 import { PortfolioPaymentsCover } from './cover/PortfolioPaymentsCover';
