@@ -167,7 +167,7 @@ export const NewtonGlobalChat: React.FC = () => {
           }
           break;
         case 'list_deals':
-          result = await executeListDeals(user.id);
+          result = await executeListDeals(user?.id);
           break;
         default:
           result = { success: false, message: SUPPORTED_ACTIONS_TEXT };
