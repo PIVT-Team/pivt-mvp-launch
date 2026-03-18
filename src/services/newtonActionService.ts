@@ -143,10 +143,10 @@ export async function executeSummarizeReadiness(dealId: string): Promise<NewtonA
   const appDone = approvals.filter(a => ['approved', 'completed'].includes(a.status)).length;
 
   const docs = docsRes.data || [];
-  const docsVerified = docs.filter(d => d.status === 'verified').length;
+  const docsVerified = docs.filter(d => (d.status as string) === 'verified').length;
 
   const discrepancies = discRes.data || [];
-  const critical = discrepancies.filter(d => d.severity === 'critical').length;
+  const critical = discrepancies.filter(d => (d.severity as string) === 'critical').length;
 
   const stakeholders = stakRes.data || [];
   const verified = stakeholders.filter(s => s.verification_status === 'verified').length;
