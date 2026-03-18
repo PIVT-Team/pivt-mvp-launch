@@ -197,7 +197,7 @@ export const NewtonGlobalChat: React.FC = () => {
     // Remove the form message
     setMessages(prev => prev.filter(m => m.role !== 'action_form'));
 
-    const result = await executeCreateDeal(data, user.id);
+    const result = await executeCreateDeal(data, user?.id);
     setActionLoading(false);
 
     setMessages(prev => [...prev, {
