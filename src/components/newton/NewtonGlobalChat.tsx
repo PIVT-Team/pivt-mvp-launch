@@ -163,7 +163,7 @@ export const NewtonGlobalChat: React.FC = () => {
           if (!selectedDealId) {
             result = { success: false, message: 'No deal selected. Please select a deal first.' };
           } else {
-            result = await executePrepareApprovalPackage(selectedDealId, user.id);
+            result = await executePrepareApprovalPackage(selectedDealId, user?.id);
           }
           break;
         case 'list_deals':
