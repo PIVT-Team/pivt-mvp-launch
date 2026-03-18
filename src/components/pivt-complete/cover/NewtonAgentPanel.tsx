@@ -497,7 +497,7 @@ export const NewtonAgentPanel: React.FC = () => {
           }
           setOperationMode('deal');
           setActiveTab('stakeholders');
-          result = await executeGenerateKycRequests(selectedDealId, user.id);
+          result = await executeGenerateKycRequests(selectedDealId, user?.id);
           break;
         }
         case 'prepare_approval_package': {
