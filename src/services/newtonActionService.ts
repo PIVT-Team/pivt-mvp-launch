@@ -173,7 +173,7 @@ export async function executeListBlockers(dealId: string): Promise<NewtonActionR
   const [condRes, appRes, discRes, stakRes] = await Promise.all([
     supabase.from("conditions").select("title, status").eq("deal_id", dealId).neq("status", "MET" as any).neq("status", "SATISFIED" as any).neq("status", "WAIVED" as any),
     supabase.from("deal_approvals").select("approver_name, approval_type, status, blocker_reason").eq("deal_id", dealId).neq("status", "approved").neq("status", "completed"),
-    supabase.from("discrepancies").select("message, severity, status").eq("deal_id", dealId).neq("status", "resolved"),
+    supabase.from("discrepancies").select("message, severity, status").eq("deal_id", dealId).neq("status", "resolved" as any),
     supabase.from("cap_table_entries").select("shareholder_name, verification_status").eq("deal_id", dealId).neq("verification_status", "verified"),
   ]);
 
