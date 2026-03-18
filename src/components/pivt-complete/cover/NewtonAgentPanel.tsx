@@ -598,6 +598,13 @@ export const NewtonAgentPanel: React.FC = () => {
           setShowIntake(false);
           setShowCreateDealForm(false);
         }}
+        onCreateNewDeal={() => {
+          setOperationMode('global');
+          setCreateDealPrefill({});
+          setShowCreateDealForm(true);
+          pushOutput('info', 'Collecting details', 'Fill in the deal details below to create a new deal.');
+          addActivity('Newton opened create deal workflow via + New Deal', 'info');
+        }}
         dealState={selectedDeal?.deal_state}
         readinessPct={readinessPct}
         blockers={blockers}
@@ -605,6 +612,7 @@ export const NewtonAgentPanel: React.FC = () => {
         lastUpdated={lastUpdated}
         onRefresh={fetchCounts}
         onAction={handleComposerSubmit}
+        operationMode={operationMode}
       />
 
       <div className="flex items-center justify-between px-1">
