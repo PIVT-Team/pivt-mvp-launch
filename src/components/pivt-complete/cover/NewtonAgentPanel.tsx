@@ -615,18 +615,14 @@ export const NewtonAgentPanel: React.FC = () => {
         operationMode={operationMode}
       />
 
-      <div className="flex items-center justify-between px-1">
-        <Badge variant="outline" className="h-6 text-[10px] gap-1.5">
-          {operationMode === 'global' ? <Globe className="w-3 h-3" /> : <Briefcase className="w-3 h-3" />}
-          {operationMode === 'global' ? 'Global Workspace Mode' : `Working on ${selectedDeal?.deal_name || 'Selected Deal'}`}
-        </Badge>
-        {(isExecutingAction || isRunning) && (
+      {(isExecutingAction || isRunning) && (
+        <div className="flex items-center justify-end px-1">
           <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
             <Loader2 className="w-3 h-3 animate-spin" />
             Executing
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       <NewtonComposer
         onSubmit={handleComposerSubmit}
