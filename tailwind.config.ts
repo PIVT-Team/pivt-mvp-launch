@@ -14,8 +14,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Satoshi", "system-ui", "-apple-system", "sans-serif"],
-        mono: ["Satoshi", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        mono: ["JetBrains Mono", "ui-monospace", "monospace"],
       },
       fontSize: {
         'page-title': ['1.625rem', { lineHeight: '2rem', letterSpacing: '-0.04em', fontWeight: '600' }],
