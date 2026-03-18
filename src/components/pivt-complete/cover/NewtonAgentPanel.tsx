@@ -288,15 +288,10 @@ export const NewtonAgentPanel: React.FC = () => {
   }, [selectedDealId, isRunning, fetchCounts, addActivity]);
 
   const handleCreateDealSubmit = useCallback(async (payload: NewtonCreateDealPayload) => {
-    if (!user) {
-      pushOutput('error', 'Sign in required', 'Please sign in to create a deal.');
-      return;
-    }
-
     setIsExecutingAction(true);
     pushOutput('info', 'Creating deal', 'Creating deal and initializing readiness baseline...');
 
-    const result = await executeCreateDeal(payload, user.id);
+    const result = await executeCreateDeal(payload, user?.id);
 
     setIsExecutingAction(false);
 
@@ -337,11 +332,6 @@ export const NewtonAgentPanel: React.FC = () => {
     if (!trimmed) return;
 
     addActivity(`User: "${trimmed}"`, 'info');
-
-    if (!user) {
-      pushOutput('error', 'Sign in required', 'Please sign in so Newton can execute actions.');
-      return;
-    }
 
     const intent = detectIntent(trimmed);
 
@@ -507,7 +497,7 @@ export const NewtonAgentPanel: React.FC = () => {
           }
           setOperationMode('deal');
           setActiveTab('stakeholders');
-          result = await executeGenerateKycRequests(selectedDealId, user.id);
+          result = await executeGenerateKycRequests(selectedDealId, user?.id);
           break;
         }
         case 'prepare_approval_package': {
@@ -517,7 +507,7 @@ export const NewtonAgentPanel: React.FC = () => {
           }
           setOperationMode('deal');
           setActiveTab('approvals');
-          result = await executePrepareApprovalPackage(selectedDealId, user.id);
+          result = await executePrepareApprovalPackage(selectedDealId, user?.id);
           break;
         }
         default: {
@@ -632,7 +622,7 @@ export const NewtonAgentPanel: React.FC = () => {
 
       <NewtonComposer
         onSubmit={handleComposerSubmit}
-        disabled={!user || isExecutingAction || isRunning}
+        disabled={isExecutingAction || isRunning}
         onUploadClick={() => {
           setShowIntake((prev) => !prev);
           if (selectedDealId) setOperationMode('deal');

@@ -120,8 +120,6 @@ export const NewtonGlobalChat: React.FC = () => {
   }, [messages]);
 
   const handleActionExecution = useCallback(async (intent: NewtonIntent, userText: string) => {
-    if (!user) return false;
-
     // If action requires a form, show it
     if (intent.requiresForm && intent.formType === 'create_deal') {
       setMessages(prev => [...prev,
@@ -158,18 +156,18 @@ export const NewtonGlobalChat: React.FC = () => {
           if (!selectedDealId) {
             result = { success: false, message: 'No deal selected. Please select a deal first.' };
           } else {
-            result = await executeGenerateKycRequests(selectedDealId, user.id);
+            result = await executeGenerateKycRequests(selectedDealId, user?.id);
           }
           break;
         case 'prepare_approval_package':
           if (!selectedDealId) {
             result = { success: false, message: 'No deal selected. Please select a deal first.' };
           } else {
-            result = await executePrepareApprovalPackage(selectedDealId, user.id);
+            result = await executePrepareApprovalPackage(selectedDealId, user?.id);
           }
           break;
         case 'list_deals':
-          result = await executeListDeals(user.id);
+          result = await executeListDeals(user?.id);
           break;
         default:
           result = { success: false, message: SUPPORTED_ACTIONS_TEXT };
@@ -194,13 +192,12 @@ export const NewtonGlobalChat: React.FC = () => {
   }, [user, setActiveSection]);
 
   const handleCreateDealSubmit = useCallback(async (data: any) => {
-    if (!user) return;
     setActionLoading(true);
 
     // Remove the form message
     setMessages(prev => prev.filter(m => m.role !== 'action_form'));
 
-    const result = await executeCreateDeal(data, user.id);
+    const result = await executeCreateDeal(data, user?.id);
     setActionLoading(false);
 
     setMessages(prev => [...prev, {
