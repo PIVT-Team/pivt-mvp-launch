@@ -1,23 +1,23 @@
 /**
- * Newton Composer — Chat-first input with suggested actions and file upload trigger.
- * Primary actions visible, rest under "More actions" dropdown.
+ * Newton Composer — Chat-first input with context-aware suggestions.
+ * Adapts placeholder and suggested actions based on global vs deal mode.
  */
 import React, { useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import {
   Send, Sparkles, Upload, Users, FileText, DollarSign, Landmark,
-  Receipt, CheckSquare, Shield, ChevronDown,
+  Receipt, CheckSquare, Shield, ChevronDown, Plus, BarChart3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const PRIMARY_ACTIONS = [
+const DEAL_PRIMARY_ACTIONS = [
   { icon: Upload, label: 'Import stakeholder spreadsheet', category: 'intake' },
   { icon: Users, label: 'Generate KYC/KYB requests', category: 'verification' },
   { icon: DollarSign, label: 'Parse funds flow', category: 'funds_flow' },
   { icon: CheckSquare, label: 'Prepare approval package', category: 'approvals' },
 ] as const;
 
-const MORE_ACTIONS = [
+const DEAL_MORE_ACTIONS = [
   { icon: FileText, label: 'Review deal documents', category: 'documents' },
   { icon: Landmark, label: 'Match wire instructions', category: 'wire' },
   { icon: Receipt, label: 'Review tax forms', category: 'tax' },
@@ -26,17 +26,31 @@ const MORE_ACTIONS = [
   { icon: Sparkles, label: 'Prepare deal for closing', category: 'execution' },
 ] as const;
 
+const GLOBAL_PRIMARY_ACTIONS = [
+  { icon: Plus, label: 'Create a new deal', category: 'global' },
+  { icon: BarChart3, label: 'Show all deals', category: 'global' },
+  { icon: Upload, label: 'Import stakeholder spreadsheet', category: 'intake' },
+  { icon: Shield, label: 'Check closing readiness', category: 'execution' },
+] as const;
+
 interface Props {
   onSubmit: (prompt: string) => void;
   disabled?: boolean;
   onUploadClick?: () => void;
+  operationMode?: 'global' | 'deal';
 }
 
-export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadClick }) => {
+export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadClick, operationMode = 'deal' }) => {
   const [value, setValue] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(true);
   const [showMore, setShowMore] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const primaryActions = operationMode === 'global' ? GLOBAL_PRIMARY_ACTIONS : DEAL_PRIMARY_ACTIONS;
+  const moreActions = operationMode === 'global' ? DEAL_MORE_ACTIONS : DEAL_MORE_ACTIONS;
+  const placeholder = operationMode === 'global'
+    ? 'Ask Newton — create deals, view portfolio, run actions…'
+    : 'Ask Newton to work on this deal…';
 
   const handleSubmit = () => {
     const trimmed = value.trim();
@@ -82,7 +96,7 @@ export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
             onChange={(e) => setValue(e.target.value)}
             onFocus={() => !value && setShowSuggestions(true)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask Newton to work on this deal…"
+            placeholder={placeholder}
             disabled={disabled}
             rows={1}
             className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/50 resize-none min-h-[36px] max-h-[120px] py-2 leading-snug"
@@ -107,9 +121,11 @@ export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
       {/* Suggested Actions */}
       {showSuggestions && !value && (
         <div className="border-t border-border p-3 pt-2">
-          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Suggested Actions</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">
+            {operationMode === 'global' ? 'Workspace Actions' : 'Suggested Actions'}
+          </p>
           <div className="flex flex-wrap gap-1.5">
-            {PRIMARY_ACTIONS.map((action, i) => (
+            {primaryActions.map((action, i) => (
               <button
                 key={i}
                 onClick={() => handleSuggestionClick(action.label)}
@@ -136,7 +152,7 @@ export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
           {/* Expanded more actions */}
           {showMore && (
             <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/50">
-              {MORE_ACTIONS.map((action, i) => (
+              {moreActions.map((action, i) => (
                 <button
                   key={i}
                   onClick={() => handleSuggestionClick(action.label)}
