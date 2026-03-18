@@ -47,3 +47,36 @@ verify_jwt = false
 
 [functions.funds-flow-agent]
 verify_jwt = false
+
+[functions.newton-action]
+verify_jwt = false
+
+[functions.newton-intake]
+verify_jwt = false
+
+[functions.newton-execute]
+verify_jwt = false
+
+[functions.newton-action]
+verify_jwt = false
+
+[functions.seed-demo-user]
+verify_jwt = false
+
+[functions.demo-reset]
+verify_jwt = false
+
+[functions.qa-seed-deals]
+verify_jwt = false
+
+[functions.docusign-oauth]
+verify_jwt = false
+
+[functions.docusign-envelope]
+verify_jwt = false
+
+[functions.docusign-webhook]
+verify_jwt = false
+
+[functions.duplicate-deal]
+verify_jwt = false

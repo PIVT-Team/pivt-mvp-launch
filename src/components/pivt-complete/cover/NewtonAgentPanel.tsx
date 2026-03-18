@@ -376,7 +376,7 @@ export const NewtonAgentPanel: React.FC = () => {
     try {
       switch (intent.action) {
         case 'list_deals': {
-          result = await executeListDeals(user.id);
+          result = await executeListDeals(user?.id);
           break;
         }
         case 'upload_stakeholders':
