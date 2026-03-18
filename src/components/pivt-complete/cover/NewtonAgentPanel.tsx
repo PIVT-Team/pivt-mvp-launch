@@ -288,15 +288,10 @@ export const NewtonAgentPanel: React.FC = () => {
   }, [selectedDealId, isRunning, fetchCounts, addActivity]);
 
   const handleCreateDealSubmit = useCallback(async (payload: NewtonCreateDealPayload) => {
-    if (!user) {
-      pushOutput('error', 'Sign in required', 'Please sign in to create a deal.');
-      return;
-    }
-
     setIsExecutingAction(true);
     pushOutput('info', 'Creating deal', 'Creating deal and initializing readiness baseline...');
 
-    const result = await executeCreateDeal(payload, user.id);
+    const result = await executeCreateDeal(payload, user?.id);
 
     setIsExecutingAction(false);
 
