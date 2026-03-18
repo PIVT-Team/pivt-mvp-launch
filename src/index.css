@@ -202,19 +202,21 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Satoshi', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-size: 15px;
+    line-height: 1.5;
+    font-feature-settings: 'cv11', 'ss01', 'ss03';
   }
   .font-mono {
     font-family: 'JetBrains Mono', ui-monospace, monospace;
   }
-  /* DLS Typography Hierarchy */
-  h1 { letter-spacing: -0.04em; font-weight: 600; font-size: 1.625rem; line-height: 1.15; }
-  h2 { letter-spacing: -0.025em; font-weight: 600; font-size: 1.125rem; line-height: 1.4; }
-  h3 { letter-spacing: -0.015em; font-weight: 550; font-size: 1rem; }
-  h4 { letter-spacing: -0.01em; font-weight: 500; }
+  /* DLS Typography Hierarchy — Inter-optimized */
+  h1 { letter-spacing: -0.035em; font-weight: 700; font-size: 1.75rem; line-height: 1.15; }
+  h2 { letter-spacing: -0.025em; font-weight: 600; font-size: 1.25rem; line-height: 1.35; }
+  h3 { letter-spacing: -0.02em; font-weight: 600; font-size: 1.0625rem; line-height: 1.4; }
+  h4 { letter-spacing: -0.01em; font-weight: 500; font-size: 0.9375rem; line-height: 1.45; }
 }
 
 @layer components {
