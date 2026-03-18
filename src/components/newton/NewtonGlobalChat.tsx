@@ -192,7 +192,6 @@ export const NewtonGlobalChat: React.FC = () => {
   }, [user, setActiveSection]);
 
   const handleCreateDealSubmit = useCallback(async (data: any) => {
-    if (!user) return;
     setActionLoading(true);
 
     // Remove the form message
