@@ -120,8 +120,6 @@ export const NewtonGlobalChat: React.FC = () => {
   }, [messages]);
 
   const handleActionExecution = useCallback(async (intent: NewtonIntent, userText: string) => {
-    if (!user) return false;
-
     // If action requires a form, show it
     if (intent.requiresForm && intent.formType === 'create_deal') {
       setMessages(prev => [...prev,
