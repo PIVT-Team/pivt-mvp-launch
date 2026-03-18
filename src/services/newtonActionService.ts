@@ -179,7 +179,7 @@ export async function executeListBlockers(dealId: string): Promise<NewtonActionR
 
   const blockers: string[] = [];
 
-  const critDisc = (discRes.data || []).filter(d => d.severity === 'critical');
+  const critDisc = (discRes.data || []).filter(d => (d.severity as string) === 'critical');
   critDisc.forEach(d => blockers.push(`🔴 Critical discrepancy: ${d.message}`));
 
   const pendApp = (appRes.data || []).filter(a => a.status === 'pending' || a.status === 'sent');
