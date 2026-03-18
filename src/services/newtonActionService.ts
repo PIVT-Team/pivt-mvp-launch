@@ -132,7 +132,7 @@ export async function executeSummarizeReadiness(dealId: string): Promise<NewtonA
     supabase.from("conditions").select("status").eq("deal_id", dealId),
     supabase.from("deal_approvals").select("status").eq("deal_id", dealId),
     supabase.from("contract_documents").select("status").eq("deal_id", dealId),
-    supabase.from("discrepancies").select("severity, status").eq("deal_id", dealId).neq("status", "resolved"),
+    supabase.from("discrepancies").select("severity, status").eq("deal_id", dealId).neq("status", "resolved" as any),
     supabase.from("cap_table_entries").select("verification_status").eq("deal_id", dealId),
   ]);
 
