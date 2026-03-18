@@ -11,7 +11,7 @@ import { usePIVTStore } from '@/stores/pivtStore';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import {
-  Sparkles, Loader2, RefreshCw, AlertTriangle, CheckCircle2, Shield, Globe, Briefcase,
+  Sparkles, Loader2, RefreshCw, AlertTriangle, CheckCircle2, Shield,
 } from 'lucide-react';
 import { NewtonIntakePanel } from './NewtonIntakePanel';
 import { NewtonWorkflowTracker, type WorkflowStage } from './newton/NewtonWorkflowTracker';
