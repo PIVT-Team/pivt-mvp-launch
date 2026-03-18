@@ -11,7 +11,7 @@ import { usePIVTStore } from '@/stores/pivtStore';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import {
-  Sparkles, Loader2, RefreshCw, AlertTriangle, CheckCircle2, Shield, Globe, Briefcase,
+  Sparkles, Loader2, RefreshCw, AlertTriangle, CheckCircle2, Shield,
 } from 'lucide-react';
 import { NewtonIntakePanel } from './NewtonIntakePanel';
 import { NewtonWorkflowTracker, type WorkflowStage } from './newton/NewtonWorkflowTracker';
@@ -598,6 +598,13 @@ export const NewtonAgentPanel: React.FC = () => {
           setShowIntake(false);
           setShowCreateDealForm(false);
         }}
+        onCreateNewDeal={() => {
+          setOperationMode('global');
+          setCreateDealPrefill({});
+          setShowCreateDealForm(true);
+          pushOutput('info', 'Collecting details', 'Fill in the deal details below to create a new deal.');
+          addActivity('Newton opened create deal workflow via + New Deal', 'info');
+        }}
         dealState={selectedDeal?.deal_state}
         readinessPct={readinessPct}
         blockers={blockers}
@@ -605,24 +612,22 @@ export const NewtonAgentPanel: React.FC = () => {
         lastUpdated={lastUpdated}
         onRefresh={fetchCounts}
         onAction={handleComposerSubmit}
+        operationMode={operationMode}
       />
 
-      <div className="flex items-center justify-between px-1">
-        <Badge variant="outline" className="h-6 text-[10px] gap-1.5">
-          {operationMode === 'global' ? <Globe className="w-3 h-3" /> : <Briefcase className="w-3 h-3" />}
-          {operationMode === 'global' ? 'Global Workspace Mode' : `Working on ${selectedDeal?.deal_name || 'Selected Deal'}`}
-        </Badge>
-        {(isExecutingAction || isRunning) && (
+      {(isExecutingAction || isRunning) && (
+        <div className="flex items-center justify-end px-1">
           <span className="text-[10px] text-muted-foreground flex items-center gap-1.5">
             <Loader2 className="w-3 h-3 animate-spin" />
             Executing
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       <NewtonComposer
         onSubmit={handleComposerSubmit}
         disabled={isExecutingAction || isRunning}
+        operationMode={operationMode}
         onUploadClick={() => {
           setShowIntake((prev) => !prev);
           if (selectedDealId) setOperationMode('deal');
