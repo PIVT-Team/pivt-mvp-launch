@@ -627,6 +627,7 @@ export const NewtonAgentPanel: React.FC = () => {
       <NewtonComposer
         onSubmit={handleComposerSubmit}
         disabled={isExecutingAction || isRunning}
+        operationMode={operationMode}
         onUploadClick={() => {
           setShowIntake((prev) => !prev);
           if (selectedDealId) setOperationMode('deal');
