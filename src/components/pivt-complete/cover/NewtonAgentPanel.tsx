@@ -333,11 +333,6 @@ export const NewtonAgentPanel: React.FC = () => {
 
     addActivity(`User: "${trimmed}"`, 'info');
 
-    if (!user) {
-      pushOutput('error', 'Sign in required', 'Please sign in so Newton can execute actions.');
-      return;
-    }
-
     const intent = detectIntent(trimmed);
 
     if (intent.action === 'unsupported' || intent.confidence < 0.5) {
