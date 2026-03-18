@@ -507,7 +507,7 @@ export const NewtonAgentPanel: React.FC = () => {
           }
           setOperationMode('deal');
           setActiveTab('approvals');
-          result = await executePrepareApprovalPackage(selectedDealId, user.id);
+          result = await executePrepareApprovalPackage(selectedDealId, user?.id);
           break;
         }
         default: {
