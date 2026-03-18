@@ -249,7 +249,7 @@ export async function executePrepareApprovalPackage(dealId: string, userId: stri
   const conditions = condRes.data || [];
   const condMet = conditions.filter(c => ['MET', 'SATISFIED', 'WAIVED'].includes(c.status)).length;
   const openDisc = (discRes.data || []).length;
-  const criticalDisc = (discRes.data || []).filter(d => d.severity === 'critical').length;
+  const criticalDisc = (discRes.data || []).filter(d => (d.severity as string) === 'critical').length;
   const totalStak = (stakRes.data || []).length;
   const verifiedStak = (stakRes.data || []).filter(s => s.verification_status === 'verified').length;
 
