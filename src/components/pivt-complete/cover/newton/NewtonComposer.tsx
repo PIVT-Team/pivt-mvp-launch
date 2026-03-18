@@ -63,17 +63,19 @@ export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
   return (
     <div className="pivt-card border border-border overflow-hidden">
       {/* Input area */}
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          {onUploadClick && (
-            <button
-              onClick={onUploadClick}
-              className="p-2 rounded-xl text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors mt-0.5"
-              title="Upload files"
-            >
-              <Upload className="w-4 h-4" />
-            </button>
-          )}
+      <div className="p-3 space-y-2">
+        <div className="flex items-start gap-2">
+          <div className="flex items-center gap-1 pt-1.5 shrink-0">
+            {onUploadClick && (
+              <button
+                onClick={onUploadClick}
+                className="p-1.5 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Upload files"
+              >
+                <Upload className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <textarea
             ref={inputRef}
             value={value}
@@ -83,7 +85,7 @@ export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
             placeholder="Ask Newton to work on this deal…"
             disabled={disabled}
             rows={1}
-            className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/40 resize-none min-h-[36px] max-h-[120px] py-2 leading-relaxed"
+            className="flex-1 text-sm bg-transparent outline-none placeholder:text-muted-foreground/50 resize-none min-h-[36px] max-h-[120px] py-2 leading-snug"
             style={{ height: 'auto', overflow: 'hidden' }}
             onInput={(e) => {
               const target = e.target as HTMLTextAreaElement;
@@ -95,25 +97,26 @@ export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
             size="sm"
             onClick={handleSubmit}
             disabled={disabled || !value.trim()}
-            className="h-9 w-9 p-0 shrink-0 rounded-xl"
+            className="h-8 w-8 p-0 shrink-0 mt-0.5"
           >
             <Send className="w-3.5 h-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* Suggested Actions — cleaner chips */}
+      {/* Suggested Actions */}
       {showSuggestions && !value && (
-        <div className="border-t border-border px-4 py-3">
-          <div className="flex flex-wrap gap-2">
+        <div className="border-t border-border p-3 pt-2">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-2">Suggested Actions</p>
+          <div className="flex flex-wrap gap-1.5">
             {PRIMARY_ACTIONS.map((action, i) => (
               <button
                 key={i}
                 onClick={() => handleSuggestionClick(action.label)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border hover:border-accent/20 hover:bg-accent/3 transition-all text-left group"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border hover:border-accent/30 hover:bg-accent/5 transition-all text-left group"
               >
-                <action.icon className="w-3.5 h-3.5 text-muted-foreground group-hover:text-accent shrink-0" />
-                <span className="text-xs text-muted-foreground group-hover:text-foreground whitespace-nowrap">{action.label}</span>
+                <action.icon className="w-3 h-3 text-muted-foreground group-hover:text-accent shrink-0" />
+                <span className="text-[11px] text-muted-foreground group-hover:text-foreground whitespace-nowrap">{action.label}</span>
               </button>
             ))}
 
@@ -121,26 +124,26 @@ export const NewtonComposer: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
             <button
               onClick={() => setShowMore(!showMore)}
               className={cn(
-                'flex items-center gap-1 px-3 py-2 rounded-xl border transition-all text-left',
-                showMore ? 'border-accent/20 bg-accent/5 text-foreground' : 'border-border text-muted-foreground hover:border-accent/20 hover:text-foreground'
+                'flex items-center gap-1 px-2.5 py-1.5 rounded-full border transition-all text-left',
+                showMore ? 'border-accent/30 bg-accent/5 text-foreground' : 'border-border text-muted-foreground hover:border-accent/20 hover:text-foreground'
               )}
             >
-              <span className="text-xs whitespace-nowrap">More</span>
+              <span className="text-[11px] whitespace-nowrap">More actions</span>
               <ChevronDown className={cn('w-3 h-3 transition-transform', showMore && 'rotate-180')} />
             </button>
           </div>
 
           {/* Expanded more actions */}
           {showMore && (
-            <div className="flex flex-wrap gap-2 mt-2.5 pt-2.5 border-t border-border/50">
+            <div className="flex flex-wrap gap-1.5 mt-2 pt-2 border-t border-border/50">
               {MORE_ACTIONS.map((action, i) => (
                 <button
                   key={i}
                   onClick={() => handleSuggestionClick(action.label)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-border/60 hover:border-accent/20 hover:bg-accent/3 transition-all text-left group"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border border-border/60 hover:border-accent/30 hover:bg-accent/5 transition-all text-left group"
                 >
-                  <action.icon className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-accent shrink-0" />
-                  <span className="text-xs text-muted-foreground/70 group-hover:text-foreground whitespace-nowrap">{action.label}</span>
+                  <action.icon className="w-3 h-3 text-muted-foreground/60 group-hover:text-accent shrink-0" />
+                  <span className="text-[11px] text-muted-foreground/80 group-hover:text-foreground whitespace-nowrap">{action.label}</span>
                 </button>
               ))}
             </div>
