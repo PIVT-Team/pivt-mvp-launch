@@ -43,11 +43,13 @@ interface PortfolioMetrics {
 export const HomeCover: React.FC = () => {
   const { setActiveSection, setSelectedDealId } = usePIVTStore();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [deals, setDeals] = useState<RealDeal[]>([]);
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
   const [metrics, setMetrics] = useState<PortfolioMetrics>({ dealsWithBlockers: 0, pendingApprovals: 0, closingThisMonth: 0, openDiscrepancies: 0 });
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
 
   const greeting = useMemo(() => {
     const fullName = user?.user_metadata?.full_name as string | undefined;
