@@ -10,7 +10,7 @@ import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Search, ChevronLeft, ChevronRight, Bell, Upload, Brain, LogOut } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, Upload, Brain, LogOut, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import pivtLogo from '@/assets/pivt-logo.png';
