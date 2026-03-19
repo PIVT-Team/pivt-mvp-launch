@@ -3,11 +3,12 @@
  * Message types: user, response, success, insight, alert
  */
 import React, { useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import {
-  CheckCircle2, AlertTriangle, Sparkles, ArrowRight, Loader2,
+  CheckCircle2, AlertTriangle, Sparkles, ArrowRight, Loader2, Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -206,17 +207,28 @@ const LoadingCard: React.FC<{ text: string }> = ({ text }) => (
 );
 
 /* ── Empty State ── */
-const EmptyState: React.FC = () => (
-  <div className="flex flex-col items-center justify-center py-16 text-center">
-    <div
-      className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
-      style={{ background: 'linear-gradient(135deg, hsl(var(--accent)) / 0.15, hsl(var(--pivt-blue)) / 0.15)' }}
-    >
-      <Sparkles className="w-5 h-5 text-accent" />
+const EmptyState: React.FC = () => {
+  const navigate = useNavigate();
+  return (
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div
+        className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4"
+        style={{ background: 'linear-gradient(135deg, hsl(var(--accent)) / 0.15, hsl(var(--pivt-blue)) / 0.15)' }}
+      >
+        <Sparkles className="w-5 h-5 text-accent" />
+      </div>
+      <p className="text-sm font-medium mb-1">What would you like to do?</p>
+      <p className="text-xs text-muted-foreground max-w-[240px] mb-4">
+        Create a new deal, open an existing one, or ask Newton to run actions.
+      </p>
+      <button
+        onClick={() => navigate('/demo')}
+        className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-accent-foreground transition-all hover:opacity-90"
+        style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--pivt-blue)))' }}
+      >
+        <Play className="w-3.5 h-3.5" />
+        See Demo
+      </button>
     </div>
-    <p className="text-sm font-medium mb-1">What would you like to do?</p>
-    <p className="text-xs text-muted-foreground max-w-[240px]">
-      Create a new deal, open an existing one, or ask Newton to run actions.
-    </p>
-  </div>
-);
+  );
+};
