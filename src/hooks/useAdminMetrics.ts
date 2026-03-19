@@ -37,7 +37,7 @@ export function useAdminOverview() {
       const executionReady = deals.filter(d => d.deal_state === 'ready_for_execution');
       const openTickets = support.filter(s => s.status === 'new' || s.status === 'in_progress');
       const completedRuns = agentRuns.filter(r => r.status === 'completed');
-      const criticalDiscrepancies = discrepancies.filter(d => d.severity === 'critical' && d.status === 'open');
+      const criticalDiscrepancies = discrepancies.filter(d => d.severity === 'blocker' && d.status === 'open');
 
       return {
         totalDeals: deals.length,
