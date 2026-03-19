@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,7 +9,7 @@ const corsHeaders = {
 
 // Simple in-memory rate limiter (per IP, 3 submissions per 10 min)
 const rateLimitMap = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW = 10 * 60 * 1000; // 10 minutes
+const RATE_LIMIT_WINDOW = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 3;
 
 function isRateLimited(ip: string): boolean {
@@ -54,7 +55,6 @@ serve(async (req) => {
     // Honeypot check
     if (_hp) {
       console.warn("Honeypot triggered");
-      // Silently succeed to not alert bots
       return new Response(
         JSON.stringify({ success: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -89,6 +89,26 @@ serve(async (req) => {
     const sanitizedMessage = message.trim().replace(/[<>]/g, "");
 
     console.log(`Contact form submission from: ${sanitizedEmail}`);
+
+    // Store submission in database for admin support inbox
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
+      await adminClient.from("contact_submissions").insert({
+        name: sanitizedName,
+        email: sanitizedEmail,
+        message: sanitizedMessage,
+        source: "contact_page",
+        status: "new",
+        priority: "normal",
+        category: "other",
+      });
+    } catch (dbErr) {
+      console.error("Failed to store submission:", dbErr);
+      // Don't fail the request if DB insert fails - still send email
+    }
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",

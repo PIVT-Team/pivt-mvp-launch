@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_insights: {
+        Row: {
+          body: string
+          category: string
+          confidence: number | null
+          created_at: string
+          evidence: string | null
+          generated_at: string
+          id: string
+          insight_type: string
+          is_read: boolean
+          severity: string
+          suggested_action: string | null
+          title: string
+        }
+        Insert: {
+          body: string
+          category?: string
+          confidence?: number | null
+          created_at?: string
+          evidence?: string | null
+          generated_at?: string
+          id?: string
+          insight_type?: string
+          is_read?: boolean
+          severity?: string
+          suggested_action?: string | null
+          title: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          confidence?: number | null
+          created_at?: string
+          evidence?: string | null
+          generated_at?: string
+          id?: string
+          insight_type?: string
+          is_read?: boolean
+          severity?: string
+          suggested_action?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       agent_runs: {
         Row: {
           agent_type: string
@@ -420,6 +465,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      contact_submissions: {
+        Row: {
+          assignee: string | null
+          category: string
+          created_at: string
+          email: string
+          id: string
+          internal_notes: string | null
+          message: string
+          name: string
+          priority: string
+          related_deal_id: string | null
+          related_user_id: string | null
+          resolved_at: string | null
+          source: string
+          status: string
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          category?: string
+          created_at?: string
+          email: string
+          id?: string
+          internal_notes?: string | null
+          message: string
+          name: string
+          priority?: string
+          related_deal_id?: string | null
+          related_user_id?: string | null
+          resolved_at?: string | null
+          source?: string
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          category?: string
+          created_at?: string
+          email?: string
+          id?: string
+          internal_notes?: string | null
+          message?: string
+          name?: string
+          priority?: string
+          related_deal_id?: string | null
+          related_user_id?: string | null
+          resolved_at?: string | null
+          source?: string
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       contract_documents: {
         Row: {
@@ -3038,6 +3140,7 @@ export type Database = {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
       }
+      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       soft_delete_deal: { Args: { _deal_id: string }; Returns: boolean }
     }
     Enums: {
