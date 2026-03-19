@@ -636,6 +636,25 @@ export const NewtonAgentPanel: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Discrepancy Panel */}
+      <AnimatePresence>
+        {showDiscrepancyPanel && discrepancyItems.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden px-4 pb-2"
+          >
+            <NewtonDiscrepancyPanel
+              discrepancies={discrepancyItems}
+              onResolve={handleResolveDiscrepancy}
+              onClose={() => setShowDiscrepancyPanel(false)}
+              dealName={selectedDeal?.deal_name}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showIntake && (
           <motion.div
@@ -659,6 +678,7 @@ export const NewtonAgentPanel: React.FC = () => {
       {/* Input Bar — bottom sticky */}
       <NewtonInputBar
         onSubmit={handleSubmit}
+        onFileUpload={handleFileUpload}
         disabled={isExecuting}
         operationMode={operationMode}
         onUploadClick={() => {
