@@ -15,16 +15,18 @@ import { DemoWorkspace } from '@/components/demo/DemoWorkspace';
 import { DemoStepper, type DemoStep } from '@/components/demo/DemoStepper';
 import { useDemoTyping } from '@/components/demo/useDemoTyping';
 import { RequestAccessModal } from '@/components/RequestAccessModal';
-import type { DemoApproval } from '@/components/demo/demoData';
+import type { DemoApproval, VerificationStatus } from '@/components/demo/demoData';
 import {
-  DEMO_DISCREPANCIES, DEMO_APPROVALS, DEMO_DEAL,
+  DEMO_DISCREPANCIES, DEMO_APPROVALS, DEMO_DEAL, DEMO_STAKEHOLDERS,
 } from '@/components/demo/demoData';
 
-const STEP_ORDER: DemoStep[] = ['intro', 'create', 'upload', 'obligations', 'discrepancies', 'approvals', 'wirepack', 'outro'];
+const STEP_ORDER: DemoStep[] = [
+  'intro', 'create', 'stakeholders', 'verification',
+  'upload', 'obligations', 'discrepancies', 'approvals', 'wirepack', 'outro',
+];
 
 /* ── Helpers ── */
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
-let globalCancel = false;
 
 const uid = () => `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
@@ -58,13 +60,13 @@ interface ScenarioCtx {
   setStepProgress: (v: number | ((p: number) => number)) => void;
   setResolvedDiscrepancies: React.Dispatch<React.SetStateAction<Set<string>>>;
   setApprovalStatuses: React.Dispatch<React.SetStateAction<Record<string, DemoApproval['status']>>>;
+  setStakeholderVerifications: React.Dispatch<React.SetStateAction<Record<string, VerificationStatus>>>;
   cancelled: () => boolean;
 }
 
 const SCENARIOS: Partial<Record<DemoStep, StepScenario>> = {
   create: {
     async run(ctx) {
-      // Type the user prompt
       await ctx.typeAndSubmit(
         'Create a new deal called Project Atlas. Buyer is Northstar Capital Partners, seller is Harbor Ridge Holdings. $185M asset purchase.'
       );
@@ -74,7 +76,6 @@ const SCENARIOS: Partial<Record<DemoStep, StepScenario>> = {
       await sleep(400);
       if (ctx.cancelled()) return;
 
-      // Newton thinking steps
       const t1 = ctx.addMessage('thinking', 'Reviewing request...');
       await sleep(1200);
       if (ctx.cancelled()) return;
@@ -103,6 +104,150 @@ const SCENARIOS: Partial<Record<DemoStep, StepScenario>> = {
       ctx.setStepProgress(1);
       ctx.addMessage('system', 'Deal created • Project Atlas — DEL-2026-0847');
       await sleep(1500);
+    },
+  },
+
+  stakeholders: {
+    async run(ctx) {
+      await ctx.typeAndSubmit(
+        'Upload the stakeholder list for Project Atlas and prepare verification requests for all parties.'
+      );
+      if (ctx.cancelled()) return;
+
+      ctx.addMessage('user', 'Upload the stakeholder list for Project Atlas and prepare verification requests for all parties.');
+      await sleep(400);
+      if (ctx.cancelled()) return;
+
+      const t1 = ctx.addMessage('thinking', 'Receiving stakeholder data...');
+      await sleep(1200);
+      if (ctx.cancelled()) return;
+      ctx.removeMessage(t1);
+
+      ctx.addMessage('newton', 'Processing stakeholder list for **Project Atlas**...');
+      ctx.setStepProgress(0.1);
+      await sleep(600);
+      if (ctx.cancelled()) return;
+
+      // Import stakeholders one-by-one with progress
+      const importSteps = [
+        'Importing transaction parties...',
+        'Importing legal counsel...',
+        'Importing execution & custody agents...',
+        'Importing signatories & advisors...',
+      ];
+
+      for (let i = 0; i < importSteps.length; i++) {
+        if (ctx.cancelled()) return;
+        const tid = ctx.addMessage('thinking', importSteps[i]);
+        ctx.setStepProgress(0.1 + ((i + 1) / importSteps.length) * 0.7);
+        await sleep(1000 + Math.random() * 400);
+        ctx.removeMessage(tid);
+      }
+      if (ctx.cancelled()) return;
+
+      ctx.setStepProgress(0.9);
+      ctx.addMessage('system', `${DEMO_STAKEHOLDERS.length} stakeholders imported`);
+      await sleep(600);
+      if (ctx.cancelled()) return;
+
+      ctx.setStepProgress(1);
+      ctx.addMessage(
+        'newton',
+        `✅ **${DEMO_STAKEHOLDERS.length} stakeholders** added to Project Atlas:\n\n- 3 Transaction Parties (Buyer, Seller, Escrow Agent)\n- 2 Legal Counsel\n- 2 Signatories\n- 3 Advisors & Agents\n- 2 Key Executives\n\nReady for KYC/KYB verification.`
+      );
+      await sleep(1800);
+    },
+  },
+
+  verification: {
+    async run(ctx) {
+      // Newton auto-initiates verification
+      const t0 = ctx.addMessage('thinking', 'Preparing KYC/KYB verification requests...');
+      await sleep(1200);
+      if (ctx.cancelled()) return;
+      ctx.removeMessage(t0);
+
+      ctx.addMessage(
+        'newton',
+        `Sending **KYC/KYB verification** requests to all ${DEMO_STAKEHOLDERS.length} stakeholders...\n\nVerification emails will be sent to each party's registered contact.`
+      );
+      ctx.setStepProgress(0.1);
+      await sleep(800);
+      if (ctx.cancelled()) return;
+
+      // Phase 1: Send requests (not_verified → requested) in batches
+      const t1 = ctx.addMessage('thinking', 'Sending verification emails...');
+      for (let i = 0; i < DEMO_STAKEHOLDERS.length; i++) {
+        if (ctx.cancelled()) return;
+        ctx.setStakeholderVerifications((prev) => ({
+          ...prev,
+          [DEMO_STAKEHOLDERS[i].id]: 'requested',
+        }));
+        await sleep(200 + Math.random() * 150);
+      }
+      ctx.setStepProgress(0.25);
+      await sleep(400);
+      if (ctx.cancelled()) return;
+      ctx.removeMessage(t1);
+
+      ctx.addMessage('system', `Verification emails sent to ${DEMO_STAKEHOLDERS.length} stakeholders`);
+      await sleep(800);
+      if (ctx.cancelled()) return;
+
+      // Phase 2: Move to in_review in waves
+      const t2 = ctx.addMessage('thinking', 'Stakeholders responding to verification...');
+      const wave1 = DEMO_STAKEHOLDERS.slice(0, 5);
+      for (const sh of wave1) {
+        if (ctx.cancelled()) return;
+        ctx.setStakeholderVerifications((prev) => ({ ...prev, [sh.id]: 'in_review' }));
+        await sleep(250 + Math.random() * 200);
+      }
+      ctx.setStepProgress(0.4);
+      await sleep(600);
+      if (ctx.cancelled()) return;
+
+      const wave2 = DEMO_STAKEHOLDERS.slice(5);
+      for (const sh of wave2) {
+        if (ctx.cancelled()) return;
+        ctx.setStakeholderVerifications((prev) => ({ ...prev, [sh.id]: 'in_review' }));
+        await sleep(200 + Math.random() * 150);
+      }
+      ctx.setStepProgress(0.55);
+      await sleep(400);
+      if (ctx.cancelled()) return;
+      ctx.removeMessage(t2);
+
+      // Phase 3: Verify one by one with progress narration
+      const t3 = ctx.addMessage('thinking', 'Reviewing submitted documents...');
+      await sleep(800);
+      if (ctx.cancelled()) return;
+      ctx.removeMessage(t3);
+
+      for (let i = 0; i < DEMO_STAKEHOLDERS.length; i++) {
+        if (ctx.cancelled()) return;
+        const sh = DEMO_STAKEHOLDERS[i];
+        ctx.setStakeholderVerifications((prev) => ({ ...prev, [sh.id]: 'verified' }));
+        ctx.setStepProgress(0.55 + ((i + 1) / DEMO_STAKEHOLDERS.length) * 0.4);
+        await sleep(300 + Math.random() * 250);
+
+        // Midpoint narration
+        if (i === 5) {
+          ctx.addMessage('system', `${i + 1} of ${DEMO_STAKEHOLDERS.length} stakeholders verified`);
+          await sleep(400);
+        }
+      }
+      if (ctx.cancelled()) return;
+
+      ctx.setStepProgress(1);
+      ctx.addMessage('system', `All ${DEMO_STAKEHOLDERS.length} stakeholders verified ✓`);
+      await sleep(600);
+      if (ctx.cancelled()) return;
+
+      ctx.addMessage(
+        'newton',
+        `✅ **All Stakeholders Verified**\n\nKYC/KYB requirements completed for all ${DEMO_STAKEHOLDERS.length} parties.\n\n- 5 entity verifications (KYB)\n- 7 individual verifications (KYC)\n- 0 outstanding issues\n\nStakeholder verification complete. Ready to proceed with document upload.`
+      );
+      await sleep(2000);
     },
   },
 
@@ -226,7 +371,6 @@ const SCENARIOS: Partial<Record<DemoStep, StepScenario>> = {
       await sleep(1500);
       if (ctx.cancelled()) return;
 
-      // Auto-resolve discrepancies one by one
       for (let i = 0; i < DEMO_DISCREPANCIES.length; i++) {
         if (ctx.cancelled()) return;
         const d = DEMO_DISCREPANCIES[i];
@@ -269,7 +413,6 @@ const SCENARIOS: Partial<Record<DemoStep, StepScenario>> = {
       await sleep(1000);
       if (ctx.cancelled()) return;
 
-      // Progress each signer through sent → viewed → signed
       const statuses: Array<'sent' | 'viewed' | 'signed'> = ['sent', 'viewed', 'signed'];
       for (let si = 0; si < statuses.length; si++) {
         for (let ai = 0; ai < DEMO_APPROVALS.length; ai++) {
@@ -344,6 +487,7 @@ const DemoPage: React.FC = () => {
   const [stepProgress, setStepProgress] = useState(0);
   const [resolvedDiscrepancies, setResolvedDiscrepancies] = useState<Set<string>>(new Set());
   const [approvalStatuses, setApprovalStatuses] = useState<Record<string, DemoApproval['status']>>({});
+  const [stakeholderVerifications, setStakeholderVerifications] = useState<Record<string, VerificationStatus>>({});
   const [requestAccessOpen, setRequestAccessOpen] = useState(false);
   const runningRef = useRef(false);
   const cancelledRef = useRef(false);
@@ -352,7 +496,6 @@ const DemoPage: React.FC = () => {
 
   const currentIdx = STEP_ORDER.indexOf(step);
 
-  // Run the full demo sequence
   const runDemo = useCallback(async () => {
     if (runningRef.current) return;
     runningRef.current = true;
@@ -379,6 +522,7 @@ const DemoPage: React.FC = () => {
           setStepProgress,
           setResolvedDiscrepancies,
           setApprovalStatuses,
+          setStakeholderVerifications,
           cancelled: () => cancelledRef.current,
         };
         await scenario.run(ctx);
@@ -396,6 +540,7 @@ const DemoPage: React.FC = () => {
     setMessages([]);
     setResolvedDiscrepancies(new Set());
     setApprovalStatuses({});
+    setStakeholderVerifications({});
     setStepProgress(0);
     cancelledRef.current = false;
     runDemo();
@@ -411,6 +556,7 @@ const DemoPage: React.FC = () => {
     setIsTyping(false);
     setResolvedDiscrepancies(new Set());
     setApprovalStatuses({});
+    setStakeholderVerifications({});
     setStepProgress(0);
   };
 
@@ -423,11 +569,9 @@ const DemoPage: React.FC = () => {
       setStep(STEP_ORDER[nextIdx]);
       setStepProgress(0);
       if (STEP_ORDER[nextIdx] !== 'outro' && STEP_ORDER[nextIdx] !== 'intro') {
-        // Restart from this step
         cancelledRef.current = false;
         setTimeout(() => {
           runningRef.current = false;
-          // Run remaining steps
           const runRemaining = async () => {
             if (runningRef.current) return;
             runningRef.current = true;
@@ -450,6 +594,7 @@ const DemoPage: React.FC = () => {
                   setStepProgress,
                   setResolvedDiscrepancies,
                   setApprovalStatuses,
+                  setStakeholderVerifications,
                   cancelled: () => cancelledRef.current,
                 };
                 await scenario.run(ctx);
@@ -468,7 +613,6 @@ const DemoPage: React.FC = () => {
     if (step === 'intro') {
       startDemo();
     } else {
-      // Simple pause/resume — for now just toggle display
       setIsPlaying(!isPlaying);
     }
   };
@@ -489,29 +633,19 @@ const DemoPage: React.FC = () => {
           >
             <Sparkles className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-            Watch PIVT orchestrate a closing
-          </h1>
-          <p className="text-lg text-muted-foreground mb-2">
-            {DEMO_DEAL.name} —{' '}
-            {new Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: 'USD',
-              maximumFractionDigits: 0,
-            }).format(DEMO_DEAL.value)}{' '}
-            {DEMO_DEAL.type}
-          </p>
-          <p className="text-sm text-muted-foreground mb-10 max-w-md mx-auto">
-            From deal creation to bank-ready wire pack in minutes. No manual data entry required.
+          <h1 className="text-3xl font-bold mb-3">See PIVT in Action</h1>
+          <p className="text-muted-foreground text-base mb-8 leading-relaxed">
+            Watch Newton orchestrate a <span className="text-foreground font-medium">$185M asset purchase</span> from
+            deal creation to wire execution — automatically.
           </p>
           <Button
             size="lg"
+            className="h-12 px-8 rounded-xl bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(var(--pivt-blue))] text-white border-0 hover:opacity-90"
             onClick={startDemo}
-            className="h-12 px-8 text-base rounded-xl bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(var(--pivt-blue))] text-white border-0 hover:opacity-90 shadow-lg"
           >
-            <Play className="w-5 h-5 mr-2" /> Start Demo
+            <Play className="w-4 h-4 mr-2" /> Start Demo
           </Button>
-          <p className="text-xs text-muted-foreground mt-6">~90 second walkthrough · No signup required</p>
+          <p className="text-xs text-muted-foreground mt-4">~3 minutes · Fully automated walkthrough</p>
         </motion.div>
       </div>
     );
@@ -524,20 +658,19 @@ const DemoPage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
           className="text-center max-w-lg"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 25, delay: 0.2 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 15, delay: 0.2 }}
+            className="w-16 h-16 rounded-full mx-auto mb-6 flex items-center justify-center bg-validated/10"
           >
-            <CheckCircle2 className="w-16 h-16 text-validated mx-auto mb-6" />
+            <CheckCircle2 className="w-8 h-8 text-validated" />
           </motion.div>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">
-            Deal ready for execution
-          </h2>
-          <p className="text-muted-foreground mb-8">
+          <h2 className="text-2xl font-bold mb-2">Deal Complete</h2>
+          <p className="text-muted-foreground text-sm mb-6 leading-relaxed max-w-md mx-auto">
             PIVT orchestrated {DEMO_DEAL.name} from document ingestion to a bank-compatible wire pack
             — automatically.
           </p>
@@ -581,53 +714,34 @@ const DemoPage: React.FC = () => {
     );
   }
 
-  // Main demo view
+  // Active demo
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
-      <div className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-20">
+      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
-          <div className="flex items-center gap-2">
-            <div
-              className="w-6 h-6 rounded-md flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--pivt-blue)))' }}
-            >
-              <Sparkles className="w-3 h-3 text-white" />
-            </div>
-            <span className="text-sm font-semibold">PIVT Demo</span>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 text-accent font-medium ml-1">
-              Live
-            </span>
-          </div>
           <DemoStepper currentStep={step} />
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={togglePlay}>
-              {isPlaying ? (
-                <Pause className="w-3.5 h-3.5 mr-1" />
-              ) : (
-                <Play className="w-3.5 h-3.5 mr-1" />
-              )}
-              {isPlaying ? 'Pause' : 'Play'}
-            </Button>
-            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={skipStep}>
-              <SkipForward className="w-3.5 h-3.5 mr-1" /> Skip
-            </Button>
-            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={resetDemo}>
-              <RotateCcw className="w-3.5 h-3.5" />
-            </Button>
+            <button onClick={skipStep} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+              <SkipForward className="w-4 h-4" />
+            </button>
+            <button onClick={resetDemo} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+              <RotateCcw className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Content area */}
-      <div className="flex-1 max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 p-4">
-        {/* Workspace */}
+      {/* Two-column layout */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6 px-4 py-4">
+        {/* Workspace panel */}
         <div className="order-2 lg:order-1">
           <DemoWorkspace
             step={step}
             progress={stepProgress}
             resolvedDiscrepancies={resolvedDiscrepancies}
             approvalStatuses={approvalStatuses}
+            stakeholderVerifications={stakeholderVerifications}
           />
         </div>
 
