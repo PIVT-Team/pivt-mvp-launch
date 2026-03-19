@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_allowlist: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          role: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          role?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          role?: string
+        }
+        Relationships: []
+      }
+      admin_audit_log: {
+        Row: {
+          action: string
+          created_at: string
+          email: string | null
+          id: string
+          ip_info: string | null
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_info?: string | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          ip_info?: string | null
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       admin_insights: {
         Row: {
           body: string
@@ -3184,6 +3247,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_approved_admin: { Args: { _user_id: string }; Returns: boolean }
       is_deal_accessible: {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
