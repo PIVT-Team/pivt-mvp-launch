@@ -112,7 +112,7 @@ export default function AdminRisk() {
               {risks!.openDiscrepancies.map(d => (
                 <div key={d.id} className="p-3 rounded-md border border-border/50 flex items-center gap-3">
                   <Badge
-                    variant={d.severity === 'critical' ? 'destructive' : d.severity === 'high' ? 'secondary' : 'outline'}
+                    variant={d.severity === 'blocker' ? 'destructive' : d.severity === 'warn' ? 'secondary' : 'outline'}
                     className="text-[10px] shrink-0"
                   >
                     {d.severity}
