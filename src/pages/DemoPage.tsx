@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Play, Pause, RotateCcw, SkipForward, Sparkles,
-  ArrowRight, CheckCircle2, ChevronRight,
+  ArrowRight, CheckCircle2, ChevronRight, Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DemoNewtonPanel, type DemoMsg } from '@/components/demo/DemoNewtonPanel';
