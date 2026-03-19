@@ -166,8 +166,8 @@ export const ExecutionPrepCover: React.FC = () => {
       label: 'Discrepancies Resolved',
       description: 'Resolve all critical discrepancies across wire instructions and funds flow',
       icon: AlertTriangle,
-      passed: (metrics?.reconciliationIssues ?? []).filter(i => i.severity === 'critical').length === 0,
-      detail: metrics ? `${(metrics.reconciliationIssues ?? []).filter(i => i.severity === 'critical').length} critical open` : '',
+      passed: (metrics?.reconciliationIssues ?? []).filter(i => i.severity === 'error').length === 0,
+      detail: metrics ? `${(metrics.reconciliationIssues ?? []).filter(i => i.severity === 'error').length} blocking` : '',
       action: () => navigateToSection('execution', 'discrepancies'),
     },
     {
