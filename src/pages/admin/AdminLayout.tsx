@@ -27,7 +27,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function AdminLayout() {
-  const { user, loading, isPlatformAdmin, adminRole, signOut } = useAuth();
+  const { user, loading, isPlatformAdmin, isApprovedAdmin, adminRole, signOut } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -38,7 +38,11 @@ export default function AdminLayout() {
     );
   }
 
-  if (!user || !isPlatformAdmin) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!isPlatformAdmin || !isApprovedAdmin) {
+    const AccessDenied = lazy(() => import("./AccessDenied"));
+    return <Suspense fallback={null}><AccessDenied /></Suspense>;
+  }
 
   return (
     <div className="min-h-screen flex bg-muted/30">

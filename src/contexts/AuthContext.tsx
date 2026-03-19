@@ -1,6 +1,7 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { trackAuthEvent } from "@/services/authTrackingService";
+import { logAdminAction } from "@/services/adminAuditService";
 import type { User, Session } from "@supabase/supabase-js";
 
 export type AdminRole = 'admin' | 'super_admin' | 'ops_admin' | 'support_admin' | 'read_only' | null;
@@ -11,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isPlatformAdmin: boolean;
+  isApprovedAdmin: boolean;
   adminRole: AdminRole;
   signOut: () => Promise<void>;
 }
@@ -21,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   isAdmin: false,
   isPlatformAdmin: false,
+  isApprovedAdmin: false,
   adminRole: null,
   signOut: async () => {},
 });
@@ -33,17 +36,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
+  const [isApprovedAdmin, setIsApprovedAdmin] = useState(false);
   const [adminRole, setAdminRole] = useState<AdminRole>(null);
 
-  const checkAdminRoles = (userId: string) => {
-    supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    }).then(({ data }) => setIsAdmin(!!data));
+  const checkAdminRoles = async (userId: string) => {
+    // Check basic admin role
+    supabase.rpc("has_role", { _user_id: userId, _role: "admin" as any })
+      .then(({ data }) => setIsAdmin(!!data));
 
-    supabase.rpc("is_platform_admin", {
-      _user_id: userId,
-    }).then(({ data }) => setIsPlatformAdmin(!!data));
+    // Check platform admin (role + allowlist)
+    supabase.rpc("is_platform_admin", { _user_id: userId })
+      .then(({ data }) => setIsPlatformAdmin(!!data));
+
+    // Check allowlist approval
+    supabase.rpc("is_approved_admin" as any, { _user_id: userId })
+      .then(({ data }: any) => setIsApprovedAdmin(!!data));
 
     // Determine specific admin role
     const roles: AdminRole[] = ['super_admin', 'admin', 'ops_admin', 'support_admin', 'read_only'];
@@ -76,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setIsAdmin(false);
           setIsPlatformAdmin(false);
+          setIsApprovedAdmin(false);
           setAdminRole(null);
         }
         setLoading(false);
@@ -93,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, isPlatformAdmin, adminRole, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, isPlatformAdmin, isApprovedAdmin, adminRole, signOut }}>
       {children}
     </AuthContext.Provider>
   );
