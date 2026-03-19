@@ -41,6 +41,7 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminRisk = lazy(() => import("./pages/admin/AdminRisk"));
 const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog"));
 const AdminRevenue = lazy(() => import("./pages/admin/AdminRevenue"));
+const AdminAuthAnalytics = lazy(() => import("./pages/admin/AdminAuthAnalytics"));
 
 const queryClient = new QueryClient();
 
