@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 
 const PLACEHOLDERS = [
   'Create a new deal…',
-  'What's missing before close?',
+  'What\'s missing before close?',
   'Upload stakeholders…',
   'Show all deals…',
   'Generate KYC requests…',
