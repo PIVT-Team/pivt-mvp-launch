@@ -14,6 +14,7 @@ import { DemoNewtonPanel, type DemoMsg } from '@/components/demo/DemoNewtonPanel
 import { DemoWorkspace } from '@/components/demo/DemoWorkspace';
 import { DemoStepper, type DemoStep } from '@/components/demo/DemoStepper';
 import { useDemoTyping } from '@/components/demo/useDemoTyping';
+import { RequestAccessModal } from '@/components/RequestAccessModal';
 import type { DemoApproval } from '@/components/demo/demoData';
 import {
   DEMO_DISCREPANCIES, DEMO_APPROVALS, DEMO_DEAL,
@@ -343,6 +344,7 @@ const DemoPage: React.FC = () => {
   const [stepProgress, setStepProgress] = useState(0);
   const [resolvedDiscrepancies, setResolvedDiscrepancies] = useState<Set<string>>(new Set());
   const [approvalStatuses, setApprovalStatuses] = useState<Record<string, DemoApproval['status']>>({});
+  const [requestAccessOpen, setRequestAccessOpen] = useState(false);
   const runningRef = useRef(false);
   const cancelledRef = useRef(false);
 
@@ -553,7 +555,7 @@ const DemoPage: React.FC = () => {
               size="lg"
               variant="outline"
               className="h-11 px-6 rounded-xl"
-              onClick={() => navigate('/login')}
+              onClick={() => setRequestAccessOpen(true)}
             >
               Request Access <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -574,6 +576,7 @@ const DemoPage: React.FC = () => {
             </button>
           </div>
         </motion.div>
+        <RequestAccessModal open={requestAccessOpen} onOpenChange={setRequestAccessOpen} />
       </div>
     );
   }
