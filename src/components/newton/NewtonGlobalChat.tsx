@@ -95,6 +95,7 @@ export const NewtonGlobalChat: React.FC = () => {
   const deal = useSelectedDeal();
   const { activeSection, setActiveSection } = usePIVTStore();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
