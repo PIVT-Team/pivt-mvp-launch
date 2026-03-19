@@ -1,32 +1,36 @@
 /**
- * Newton Input Bar — Bottom-sticky chat input with rotating placeholder.
+ * Newton Input Bar — Bottom-sticky chat input with rotating placeholder + file upload.
  */
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Upload } from 'lucide-react';
+import { Send, Upload, Paperclip, FileText, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const PLACEHOLDERS = [
   'Create a new deal…',
   'What\'s missing before close?',
-  'Upload stakeholders…',
-  'Show all deals…',
+  'Upload a funds flow memo…',
+  'Parse wire instructions…',
+  'Check for discrepancies…',
   'Generate KYC requests…',
-  'Check closing readiness…',
 ];
+
+const ACCEPTED_TYPES = '.xlsx,.xls,.csv,.pdf,.doc,.docx';
 
 interface Props {
   onSubmit: (prompt: string) => void;
+  onFileUpload?: (file: File) => void;
   disabled?: boolean;
   onUploadClick?: () => void;
   operationMode: 'global' | 'deal';
 }
 
-export const NewtonInputBar: React.FC<Props> = ({ onSubmit, disabled, onUploadClick, operationMode }) => {
+export const NewtonInputBar: React.FC<Props> = ({ onSubmit, onFileUpload, disabled, onUploadClick, operationMode }) => {
   const [value, setValue] = useState('');
   const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Rotate placeholder
   useEffect(() => {
     const interval = setInterval(() => {
       setPlaceholderIdx(i => (i + 1) % PLACEHOLDERS.length);
@@ -35,13 +39,20 @@ export const NewtonInputBar: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
   }, []);
 
   const handleSubmit = () => {
+    if (pendingFile && onFileUpload) {
+      onFileUpload(pendingFile);
+      setPendingFile(null);
+      if (value.trim()) {
+        onSubmit(value.trim());
+        setValue('');
+      }
+      return;
+    }
     const trimmed = value.trim();
     if (!trimmed) return;
     onSubmit(trimmed);
     setValue('');
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-    }
+    if (inputRef.current) inputRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -57,14 +68,54 @@ export const NewtonInputBar: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
     target.style.height = Math.min(target.scrollHeight, 120) + 'px';
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (onFileUpload) {
+      setPendingFile(file);
+    }
+    e.target.value = '';
+  };
+
   return (
     <div className="shrink-0 border-t border-border px-4 py-3 bg-card">
+      {/* Pending file indicator */}
+      {pendingFile && (
+        <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-accent/5 border border-accent/10">
+          <FileText className="w-3.5 h-3.5 text-accent shrink-0" />
+          <span className="text-xs text-foreground truncate flex-1">{pendingFile.name}</span>
+          <span className="text-[10px] text-muted-foreground shrink-0">
+            {(pendingFile.size / 1024).toFixed(0)} KB
+          </span>
+          <button onClick={() => setPendingFile(null)} className="p-0.5 rounded hover:bg-muted">
+            <X className="w-3 h-3 text-muted-foreground" />
+          </button>
+        </div>
+      )}
+
       <div className="flex items-end gap-2">
+        {/* File upload button */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mb-0.5"
+          title="Upload funds flow, wire instructions, or documents"
+          disabled={disabled}
+        >
+          <Paperclip className="w-4 h-4" />
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={ACCEPTED_TYPES}
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
         {onUploadClick && (
           <button
             onClick={onUploadClick}
             className="p-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors mb-0.5"
-            title="Upload files"
+            title="Open intake panel"
           >
             <Upload className="w-4 h-4" />
           </button>
@@ -86,7 +137,7 @@ export const NewtonInputBar: React.FC<Props> = ({ onSubmit, disabled, onUploadCl
         <Button
           size="sm"
           onClick={handleSubmit}
-          disabled={disabled || !value.trim()}
+          disabled={disabled || (!value.trim() && !pendingFile)}
           className="h-9 w-9 p-0 shrink-0 rounded-xl bg-gradient-to-r from-[hsl(var(--accent))] to-[hsl(var(--pivt-blue))] text-white border-0 hover:opacity-90 transition-opacity mb-0.5"
         >
           <Send className="w-3.5 h-3.5" />

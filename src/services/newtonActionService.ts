@@ -313,11 +313,21 @@ export async function executeListDeals(_userId?: string): Promise<NewtonActionRe
   return callNewtonAction('list_deals', {});
 }
 
+export async function executeParseFundsFlow(dealId: string): Promise<NewtonActionResult> {
+  return callNewtonAction('parse_funds_flow', { deal_id: dealId });
+}
+
+export async function executeRunDiscrepancyCheck(dealId: string): Promise<NewtonActionResult> {
+  return callNewtonAction('run_discrepancy_check', { deal_id: dealId });
+}
+
 export const SUPPORTED_ACTIONS_TEXT = `I can't complete that yet. I can help you with:
 - **Create a new deal**
 - **Show all deals** / **Open a deal by name**
 - **Import or parse stakeholders**
 - **Upload/review deal documents**
+- **Parse funds flow & wire instructions**
+- **Run wire discrepancy checks**
 - **Summarize readiness** / **List blockers**
 - **What should I do next?**
 - **Execute the deal** (checks readiness)
