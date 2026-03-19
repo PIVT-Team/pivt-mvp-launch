@@ -281,12 +281,67 @@ export const NewtonAgentPanel: React.FC = () => {
     addMessage({ type: 'loading', text: 'Executing…' });
 
     let result: NewtonActionResult;
+    let msgType: ChatMessage['type'] = 'success';
+    let actionButtons: ChatMessage['actions'] = undefined;
 
     try {
       switch (intent.action) {
         case 'list_deals':
           result = await executeListDeals(user?.id);
           break;
+        case 'open_deal': {
+          result = await callNewtonAction('open_deal', intent.params);
+          if (result.success && result.data?.deal_id) {
+            setSelectedDealId(result.data.deal_id);
+            setStoreSelectedDealId(result.data.deal_id);
+            setOperationMode('deal');
+            setStoreActiveSection('workspace');
+          }
+          break;
+        }
+        case 'next_steps': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          result = await callNewtonAction('next_steps', { deal_id: selectedDealId });
+          msgType = 'insight';
+          actionButtons = [
+            { label: 'Upload Stakeholders', prompt: 'Upload stakeholders' },
+            { label: 'Generate KYC', prompt: 'Generate KYC requests' },
+            { label: 'Upload Documents', prompt: 'Upload deal documents' },
+          ];
+          break;
+        }
+        case 'execute_deal': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          result = await callNewtonAction('execute_deal', { deal_id: selectedDealId });
+          msgType = result.message?.includes('Cannot execute') ? 'alert' : 'success';
+          if (result.message?.includes('Cannot execute')) {
+            actionButtons = [
+              { label: 'Show Blockers', prompt: 'What is missing?', primary: true },
+              { label: 'What Should I Do Next?', prompt: 'What should I do next?' },
+            ];
+          }
+          break;
+        }
+        case 'show_demo': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          result = await callNewtonAction('show_demo', { deal_id: selectedDealId });
+          msgType = 'insight';
+          actionButtons = [
+            { label: 'View Stakeholders', prompt: 'Upload stakeholders' },
+            { label: 'Check Readiness', prompt: 'What is the readiness?', primary: true },
+            { label: 'What Should I Do Next?', prompt: 'What should I do next?' },
+          ];
+          break;
+        }
+        case 'query_state': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          result = await callNewtonAction('query_state', { deal_id: selectedDealId });
+          msgType = 'insight';
+          break;
+        }
         case 'upload_stakeholders':
         case 'parse_stakeholders':
           setShowIntake(true);
@@ -305,11 +360,21 @@ export const NewtonAgentPanel: React.FC = () => {
           if (!selectedDealId) { result = { success: false, message: 'Select a deal to check readiness.' }; break; }
           setOperationMode('deal');
           result = await executeSummarizeReadiness(selectedDealId);
+          msgType = 'insight';
+          actionButtons = [
+            { label: 'Show Blockers', prompt: 'List all blockers', primary: true },
+            { label: 'Next Steps', prompt: 'What should I do next?' },
+          ];
           break;
         case 'list_blockers':
           if (!selectedDealId) { result = { success: false, message: 'Select a deal to see blockers.' }; break; }
           setOperationMode('deal');
           result = await executeListBlockers(selectedDealId);
+          msgType = 'alert';
+          actionButtons = [
+            { label: 'Generate KYC', prompt: 'Generate KYC requests' },
+            { label: 'Prepare Approvals', prompt: 'Prepare approval package' },
+          ];
           break;
         case 'generate_kyc_requests':
         case 'generate_kyb_requests':
@@ -321,6 +386,7 @@ export const NewtonAgentPanel: React.FC = () => {
           if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
           setOperationMode('deal');
           result = await executePrepareApprovalPackage(selectedDealId, user?.id);
+          msgType = 'insight';
           break;
         default:
           result = { success: false, message: SUPPORTED_ACTIONS_TEXT };
@@ -332,17 +398,19 @@ export const NewtonAgentPanel: React.FC = () => {
     removeLoading();
     setIsExecuting(false);
 
-    const msgType = result.success ? 'success' : 'alert';
+    if (!result.success) msgType = 'alert';
+
     addMessage({
       type: msgType,
-      title: result.success ? 'Action completed' : 'Action needs attention',
+      title: result.success ? (msgType === 'insight' ? 'Newton Intelligence' : 'Action completed') : 'Action needs attention',
       text: result.message,
+      actions: actionButtons,
     });
 
     if (result.navigateTo) {
       setStoreActiveSection(result.navigateTo as any);
     }
-    if (result.data?.deal_id) {
+    if (result.data?.deal_id && intent.action !== 'open_deal') {
       setSelectedDealId(result.data.deal_id);
       setStoreSelectedDealId(result.data.deal_id);
       setOperationMode('deal');
