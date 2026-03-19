@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { trackAuthEvent } from "@/services/authTrackingService";
 import type { User, Session } from "@supabase/supabase-js";
 
 export type AdminRole = 'admin' | 'super_admin' | 'ops_admin' | 'support_admin' | 'read_only' | null;
@@ -85,6 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = async () => {
+    if (user) {
+      trackAuthEvent({ eventType: 'user_logout', userId: user.id, email: user.email ?? undefined });
+    }
     await supabase.auth.signOut();
   };
 

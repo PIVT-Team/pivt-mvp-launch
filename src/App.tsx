@@ -41,6 +41,7 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminRisk = lazy(() => import("./pages/admin/AdminRisk"));
 const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog"));
 const AdminRevenue = lazy(() => import("./pages/admin/AdminRevenue"));
+const AdminAuthAnalytics = lazy(() => import("./pages/admin/AdminAuthAnalytics"));
 
 const queryClient = new QueryClient();
 
@@ -87,6 +88,7 @@ const App = () => (
                 <Route path="risk" element={<AdminRisk />} />
                 <Route path="revenue" element={<AdminRevenue />} />
                 <Route path="audit" element={<AdminAuditLog />} />
+                <Route path="auth" element={<AdminAuthAnalytics />} />
               </Route>
               <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
                 <Route path="/dashboard" element={<Dashboard />} />
