@@ -308,10 +308,12 @@ export async function executeListDeals(_userId?: string): Promise<NewtonActionRe
 
 export const SUPPORTED_ACTIONS_TEXT = `I can't complete that yet. I can help you with:
 - **Create a new deal**
-- **Show all deals**
+- **Show all deals** / **Open a deal by name**
 - **Import or parse stakeholders**
 - **Upload/review deal documents**
-- **Summarize readiness**
-- **List blockers**
+- **Summarize readiness** / **List blockers**
+- **What should I do next?**
+- **Execute the deal** (checks readiness)
 - **Generate KYC/KYB requests**
-- **Prepare approval package**`;
+- **Prepare approval package**
+- **Show me how this deal works** (guided tour)`;
