@@ -33,6 +33,15 @@ const ContactSupportPageLazy = lazy(() => import("./pages/ContactSupportPage"));
 const DataSecurityPageLazy = lazy(() => import("./pages/DataSecurityPage"));
 const AcceptableUsePageLazy = lazy(() => import("./pages/AcceptableUsePage"));
 
+// Admin pages
+const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminSupport = lazy(() => import("./pages/admin/AdminSupport"));
+const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
+const AdminRisk = lazy(() => import("./pages/admin/AdminRisk"));
+const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog"));
+const AdminRevenue = lazy(() => import("./pages/admin/AdminRevenue"));
+
 const queryClient = new QueryClient();
 
 const PageLoader = () => (
@@ -68,6 +77,17 @@ const App = () => (
               <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
+              {/* Admin routes */}
+              <Route path="/admin" element={<AuthGuard><AdminLayout /></AuthGuard>}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="support" element={<AdminSupport />} />
+                <Route path="analytics" element={<AdminAnalytics />} />
+                <Route path="deal-funnel" element={<AdminAnalytics />} />
+                <Route path="newton" element={<AdminAnalytics />} />
+                <Route path="risk" element={<AdminRisk />} />
+                <Route path="revenue" element={<AdminRevenue />} />
+                <Route path="audit" element={<AdminAuditLog />} />
+              </Route>
               <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/deals/:id" element={<DealDetail />} />
@@ -81,5 +101,7 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
+
+export default App;
 
 export default App;
