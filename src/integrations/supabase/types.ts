@@ -203,6 +203,54 @@ export type Database = {
           },
         ]
       }
+      auth_events: {
+        Row: {
+          approximate_location: string | null
+          browser: string | null
+          created_at: string
+          device_type: string | null
+          email: string | null
+          event_type: string
+          id: string
+          ip_hash: string | null
+          login_method: string | null
+          metadata: Json | null
+          session_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          approximate_location?: string | null
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          email?: string | null
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          login_method?: string | null
+          metadata?: Json | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          approximate_location?: string | null
+          browser?: string | null
+          created_at?: string
+          device_type?: string | null
+          email?: string | null
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          login_method?: string | null
+          metadata?: Json | null
+          session_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       cap_table_entries: {
         Row: {
           confidence_status: string
