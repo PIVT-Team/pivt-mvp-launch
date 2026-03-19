@@ -239,6 +239,21 @@ export const PIVTCompleteUnified: React.FC = () => {
         <div className="shrink-0 px-6 h-12 flex items-center gap-3 pivt-glass-nav">
           <div className="flex-1" />
 
+          {/* Newton AI Deal Scan */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('pivt:open-newton'))}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
+                style={{ background: 'var(--pivt-gradient-primary)' }}
+              >
+                <Brain className="w-3.5 h-3.5" />
+                <span>Newton AI</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Open Newton AI Deal Scan (⌘J)</TooltipContent>
+          </Tooltip>
+
           {/* Import */}
           <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-xs">
             <Upload className="w-3.5 h-3.5" />
