@@ -147,6 +147,7 @@ serve(async (req) => {
       queue_name: "transactional_emails",
       payload: {
         message_id: messageId,
+        run_id: messageId,
         to: "support@pivttech.ai",
         subject: "New Support Request – PIVT",
         html: htmlBody,
