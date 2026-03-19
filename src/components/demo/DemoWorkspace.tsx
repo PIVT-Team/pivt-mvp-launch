@@ -6,21 +6,26 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText, CheckCircle2, AlertTriangle, Clock, Send,
   Eye, PenTool, Download, Shield, ArrowRight,
+  Users, ShieldCheck, Mail, Building2, User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   DEMO_DEAL, DEMO_DOCUMENTS, DEMO_OBLIGATIONS,
-  DEMO_DISCREPANCIES, DEMO_APPROVALS, type DemoApproval,
+  DEMO_DISCREPANCIES, DEMO_APPROVALS, DEMO_STAKEHOLDERS,
+  type DemoApproval, type VerificationStatus,
 } from './demoData';
 import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 
-type DemoStep = 'intro' | 'create' | 'upload' | 'obligations' | 'discrepancies' | 'approvals' | 'wirepack' | 'outro';
+type DemoStep =
+  | 'intro' | 'create' | 'stakeholders' | 'verification'
+  | 'upload' | 'obligations' | 'discrepancies' | 'approvals' | 'wirepack' | 'outro';
 
 interface Props {
   step: DemoStep;
-  progress: number; // 0-1 within current step
+  progress: number;
   resolvedDiscrepancies: Set<string>;
   approvalStatuses: Record<string, DemoApproval['status']>;
+  stakeholderVerifications?: Record<string, VerificationStatus>;
 }
 
 const formatCurrency = (n: number) =>
@@ -36,12 +41,33 @@ const StepItem: React.FC<{ delay: number; children: React.ReactNode }> = ({ dela
   </motion.div>
 );
 
-export const DemoWorkspace: React.FC<Props> = ({ step, progress, resolvedDiscrepancies, approvalStatuses }) => {
+const VERIFICATION_CONFIG: Record<VerificationStatus, { label: string; color: string; icon: React.ElementType }> = {
+  not_verified: { label: 'Not Verified', color: 'text-muted-foreground', icon: Clock },
+  requested: { label: 'Requested', color: 'text-accent', icon: Mail },
+  in_review: { label: 'In Review', color: 'text-discrepancy', icon: Eye },
+  verified: { label: 'Verified', color: 'text-validated', icon: CheckCircle2 },
+};
+
+const isAfter = (step: DemoStep, target: DemoStep, order: DemoStep[]) =>
+  order.indexOf(step) >= order.indexOf(target);
+
+const STEP_ORDER: DemoStep[] = [
+  'intro', 'create', 'stakeholders', 'verification',
+  'upload', 'obligations', 'discrepancies', 'approvals', 'wirepack', 'outro',
+];
+
+export const DemoWorkspace: React.FC<Props> = ({
+  step, progress, resolvedDiscrepancies, approvalStatuses,
+  stakeholderVerifications = {},
+}) => {
   if (step === 'intro' || step === 'outro') return null;
+
+  const allVerified = DEMO_STAKEHOLDERS.every(s => stakeholderVerifications[s.id] === 'verified');
+  const verifiedCount = DEMO_STAKEHOLDERS.filter(s => stakeholderVerifications[s.id] === 'verified').length;
 
   return (
     <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-200px)] pr-1">
-      {/* Deal header — always visible after create */}
+      {/* Deal header */}
       {step !== 'create' || progress > 0.6 ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -72,8 +98,75 @@ export const DemoWorkspace: React.FC<Props> = ({ step, progress, resolvedDiscrep
         </motion.div>
       ) : null}
 
+      {/* Stakeholders */}
+      {isAfter(step, 'stakeholders', STEP_ORDER) && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-border bg-card p-5 space-y-3">
+          <h4 className="text-sm font-semibold flex items-center gap-2">
+            <Users className="w-4 h-4 text-accent" /> Stakeholders
+            <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              {step === 'stakeholders'
+                ? `${Math.min(Math.floor(progress * DEMO_STAKEHOLDERS.length), DEMO_STAKEHOLDERS.length)} of ${DEMO_STAKEHOLDERS.length}`
+                : `${DEMO_STAKEHOLDERS.length} parties`}
+            </span>
+          </h4>
+          <div className="space-y-1.5">
+            {DEMO_STAKEHOLDERS.map((sh, i) => {
+              const visible = step === 'stakeholders' ? progress > (i / DEMO_STAKEHOLDERS.length) : true;
+              if (!visible) return null;
+              const vStatus = stakeholderVerifications[sh.id] || 'not_verified';
+              const vCfg = VERIFICATION_CONFIG[vStatus];
+              const showVerification = isAfter(step, 'verification', STEP_ORDER);
+              return (
+                <StepItem key={sh.id} delay={step === 'stakeholders' ? i * 0.12 : 0}>
+                  <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/20">
+                    <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      {sh.type === 'company'
+                        ? <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                        : <User className="w-3.5 h-3.5 text-muted-foreground" />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{sh.name}</p>
+                      <p className="text-[10px] text-muted-foreground truncate">{sh.role} · {sh.entity}</p>
+                    </div>
+                    {showVerification && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className={cn('flex items-center gap-1 shrink-0', vCfg.color)}
+                      >
+                        <vCfg.icon className="w-3.5 h-3.5" />
+                        <span className="text-[10px] font-medium">{vCfg.label}</span>
+                      </motion.div>
+                    )}
+                  </div>
+                </StepItem>
+              );
+            })}
+          </div>
+
+          {/* All verified banner */}
+          {allVerified && isAfter(step, 'verification', STEP_ORDER) && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 20 }}
+              className="rounded-xl border border-validated/30 bg-validated/5 p-4 flex items-center gap-3"
+            >
+              <div className="w-10 h-10 rounded-full bg-validated/10 flex items-center justify-center shrink-0">
+                <ShieldCheck className="w-5 h-5 text-validated" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-validated">All Stakeholders Verified</p>
+                <p className="text-[11px] text-muted-foreground">KYC/KYB requirements completed. Ready to proceed.</p>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
+
       {/* Documents */}
-      {(step === 'upload' || step === 'obligations' || step === 'discrepancies' || step === 'approvals' || step === 'wirepack') && (
+      {isAfter(step, 'upload', STEP_ORDER) && (
         <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
           <h4 className="text-sm font-semibold flex items-center gap-2">
             <FileText className="w-4 h-4 text-accent" /> Documents
@@ -100,7 +193,7 @@ export const DemoWorkspace: React.FC<Props> = ({ step, progress, resolvedDiscrep
       )}
 
       {/* Obligations */}
-      {(step === 'obligations' || step === 'discrepancies' || step === 'approvals' || step === 'wirepack') && (
+      {isAfter(step, 'obligations', STEP_ORDER) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border border-border bg-card p-5 space-y-3">
           <h4 className="text-sm font-semibold flex items-center gap-2">
@@ -127,7 +220,7 @@ export const DemoWorkspace: React.FC<Props> = ({ step, progress, resolvedDiscrep
       )}
 
       {/* Discrepancies */}
-      {(step === 'discrepancies' || step === 'approvals' || step === 'wirepack') && (
+      {isAfter(step, 'discrepancies', STEP_ORDER) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border border-border bg-card p-5 space-y-3">
           <h4 className="text-sm font-semibold flex items-center gap-2">
@@ -174,7 +267,7 @@ export const DemoWorkspace: React.FC<Props> = ({ step, progress, resolvedDiscrep
       )}
 
       {/* Approvals */}
-      {(step === 'approvals' || step === 'wirepack') && (
+      {isAfter(step, 'approvals', STEP_ORDER) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           className="rounded-2xl border border-border bg-card p-5 space-y-3">
           <h4 className="text-sm font-semibold flex items-center gap-2">
@@ -210,7 +303,7 @@ export const DemoWorkspace: React.FC<Props> = ({ step, progress, resolvedDiscrep
         </motion.div>
       )}
 
-      {/* Wire Pack — Premium Success Moment */}
+      {/* Wire Pack */}
       {step === 'wirepack' && progress > 0.5 && (
         <WirePackSuccessCard
           dealName={DEMO_DEAL.name}

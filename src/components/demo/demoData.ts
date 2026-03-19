@@ -29,6 +29,32 @@ export const DEMO_DOCUMENTS: DemoDocument[] = [
   { name: 'IRS_W9_HarborRidge.pdf', type: 'IRS Tax Form (W-9)', pages: 2, size: '180 KB' },
 ];
 
+export interface DemoStakeholder {
+  id: string;
+  name: string;
+  entity: string;
+  email: string;
+  role: string;
+  type: 'individual' | 'company';
+}
+
+export const DEMO_STAKEHOLDERS: DemoStakeholder[] = [
+  { id: 'sh-1', name: 'Northstar Capital Partners', entity: 'Northstar Capital Partners LLC', email: 'closings@northstarcap.com', role: 'Buyer', type: 'company' },
+  { id: 'sh-2', name: 'Harbor Ridge Holdings', entity: 'Harbor Ridge Holdings, LLC', email: 'legal@harborridge.com', role: 'Seller', type: 'company' },
+  { id: 'sh-3', name: 'Sarah Chen', entity: 'Kirkland & Ellis LLP', email: 's.chen@kirkland.com', role: 'Buyer Counsel', type: 'individual' },
+  { id: 'sh-4', name: 'Michael Torres', entity: 'Wachtell Lipton', email: 'm.torres@wachtell.com', role: 'Seller Counsel', type: 'individual' },
+  { id: 'sh-5', name: 'JPMorgan Chase', entity: 'JPMorgan Chase Bank, N.A.', email: 'escrow.ops@jpmorgan.com', role: 'Escrow Agent', type: 'company' },
+  { id: 'sh-6', name: 'David Park', entity: 'Northstar Capital Partners LLC', email: 'd.park@northstarcap.com', role: 'Deal Lead', type: 'individual' },
+  { id: 'sh-7', name: 'Rebecca Liu', entity: 'Harbor Ridge Holdings, LLC', email: 'r.liu@harborridge.com', role: 'CFO', type: 'individual' },
+  { id: 'sh-8', name: 'Lazard', entity: 'Lazard Frères & Co. LLC', email: 'advisory@lazard.com', role: 'Financial Advisor', type: 'company' },
+  { id: 'sh-9', name: 'Continental Stock Transfer', entity: 'Continental Stock Transfer & Trust Co.', email: 'ops@continentalstock.com', role: 'Transfer Agent', type: 'company' },
+  { id: 'sh-10', name: 'James Mitchell', entity: 'Harbor Ridge Holdings, LLC', email: 'j.mitchell@harborridge.com', role: 'Seller Signatory', type: 'individual' },
+  { id: 'sh-11', name: 'Amanda Reeves', entity: 'Northstar Capital Partners LLC', email: 'a.reeves@northstarcap.com', role: 'Buyer Signatory', type: 'individual' },
+  { id: 'sh-12', name: 'PwC', entity: 'PricewaterhouseCoopers LLP', email: 'tax.advisory@pwc.com', role: 'Tax Advisor', type: 'company' },
+];
+
+export type VerificationStatus = 'not_verified' | 'requested' | 'in_review' | 'verified';
+
 export interface DemoObligation {
   recipient: string;
   amount: number;
@@ -103,7 +129,7 @@ export interface NewtonMessage {
   id: string;
   type: 'user' | 'newton' | 'system';
   text: string;
-  delay: number; // ms after step starts
+  delay: number;
 }
 
 export const STEP_MESSAGES: Record<string, NewtonMessage[]> = {
@@ -111,6 +137,15 @@ export const STEP_MESSAGES: Record<string, NewtonMessage[]> = {
     { id: 'c1', type: 'user', text: 'Create a new deal called Project Atlas. Buyer is Northstar Capital Partners, seller is Harbor Ridge Holdings. $185M asset purchase.', delay: 800 },
     { id: 'c2', type: 'newton', text: 'Creating **Project Atlas** — $185M asset purchase.\n\n- Buyer: Northstar Capital Partners\n- Seller: Harbor Ridge Holdings\n- Jurisdiction: Delaware\n\nDeal workspace is ready.', delay: 2500 },
     { id: 'c3', type: 'system', text: 'Deal created • Project Atlas — DEL-2026-0847', delay: 4200 },
+  ],
+  stakeholders: [
+    { id: 's1', type: 'user', text: 'Upload stakeholder list and prepare verification requests.', delay: 600 },
+    { id: 's2', type: 'newton', text: 'Processing stakeholder list for Project Atlas...', delay: 2000 },
+    { id: 's3', type: 'system', text: '12 stakeholders imported', delay: 6000 },
+  ],
+  verification: [
+    { id: 'v1', type: 'newton', text: 'Sending KYC/KYB verification requests to all stakeholders...', delay: 1000 },
+    { id: 'v2', type: 'system', text: 'All stakeholders verified', delay: 8000 },
   ],
   upload: [
     { id: 'u1', type: 'user', text: 'Upload the closing binder. I have the SPA, funds flow memo, wire instructions for both sides, escrow agreement, and tax forms.', delay: 600 },
