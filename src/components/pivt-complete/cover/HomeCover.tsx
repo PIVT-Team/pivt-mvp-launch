@@ -48,7 +48,6 @@ export const HomeCover: React.FC = () => {
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
   const [metrics, setMetrics] = useState<PortfolioMetrics>({ dealsWithBlockers: 0, pendingApprovals: 0, closingThisMonth: 0, openDiscrepancies: 0 });
   const [loading, setLoading] = useState(true);
-  const [loading, setLoading] = useState(true);
 
   const greeting = useMemo(() => {
     const fullName = user?.user_metadata?.full_name as string | undefined;
