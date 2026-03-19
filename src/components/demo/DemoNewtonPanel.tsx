@@ -7,6 +7,7 @@ import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Loader2, Terminal, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 
 export interface DemoMsg {
   id: string;
