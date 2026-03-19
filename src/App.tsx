@@ -85,6 +85,7 @@ const App = () => (
               {/* Admin routes */}
               <Route path="/admin" element={<AuthGuard><AdminLayout /></AuthGuard>}>
                 <Route index element={<AdminDashboard />} />
+                <Route path="insights" element={<AdminInsights />} />
                 <Route path="users" element={<AdminUserDirectory />} />
                 <Route path="users/:userId" element={<AdminUserDetail />} />
                 <Route path="activity" element={<AdminUserActivity />} />
