@@ -29,6 +29,8 @@ export type NewtonActionType =
   | 'execute_deal'
   | 'show_demo'
   | 'query_state'
+  | 'parse_funds_flow'
+  | 'run_discrepancy_check'
   | 'unsupported';
 
 export type NewtonIntentScope = 'global' | 'deal' | 'info';
