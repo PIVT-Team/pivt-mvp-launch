@@ -84,6 +84,8 @@ export const NewtonAgentPanel: React.FC = () => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [showIntake, setShowIntake] = useState(false);
   const [showCreateDealForm, setShowCreateDealForm] = useState(false);
+  const [showDiscrepancyPanel, setShowDiscrepancyPanel] = useState(false);
+  const [discrepancyItems, setDiscrepancyItems] = useState<DiscrepancyItem[]>([]);
   const [createDealPrefill, setCreateDealPrefill] = useState<Partial<NewtonCreateDealPayload>>({});
   const [operationMode, setOperationMode] = useState<'global' | 'deal'>(contextDealId ? 'deal' : 'global');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
