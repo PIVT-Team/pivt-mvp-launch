@@ -30,11 +30,13 @@ serve(async (req) => {
   }
 
   try {
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) {
-      console.error("RESEND_API_KEY is not configured");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
       return new Response(
-        JSON.stringify({ success: false, error: "Email service not configured" }),
+        JSON.stringify({ success: false, error: "Server configuration error" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -87,15 +89,14 @@ serve(async (req) => {
     const sanitizedName = name.trim().replace(/[<>]/g, "");
     const sanitizedEmail = email.trim();
     const sanitizedMessage = message.trim().replace(/[<>]/g, "");
+    const submittedAt = new Date().toISOString();
 
     console.log(`Contact form submission from: ${sanitizedEmail}`);
 
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+
     // Store submission in database for admin support inbox
     try {
-      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-
       await adminClient.from("contact_submissions").insert({
         name: sanitizedName,
         email: sanitizedEmail,
@@ -107,54 +108,61 @@ serve(async (req) => {
       });
     } catch (dbErr) {
       console.error("Failed to store submission:", dbErr);
-      // Don't fail the request if DB insert fails - still send email
     }
 
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "PIVT Support <no-reply@notify.pivttech.ai>",
-        to: ["support@pivttech.ai"],
-        reply_to: sanitizedEmail,
-        subject: "New Support Request – PIVT",
-        text: `Name: ${sanitizedName}\nEmail: ${sanitizedEmail}\n\nMessage:\n${sanitizedMessage}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px;">
-            <h2 style="color: #1a1a2e; margin-bottom: 16px;">New Support Request</h2>
-            <table style="width: 100%; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #555; width: 80px;">Name:</td>
-                <td style="padding: 8px 0;">${sanitizedName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #555;">Email:</td>
-                <td style="padding: 8px 0;"><a href="mailto:${sanitizedEmail}">${sanitizedEmail}</a></td>
-              </tr>
-            </table>
-            <div style="margin-top: 16px; padding: 16px; background: #f5f5f5; border-radius: 8px;">
-              <p style="margin: 0; color: #333; white-space: pre-wrap;">${sanitizedMessage}</p>
-            </div>
-            <p style="margin-top: 24px; font-size: 12px; color: #999;">Sent via PIVT Contact Form</p>
-          </div>
-        `,
-      }),
+    // Enqueue email via the managed email queue
+    const messageId = `contact-${crypto.randomUUID()}`;
+    const htmlBody = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px;">
+        <h2 style="color: #1a1a2e; margin-bottom: 16px;">New Support Request</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #555; width: 120px;">Name:</td>
+            <td style="padding: 8px 0;">${sanitizedName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #555;">Email:</td>
+            <td style="padding: 8px 0;"><a href="mailto:${sanitizedEmail}">${sanitizedEmail}</a></td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #555;">Submitted at:</td>
+            <td style="padding: 8px 0;">${submittedAt}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0; font-weight: bold; color: #555;">Source:</td>
+            <td style="padding: 8px 0;">Contact &amp; Support page</td>
+          </tr>
+        </table>
+        <div style="margin-top: 16px; padding: 16px; background: #f5f5f5; border-radius: 8px;">
+          <p style="margin: 0 0 4px; font-weight: bold; color: #555;">Message:</p>
+          <p style="margin: 0; color: #333; white-space: pre-wrap;">${sanitizedMessage}</p>
+        </div>
+        <p style="margin-top: 24px; font-size: 12px; color: #999;">Sent via PIVT Contact Form</p>
+      </div>
+    `;
+
+    const textBody = `Name: ${sanitizedName}\nEmail: ${sanitizedEmail}\nSubmitted at: ${submittedAt}\nSource: Contact & Support page\n\nMessage:\n${sanitizedMessage}`;
+
+    const { error: enqueueError } = await adminClient.rpc("enqueue_email", {
+      p_queue_name: "transactional_emails",
+      p_message_id: messageId,
+      p_to: "support@pivttech.ai",
+      p_subject: "New Support Request – PIVT",
+      p_html: htmlBody,
+      p_text: textBody,
+      p_reply_to: sanitizedEmail,
+      p_template_name: "contact-form",
     });
 
-    const resData = await res.json();
-
-    if (!res.ok) {
-      console.error("Resend API error:", JSON.stringify(resData));
+    if (enqueueError) {
+      console.error("Failed to enqueue email:", JSON.stringify(enqueueError));
       return new Response(
         JSON.stringify({ success: false, error: "Failed to send email" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Email sent successfully:", resData.id);
+    console.log(`Email enqueued successfully: ${messageId}`);
     return new Response(
       JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
