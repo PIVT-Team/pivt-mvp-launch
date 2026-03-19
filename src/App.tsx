@@ -31,6 +31,7 @@ const PrivacyPolicyPageLazy = lazy(() => import("./pages/PrivacyPolicyPage"));
 const TermsOfServicePageLazy = lazy(() => import("./pages/TermsOfServicePage"));
 const ContactSupportPageLazy = lazy(() => import("./pages/ContactSupportPage"));
 const DataSecurityPageLazy = lazy(() => import("./pages/DataSecurityPage"));
+const AcceptableUsePageLazy = lazy(() => import("./pages/AcceptableUsePage"));
 
 const queryClient = new QueryClient();
 
