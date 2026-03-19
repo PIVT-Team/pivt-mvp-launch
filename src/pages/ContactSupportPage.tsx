@@ -32,18 +32,29 @@ const policySections = [
 const ContactSupportPage: React.FC = () => {
   const { toast } = useToast();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [honeypot, setHoneypot] = useState('');
   const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return;
     setSending(true);
-    // Simulate send
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('contact-form', {
+        body: { name: form.name, email: form.email, message: form.message, _hp: honeypot },
+      });
+      if (error) throw error;
+      if (data && !data.success) {
+        toast({ title: 'Error', description: data.error || 'Something went wrong. Please try again or email support@pivttech.ai', variant: 'destructive' });
+      } else {
+        setForm({ name: '', email: '', message: '' });
+        toast({ title: 'Message sent', description: "We'll respond within 24–48 hours." });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Something went wrong. Please try again or email support@pivttech.ai', variant: 'destructive' });
+    } finally {
       setSending(false);
-      setForm({ name: '', email: '', message: '' });
-      toast({ title: 'Message sent', description: 'We\'ll get back to you within 24–48 hours.' });
-    }, 800);
+    }
   };
 
   return (
