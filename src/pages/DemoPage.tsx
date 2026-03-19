@@ -555,7 +555,7 @@ const DemoPage: React.FC = () => {
               size="lg"
               variant="outline"
               className="h-11 px-6 rounded-xl"
-              onClick={() => navigate('/login')}
+              onClick={() => setRequestAccessOpen(true)}
             >
               Request Access <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
