@@ -29,6 +29,8 @@ export type NewtonActionType =
   | 'execute_deal'
   | 'show_demo'
   | 'query_state'
+  | 'parse_funds_flow'
+  | 'run_discrepancy_check'
   | 'unsupported';
 
 export type NewtonIntentScope = 'global' | 'deal' | 'info';
@@ -82,6 +84,11 @@ const INTENT_PATTERNS: IntentPattern[] = [
   { pattern: /\bopen\s+(project|deal)\s+(\w[\w\s]*\w)/i, action: 'open_deal', scope: 'global' },
   // ── Deal Creation ──
   { pattern: /\b(create|new|start|set\s*up)\b.*\b(deal|transaction|project|closing)\b/i, action: 'create_deal', scope: 'global', requiresForm: true, formType: 'create_deal' },
+  // ── Funds Flow & Wire Parsing ──
+  { pattern: /\b(parse|analy[sz]e|process|review|check)\b.*\b(funds?\s*flow|wire\s*instruction|payment\s*schedule|disbursement)\b/i, action: 'parse_funds_flow', scope: 'deal' },
+  { pattern: /\b(upload|import)\b.*\b(funds?\s*flow|wire\s*instruction|wire\s*schedule|payment)\b/i, action: 'parse_funds_flow', scope: 'deal' },
+  { pattern: /\b(run|check|detect|find|identify)\b.*\b(discrepanc|mismatch|inconsistenc|reconcil)\b/i, action: 'run_discrepancy_check', scope: 'deal' },
+  { pattern: /\b(compare|cross.?check|validate)\b.*\b(wire|fund|payment|bank)\b/i, action: 'run_discrepancy_check', scope: 'deal' },
   // ── Portfolio ──
   { pattern: /\b(show|list|get|view)\b.*\b(all\s+)?(deals|transactions|projects)\b/i, action: 'list_deals', scope: 'global' },
   // ── Next Steps / Co-pilot ──
@@ -306,11 +313,21 @@ export async function executeListDeals(_userId?: string): Promise<NewtonActionRe
   return callNewtonAction('list_deals', {});
 }
 
+export async function executeParseFundsFlow(dealId: string): Promise<NewtonActionResult> {
+  return callNewtonAction('parse_funds_flow', { deal_id: dealId });
+}
+
+export async function executeRunDiscrepancyCheck(dealId: string): Promise<NewtonActionResult> {
+  return callNewtonAction('run_discrepancy_check', { deal_id: dealId });
+}
+
 export const SUPPORTED_ACTIONS_TEXT = `I can't complete that yet. I can help you with:
 - **Create a new deal**
 - **Show all deals** / **Open a deal by name**
 - **Import or parse stakeholders**
 - **Upload/review deal documents**
+- **Parse funds flow & wire instructions**
+- **Run wire discrepancy checks**
 - **Summarize readiness** / **List blockers**
 - **What should I do next?**
 - **Execute the deal** (checks readiness)

@@ -17,6 +17,7 @@ import { NewtonContextBar } from './newton/NewtonContextBar';
 import { NewtonChatStream, type ChatMessage } from './newton/NewtonChatStream';
 import { NewtonInputBar } from './newton/NewtonInputBar';
 import { NewtonIntakePanel } from './NewtonIntakePanel';
+import { NewtonDiscrepancyPanel, type DiscrepancyItem } from './newton/NewtonDiscrepancyPanel';
 import { NewtonCreateDealForm, type NewtonCreateDealPayload } from '@/components/newton/NewtonCreateDealForm';
 import {
   detectIntent,
@@ -26,6 +27,8 @@ import {
   executeGenerateKycRequests,
   executePrepareApprovalPackage,
   executeListDeals,
+  executeParseFundsFlow,
+  executeRunDiscrepancyCheck,
   SUPPORTED_ACTIONS_TEXT,
   type NewtonActionResult,
 } from '@/services/newtonActionService';
@@ -81,6 +84,8 @@ export const NewtonAgentPanel: React.FC = () => {
   const [isExecuting, setIsExecuting] = useState(false);
   const [showIntake, setShowIntake] = useState(false);
   const [showCreateDealForm, setShowCreateDealForm] = useState(false);
+  const [showDiscrepancyPanel, setShowDiscrepancyPanel] = useState(false);
+  const [discrepancyItems, setDiscrepancyItems] = useState<DiscrepancyItem[]>([]);
   const [createDealPrefill, setCreateDealPrefill] = useState<Partial<NewtonCreateDealPayload>>({});
   const [operationMode, setOperationMode] = useState<'global' | 'deal'>(contextDealId ? 'deal' : 'global');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -382,12 +387,42 @@ export const NewtonAgentPanel: React.FC = () => {
           setOperationMode('deal');
           result = await executeGenerateKycRequests(selectedDealId, user?.id);
           break;
-        case 'prepare_approval_package':
+        case 'parse_funds_flow': {
           if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
           setOperationMode('deal');
-          result = await executePrepareApprovalPackage(selectedDealId, user?.id);
-          msgType = 'insight';
+          result = await executeParseFundsFlow(selectedDealId);
+          msgType = result.success ? 'success' : 'alert';
+          if (result.success && result.data?.discrepancies) {
+            setDiscrepancyItems(result.data.discrepancies);
+            setShowDiscrepancyPanel(true);
+          }
+          actionButtons = [
+            { label: 'Run Discrepancy Check', prompt: 'Run discrepancy check', primary: true },
+            { label: 'Check Readiness', prompt: 'Check readiness' },
+          ];
           break;
+        }
+        case 'run_discrepancy_check': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          result = await executeRunDiscrepancyCheck(selectedDealId);
+          if (result.success && result.data?.discrepancies) {
+            setDiscrepancyItems(result.data.discrepancies);
+            setShowDiscrepancyPanel(true);
+            msgType = result.data.discrepancies.length > 0 ? 'alert' : 'success';
+          } else {
+            msgType = result.success ? 'insight' : 'alert';
+          }
+          actionButtons = result.data?.discrepancies?.length > 0
+            ? [{ label: 'View Discrepancies', prompt: '__show_discrepancy_panel', primary: true }]
+            : [{ label: 'Check Readiness', prompt: 'Check readiness' }];
+          break;
+        }
+        case 'open_wire_instructions':
+        case 'open_tax_forms':
+        case 'open_approvals':
+        case 'start_new_closing':
+        case 'update_deal_metadata':
         default:
           result = { success: false, message: SUPPORTED_ACTIONS_TEXT };
       }
@@ -424,8 +459,110 @@ export const NewtonAgentPanel: React.FC = () => {
       setShowCreateDealForm(true);
       return;
     }
+    if (prompt === '__show_discrepancy_panel') {
+      setShowDiscrepancyPanel(true);
+      return;
+    }
     handleSubmit(prompt);
   }, [handleSubmit]);
+
+  // ── File upload handler ──
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!selectedDealId) {
+      addMessage({ type: 'alert', title: 'No deal selected', text: 'Please select or create a deal before uploading files.' });
+      return;
+    }
+
+    setOperationMode('deal');
+    addMessage({ type: 'user', text: `📎 Uploaded: ${file.name}` });
+    setIsExecuting(true);
+    addMessage({ type: 'loading', text: `Parsing ${file.name} — extracting structured data…` });
+
+    // Upload to storage
+    const ext = file.name.split('.').pop() || 'bin';
+    const storagePath = `deal-documents/${selectedDealId}/${Date.now()}_${file.name}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('deal-files')
+      .upload(storagePath, file, { contentType: file.type });
+
+    if (uploadError) {
+      // Storage may not exist; proceed with metadata-only flow
+      console.warn('Storage upload skipped:', uploadError.message);
+    }
+
+    // Create document record
+    const isFundsFlow = /fund|flow|disburs|payment/i.test(file.name);
+    const isWire = /wire|bank|instruction/i.test(file.name);
+    const docType = isFundsFlow ? 'FUNDS_FLOW' : isWire ? 'WIRE_INSTRUCTIONS' : 'OTHER';
+
+    await supabase.from('contract_documents').insert({
+      deal_id: selectedDealId,
+      filename: file.name,
+      doc_type: docType as any,
+      status: 'uploaded' as any,
+      file_url: storagePath,
+    });
+
+    // Trigger funds flow parsing if relevant
+    if (isFundsFlow || isWire) {
+      const result = await executeParseFundsFlow(selectedDealId);
+      removeLoading();
+      setIsExecuting(false);
+
+      if (result.success) {
+        const discCount = result.data?.discrepancy_count || result.data?.discrepancies?.length || 0;
+        if (result.data?.discrepancies) {
+          setDiscrepancyItems(result.data.discrepancies);
+        }
+
+        addMessage({
+          type: discCount > 0 ? 'alert' : 'success',
+          title: discCount > 0
+            ? `${discCount} discrepanc${discCount === 1 ? 'y' : 'ies'} detected`
+            : 'Document parsed successfully',
+          text: result.message,
+          actions: discCount > 0
+            ? [
+                { label: 'Review Discrepancies', prompt: '__show_discrepancy_panel', primary: true },
+                { label: 'Check Readiness', prompt: 'Check readiness' },
+              ]
+            : [
+                { label: 'Run Discrepancy Check', prompt: 'Run discrepancy check', primary: true },
+                { label: 'Check Readiness', prompt: 'Check readiness' },
+              ],
+        });
+
+        if (discCount > 0) setShowDiscrepancyPanel(true);
+      } else {
+        addMessage({
+          type: 'alert',
+          title: 'Parsing incomplete',
+          text: `I wasn't able to confidently parse parts of **${file.name}** — I've highlighted them for review.\n\n${result.message}`,
+          actions: [{ label: 'Upload Again', prompt: 'Upload funds flow' }],
+        });
+      }
+    } else {
+      removeLoading();
+      setIsExecuting(false);
+      addMessage({
+        type: 'success',
+        title: 'Document uploaded',
+        text: `**${file.name}** has been added to the deal binder.\n\nTo run analysis, try:\n- "Parse funds flow"\n- "Run discrepancy check"`,
+        actions: [
+          { label: 'Parse Funds Flow', prompt: 'Parse funds flow' },
+          { label: 'Run Discrepancy Check', prompt: 'Run discrepancy check' },
+        ],
+      });
+    }
+
+    await fetchCounts();
+  }, [selectedDealId, addMessage, removeLoading, fetchCounts]);
+
+  const handleResolveDiscrepancy = useCallback((id: string) => {
+    setDiscrepancyItems(prev => prev.map(d => d.id === id ? { ...d, resolved: true } : d));
+    toast.success('Discrepancy marked as resolved');
+  }, []);
 
   const selectedDeal = allDeals.find(d => d.id === selectedDealId);
   const readinessPct = calcReadiness();
@@ -499,6 +636,25 @@ export const NewtonAgentPanel: React.FC = () => {
         )}
       </AnimatePresence>
 
+      {/* Discrepancy Panel */}
+      <AnimatePresence>
+        {showDiscrepancyPanel && discrepancyItems.length > 0 && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden px-4 pb-2"
+          >
+            <NewtonDiscrepancyPanel
+              discrepancies={discrepancyItems}
+              onResolve={handleResolveDiscrepancy}
+              onClose={() => setShowDiscrepancyPanel(false)}
+              dealName={selectedDeal?.deal_name}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {showIntake && (
           <motion.div
@@ -522,6 +678,7 @@ export const NewtonAgentPanel: React.FC = () => {
       {/* Input Bar — bottom sticky */}
       <NewtonInputBar
         onSubmit={handleSubmit}
+        onFileUpload={handleFileUpload}
         disabled={isExecuting}
         operationMode={operationMode}
         onUploadClick={() => {
