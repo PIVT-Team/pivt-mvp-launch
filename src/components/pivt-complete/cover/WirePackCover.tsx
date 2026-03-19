@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fadeInUp } from '@/lib/animations';
+import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 import {
   ShieldCheck, AlertTriangle, FileText, Download, CheckCircle2,
   Clock, XCircle, Loader2, RefreshCw, FileJson, FileSpreadsheet,
