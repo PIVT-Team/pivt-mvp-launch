@@ -1,6 +1,6 @@
 /**
  * Newton Chat Stream — Card-based message display.
- * Message types: user, response, success, insight, alert
+ * Message types: user, response, success, insight, alert, wirepack_success
  */
 import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +11,7 @@ import {
   CheckCircle2, AlertTriangle, Sparkles, ArrowRight, Loader2, Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 
 export interface ChatMessage {
   id: string;
