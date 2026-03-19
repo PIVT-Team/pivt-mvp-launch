@@ -32,6 +32,7 @@ const TermsOfServicePageLazy = lazy(() => import("./pages/TermsOfServicePage"));
 const ContactSupportPageLazy = lazy(() => import("./pages/ContactSupportPage"));
 const DataSecurityPageLazy = lazy(() => import("./pages/DataSecurityPage"));
 const AcceptableUsePageLazy = lazy(() => import("./pages/AcceptableUsePage"));
+const DemoPageLazy = lazy(() => import("./pages/DemoPage"));
 
 // Admin pages
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
@@ -79,6 +80,7 @@ const App = () => (
               <Route path="/contact" element={<ContactSupportPageLazy />} />
               <Route path="/security" element={<DataSecurityPageLazy />} />
               <Route path="/acceptable-use" element={<AcceptableUsePageLazy />} />
+              <Route path="/demo" element={<DemoPageLazy />} />
               <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
