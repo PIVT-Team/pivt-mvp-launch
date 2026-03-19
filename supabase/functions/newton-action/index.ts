@@ -259,6 +259,178 @@ Deno.serve(async (req) => {
         return json({ success: true, message: `**Your Deals (${deals.length}):**\n\n| Name | Matter ID | Value | Status |\n|---|---|---|---|\n${rows}` });
       }
 
+      case "open_deal": {
+        const searchName = (params?.deal_name || "").toLowerCase().trim();
+        if (!searchName) return json({ success: false, error: "Please specify a deal name." }, 400);
+
+        const { data: deals } = await admin.from("deals")
+          .select("id, deal_name, deal_number, deal_state, status")
+          .is("deleted_at", null)
+          .ilike("deal_name", `%${searchName}%`)
+          .limit(5);
+
+        if (!deals || deals.length === 0) {
+          return json({ success: false, error: `No deal found matching "${params.deal_name}".` });
+        }
+
+        const best = deals[0];
+        return json({
+          success: true, deal_id: best.id,
+          message: `Opened **${best.deal_name}** (${best.deal_number}). Status: ${best.status}.`,
+        });
+      }
+
+      case "next_steps": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+
+        const [stakRes, docsRes, wiresRes, apprRes, discRes] = await Promise.all([
+          admin.from("cap_table_entries").select("verification_status").eq("deal_id", dealId),
+          admin.from("contract_documents").select("status").eq("deal_id", dealId),
+          admin.from("wire_instructions").select("verification_status").eq("deal_id", dealId),
+          admin.from("deal_approvals").select("status").eq("deal_id", dealId),
+          admin.from("discrepancies").select("severity, status").eq("deal_id", dealId).neq("status", "resolved"),
+        ]);
+
+        const stak = stakRes.data || []; const docs = docsRes.data || [];
+        const wires = wiresRes.data || []; const apprs = apprRes.data || [];
+        const discs = discRes.data || [];
+        const steps: string[] = [];
+
+        if (stak.length === 0) steps.push("📋 **Import stakeholders** — Upload a cap table or stakeholder list");
+        else if (stak.some((s: any) => s.verification_status !== "verified")) steps.push(`🔐 **Verify stakeholders** — ${stak.filter((s: any) => s.verification_status !== "verified").length} pending KYC/KYB`);
+
+        if (docs.length === 0) steps.push("📄 **Upload documents** — Add deal agreements and contracts");
+        else if (docs.some((d: any) => d.status !== "verified")) steps.push(`📝 **Review documents** — ${docs.filter((d: any) => d.status !== "verified").length} need review`);
+
+        if (wires.length === 0) steps.push("🏦 **Add wire instructions** — Upload or enter banking details");
+        else if (wires.some((w: any) => w.verification_status === "pending")) steps.push(`💸 **Verify wires** — ${wires.filter((w: any) => w.verification_status === "pending").length} pending verification`);
+
+        if (discs.length > 0) {
+          const critical = discs.filter((d: any) => d.severity === "critical").length;
+          steps.push(`⚠️ **Resolve discrepancies** — ${discs.length} open (${critical} critical)`);
+        }
+
+        if (apprs.length === 0 && stak.length > 0) steps.push("✍️ **Prepare approval package** — Generate sign-off requests");
+        else if (apprs.some((a: any) => a.status === "pending")) steps.push(`📨 **Track approvals** — ${apprs.filter((a: any) => a.status === "pending").length} pending`);
+
+        if (steps.length === 0) steps.push("✅ **All clear** — Deal appears ready to execute");
+
+        return json({
+          success: true,
+          message: `**Recommended Next Steps:**\n\n${steps.slice(0, 4).join("\n\n")}`,
+        });
+      }
+
+      case "execute_deal": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+
+        const [condRes, appRes, discRes, stakRes, dealRes] = await Promise.all([
+          admin.from("conditions").select("title, status").eq("deal_id", dealId).not("status", "in", '("MET","SATISFIED","WAIVED")'),
+          admin.from("deal_approvals").select("status").eq("deal_id", dealId).not("status", "in", '("approved","completed")'),
+          admin.from("discrepancies").select("severity").eq("deal_id", dealId).neq("status", "resolved").eq("severity", "critical"),
+          admin.from("cap_table_entries").select("verification_status").eq("deal_id", dealId).neq("verification_status", "verified"),
+          admin.from("deals").select("deal_name, deal_state").eq("id", dealId).single(),
+        ]);
+
+        const unmetConditions = condRes.data || [];
+        const pendingApprovals = appRes.data || [];
+        const criticalDiscs = discRes.data || [];
+        const unverifiedStak = stakRes.data || [];
+
+        const blockers: string[] = [];
+        if (criticalDiscs.length > 0) blockers.push(`🔴 **${criticalDiscs.length} critical discrepancies** must be resolved`);
+        if (unmetConditions.length > 0) blockers.push(`🟠 **${unmetConditions.length} conditions** not yet met`);
+        if (pendingApprovals.length > 0) blockers.push(`🟡 **${pendingApprovals.length} approvals** still pending`);
+        if (unverifiedStak.length > 0) blockers.push(`🟡 **${unverifiedStak.length} stakeholders** not yet verified`);
+
+        if (blockers.length === 0) {
+          return json({
+            success: true,
+            message: `✅ **${dealRes.data?.deal_name || "Deal"} is ready to execute.**\n\nAll conditions met, approvals completed, and no critical issues. You may proceed with execution.`,
+          });
+        }
+
+        return json({
+          success: true,
+          message: `⚠️ **Cannot execute yet.** ${blockers.length} blocker${blockers.length > 1 ? "s" : ""} must be resolved:\n\n${blockers.join("\n")}\n\nResolve these items before proceeding with execution.`,
+        });
+      }
+
+      case "query_state": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+
+        const [stakRes, docsRes, wiresRes, apprRes, discRes] = await Promise.all([
+          admin.from("cap_table_entries").select("verification_status").eq("deal_id", dealId),
+          admin.from("contract_documents").select("status").eq("deal_id", dealId),
+          admin.from("wire_instructions").select("verification_status").eq("deal_id", dealId),
+          admin.from("deal_approvals").select("status").eq("deal_id", dealId),
+          admin.from("discrepancies").select("status").eq("deal_id", dealId),
+        ]);
+
+        const stak = stakRes.data || []; const docs = docsRes.data || [];
+        const wires = wiresRes.data || []; const apprs = apprRes.data || [];
+        const discs = discRes.data || [];
+
+        return json({
+          success: true,
+          message:
+            `**Deal State Summary:**\n\n` +
+            `| Category | Total | Verified/Complete |\n|---|---|---|\n` +
+            `| Stakeholders | ${stak.length} | ${stak.filter((s: any) => s.verification_status === "verified").length} verified |\n` +
+            `| Documents | ${docs.length} | ${docs.filter((d: any) => d.status === "verified").length} verified |\n` +
+            `| Wire Instructions | ${wires.length} | ${wires.filter((w: any) => w.verification_status === "verified").length} verified |\n` +
+            `| Approvals | ${apprs.length} | ${apprs.filter((a: any) => ["approved", "completed"].includes(a.status)).length} completed |\n` +
+            `| Discrepancies | ${discs.length} | ${discs.filter((d: any) => d.status === "resolved").length} resolved |`,
+        });
+      }
+
+      case "show_demo": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+
+        const [dealRes, stakRes, docsRes, condRes] = await Promise.all([
+          admin.from("deals").select("*").eq("id", dealId).single(),
+          admin.from("cap_table_entries").select("shareholder_name, ownership_pct, verification_status").eq("deal_id", dealId).limit(5),
+          admin.from("contract_documents").select("filename, status").eq("deal_id", dealId).limit(5),
+          admin.from("conditions").select("title, status").eq("deal_id", dealId),
+        ]);
+
+        const deal = dealRes.data;
+        if (!deal) return json({ success: false, error: "Deal not found" }, 404);
+
+        const stak = stakRes.data || [];
+        const docs = docsRes.data || [];
+        const conds = condRes.data || [];
+
+        const stakPreview = stak.length > 0
+          ? stak.map((s: any) => `  - ${s.shareholder_name} (${s.ownership_pct}%) — ${s.verification_status}`).join("\n")
+          : "  _No stakeholders imported yet_";
+
+        const docsPreview = docs.length > 0
+          ? docs.map((d: any) => `  - ${d.filename} — ${d.status}`).join("\n")
+          : "  _No documents uploaded yet_";
+
+        const condPreview = conds.length > 0
+          ? conds.map((c: any) => `  - ${c.title}: ${c.status}`).join("\n")
+          : "  _No conditions set_";
+
+        return json({
+          success: true,
+          message:
+            `**Deal Walkthrough — ${deal.deal_name}**\n\n` +
+            `**Overview:** $${((deal as any).deal_value / 1e6).toFixed(1)}M ${deal.deal_type || "deal"}\n` +
+            `Buyer: ${deal.buyer || "TBD"} | Seller: ${deal.seller || "TBD"}\n` +
+            `Status: ${deal.status} | Close: ${deal.closing_date || "TBD"}\n\n` +
+            `**📋 Stakeholders:**\n${stakPreview}\n\n` +
+            `**📄 Documents:**\n${docsPreview}\n\n` +
+            `**✅ Conditions:**\n${condPreview}\n\n` +
+            `---\n_Use the action buttons below to dive deeper into any area._`,
+        });
+      }
+
       default:
         return json({ success: false, error: `Unknown action: ${action}` }, 400);
     }
