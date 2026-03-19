@@ -147,21 +147,32 @@ function normalizeDateInput(value?: string): string | undefined {
 export function parseCreateDealPrefill(message: string): Partial<NewtonCreateDealParams> {
   const parsed: Partial<NewtonCreateDealParams> = {};
 
+  // Enhanced: "$45M acquisition of Acme Corp by Nova Holdings"
+  const acquisitionMatch = message.match(/(?:acquisition|purchase|buyout|takeover)\s+(?:of\s+)?[""]?([^""]+?)[""]?\s+by\s+[""]?([^""]+?)[""]?(?=\s+(?:closing|close|worth|valued|for|\$)|$)/i);
+  if (acquisitionMatch) {
+    parsed.target_company = cleanCapture(acquisitionMatch[1]);
+    parsed.buyer = cleanCapture(acquisitionMatch[2]);
+  }
+
   const nameMatch =
     message.match(/(?:called|named)\s+[""]?([^"\n,]+?)[""]?(?=(?:\s+(?:for|with|buyer|seller|target|acquiring|close|closing|deal\s*size|deal\s*value|worth|matter|owner|jurisdiction)\b|$))/i)
     || message.match(/create(?:\s+a|\s+new)?\s+(?:deal|transaction|project)\s+[""]?([^"\n,]+?)[""]?(?=(?:\s+(?:for|with|buyer|seller|target|acquiring|close|closing|deal\s*size|deal\s*value|worth|matter|owner|jurisdiction)\b|$))/i);
 
-  const buyerMatch = message.match(/(?:for\s+buyer|buyer)\s+([^,\n]+?)(?=(?:\s+(?:acquiring|acquire|seller|target|close|closing|deal\s*size|deal\s*value|worth|matter|owner|jurisdiction)\b|$))/i);
+  const buyerMatch = !parsed.buyer ? message.match(/(?:for\s+buyer|buyer)\s+([^,\n]+?)(?=(?:\s+(?:acquiring|acquire|seller|target|close|closing|deal\s*size|deal\s*value|worth|matter|owner|jurisdiction)\b|$))/i) : null;
   const sellerMatch = message.match(/seller\s+([^,\n]+?)(?=(?:\s+(?:target|close|closing|deal\s*size|deal\s*value|worth|matter|owner|jurisdiction)\b|$))/i);
-  const targetMatch = message.match(/(?:acquiring|acquire|target(?:\s+company)?|targeting)\s+([^,\n]+?)(?=(?:\s+(?:seller|close|closing|deal\s*size|deal\s*value|worth|matter|owner|jurisdiction)\b|$))/i);
-  const closeMatch = message.match(/(?:target\s*close|target\s*closing|closing\s*date|close|closing)\s*(?:on\s*)?([a-zA-Z]+\s+\d{1,2}(?:,\s*\d{4})?|\d{4}-\d{2}-\d{2})/i);
-  const valueMatch = message.match(/(?:deal\s*size|deal\s*value|valued\s*at|worth|for)\s*\$?\s*([\d,.]+(?:\.\d+)?)\s*(billion|bn|b|million|mn|m)?/i);
+  const targetMatch = !parsed.target_company ? message.match(/(?:acquiring|acquire|target(?:\s+company)?|targeting)\s+([^,\n]+?)(?=(?:\s+(?:seller|close|closing|deal\s*size|deal\s*value|worth|matter|owner|jurisdiction)\b|$))/i) : null;
+  const closeMatch = message.match(/(?:target\s*close|target\s*closing|closing\s*date|close|closing)\s*(?:on\s*)?([a-zA-Z]+\s+\d{1,2}(?:,?\s*\d{4})?|\d{4}-\d{2}-\d{2})/i);
+  // Enhanced: "$45M" anywhere
+  const valueMatch = message.match(/\$\s*([\d,.]+(?:\.\d+)?)\s*(billion|bn|b|million|mn|m)?/i)
+    || message.match(/(?:deal\s*size|deal\s*value|valued\s*at|worth|for)\s*\$?\s*([\d,.]+(?:\.\d+)?)\s*(billion|bn|b|million|mn|m)?/i);
   const jurisdictionMatch = message.match(/jurisdiction\s*[:\-]?\s*([a-zA-Z][a-zA-Z\s-]{1,40})/i);
+  // Enhanced: detect deal type from keywords
+  const typeMatch = message.match(/\b(acquisition|merger|buyout|leveraged\s*buyout|growth\s*equity|asset\s*acquisition)\b/i);
 
   const name = cleanCapture(nameMatch?.[1]);
-  const buyer = cleanCapture(buyerMatch?.[1]);
+  const buyer = parsed.buyer || cleanCapture(buyerMatch?.[1]);
   const seller = cleanCapture(sellerMatch?.[1]);
-  const target = cleanCapture(targetMatch?.[1]);
+  const target = parsed.target_company || cleanCapture(targetMatch?.[1]);
   const closeDate = normalizeDateInput(closeMatch?.[1]);
   const dealValue = valueMatch ? parseScaledNumber(valueMatch[1], valueMatch[2]) : undefined;
   const jurisdiction = cleanCapture(jurisdictionMatch?.[1]);
@@ -173,6 +184,16 @@ export function parseCreateDealPrefill(message: string): Partial<NewtonCreateDea
   if (closeDate) parsed.closing_date = closeDate;
   if (dealValue != null) parsed.deal_value = dealValue;
   if (jurisdiction) parsed.jurisdiction = jurisdiction;
+
+  // Auto-detect deal type
+  if (typeMatch && !parsed.deal_type) {
+    const t = typeMatch[1].toLowerCase();
+    if (t.includes('merger')) parsed.deal_type = 'Merger';
+    else if (t.includes('leveraged') || t.includes('buyout')) parsed.deal_type = 'Leveraged Buyout';
+    else if (t.includes('growth')) parsed.deal_type = 'Growth Equity';
+    else if (t.includes('asset')) parsed.deal_type = 'Asset Acquisition';
+    else parsed.deal_type = 'Private Equity Acquisition';
+  }
 
   return parsed;
 }
