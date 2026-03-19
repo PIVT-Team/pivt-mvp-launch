@@ -97,9 +97,9 @@ const navigateToSection = (step: string, sub?: string) => {
 /* ── Component ── */
 
 export const ExecutionPrepCover: React.FC = () => {
-  const { dealId } = useDealWorkspace();
-  const { metrics, loading: metricsLoading } = useDealMetrics(dealId || undefined);
+  const { dealId, metrics, metricsLoading, workflow } = useDealWorkspace();
   const { toast } = useToast();
+  const loading = metricsLoading;
 
   const [pack, setPack] = useState<WirePack | null>(null);
   const [generating, setGenerating] = useState(false);
