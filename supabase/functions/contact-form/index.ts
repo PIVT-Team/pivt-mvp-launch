@@ -144,14 +144,16 @@ serve(async (req) => {
     const textBody = `Name: ${sanitizedName}\nEmail: ${sanitizedEmail}\nSubmitted at: ${submittedAt}\nSource: Contact & Support page\n\nMessage:\n${sanitizedMessage}`;
 
     const { error: enqueueError } = await adminClient.rpc("enqueue_email", {
-      p_queue_name: "transactional_emails",
-      p_message_id: messageId,
-      p_to: "support@pivttech.ai",
-      p_subject: "New Support Request – PIVT",
-      p_html: htmlBody,
-      p_text: textBody,
-      p_reply_to: sanitizedEmail,
-      p_template_name: "contact-form",
+      queue_name: "transactional_emails",
+      payload: {
+        message_id: messageId,
+        to: "support@pivttech.ai",
+        subject: "New Support Request – PIVT",
+        html: htmlBody,
+        text: textBody,
+        reply_to: sanitizedEmail,
+        template_name: "contact-form",
+      },
     });
 
     if (enqueueError) {
