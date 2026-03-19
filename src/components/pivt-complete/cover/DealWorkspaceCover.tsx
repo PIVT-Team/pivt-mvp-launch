@@ -568,6 +568,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
     case 'approvals':
       return ApprovalsWorkflowCover;
     case 'execution':
+      if (subNavId === 'prep') return ExecutionPrepCover;
       if (subNavId === 'closing') return ClosingCenterCover;
       if (subNavId === 'wire-pack') return WirePackCover;
       if (subNavId === 'intents') return PaymentsCover;
@@ -575,7 +576,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
       if (subNavId === 'authority') return ExecutionAuthorityPanel;
-      return ClosingCenterCover;
+      return ExecutionPrepCover;
     case 'compliance':
       if (subNavId === 'reports') return DealReportsCover;
       if (subNavId === 'activity') return DealActivityCover;
