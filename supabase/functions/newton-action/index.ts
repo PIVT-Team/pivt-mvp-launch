@@ -431,6 +431,216 @@ Deno.serve(async (req) => {
         });
       }
 
+      case "parse_funds_flow": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+
+        // Fetch wires & deal for analysis
+        const [dealRes, wiresRes, capRes] = await Promise.all([
+          admin.from("deals").select("id, deal_name, deal_value, currency, escrow_amount").eq("id", dealId).single(),
+          admin.from("wire_instructions").select("*").eq("deal_id", dealId),
+          admin.from("cap_table_entries").select("id, shareholder_name, net_payout, payout_amount, escrow_holdback, role").eq("deal_id", dealId),
+        ]);
+
+        const deal = dealRes.data;
+        if (!deal) return json({ success: false, error: "Deal not found" }, 404);
+
+        const wires = (wiresRes.data || []) as any[];
+        const capTable = (capRes.data || []) as any[];
+
+        if (wires.length === 0) {
+          return json({
+            success: true,
+            message: `No wire instructions found for **${deal.deal_name}**.\n\nUpload a funds flow memo or wire instruction document, and I'll parse it automatically.`,
+            discrepancies: [],
+            discrepancy_count: 0,
+          });
+        }
+
+        // Run deterministic validations inline
+        const findings: any[] = [];
+
+        // Wire total vs deal value
+        const totalWires = wires.reduce((s: number, w: any) => s + Number(w.amount), 0);
+        const dealValue = Number(deal.deal_value);
+        if (dealValue > 0) {
+          const variance = totalWires - dealValue;
+          const variancePct = Math.abs(variance / dealValue) * 100;
+          if (totalWires > dealValue) {
+            findings.push({
+              id: `ff-total-exceeds-${dealId.slice(0, 8)}`,
+              rule_key: "wire_total_exceeds_deal",
+              severity: "critical",
+              category: "reconciliation",
+              title: "Wire total exceeds deal value",
+              description: `Total wires ($${totalWires.toLocaleString()}) exceed deal value ($${dealValue.toLocaleString()}) by $${Math.abs(variance).toLocaleString()} (${variancePct.toFixed(1)}%).`,
+              expected_value: `≤ $${dealValue.toLocaleString()}`,
+              actual_value: `$${totalWires.toLocaleString()}`,
+              recommendation: "Review wire instruction amounts. Total disbursements must not exceed the purchase price.",
+              affected_entities: wires.map((w: any) => ({ type: "wire", id: w.id, label: `${w.payee_entity}: $${Number(w.amount).toLocaleString()}` })),
+            });
+          } else if (variancePct > 1 && variance < 0) {
+            findings.push({
+              id: `ff-shortfall-${dealId.slice(0, 8)}`,
+              rule_key: "wire_total_shortfall",
+              severity: "high",
+              category: "reconciliation",
+              title: "Wire total below deal value",
+              description: `Total wires ($${totalWires.toLocaleString()}) are $${Math.abs(variance).toLocaleString()} below deal value. May indicate missing allocations.`,
+              expected_value: `~$${dealValue.toLocaleString()}`,
+              actual_value: `$${totalWires.toLocaleString()}`,
+              recommendation: "Verify all payout recipients are accounted for.",
+              affected_entities: [{ type: "deal", id: dealId, label: deal.deal_name }],
+            });
+          }
+        }
+
+        // Duplicate payees
+        const seen = new Map<string, any[]>();
+        for (const w of wires) {
+          const key = `${(w.payee_entity || "").toLowerCase().trim()}|${Number(w.amount)}`;
+          if (!seen.has(key)) seen.set(key, []);
+          seen.get(key)!.push(w);
+        }
+        for (const [, group] of seen) {
+          if (group.length > 1) {
+            findings.push({
+              id: `ff-dup-${group[0].id.slice(0, 8)}`,
+              rule_key: "duplicate_payee",
+              severity: "high",
+              category: "consistency",
+              title: `Duplicate wire: ${group[0].payee_entity}`,
+              description: `${group.length} identical wires for "${group[0].payee_entity}" at $${Number(group[0].amount).toLocaleString()}.`,
+              expected_value: "1 wire per payee-amount",
+              actual_value: `${group.length} duplicates`,
+              recommendation: "Remove duplicate wire instructions.",
+              affected_entities: group.map((w: any) => ({ type: "wire", id: w.id, label: w.payee_entity })),
+            });
+          }
+        }
+
+        // Missing fields
+        for (const w of wires) {
+          const missing: string[] = [];
+          if (!w.bank_name) missing.push("bank name");
+          if (!w.routing_number && !w.swift_bic && !w.iban) missing.push("routing/SWIFT/IBAN");
+          if (!w.account_number_last4 && !w.iban) missing.push("account number");
+          if (missing.length > 0) {
+            findings.push({
+              id: `ff-incomplete-${w.id.slice(0, 8)}`,
+              rule_key: "missing_wire_fields",
+              severity: "medium",
+              category: "completeness",
+              title: `Incomplete wire: ${w.payee_entity}`,
+              description: `Missing: ${missing.join(", ")}`,
+              recommendation: `Complete banking details for ${w.payee_entity}.`,
+              affected_entities: [{ type: "wire", id: w.id, label: w.payee_entity }],
+            });
+          }
+        }
+
+        // Cap table vs wires
+        const wireByPayee = new Map<string, number>();
+        for (const w of wires) {
+          const key = (w.payee_entity || "").toLowerCase().trim();
+          wireByPayee.set(key, (wireByPayee.get(key) || 0) + Number(w.amount));
+        }
+        for (const entry of capTable) {
+          const netPayout = Number(entry.net_payout ?? entry.payout_amount);
+          if (netPayout <= 0) continue;
+          const key = entry.shareholder_name.toLowerCase().trim();
+          const wireAmount = wireByPayee.get(key);
+          if (wireAmount === undefined) {
+            findings.push({
+              id: `ff-nowire-${entry.id.slice(0, 8)}`,
+              rule_key: "missing_wire_for_stakeholder",
+              severity: "high",
+              category: "completeness",
+              title: `No wire for ${entry.shareholder_name}`,
+              description: `Cap table shows $${netPayout.toLocaleString()} payout but no matching wire instruction.`,
+              expected_value: `Wire for $${netPayout.toLocaleString()}`,
+              actual_value: "No wire found",
+              recommendation: `Add wire instructions for ${entry.shareholder_name}.`,
+              affected_entities: [{ type: "stakeholder", id: entry.id, label: entry.shareholder_name }],
+            });
+          } else if (Math.abs(wireAmount - netPayout) / netPayout > 0.001) {
+            findings.push({
+              id: `ff-mismatch-${entry.id.slice(0, 8)}`,
+              rule_key: "cap_table_wire_mismatch",
+              severity: "high",
+              category: "reconciliation",
+              title: `Wire/payout mismatch: ${entry.shareholder_name}`,
+              description: `Wire $${wireAmount.toLocaleString()} vs cap table $${netPayout.toLocaleString()}.`,
+              expected_value: `$${netPayout.toLocaleString()}`,
+              actual_value: `$${wireAmount.toLocaleString()}`,
+              recommendation: `Reconcile wire amount with cap table for ${entry.shareholder_name}.`,
+              affected_entities: [{ type: "stakeholder", id: entry.id, label: entry.shareholder_name }],
+            });
+          }
+        }
+
+        // Build summary
+        const critical = findings.filter(f => f.severity === "critical").length;
+        const high = findings.filter(f => f.severity === "high").length;
+
+        await admin.from("audit_log").insert({
+          deal_id: dealId, user_id: userId,
+          action: `Newton analyzed funds flow: ${findings.length} findings (${critical} critical)`,
+          details: { source: "newton", finding_count: findings.length },
+        });
+
+        const summary = findings.length === 0
+          ? `✅ **Funds flow analysis complete** — ${wires.length} wire instructions reconcile cleanly against deal value ($${dealValue.toLocaleString()}).`
+          : `⚠️ **${findings.length} discrepanc${findings.length === 1 ? "y" : "ies"} detected** in wire instructions.\n\n` +
+            `- 🔴 ${critical} critical\n- 🟠 ${high} high\n- 🟡 ${findings.length - critical - high} medium/low\n\n` +
+            `**Top issues:**\n${findings.slice(0, 3).map(f => `- ${f.title}`).join("\n")}`;
+
+        return json({
+          success: true,
+          message: summary,
+          discrepancies: findings,
+          discrepancy_count: findings.length,
+          wire_count: wires.length,
+        });
+      }
+
+      case "run_discrepancy_check": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+
+        // Fetch existing discrepancies from the database
+        const { data: discrepancies } = await admin
+          .from("discrepancies")
+          .select("id, rule_key, severity, message, details, status, object_type, object_id")
+          .eq("deal_id", dealId)
+          .neq("status", "resolved");
+
+        const discs = (discrepancies || []).map((d: any) => ({
+          id: d.id,
+          rule_key: d.rule_key,
+          severity: d.severity === "blocker" ? "critical" : d.severity,
+          category: d.object_type || "deal",
+          title: d.message.split(":")[0] || d.message,
+          description: d.message,
+          recommendation: (d.details as any)?.recommendation || "Review and resolve this discrepancy.",
+          affected_entities: [{ type: d.object_type, id: d.object_id, label: d.object_type }],
+          expected_value: (d.details as any)?.expected || undefined,
+          actual_value: (d.details as any)?.actual || undefined,
+        }));
+
+        const critical = discs.filter((d: any) => d.severity === "critical").length;
+
+        return json({
+          success: true,
+          message: discs.length === 0
+            ? "✅ **No discrepancies detected.** All validation checks passed."
+            : `⚠️ **${discs.length} discrepanc${discs.length === 1 ? "y" : "ies"} found** (${critical} critical).\n\n` +
+              discs.slice(0, 5).map((d: any) => `- **${d.severity.toUpperCase()}:** ${d.description}`).join("\n"),
+          discrepancies: discs,
+          discrepancy_count: discs.length,
+        });
+      }
+
       default:
         return json({ success: false, error: `Unknown action: ${action}` }, 400);
     }
