@@ -77,22 +77,45 @@ type IntentPattern = {
 // ─── Intent Detection (client-side, fast) ───────────────────────
 
 const INTENT_PATTERNS: IntentPattern[] = [
-  { pattern: /\b(create|new|start|set\s*up|open)\b.*\b(deal|transaction|project|closing)\b/i, action: 'create_deal', scope: 'global', requiresForm: true, formType: 'create_deal' },
+  // ── Navigation / Deal Opening ──
+  { pattern: /\b(open|go\s*to|switch\s*to|navigate\s*to|show\s*me)\b\s+(?:deal\s+)?(?:[""]([^""]+)[""]|([A-Z][a-zA-Z\s]+(?:Holdings|Corp|Capital|Partners|Group|Inc|LLC|Ltd|Deal|Project|Fund)?))\b/i, action: 'open_deal', scope: 'global' },
+  { pattern: /\bopen\s+(project|deal)\s+(\w[\w\s]*\w)/i, action: 'open_deal', scope: 'global' },
+  // ── Deal Creation ──
+  { pattern: /\b(create|new|start|set\s*up)\b.*\b(deal|transaction|project|closing)\b/i, action: 'create_deal', scope: 'global', requiresForm: true, formType: 'create_deal' },
+  // ── Portfolio ──
   { pattern: /\b(show|list|get|view)\b.*\b(all\s+)?(deals|transactions|projects)\b/i, action: 'list_deals', scope: 'global' },
+  // ── Next Steps / Co-pilot ──
+  { pattern: /\b(what\s+should\s+I|what\s*('?s|are)\s+(the\s+)?next|recommend|suggest|advise|guide)\b/i, action: 'next_steps', scope: 'deal' },
+  { pattern: /\bwhat\s+do\s+I\s+(need|have)\s+to\s+do/i, action: 'next_steps', scope: 'deal' },
+  // ── Execute / Close ──
+  { pattern: /\b(execute|close|finalize|settle)\b.*\b(deal|transaction|this)\b/i, action: 'execute_deal', scope: 'deal' },
+  { pattern: /\b(prepare|get\s+ready)\b.*\b(for\s+closing|to\s+close)\b/i, action: 'execute_deal', scope: 'deal' },
+  // ── Demo / Tour ──
+  { pattern: /\b(show\s+me\s+how|walk\s+me|demo|tour|guided)\b/i, action: 'show_demo', scope: 'deal' },
+  // ── State Queries ──
+  { pattern: /\bhow\s+many\b.*\b(stakeholder|investor|shareholder|verified|unverified)\b/i, action: 'query_state', scope: 'info' },
+  { pattern: /\bhow\s+many\b.*\b(document|approval|wire|discrepanc)\b/i, action: 'query_state', scope: 'info' },
+  // ── Stakeholders ──
   { pattern: /\b(import|upload|add)\b.*\b(stakeholder|cap\s*table|investor)\b.*\b(list|sheet|spreadsheet|csv|xlsx)?\b/i, action: 'upload_stakeholders', scope: 'global' },
   { pattern: /\b(parse|extract|ingest)\b.*\b(stakeholder|cap\s*table)\b/i, action: 'parse_stakeholders', scope: 'deal' },
+  // ── Documents ──
   { pattern: /\b(upload|add|import)\b.*\b(document|agreement|contract|doc)\b/i, action: 'upload_documents', scope: 'deal' },
   { pattern: /\b(review|check|analy[sz]e)\b.*\b(document|agreement|contract|doc)\b/i, action: 'review_documents', scope: 'deal' },
+  // ── Wire / Tax / Approvals ──
   { pattern: /\b(upload|review|match|verify)\b.*\b(wire|bank\s*instruction)\b/i, action: 'open_wire_instructions', scope: 'deal' },
   { pattern: /\b(review|check)\b.*\b(tax\s*form|tax)\b/i, action: 'open_tax_forms', scope: 'deal' },
   { pattern: /\b(send|review|prepare|track)\b.*\b(approval|docusign|signature)\b/i, action: 'open_approvals', scope: 'deal' },
   { pattern: /\b(start|prepare|init)\b.*\b(new\s+closing|closing)\b/i, action: 'start_new_closing', scope: 'global' },
+  // ── Intelligence ──
   { pattern: /\b(what('?s| is)|show|summarize|check)\b.*\b(ready|readiness|status|progress|missing\s+for\s+closing)\b/i, action: 'summarize_readiness', scope: 'info' },
   { pattern: /\b(what('?s| is)|show|list|find|identify|who)\b.*\b(block|missing|incomplete|outstanding|needed|gaps|unverified|documents\s+outstanding|blockers?)\b/i, action: 'list_blockers', scope: 'info' },
+  // ── KYC/KYB ──
   { pattern: /\b(generate|create|send|prepare)\b.*\b(kyc)\b/i, action: 'generate_kyc_requests', scope: 'deal' },
   { pattern: /\b(generate|create|send|prepare)\b.*\b(kyb)\b/i, action: 'generate_kyb_requests', scope: 'deal' },
   { pattern: /\b(generate|create|send|prepare)\b.*\b(kyc|kyb).*(request|check|verification)\b/i, action: 'generate_kyc_requests', scope: 'deal' },
+  // ── Approval Package ──
   { pattern: /\b(prepare|generate|create)\b.*\b(approval|sign.?off)\b.*\b(package|bundle)\b/i, action: 'prepare_approval_package', scope: 'deal' },
+  // ── Metadata ──
   { pattern: /\b(update|change|modify|edit)\b.*\b(deal|transaction)\b.*\b(name|value|date|buyer|seller|status)\b/i, action: 'update_deal_metadata', scope: 'deal' },
 ];
 
