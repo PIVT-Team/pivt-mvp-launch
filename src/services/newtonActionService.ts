@@ -24,6 +24,11 @@ export type NewtonActionType =
   | 'generate_kyb_requests'
   | 'prepare_approval_package'
   | 'list_deals'
+  | 'open_deal'
+  | 'next_steps'
+  | 'execute_deal'
+  | 'show_demo'
+  | 'query_state'
   | 'unsupported';
 
 export type NewtonIntentScope = 'global' | 'deal' | 'info';
