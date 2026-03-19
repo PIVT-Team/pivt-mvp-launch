@@ -705,6 +705,20 @@ export const DealWorkspaceCover: React.FC = () => {
     }
   }, [loadingDeal, realDeal, isDemoDeal]);
 
+  // Listen for programmatic navigation from child components (e.g. ExecutionPrepCover "Fix" buttons)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.step) {
+        setActiveStepId(detail.step as StepId);
+        const subs = STEP_SUB_NAV[detail.step as StepId];
+        setActiveSubNav(detail.sub || (subs ? subs[0].id : undefined));
+      }
+    };
+    window.addEventListener('pivt:navigate-workspace', handler);
+    return () => window.removeEventListener('pivt:navigate-workspace', handler);
+  }, []);
+
   const handleStepClick = (id: string) => {
     setActiveStepId(id as StepId);
     const subs = STEP_SUB_NAV[id as StepId];
