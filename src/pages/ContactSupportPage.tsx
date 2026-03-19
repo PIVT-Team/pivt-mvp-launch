@@ -117,11 +117,22 @@ const ContactSupportPage: React.FC = () => {
                 required
               />
             </div>
+            {/* Honeypot - hidden from real users */}
+            <input
+              type="text"
+              name="_hp"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+              className="absolute opacity-0 h-0 w-0 pointer-events-none"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+            />
             <Textarea
               placeholder="How can we help?"
               value={form.message}
               onChange={(e) => setForm(f => ({ ...f, message: e.target.value }))}
-              maxLength={2000}
+              maxLength={5000}
               rows={4}
               required
             />
