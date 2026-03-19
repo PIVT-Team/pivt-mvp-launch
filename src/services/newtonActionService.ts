@@ -177,14 +177,23 @@ export function parseCreateDealPrefill(message: string): Partial<NewtonCreateDea
   return parsed;
 }
 
+export function extractDealNameFromPrompt(message: string): string | undefined {
+  const m = message.match(/\b(?:open|go\s*to|switch\s*to|show\s*me)\s+(?:deal\s+)?[""]?([^""]+?)[""]?\s*$/i)
+    || message.match(/\bopen\s+(?:project|deal)\s+(.+)/i);
+  return m?.[1]?.trim() || undefined;
+}
+
 export function detectIntent(message: string): NewtonIntent {
   for (const { pattern, action, scope, requiresForm, formType } of INTENT_PATTERNS) {
     if (pattern.test(message)) {
+      let params: Record<string, any> = {};
+      if (action === 'create_deal') params = parseCreateDealPrefill(message);
+      if (action === 'open_deal') params = { deal_name: extractDealNameFromPrompt(message) };
       return {
         action,
         scope,
         confidence: 0.86,
-        params: action === 'create_deal' ? parseCreateDealPrefill(message) : {},
+        params,
         requiresForm,
         formType,
       };
