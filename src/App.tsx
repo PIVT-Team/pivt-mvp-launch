@@ -27,6 +27,7 @@ const LoginPageLazy = lazy(() =>
 );
 const VerifyPageLazy = lazy(() => import("./pages/VerifyPage"));
 const CookiePolicyPageLazy = lazy(() => import("./pages/CookiePolicyPage"));
+const PrivacyPolicyPageLazy = lazy(() => import("./pages/PrivacyPolicyPage"));
 
 const queryClient = new QueryClient();
 
