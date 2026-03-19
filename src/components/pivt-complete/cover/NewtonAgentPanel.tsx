@@ -17,6 +17,7 @@ import { NewtonContextBar } from './newton/NewtonContextBar';
 import { NewtonChatStream, type ChatMessage } from './newton/NewtonChatStream';
 import { NewtonInputBar } from './newton/NewtonInputBar';
 import { NewtonIntakePanel } from './NewtonIntakePanel';
+import { NewtonDiscrepancyPanel, type DiscrepancyItem } from './newton/NewtonDiscrepancyPanel';
 import { NewtonCreateDealForm, type NewtonCreateDealPayload } from '@/components/newton/NewtonCreateDealForm';
 import {
   detectIntent,
@@ -26,6 +27,8 @@ import {
   executeGenerateKycRequests,
   executePrepareApprovalPackage,
   executeListDeals,
+  executeParseFundsFlow,
+  executeRunDiscrepancyCheck,
   SUPPORTED_ACTIONS_TEXT,
   type NewtonActionResult,
 } from '@/services/newtonActionService';
