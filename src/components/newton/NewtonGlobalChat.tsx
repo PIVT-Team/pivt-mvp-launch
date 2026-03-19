@@ -10,7 +10,7 @@ import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { springConfig } from '@/lib/animations';
 import {
-  Sparkles, Send, Loader2, X, Minus, CheckCircle2, AlertTriangle,
+  Sparkles, Send, Loader2, X, Minus, CheckCircle2, AlertTriangle, Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
