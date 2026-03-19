@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { trackAuthEvent } from '@/services/authTrackingService';
 import pivtLogo from '@/assets/pivt-logo.png';
 
 const LoginPage: React.FC = () => {
@@ -35,12 +36,17 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     if (isLogin) {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) setError(err.message);
-      else toast.success('Welcome back');
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email, password });
+      if (err) {
+        setError(err.message);
+        trackAuthEvent({ eventType: 'failed_login_attempt', email, metadata: { reason: err.message } });
+      } else {
+        toast.success('Welcome back');
+        trackAuthEvent({ eventType: 'user_login', userId: data.user?.id, email, loginMethod: 'password' });
+      }
     } else {
       if (!fullName.trim()) { setError('Full name is required.'); setLoading(false); return; }
-      const { error: err } = await supabase.auth.signUp({
+      const { data, error: err } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -48,8 +54,14 @@ const LoginPage: React.FC = () => {
           emailRedirectTo: window.location.origin,
         },
       });
-      if (err) setError(err.message);
-      else toast.success('Account created — you are now signed in.');
+      if (err) {
+        setError(err.message);
+        trackAuthEvent({ eventType: 'failed_login_attempt', email, metadata: { reason: err.message, action: 'signup' } });
+      } else {
+        toast.success('Account created — you are now signed in.');
+        trackAuthEvent({ eventType: 'account_created', userId: data.user?.id, email, loginMethod: 'password' });
+        trackAuthEvent({ eventType: 'user_login', userId: data.user?.id, email, loginMethod: 'password', metadata: { first_login: true } });
+      }
     }
     setLoading(false);
   };
