@@ -384,7 +384,7 @@ export const NewtonGlobalChat: React.FC = () => {
               <>
                 {/* Messages */}
                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {messages.length === 0 && (
+                   {messages.length === 0 && (
                     <div className="text-center py-6 space-y-3">
                       <Sparkles className="w-6 h-6 text-accent mx-auto opacity-50" />
                       <p className="text-xs text-muted-foreground">Newton can execute real actions on your deals.</p>
@@ -406,6 +406,14 @@ export const NewtonGlobalChat: React.FC = () => {
                           </button>
                         ))}
                       </div>
+                      <button
+                        onClick={() => { setIsOpen(false); navigate('/demo'); }}
+                        className="flex items-center gap-2 mx-auto px-4 py-2 rounded-xl text-xs font-semibold text-accent-foreground transition-all hover:opacity-90"
+                        style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--pivt-blue)))' }}
+                      >
+                        <Play className="w-3.5 h-3.5" />
+                        See Demo
+                      </button>
                     </div>
                   )}
                   {messages.map((msg, i) => renderMessage(msg, i))}
