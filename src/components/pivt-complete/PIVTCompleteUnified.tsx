@@ -319,6 +319,8 @@ export const PIVTCompleteUnified: React.FC = () => {
           <div className="flex items-center gap-3">
             <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
             <span>·</span>
+            <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+            <span>·</span>
             <Link to="/cookie-policy" className="hover:text-foreground transition-colors">Cookie Policy</Link>
             <span>·</span>
             <button onClick={() => window.dispatchEvent(new CustomEvent('pivt:open-cookie-prefs'))} className="hover:text-foreground transition-colors">Cookie Preferences</button>

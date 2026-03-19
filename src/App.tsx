@@ -28,6 +28,7 @@ const LoginPageLazy = lazy(() =>
 const VerifyPageLazy = lazy(() => import("./pages/VerifyPage"));
 const CookiePolicyPageLazy = lazy(() => import("./pages/CookiePolicyPage"));
 const PrivacyPolicyPageLazy = lazy(() => import("./pages/PrivacyPolicyPage"));
+const TermsOfServicePageLazy = lazy(() => import("./pages/TermsOfServicePage"));
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/verify" element={<VerifyPageLazy />} />
               <Route path="/cookie-policy" element={<CookiePolicyPageLazy />} />
               <Route path="/privacy" element={<PrivacyPolicyPageLazy />} />
+              <Route path="/terms" element={<TermsOfServicePageLazy />} />
               <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
