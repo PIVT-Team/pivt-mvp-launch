@@ -148,6 +148,7 @@ serve(async (req) => {
       payload: {
         message_id: messageId,
         run_id: messageId,
+        from: "PIVT Support <no-reply@notify.pivttech.ai>",
         to: "support@pivttech.ai",
         subject: "New Support Request – PIVT",
         html: htmlBody,
@@ -155,6 +156,7 @@ serve(async (req) => {
         reply_to: sanitizedEmail,
         purpose: "transactional",
         label: "contact-form",
+        sender_domain: "notify.pivttech.ai",
         queued_at: new Date().toISOString(),
       },
     });
