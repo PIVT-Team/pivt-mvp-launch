@@ -14,11 +14,13 @@ import { Button } from '@/components/ui/button';
 
 export interface ChatMessage {
   id: string;
-  type: 'user' | 'response' | 'success' | 'insight' | 'alert' | 'loading';
+  type: 'user' | 'response' | 'success' | 'insight' | 'alert' | 'loading' | 'wirepack_success';
   text: string;
   title?: string;
   actions?: { label: string; prompt: string; primary?: boolean }[];
   timestamp: Date;
+  /** Extra metadata for wirepack_success cards */
+  wirepackMeta?: { dealName: string; totalAmount?: string; wireCount?: number };
 }
 
 interface Props {
