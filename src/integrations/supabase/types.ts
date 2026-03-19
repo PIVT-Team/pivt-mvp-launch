@@ -88,8 +88,14 @@ export type Database = {
           id: string
           insight_type: string
           is_read: boolean
+          priority_rank: number | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           severity: string
           suggested_action: string | null
+          target_org: string | null
+          target_user_id: string | null
           title: string
         }
         Insert: {
@@ -102,8 +108,14 @@ export type Database = {
           id?: string
           insight_type?: string
           is_read?: boolean
+          priority_rank?: number | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           severity?: string
           suggested_action?: string | null
+          target_org?: string | null
+          target_user_id?: string | null
           title: string
         }
         Update: {
@@ -116,8 +128,14 @@ export type Database = {
           id?: string
           insight_type?: string
           is_read?: boolean
+          priority_rank?: number | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           severity?: string
           suggested_action?: string | null
+          target_org?: string | null
+          target_user_id?: string | null
           title?: string
         }
         Relationships: []
