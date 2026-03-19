@@ -366,9 +366,9 @@ const DemoPage: React.FC = () => {
       const scenario = SCENARIOS[stepId];
       if (scenario) {
         const ctx: ScenarioCtx = {
-          addMessage: (type, text) => {
+          addMessage: (type, text, wirepackMeta?) => {
             const id = uid();
-            setMessages((prev) => [...prev, { id, type, text, visible: true }]);
+            setMessages((prev) => [...prev, { id, type, text, visible: true, wirepackMeta }]);
             return id;
           },
           removeMessage: (id) => setMessages((prev) => prev.filter((m) => m.id !== id)),
