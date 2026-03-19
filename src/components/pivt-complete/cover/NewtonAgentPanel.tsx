@@ -499,8 +499,8 @@ export const NewtonAgentPanel: React.FC = () => {
     await supabase.from('contract_documents').insert({
       deal_id: selectedDealId,
       filename: file.name,
-      doc_type: docType,
-      status: 'uploaded',
+      doc_type: docType as any,
+      status: 'uploaded' as any,
       file_url: storagePath,
     });
 
