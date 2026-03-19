@@ -257,7 +257,21 @@ export const PIVTCompleteUnified: React.FC = () => {
             <TooltipContent>Open Newton AI Deal Scan (⌘J)</TooltipContent>
           </Tooltip>
 
-          {/* Import */}
+          {/* See Demo */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => navigate('/demo')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-accent-foreground transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--pivt-blue)))' }}
+              >
+                <Play className="w-3.5 h-3.5" />
+                <span>See Demo</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Watch the cinematic PIVT demo</TooltipContent>
+          </Tooltip>
+
           <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-xs">
             <Upload className="w-3.5 h-3.5" />
             {!sidebarCollapsed && <span>Import</span>}
