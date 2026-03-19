@@ -31,6 +31,7 @@ const PrivacyPolicyPageLazy = lazy(() => import("./pages/PrivacyPolicyPage"));
 const TermsOfServicePageLazy = lazy(() => import("./pages/TermsOfServicePage"));
 const ContactSupportPageLazy = lazy(() => import("./pages/ContactSupportPage"));
 const DataSecurityPageLazy = lazy(() => import("./pages/DataSecurityPage"));
+const AcceptableUsePageLazy = lazy(() => import("./pages/AcceptableUsePage"));
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/terms" element={<TermsOfServicePageLazy />} />
               <Route path="/contact" element={<ContactSupportPageLazy />} />
               <Route path="/security" element={<DataSecurityPageLazy />} />
+              <Route path="/acceptable-use" element={<AcceptableUsePageLazy />} />
               <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
