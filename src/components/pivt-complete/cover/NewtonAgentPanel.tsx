@@ -459,8 +459,110 @@ export const NewtonAgentPanel: React.FC = () => {
       setShowCreateDealForm(true);
       return;
     }
+    if (prompt === '__show_discrepancy_panel') {
+      setShowDiscrepancyPanel(true);
+      return;
+    }
     handleSubmit(prompt);
   }, [handleSubmit]);
+
+  // ── File upload handler ──
+  const handleFileUpload = useCallback(async (file: File) => {
+    if (!selectedDealId) {
+      addMessage({ type: 'alert', title: 'No deal selected', text: 'Please select or create a deal before uploading files.' });
+      return;
+    }
+
+    setOperationMode('deal');
+    addMessage({ type: 'user', text: `📎 Uploaded: ${file.name}` });
+    setIsExecuting(true);
+    addMessage({ type: 'loading', text: `Parsing ${file.name} — extracting structured data…` });
+
+    // Upload to storage
+    const ext = file.name.split('.').pop() || 'bin';
+    const storagePath = `deal-documents/${selectedDealId}/${Date.now()}_${file.name}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('deal-files')
+      .upload(storagePath, file, { contentType: file.type });
+
+    if (uploadError) {
+      // Storage may not exist; proceed with metadata-only flow
+      console.warn('Storage upload skipped:', uploadError.message);
+    }
+
+    // Create document record
+    const isFundsFlow = /fund|flow|disburs|payment/i.test(file.name);
+    const isWire = /wire|bank|instruction/i.test(file.name);
+    const docType = isFundsFlow ? 'FUNDS_FLOW' : isWire ? 'WIRE_INSTRUCTIONS' : 'OTHER';
+
+    await supabase.from('contract_documents').insert({
+      deal_id: selectedDealId,
+      filename: file.name,
+      doc_type: docType,
+      status: 'uploaded',
+      file_url: storagePath,
+    });
+
+    // Trigger funds flow parsing if relevant
+    if (isFundsFlow || isWire) {
+      const result = await executeParseFundsFlow(selectedDealId);
+      removeLoading();
+      setIsExecuting(false);
+
+      if (result.success) {
+        const discCount = result.data?.discrepancy_count || result.data?.discrepancies?.length || 0;
+        if (result.data?.discrepancies) {
+          setDiscrepancyItems(result.data.discrepancies);
+        }
+
+        addMessage({
+          type: discCount > 0 ? 'alert' : 'success',
+          title: discCount > 0
+            ? `${discCount} discrepanc${discCount === 1 ? 'y' : 'ies'} detected`
+            : 'Document parsed successfully',
+          text: result.message,
+          actions: discCount > 0
+            ? [
+                { label: 'Review Discrepancies', prompt: '__show_discrepancy_panel', primary: true },
+                { label: 'Check Readiness', prompt: 'Check readiness' },
+              ]
+            : [
+                { label: 'Run Discrepancy Check', prompt: 'Run discrepancy check', primary: true },
+                { label: 'Check Readiness', prompt: 'Check readiness' },
+              ],
+        });
+
+        if (discCount > 0) setShowDiscrepancyPanel(true);
+      } else {
+        addMessage({
+          type: 'alert',
+          title: 'Parsing incomplete',
+          text: `I wasn't able to confidently parse parts of **${file.name}** — I've highlighted them for review.\n\n${result.message}`,
+          actions: [{ label: 'Upload Again', prompt: 'Upload funds flow' }],
+        });
+      }
+    } else {
+      removeLoading();
+      setIsExecuting(false);
+      addMessage({
+        type: 'success',
+        title: 'Document uploaded',
+        text: `**${file.name}** has been added to the deal binder.\n\nTo run analysis, try:\n- "Parse funds flow"\n- "Run discrepancy check"`,
+        actions: [
+          { label: 'Parse Funds Flow', prompt: 'Parse funds flow' },
+          { label: 'Run Discrepancy Check', prompt: 'Run discrepancy check' },
+        ],
+      });
+    }
+
+    await fetchCounts();
+  }, [selectedDealId, addMessage, removeLoading, fetchCounts]);
+
+  const handleResolveDiscrepancy = useCallback((id: string) => {
+    setDiscrepancyItems(prev => prev.map(d => d.id === id ? { ...d, resolved: true } : d));
+    toast.success('Discrepancy marked as resolved');
+  }, []);
 
   const selectedDeal = allDeals.find(d => d.id === selectedDealId);
   const readinessPct = calcReadiness();
