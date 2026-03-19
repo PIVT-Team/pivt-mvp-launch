@@ -30,6 +30,24 @@ import {
   type NewtonActionResult,
 } from '@/services/newtonActionService';
 
+const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newton-action`;
+const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+async function callNewtonAction(action: string, params: Record<string, any>): Promise<NewtonActionResult> {
+  try {
+    const resp = await fetch(EDGE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+      body: JSON.stringify({ action, params }),
+    });
+    const data = await resp.json();
+    if (!resp.ok || !data.success) return { success: false, message: data.error || data.message || `Action failed (${resp.status})` };
+    return { success: true, message: data.message || 'Action completed.', data };
+  } catch (e) {
+    return { success: false, message: `Network error: ${e instanceof Error ? e.message : 'Unknown'}` };
+  }
+}
+
 interface DealOption {
   id: string;
   deal_name: string;
