@@ -4,6 +4,7 @@
  * Available on any page via ⌘J keyboard shortcut
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
 import { useAuth } from '@/contexts/AuthContext';
