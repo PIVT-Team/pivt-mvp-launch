@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { CookieBanner } from "@/components/CookieBanner";
 import Dashboard from "@/pages/Dashboard";
 import DealDetail from "@/pages/DealDetail";
 import AppLayout from "@/components/AppLayout";
@@ -25,6 +26,7 @@ const LoginPageLazy = lazy(() =>
   })
 );
 const VerifyPageLazy = lazy(() => import("./pages/VerifyPage"));
+const CookiePolicyPageLazy = lazy(() => import("./pages/CookiePolicyPage"));
 
 const queryClient = new QueryClient();
 
@@ -52,6 +54,7 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<LoginPageLazy />} />
               <Route path="/verify" element={<VerifyPageLazy />} />
+              <Route path="/cookie-policy" element={<CookiePolicyPageLazy />} />
               <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
@@ -62,6 +65,7 @@ const App = () => (
               <Route path="*" element={<AuthGuard><NotFound /></AuthGuard>} />
             </Routes>
           </Suspense>
+          <CookieBanner />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
