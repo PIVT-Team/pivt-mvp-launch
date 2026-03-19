@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   Play, Pause, RotateCcw, SkipForward, Sparkles,
-  ArrowRight, CheckCircle2, ChevronRight,
+  ArrowRight, CheckCircle2, ChevronRight, Home,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DemoNewtonPanel, type DemoMsg } from '@/components/demo/DemoNewtonPanel';
@@ -225,9 +225,15 @@ const DemoPage: React.FC = () => {
               Request Access <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </div>
-          <button onClick={resetDemo} className="mt-6 flex items-center gap-2 mx-auto text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <RotateCcw className="w-3.5 h-3.5" /> Replay Demo
-          </button>
+          <div className="mt-6 flex items-center gap-4 justify-center">
+            <button onClick={resetDemo} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <RotateCcw className="w-3.5 h-3.5" /> Replay Demo
+            </button>
+            <span className="text-muted-foreground/30">|</span>
+            <button onClick={() => navigate('/pivt')} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <Home className="w-3.5 h-3.5" /> Back to Home
+            </button>
+          </div>
         </motion.div>
       </div>
     );
