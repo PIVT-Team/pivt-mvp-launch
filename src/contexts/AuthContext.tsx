@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const roles: AdminRole[] = ['super_admin', 'admin', 'ops_admin', 'support_admin', 'read_only'];
     Promise.all(
       roles.map(role =>
-        supabase.rpc("has_role", { _user_id: userId, _role: role as string }).then(({ data }) => ({ role, has: !!data }))
+        supabase.rpc("has_role", { _user_id: userId, _role: role as any }).then(({ data }) => ({ role, has: !!data }))
       )
     ).then(results => {
       const found = results.find(r => r.has);
