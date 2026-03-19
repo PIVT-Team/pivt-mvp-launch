@@ -80,6 +80,7 @@ const App = () => (
               <Route path="/contact" element={<ContactSupportPageLazy />} />
               <Route path="/security" element={<DataSecurityPageLazy />} />
               <Route path="/acceptable-use" element={<AcceptableUsePageLazy />} />
+              <Route path="/demo" element={<DemoPageLazy />} />
               <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
