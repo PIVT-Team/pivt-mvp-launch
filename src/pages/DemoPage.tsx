@@ -324,10 +324,11 @@ const SCENARIOS: Partial<Record<DemoStep, StepScenario>> = {
 
       ctx.setStepProgress(1);
       ctx.addMessage(
-        'newton',
-        '✅ **Wire Pack Ready**\n\n- 6 verified payment instructions\n- $185.0M total disbursement\n- All compliance checks passed\n- PDF, CSV, and JSON formats available\n\nProject Atlas is ready for closing execution.'
+        'wirepack_success',
+        '',
+        { dealName: 'Project Atlas', totalAmount: '$185.0M', wireCount: 6 }
       );
-      await sleep(2000);
+      await sleep(3000);
     },
   },
 };
