@@ -50,7 +50,7 @@ interface StepScenario {
 }
 
 interface ScenarioCtx {
-  addMessage: (type: DemoMsg['type'], text: string) => string;
+  addMessage: (type: DemoMsg['type'], text: string, wirepackMeta?: DemoMsg['wirepackMeta']) => string;
   removeMessage: (id: string) => void;
   typeAndSubmit: (text: string) => Promise<void>;
   setIsTyping: (v: boolean) => void;
