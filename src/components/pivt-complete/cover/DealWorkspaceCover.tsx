@@ -50,6 +50,7 @@ import { ClosingCenterCover } from './ClosingCenterCover';
 import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 import { DealStateInspector } from './DealStateInspector';
+import { WirePackCover } from './WirePackCover';
 
 // ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai' | 'newton-agents';
