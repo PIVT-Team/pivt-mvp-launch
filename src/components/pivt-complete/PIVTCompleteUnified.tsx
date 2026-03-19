@@ -250,7 +250,7 @@ export const PIVTCompleteUnified: React.FC = () => {
                 style={{ background: 'var(--pivt-gradient-primary)' }}
               >
                 <Brain className="w-3.5 h-3.5" />
-                <span>Newton AI</span>
+                <span>AI Deal Scan</span>
               </button>
             </TooltipTrigger>
             <TooltipContent>Open Newton AI Deal Scan (⌘J)</TooltipContent>
