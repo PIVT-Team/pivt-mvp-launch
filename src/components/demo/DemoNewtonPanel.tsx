@@ -11,10 +11,11 @@ import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 
 export interface DemoMsg {
   id: string;
-  type: 'user' | 'newton' | 'system' | 'thinking';
+  type: 'user' | 'newton' | 'system' | 'thinking' | 'wirepack_success';
   text: string;
   visible: boolean;
   streaming?: boolean;
+  wirepackMeta?: { dealName: string; totalAmount?: string; wireCount?: number };
 }
 
 interface Props {
