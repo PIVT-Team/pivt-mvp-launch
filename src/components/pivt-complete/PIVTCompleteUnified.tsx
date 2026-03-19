@@ -1,6 +1,6 @@
 /**
- * PIVTCompleteUnified - Enterprise-first layout with optional Glass Mode
- * Gradient design system: G1-G5 tokens applied throughout
+ * PIVTCompleteUnified - Premium 3-panel SaaS layout
+ * Stripe/Linear-inspired with PIVT brand identity
  */
 import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,7 +8,7 @@ import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Search, ChevronLeft, ChevronRight, Bell, Upload, User, Brain, LogOut } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, Upload, Brain, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import pivtLogo from '@/assets/pivt-logo.png';
@@ -68,16 +68,14 @@ export const PIVTCompleteUnified: React.FC = () => {
   const [importOpen, setImportOpen] = React.useState(false);
   const [notifOpen, setNotifOpen] = React.useState(false);
   const { unreadCount, seedDemoNotifications } = useNotificationStore();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
 
-  // Seed demo notifications on first load
   useEffect(() => { seedDemoNotifications(); }, [seedDemoNotifications]);
   const [glassMode, setGlassMode] = React.useState(() => {
     return sessionStorage.getItem('pivt-glass-mode') === 'true';
   });
   const navGroups = groupedNavigationByMode.manda;
 
-  // Glass mode toggle with smooth transition
   const toggleGlassMode = useCallback(() => {
     document.documentElement.classList.add('theme-transitioning');
     setGlassMode(prev => {
@@ -88,16 +86,11 @@ export const PIVTCompleteUnified: React.FC = () => {
     setTimeout(() => document.documentElement.classList.remove('theme-transitioning'), 350);
   }, []);
 
-  // Apply glass-mode class to root
   useEffect(() => {
-    if (glassMode) {
-      document.documentElement.classList.add('glass-mode');
-    } else {
-      document.documentElement.classList.remove('glass-mode');
-    }
+    if (glassMode) document.documentElement.classList.add('glass-mode');
+    else document.documentElement.classList.remove('glass-mode');
   }, [glassMode]);
 
-  // URL sync
   useEffect(() => {
     const section = searchParams.get('section');
     if (section) setActiveSection(section as ActiveSection);
@@ -110,18 +103,13 @@ export const PIVTCompleteUnified: React.FC = () => {
     setSearchParams(params, { replace: true });
   }, [activeSection]);
 
-  // Deal context locking - redirect to deals if no deal selected for scoped sections
   useEffect(() => {
     if (DEAL_SCOPED_SECTIONS.has(activeSection) && activeSection !== 'workspace') {
-      if (!selectedDealId) {
-        setActiveSection('deals');
-      } else {
-        setActiveSection('workspace');
-      }
+      if (!selectedDealId) setActiveSection('deals');
+      else setActiveSection('workspace');
     }
   }, [activeSection, selectedDealId]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setCommandOpen(true); }
@@ -133,12 +121,18 @@ export const PIVTCompleteUnified: React.FC = () => {
 
   const ActiveCoverSection = coverSections[activeSection] || HomeCover;
 
+  const initials = React.useMemo(() => {
+    const name = user?.user_metadata?.full_name as string | undefined;
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  }, [user]);
+
   return (
     <TooltipProvider delayDuration={200}>
     <div className="flex h-screen overflow-hidden pivt-ambient-bg" style={{ color: 'hsl(var(--foreground))' }}>
-      {/* Sidebar — wider, workflow-driven */}
+      {/* ── Sidebar ── */}
       <motion.aside
-        animate={{ width: sidebarCollapsed ? 56 : 260 }}
+        animate={{ width: sidebarCollapsed ? 56 : 240 }}
         transition={springConfig.standard}
         className="h-full flex flex-col shrink-0 overflow-hidden"
         style={{
@@ -149,57 +143,67 @@ export const PIVTCompleteUnified: React.FC = () => {
         {/* Logo */}
         <button
           onClick={() => setActiveSection('home' as ActiveSection)}
-          className="px-5 pt-5 pb-3 flex flex-col items-center gap-1.5 w-full cursor-pointer"
+          className="flex items-center gap-2.5 px-4 pt-5 pb-4 w-full cursor-pointer"
         >
           <motion.img
             src={pivtLogo}
             alt="PIVT"
-            className={`${sidebarCollapsed ? 'h-8' : 'h-16'} w-auto shrink-0 transition-all duration-300`}
-            style={{ transformStyle: 'preserve-3d' }}
-            animate={{ rotateY: [0, 0, -180, -180, 0, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', times: [0, 0.15, 0.4, 0.6, 0.85, 1] }}
+            className={`${sidebarCollapsed ? 'h-7' : 'h-9'} w-auto shrink-0 transition-all duration-300`}
           />
           {!sidebarCollapsed && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-[13px] text-sidebar-foreground/50 italic text-center whitespace-nowrap"
-            >
-              The intelligence layer behind every close.
-            </motion.p>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0">
+              <p className="text-[11px] text-muted-foreground/40 truncate">The intelligence layer</p>
+            </motion.div>
           )}
         </button>
 
-        <div className="mx-5 mb-2 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }} />
+        <div className="mx-4 border-t border-border/30" />
+
+        {/* Search shortcut */}
+        {!sidebarCollapsed && (
+          <button
+            onClick={() => setCommandOpen(true)}
+            className="mx-3 mt-3 mb-1 flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[12px] text-muted-foreground/60 hover:bg-muted/40 transition-colors border border-border/40"
+          >
+            <Search className="w-3.5 h-3.5" />
+            <span className="flex-1 text-left">Search…</span>
+            <kbd className="text-[9px] px-1 py-0.5 rounded border bg-muted/40 font-mono">⌘K</kbd>
+          </button>
+        )}
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-1 space-y-5 overflow-y-auto">
+        <nav className="flex-1 px-2 py-2 space-y-4 overflow-y-auto">
           {navGroups.map((group) => (
             <div key={group.category}>
               {!sidebarCollapsed && (
-                <p className="pivt-section-label px-3 py-1.5">{group.category}</p>
+                <p className="px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/40">{group.category}</p>
               )}
               <div className="space-y-0.5">
                 {group.items.map((item) => {
                   const isPanelItem = item.path === 'newton' || item.path === 'support';
                   const isActive = activeSection === item.path;
                   return (
-                    <button
-                      key={item.path}
-                      onClick={() => {
-                        if (item.path === 'newton') {
-                          window.dispatchEvent(new CustomEvent('pivt:open-newton'));
-                        } else if (item.path === 'support') {
-                          window.dispatchEvent(new CustomEvent('pivt:open-support'));
-                        } else {
-                          setActiveSection(item.path as ActiveSection);
-                        }
-                      }}
-                      className={`pivt-nav-item ${isActive && !isPanelItem ? 'pivt-nav-item-active' : 'text-sidebar-foreground'}`}
-                    >
-                      <item.icon className="w-[18px] h-[18px] shrink-0" style={{ color: isActive ? undefined : item.iconColor }} />
-                      {!sidebarCollapsed && <span className="flex-1 text-left truncate">{item.label}</span>}
-                    </button>
+                    <Tooltip key={item.path}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => {
+                            if (item.path === 'newton') window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+                            else if (item.path === 'support') window.dispatchEvent(new CustomEvent('pivt:open-support'));
+                            else setActiveSection(item.path as ActiveSection);
+                          }}
+                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 ${
+                            isActive && !isPanelItem
+                              ? 'bg-accent/8 text-foreground'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/30'
+                          }`}
+                          style={isActive && !isPanelItem ? { borderLeft: '2px solid hsl(var(--accent))' } : { borderLeft: '2px solid transparent' }}
+                        >
+                          <item.icon className={`w-[16px] h-[16px] shrink-0 ${isActive && !isPanelItem ? 'text-accent' : ''}`} style={{ color: isActive ? undefined : item.iconColor }} />
+                          {!sidebarCollapsed && <span className="flex-1 text-left truncate">{item.label}</span>}
+                        </button>
+                      </TooltipTrigger>
+                      {sidebarCollapsed && <TooltipContent side="right">{item.label}</TooltipContent>}
+                    </Tooltip>
                   );
                 })}
               </div>
@@ -207,81 +211,38 @@ export const PIVTCompleteUnified: React.FC = () => {
           ))}
         </nav>
 
-        {/* Collapse */}
-        <div className="p-3 border-t" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
+        {/* Bottom */}
+        <div className="p-2 border-t border-border/30 space-y-1">
+          {/* Glass toggle (compact) */}
+          <button
+            onClick={toggleGlassMode}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] text-muted-foreground hover:bg-muted/30 transition-colors"
+          >
+            <div className={`w-5 h-3 rounded-full transition-colors ${glassMode ? 'bg-accent' : 'bg-muted-foreground/20'}`}>
+              <div className={`w-2.5 h-2.5 rounded-full bg-card mt-[1px] transition-transform ${glassMode ? 'translate-x-[9px]' : 'translate-x-[1px]'}`} />
+            </div>
+            {!sidebarCollapsed && <span>Glass Mode</span>}
+          </button>
+
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-muted/40 transition-colors"
-            style={{ color: 'hsl(var(--sidebar-foreground))' }}
+            className="w-full flex items-center justify-center p-1.5 rounded-lg hover:bg-muted/30 transition-colors text-muted-foreground"
           >
             {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
           </button>
         </div>
       </motion.aside>
 
-      {/* Main */}
+      {/* ── Main ── */}
       <main className="flex-1 overflow-y-auto flex flex-col">
         {/* Top bar */}
-        <div
-          className="shrink-0 px-6 py-3 flex items-center gap-4 pivt-glass-nav"
-        >
-          {/* Search */}
-          <button
-            onClick={() => setCommandOpen(true)}
-            className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl border text-sm text-muted-foreground hover:bg-muted/40 transition-all flex-1 max-w-md"
-            style={{ borderColor: 'hsl(var(--border))' }}
-          >
-            <Search className="w-4 h-4 shrink-0 opacity-50" />
-            <span className="flex-1 text-left">Search deals, stakeholders...</span>
-            <kbd className="px-1.5 py-0.5 text-[10px] rounded border bg-muted/50 font-mono opacity-60">⌘K</kbd>
-          </button>
-
+        <div className="shrink-0 px-6 h-12 flex items-center gap-3 pivt-glass-nav">
           <div className="flex-1" />
 
-          {/* Glass Mode Toggle */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground font-medium">Glass Mode</span>
-                <button
-                  onClick={toggleGlassMode}
-                  className="glass-toggle"
-                  data-active={glassMode}
-                >
-                  <span className="glass-toggle-thumb" />
-                </button>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Simplified view for presentations</TooltipContent>
-          </Tooltip>
-
-          <div className="h-5 w-px bg-border mx-1" />
-
-          {/* V2 AI Tab — visual superiority */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => setActiveSection('ai' as ActiveSection)}
-                className="pivt-btn-primary pivt-ai-btn flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-white relative group rounded-xl"
-              >
-                <Brain className="w-4 h-4 pivt-spark" />
-                <span>Newton Scan</span>
-                {activeSection === 'ai' && (
-                  <motion.div
-                    layoutId="ai-toolbar-underline"
-                    className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full"
-                    style={{ background: 'var(--pivt-gradient-accent)' }}
-                  />
-                )}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>Newton — Deep Deal Scan to detect risks and discrepancies</TooltipContent>
-          </Tooltip>
-
           {/* Import */}
-          <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-sm">
-            <Upload className="w-4 h-4" />
-            <span>Import Data</span>
+          <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-xs">
+            <Upload className="w-3.5 h-3.5" />
+            {!sidebarCollapsed && <span>Import</span>}
           </button>
 
           {/* Notifications */}
@@ -290,7 +251,7 @@ export const PIVTCompleteUnified: React.FC = () => {
               <button onClick={() => setNotifOpen(true)} className="relative p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground">
                 <Bell className="w-4 h-4" />
                 {unreadCount() > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold px-1">
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold px-1">
                     {unreadCount()}
                   </span>
                 )}
@@ -301,25 +262,21 @@ export const PIVTCompleteUnified: React.FC = () => {
 
           {/* Profile */}
           <div
-            className="w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-semibold cursor-pointer pivt-gradient-interactive"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold cursor-pointer"
             style={{
               background: 'var(--pivt-gradient-primary)',
               color: '#FFFFFF',
-              boxShadow: 'var(--pivt-gradient-glow)',
               letterSpacing: '-0.02em',
             }}
           >
-            JW
+            {initials}
           </div>
 
           {/* Logout */}
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
-                onClick={signOut}
-                className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground"
-              >
-                <LogOut className="w-4 h-4" />
+              <button onClick={signOut} className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground">
+                <LogOut className="w-3.5 h-3.5" />
               </button>
             </TooltipTrigger>
             <TooltipContent>Logout</TooltipContent>
@@ -329,11 +286,11 @@ export const PIVTCompleteUnified: React.FC = () => {
         <AnimatePresence mode="wait">
           <motion.div
             key={`cover-${activeSection}`}
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={springConfig.standard}
-            className={activeSection === 'intelligence-map' ? 'p-4 w-full flex-1' : 'p-10 lg:p-14 max-w-6xl mx-auto w-full'}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+            className={activeSection === 'intelligence-map' ? 'p-4 w-full flex-1' : 'px-8 py-6 lg:px-10 lg:py-8 max-w-6xl mx-auto w-full'}
           >
             <ActiveCoverSection />
           </motion.div>
