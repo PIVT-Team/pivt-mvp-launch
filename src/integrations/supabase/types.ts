@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_requests: {
+        Row: {
+          company: string
+          contact_email: string
+          created_at: string
+          full_name: string
+          id: string
+          message: string | null
+          position: string
+          source: string
+          status: string
+          ticket_id: string
+          updated_at: string
+        }
+        Insert: {
+          company: string
+          contact_email: string
+          created_at?: string
+          full_name: string
+          id?: string
+          message?: string | null
+          position: string
+          source?: string
+          status?: string
+          ticket_id: string
+          updated_at?: string
+        }
+        Update: {
+          company?: string
+          contact_email?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          message?: string | null
+          position?: string
+          source?: string
+          status?: string
+          ticket_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_allowlist: {
         Row: {
           added_by: string | null
