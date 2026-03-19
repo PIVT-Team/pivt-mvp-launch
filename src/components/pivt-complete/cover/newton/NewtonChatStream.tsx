@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import {
-  CheckCircle2, AlertTriangle, Sparkles, ArrowRight, Loader2,
+  CheckCircle2, AlertTriangle, Sparkles, ArrowRight, Loader2, Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
