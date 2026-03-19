@@ -31,6 +31,7 @@ export type NewtonActionType =
   | 'query_state'
   | 'parse_funds_flow'
   | 'run_discrepancy_check'
+  | 'generate_wire_pack'
   | 'unsupported';
 
 export type NewtonIntentScope = 'global' | 'deal' | 'info';
