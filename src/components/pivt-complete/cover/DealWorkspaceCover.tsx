@@ -50,6 +50,7 @@ import { ClosingCenterCover } from './ClosingCenterCover';
 import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 import { DealStateInspector } from './DealStateInspector';
+import { WirePackCover } from './WirePackCover';
 
 // ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai' | 'newton-agents';
@@ -82,6 +83,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   approvals: [],
   execution: [
     { id: 'closing', label: 'Closing Readiness' },
+    { id: 'wire-pack', label: 'Wire Pack' },
     { id: 'intents', label: 'Disbursement Intents' },
     { id: 'payments', label: 'Payments' },
     { id: 'discrepancies', label: 'Discrepancies' },
@@ -566,6 +568,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       return ApprovalsWorkflowCover;
     case 'execution':
       if (subNavId === 'closing') return ClosingCenterCover;
+      if (subNavId === 'wire-pack') return WirePackCover;
       if (subNavId === 'intents') return PaymentsCover;
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;

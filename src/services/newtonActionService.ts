@@ -31,6 +31,7 @@ export type NewtonActionType =
   | 'query_state'
   | 'parse_funds_flow'
   | 'run_discrepancy_check'
+  | 'generate_wire_pack'
   | 'unsupported';
 
 export type NewtonIntentScope = 'global' | 'deal' | 'info';
@@ -89,6 +90,9 @@ const INTENT_PATTERNS: IntentPattern[] = [
   { pattern: /\b(upload|import)\b.*\b(funds?\s*flow|wire\s*instruction|wire\s*schedule|payment)\b/i, action: 'parse_funds_flow', scope: 'deal' },
   { pattern: /\b(run|check|detect|find|identify)\b.*\b(discrepanc|mismatch|inconsistenc|reconcil)\b/i, action: 'run_discrepancy_check', scope: 'deal' },
   { pattern: /\b(compare|cross.?check|validate)\b.*\b(wire|fund|payment|bank)\b/i, action: 'run_discrepancy_check', scope: 'deal' },
+  // ── Wire Pack ──
+  { pattern: /\b(generate|create|build|compile|prepare)\b.*\b(wire\s*pack|execution\s*pack|bank\s*pack)\b/i, action: 'generate_wire_pack', scope: 'deal' },
+  { pattern: /\bwire\s*pack\b/i, action: 'generate_wire_pack', scope: 'deal' },
   // ── Portfolio ──
   { pattern: /\b(show|list|get|view)\b.*\b(all\s+)?(deals|transactions|projects)\b/i, action: 'list_deals', scope: 'global' },
   // ── Next Steps / Co-pilot ──
