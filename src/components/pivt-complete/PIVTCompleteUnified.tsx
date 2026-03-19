@@ -152,7 +152,7 @@ export const PIVTCompleteUnified: React.FC = () => {
           />
           {!sidebarCollapsed && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0">
-              <p className="text-[11px] text-muted-foreground/40 truncate">The intelligence layer</p>
+              <p className="text-[11px] text-muted-foreground/40 truncate">The intelligence layer behind every close.</p>
             </motion.div>
           )}
         </button>
