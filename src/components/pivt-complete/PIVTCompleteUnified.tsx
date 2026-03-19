@@ -2,6 +2,7 @@
  * PIVTCompleteUnified - Premium 3-panel SaaS layout
  * Stripe/Linear-inspired with PIVT brand identity
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
