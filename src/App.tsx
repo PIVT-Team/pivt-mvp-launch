@@ -88,6 +88,7 @@ const App = () => (
                 <Route path="risk" element={<AdminRisk />} />
                 <Route path="revenue" element={<AdminRevenue />} />
                 <Route path="audit" element={<AdminAuditLog />} />
+                <Route path="auth" element={<AdminAuthAnalytics />} />
               </Route>
               <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
                 <Route path="/dashboard" element={<Dashboard />} />
