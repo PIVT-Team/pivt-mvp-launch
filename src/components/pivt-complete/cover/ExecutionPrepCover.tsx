@@ -148,8 +148,8 @@ export const ExecutionPrepCover: React.FC = () => {
       label: 'Tax Forms Complete',
       description: 'Upload required W-9 / W-8BEN forms for applicable stakeholders',
       icon: FileSpreadsheet,
-      passed: (metrics?.totalTaxForms ?? 0) > 0,
-      detail: metrics ? `${metrics.totalTaxForms ?? 0} forms on file` : '',
+      passed: false, // No totalTaxForms in metrics yet; always shows as actionable
+      detail: '',
       action: () => navigateToSection('deal-inputs', 'tax'),
     },
     {
@@ -166,8 +166,8 @@ export const ExecutionPrepCover: React.FC = () => {
       label: 'Discrepancies Resolved',
       description: 'Resolve all critical discrepancies across wire instructions and funds flow',
       icon: AlertTriangle,
-      passed: (metrics?.openCriticalDiscrepancies ?? 0) === 0,
-      detail: metrics ? `${metrics.openCriticalDiscrepancies ?? 0} critical open` : '',
+      passed: (metrics?.reconciliationIssues ?? []).filter(i => i.severity === 'critical').length === 0,
+      detail: metrics ? `${(metrics.reconciliationIssues ?? []).filter(i => i.severity === 'critical').length} critical open` : '',
       action: () => navigateToSection('execution', 'discrepancies'),
     },
     {
