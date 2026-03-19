@@ -3193,7 +3193,13 @@ export type Database = {
     }
     Enums: {
       allocation_logic_type: "fixed" | "percentage" | "pro_rata" | "threshold"
-      app_role: "admin" | "participant"
+      app_role:
+        | "admin"
+        | "participant"
+        | "super_admin"
+        | "ops_admin"
+        | "support_admin"
+        | "read_only"
       compliance_check_status:
         | "pending"
         | "submitted"
@@ -3521,7 +3527,14 @@ export const Constants = {
   public: {
     Enums: {
       allocation_logic_type: ["fixed", "percentage", "pro_rata", "threshold"],
-      app_role: ["admin", "participant"],
+      app_role: [
+        "admin",
+        "participant",
+        "super_admin",
+        "ops_admin",
+        "support_admin",
+        "read_only",
+      ],
       compliance_check_status: [
         "pending",
         "submitted",
