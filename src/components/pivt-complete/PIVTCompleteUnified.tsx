@@ -71,6 +71,7 @@ export const PIVTCompleteUnified: React.FC = () => {
   const [notifOpen, setNotifOpen] = React.useState(false);
   const { unreadCount, seedDemoNotifications } = useNotificationStore();
   const { signOut, user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => { seedDemoNotifications(); }, [seedDemoNotifications]);
   const [glassMode, setGlassMode] = React.useState(() => {
