@@ -143,7 +143,7 @@ export const PIVTCompleteUnified: React.FC = () => {
         {/* Logo */}
         <button
           onClick={() => setActiveSection('home' as ActiveSection)}
-          className="flex flex-col items-start px-4 pt-5 pb-4 w-full cursor-pointer"
+          className="flex flex-col items-center px-4 pt-5 pb-4 w-full cursor-pointer"
         >
           <motion.img
             src={pivtLogo}
