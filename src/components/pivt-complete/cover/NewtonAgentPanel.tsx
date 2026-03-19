@@ -387,12 +387,42 @@ export const NewtonAgentPanel: React.FC = () => {
           setOperationMode('deal');
           result = await executeGenerateKycRequests(selectedDealId, user?.id);
           break;
-        case 'prepare_approval_package':
+        case 'parse_funds_flow': {
           if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
           setOperationMode('deal');
-          result = await executePrepareApprovalPackage(selectedDealId, user?.id);
-          msgType = 'insight';
+          result = await executeParseFundsFlow(selectedDealId);
+          msgType = result.success ? 'success' : 'alert';
+          if (result.success && result.data?.discrepancies) {
+            setDiscrepancyItems(result.data.discrepancies);
+            setShowDiscrepancyPanel(true);
+          }
+          actionButtons = [
+            { label: 'Run Discrepancy Check', prompt: 'Run discrepancy check', primary: true },
+            { label: 'Check Readiness', prompt: 'Check readiness' },
+          ];
           break;
+        }
+        case 'run_discrepancy_check': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          result = await executeRunDiscrepancyCheck(selectedDealId);
+          if (result.success && result.data?.discrepancies) {
+            setDiscrepancyItems(result.data.discrepancies);
+            setShowDiscrepancyPanel(true);
+            msgType = result.data.discrepancies.length > 0 ? 'alert' : 'success';
+          } else {
+            msgType = result.success ? 'insight' : 'alert';
+          }
+          actionButtons = result.data?.discrepancies?.length > 0
+            ? [{ label: 'View Discrepancies', prompt: '__show_discrepancy_panel', primary: true }]
+            : [{ label: 'Check Readiness', prompt: 'Check readiness' }];
+          break;
+        }
+        case 'open_wire_instructions':
+        case 'open_tax_forms':
+        case 'open_approvals':
+        case 'start_new_closing':
+        case 'update_deal_metadata':
         default:
           result = { success: false, message: SUPPORTED_ACTIONS_TEXT };
       }
