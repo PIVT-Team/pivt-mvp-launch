@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const contacts = [
   { label: 'Support', email: 'support@pivttech.ai', desc: 'General & technical help', icon: Headphones },
@@ -31,18 +32,29 @@ const policySections = [
 const ContactSupportPage: React.FC = () => {
   const { toast } = useToast();
   const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [honeypot, setHoneypot] = useState('');
   const [sending, setSending] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return;
     setSending(true);
-    // Simulate send
-    setTimeout(() => {
+    try {
+      const { data, error } = await supabase.functions.invoke('contact-form', {
+        body: { name: form.name, email: form.email, message: form.message, _hp: honeypot },
+      });
+      if (error) throw error;
+      if (data && !data.success) {
+        toast({ title: 'Error', description: data.error || 'Something went wrong. Please try again or email support@pivttech.ai', variant: 'destructive' });
+      } else {
+        setForm({ name: '', email: '', message: '' });
+        toast({ title: 'Message sent', description: "We'll respond within 24–48 hours." });
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Something went wrong. Please try again or email support@pivttech.ai', variant: 'destructive' });
+    } finally {
       setSending(false);
-      setForm({ name: '', email: '', message: '' });
-      toast({ title: 'Message sent', description: 'We\'ll get back to you within 24–48 hours.' });
-    }, 800);
+    }
   };
 
   return (
@@ -105,11 +117,22 @@ const ContactSupportPage: React.FC = () => {
                 required
               />
             </div>
+            {/* Honeypot - hidden from real users */}
+            <input
+              type="text"
+              name="_hp"
+              value={honeypot}
+              onChange={(e) => setHoneypot(e.target.value)}
+              className="absolute opacity-0 h-0 w-0 pointer-events-none"
+              tabIndex={-1}
+              autoComplete="off"
+              aria-hidden="true"
+            />
             <Textarea
               placeholder="How can we help?"
               value={form.message}
               onChange={(e) => setForm(f => ({ ...f, message: e.target.value }))}
-              maxLength={2000}
+              maxLength={5000}
               rows={4}
               required
             />
