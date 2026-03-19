@@ -9,9 +9,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import {
-  Briefcase, AlertTriangle, CheckCircle2, Clock, Brain, ArrowRight, TrendingUp, Inbox, Rocket, Loader2,
+  Briefcase, AlertTriangle, CheckCircle2, Clock, Brain, ArrowRight, TrendingUp, Inbox,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
 const fmt = (n: number) =>
