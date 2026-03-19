@@ -815,7 +815,7 @@ export const DealWorkspaceCover: React.FC = () => {
 
   return (
     <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
-    <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal}>
+    <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal} metrics={metrics} metricsLoading={metricsLoading} workflow={workflow} refetchMetrics={refetchMetrics}>
     <motion.div {...staggerChildren} className="space-y-8">
       <button
         onClick={() => setActiveSection('deals')}
