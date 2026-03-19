@@ -2,13 +2,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Inbox, BarChart3, TrendingUp, AlertTriangle,
-  ScrollText, Bot, Shield, LogOut, ChevronLeft, DollarSign
+  ScrollText, Bot, Shield, LogOut, ChevronLeft, DollarSign, KeyRound
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const NAV_ITEMS = [
   { path: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
   { path: "/admin/support", label: "Support Inbox", icon: Inbox },
+  { path: "/admin/auth", label: "User & Auth", icon: KeyRound },
   { path: "/admin/analytics", label: "Platform Analytics", icon: BarChart3 },
   { path: "/admin/deal-funnel", label: "Deal Funnel", icon: TrendingUp },
   { path: "/admin/newton", label: "Newton / AI", icon: Bot },
