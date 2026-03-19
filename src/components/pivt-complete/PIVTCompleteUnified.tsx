@@ -4,13 +4,13 @@
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import React, { useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Search, ChevronLeft, ChevronRight, Bell, Upload, Brain, LogOut } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, Upload, Brain, LogOut, Play } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 import pivtLogo from '@/assets/pivt-logo.png';
@@ -71,6 +71,7 @@ export const PIVTCompleteUnified: React.FC = () => {
   const [notifOpen, setNotifOpen] = React.useState(false);
   const { unreadCount, seedDemoNotifications } = useNotificationStore();
   const { signOut, user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => { seedDemoNotifications(); }, [seedDemoNotifications]);
   const [glassMode, setGlassMode] = React.useState(() => {
@@ -256,7 +257,21 @@ export const PIVTCompleteUnified: React.FC = () => {
             <TooltipContent>Open Newton AI Deal Scan (⌘J)</TooltipContent>
           </Tooltip>
 
-          {/* Import */}
+          {/* See Demo */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => navigate('/demo')}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-accent-foreground transition-all hover:opacity-90"
+                style={{ background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--pivt-blue)))' }}
+              >
+                <Play className="w-3.5 h-3.5" />
+                <span>See Demo</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Watch the cinematic PIVT demo</TooltipContent>
+          </Tooltip>
+
           <button onClick={() => setImportOpen(true)} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground text-xs">
             <Upload className="w-3.5 h-3.5" />
             {!sidebarCollapsed && <span>Import</span>}
