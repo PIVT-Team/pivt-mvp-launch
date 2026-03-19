@@ -148,7 +148,7 @@ export function useAdminRisks() {
 
       return {
         openDiscrepancies: discrepancies,
-        criticalDiscrepancies: discrepancies.filter(d => d.severity === 'critical'),
+        criticalDiscrepancies: discrepancies.filter(d => d.severity === 'blocker'),
         stalledDeals,
         pendingApprovalDeals: pendingApprovalDeals.length,
       };
