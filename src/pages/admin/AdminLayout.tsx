@@ -3,12 +3,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Inbox, BarChart3, Users, AlertTriangle,
-  ScrollText, Bot, Shield, LogOut, ChevronLeft, Activity, FileText, UserSearch
+  ScrollText, Bot, Shield, LogOut, ChevronLeft, Activity, FileText, UserSearch, Lightbulb
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const NAV_ITEMS = [
   { path: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
+  { path: "/admin/insights", label: "Insights & Alerts", icon: Lightbulb },
   { path: "/admin/users", label: "User Directory", icon: UserSearch },
   { path: "/admin/activity", label: "User Activity", icon: Activity },
   { path: "/admin/auth", label: "Engagement Analytics", icon: BarChart3 },
