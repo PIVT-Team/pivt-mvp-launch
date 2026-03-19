@@ -45,13 +45,13 @@ const ContactSupportPage: React.FC = () => {
       });
       if (error) throw error;
       if (data && !data.success) {
-        toast({ title: 'Error', description: data.error || 'Something went wrong. Please try again or email support@pivttech.ai', variant: 'destructive' });
+        toast({ title: 'Error', description: data.error || 'Your message could not be sent. Please try again or email support@pivttech.ai directly.', variant: 'destructive' });
       } else {
         setForm({ name: '', email: '', message: '' });
-        toast({ title: 'Message sent', description: "We'll respond within 24–48 hours." });
+        toast({ title: 'Message sent', description: "Your message has been sent. We'll respond within 24–48 business hours." });
       }
     } catch {
-      toast({ title: 'Error', description: 'Something went wrong. Please try again or email support@pivttech.ai', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Your message could not be sent. Please try again or email support@pivttech.ai directly.', variant: 'destructive' });
     } finally {
       setSending(false);
     }
