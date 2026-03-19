@@ -84,6 +84,11 @@ const INTENT_PATTERNS: IntentPattern[] = [
   { pattern: /\bopen\s+(project|deal)\s+(\w[\w\s]*\w)/i, action: 'open_deal', scope: 'global' },
   // ── Deal Creation ──
   { pattern: /\b(create|new|start|set\s*up)\b.*\b(deal|transaction|project|closing)\b/i, action: 'create_deal', scope: 'global', requiresForm: true, formType: 'create_deal' },
+  // ── Funds Flow & Wire Parsing ──
+  { pattern: /\b(parse|analy[sz]e|process|review|check)\b.*\b(funds?\s*flow|wire\s*instruction|payment\s*schedule|disbursement)\b/i, action: 'parse_funds_flow', scope: 'deal' },
+  { pattern: /\b(upload|import)\b.*\b(funds?\s*flow|wire\s*instruction|wire\s*schedule|payment)\b/i, action: 'parse_funds_flow', scope: 'deal' },
+  { pattern: /\b(run|check|detect|find|identify)\b.*\b(discrepanc|mismatch|inconsistenc|reconcil)\b/i, action: 'run_discrepancy_check', scope: 'deal' },
+  { pattern: /\b(compare|cross.?check|validate)\b.*\b(wire|fund|payment|bank)\b/i, action: 'run_discrepancy_check', scope: 'deal' },
   // ── Portfolio ──
   { pattern: /\b(show|list|get|view)\b.*\b(all\s+)?(deals|transactions|projects)\b/i, action: 'list_deals', scope: 'global' },
   // ── Next Steps / Co-pilot ──
