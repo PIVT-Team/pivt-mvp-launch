@@ -39,7 +39,7 @@ const DemoPage: React.FC = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [stepProgress, setStepProgress] = useState(0);
   const [resolvedDiscrepancies, setResolvedDiscrepancies] = useState<Set<string>>(new Set());
-  const [approvalStatuses, setApprovalStatuses] = useState<Record<string, string>>({});
+  const [approvalStatuses, setApprovalStatuses] = useState<Record<string, DemoApproval['status']>>({});
   const timersRef = useRef<NodeJS.Timeout[]>([]);
 
   const clearTimers = useCallback(() => {
