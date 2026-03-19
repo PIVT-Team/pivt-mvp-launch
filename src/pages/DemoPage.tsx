@@ -50,7 +50,7 @@ interface StepScenario {
 }
 
 interface ScenarioCtx {
-  addMessage: (type: DemoMsg['type'], text: string) => string;
+  addMessage: (type: DemoMsg['type'], text: string, wirepackMeta?: DemoMsg['wirepackMeta']) => string;
   removeMessage: (id: string) => void;
   typeAndSubmit: (text: string) => Promise<void>;
   setIsTyping: (v: boolean) => void;
@@ -324,10 +324,11 @@ const SCENARIOS: Partial<Record<DemoStep, StepScenario>> = {
 
       ctx.setStepProgress(1);
       ctx.addMessage(
-        'newton',
-        '✅ **Wire Pack Ready**\n\n- 6 verified payment instructions\n- $185.0M total disbursement\n- All compliance checks passed\n- PDF, CSV, and JSON formats available\n\nProject Atlas is ready for closing execution.'
+        'wirepack_success',
+        '',
+        { dealName: 'Project Atlas', totalAmount: '$185.0M', wireCount: 6 }
       );
-      await sleep(2000);
+      await sleep(3000);
     },
   },
 };
@@ -365,9 +366,9 @@ const DemoPage: React.FC = () => {
       const scenario = SCENARIOS[stepId];
       if (scenario) {
         const ctx: ScenarioCtx = {
-          addMessage: (type, text) => {
+          addMessage: (type, text, wirepackMeta?) => {
             const id = uid();
-            setMessages((prev) => [...prev, { id, type, text, visible: true }]);
+            setMessages((prev) => [...prev, { id, type, text, visible: true, wirepackMeta }]);
             return id;
           },
           removeMessage: (id) => setMessages((prev) => prev.filter((m) => m.id !== id)),
@@ -436,9 +437,9 @@ const DemoPage: React.FC = () => {
               const scenario = SCENARIOS[stepId];
               if (scenario) {
                 const ctx: ScenarioCtx = {
-                  addMessage: (type, text) => {
+                  addMessage: (type, text, wirepackMeta?) => {
                     const id = uid();
-                    setMessages((prev) => [...prev, { id, type, text, visible: true }]);
+                    setMessages((prev) => [...prev, { id, type, text, visible: true, wirepackMeta }]);
                     return id;
                   },
                   removeMessage: (id) => setMessages((prev) => prev.filter((m) => m.id !== id)),

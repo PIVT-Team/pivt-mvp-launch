@@ -7,13 +7,15 @@ import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Loader2, Terminal, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 
 export interface DemoMsg {
   id: string;
-  type: 'user' | 'newton' | 'system' | 'thinking';
+  type: 'user' | 'newton' | 'system' | 'thinking' | 'wirepack_success';
   text: string;
   visible: boolean;
   streaming?: boolean;
+  wirepackMeta?: { dealName: string; totalAmount?: string; wireCount?: number };
 }
 
 interface Props {
@@ -100,6 +102,17 @@ export const DemoNewtonPanel: React.FC<Props> = ({
                     <Terminal className="w-3 h-3 text-validated" />
                     <span className="text-[11px] text-validated font-medium">{msg.text}</span>
                   </div>
+                )}
+                {msg.type === 'wirepack_success' && msg.wirepackMeta && (
+                  <WirePackSuccessCard
+                    compact
+                    dealName={msg.wirepackMeta.dealName}
+                    totalAmount={msg.wirepackMeta.totalAmount}
+                    wireCount={msg.wirepackMeta.wireCount}
+                    onViewWirePack={() => {}}
+                    onDownloadPDF={() => {}}
+                    onProceedToExecution={() => {}}
+                  />
                 )}
               </motion.div>
             ))}

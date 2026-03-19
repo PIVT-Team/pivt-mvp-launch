@@ -1,6 +1,6 @@
 /**
  * Newton Chat Stream — Card-based message display.
- * Message types: user, response, success, insight, alert
+ * Message types: user, response, success, insight, alert, wirepack_success
  */
 import React, { useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,14 +11,17 @@ import {
   CheckCircle2, AlertTriangle, Sparkles, ArrowRight, Loader2, Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 
 export interface ChatMessage {
   id: string;
-  type: 'user' | 'response' | 'success' | 'insight' | 'alert' | 'loading';
+  type: 'user' | 'response' | 'success' | 'insight' | 'alert' | 'loading' | 'wirepack_success';
   text: string;
   title?: string;
   actions?: { label: string; prompt: string; primary?: boolean }[];
   timestamp: Date;
+  /** Extra metadata for wirepack_success cards */
+  wirepackMeta?: { dealName: string; totalAmount?: string; wireCount?: number };
 }
 
 interface Props {
@@ -59,6 +62,16 @@ export const NewtonChatStream: React.FC<Props> = ({ messages, onAction }) => {
             {msg.type === 'insight' && <InsightCard msg={msg} onAction={onAction} />}
             {msg.type === 'alert' && <AlertCard msg={msg} onAction={onAction} />}
             {msg.type === 'loading' && <LoadingCard text={msg.text} />}
+            {msg.type === 'wirepack_success' && msg.wirepackMeta && (
+              <WirePackSuccessCard
+                compact
+                dealName={msg.wirepackMeta.dealName}
+                totalAmount={msg.wirepackMeta.totalAmount}
+                wireCount={msg.wirepackMeta.wireCount}
+                onViewWirePack={() => onAction?.('view_wirepack')}
+                onDownloadPDF={() => onAction?.('download_wirepack_pdf')}
+              />
+            )}
           </motion.div>
         ))}
       </AnimatePresence>

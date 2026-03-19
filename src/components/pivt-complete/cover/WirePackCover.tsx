@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { fadeInUp } from '@/lib/animations';
+import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 import {
   ShieldCheck, AlertTriangle, FileText, Download, CheckCircle2,
   Clock, XCircle, Loader2, RefreshCw, FileJson, FileSpreadsheet,
@@ -238,22 +239,16 @@ export const WirePackCover: React.FC = () => {
 
       {pack && (
         <>
-          {/* Trust Banner */}
+          {/* Premium Success Card */}
           {pack.is_ready && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 px-5 py-3.5 rounded-xl border"
-              style={{
-                background: 'hsl(var(--validated) / 0.06)',
-                borderColor: 'hsl(var(--validated) / 0.15)',
-              }}
-            >
-              <ShieldCheck className="w-5 h-5 shrink-0" style={{ color: 'hsl(var(--validated))' }} />
-              <span className="text-sm font-medium" style={{ color: 'hsl(var(--validated))' }}>
-                This wire pack has been reconciled across all sources and approved for execution.
-              </span>
-            </motion.div>
+            <WirePackSuccessCard
+              dealName={pack.deal_name}
+              totalAmount={fmtCurrency(pack.summary.total_amount, pack.currency)}
+              wireCount={pack.summary.total_wires}
+              timestamp={pack.generated_at}
+              onViewWirePack={() => {}}
+              onDownloadPDF={exportPDF}
+            />
           )}
 
           {/* Readiness Gates */}
