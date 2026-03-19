@@ -665,8 +665,9 @@ export const DealWorkspaceCover: React.FC = () => {
   };
   const resolvedDealId = effectiveDealId || DEMO_ID_MAP[selectedDealId] || undefined;
 
-  // ── SINGLE SOURCE OF TRUTH: canonical metrics ──
-  const { metrics, loading: metricsLoading } = useDealMetrics(resolvedDealId);
+  // ── SINGLE SOURCE OF TRUTH: canonical metrics + deterministic workflow ──
+  const { metrics, loading: metricsLoading, refetch: refetchMetrics } = useDealMetrics(resolvedDealId);
+  const workflow = useDealWorkflow(metrics);
 
   useEffect(() => {
     const fetchId = isRealDeal ? selectedDealId : DEMO_ID_MAP[selectedDealId];
