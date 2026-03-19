@@ -64,6 +64,7 @@ const App = () => (
               <Route path="/terms" element={<TermsOfServicePageLazy />} />
               <Route path="/contact" element={<ContactSupportPageLazy />} />
               <Route path="/security" element={<DataSecurityPageLazy />} />
+              <Route path="/acceptable-use" element={<AcceptableUsePageLazy />} />
               <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
               <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
