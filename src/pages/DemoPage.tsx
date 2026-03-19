@@ -576,6 +576,7 @@ const DemoPage: React.FC = () => {
             </button>
           </div>
         </motion.div>
+        <RequestAccessModal open={requestAccessOpen} onOpenChange={setRequestAccessOpen} />
       </div>
     );
   }
