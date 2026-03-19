@@ -2793,6 +2793,50 @@ export type Database = {
           },
         ]
       }
+      user_activity_events: {
+        Row: {
+          created_at: string
+          deal_id: string | null
+          event_category: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          page_path: string | null
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deal_id?: string | null
+          event_category?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string | null
+          event_category?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          page_path?: string | null
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_kyc: {
         Row: {
           account_holder_name: string | null

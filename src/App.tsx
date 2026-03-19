@@ -42,6 +42,9 @@ const AdminRisk = lazy(() => import("./pages/admin/AdminRisk"));
 const AdminAuditLog = lazy(() => import("./pages/admin/AdminAuditLog"));
 const AdminRevenue = lazy(() => import("./pages/admin/AdminRevenue"));
 const AdminAuthAnalytics = lazy(() => import("./pages/admin/AdminAuthAnalytics"));
+const AdminUserDirectory = lazy(() => import("./pages/admin/AdminUserDirectory"));
+const AdminUserDetail = lazy(() => import("./pages/admin/AdminUserDetail"));
+const AdminUserActivity = lazy(() => import("./pages/admin/AdminUserActivity"));
 
 const queryClient = new QueryClient();
 
@@ -81,6 +84,9 @@ const App = () => (
               {/* Admin routes */}
               <Route path="/admin" element={<AuthGuard><AdminLayout /></AuthGuard>}>
                 <Route index element={<AdminDashboard />} />
+                <Route path="users" element={<AdminUserDirectory />} />
+                <Route path="users/:userId" element={<AdminUserDetail />} />
+                <Route path="activity" element={<AdminUserActivity />} />
                 <Route path="support" element={<AdminSupport />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="deal-funnel" element={<AdminAnalytics />} />
