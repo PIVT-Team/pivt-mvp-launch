@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { DemoNewtonPanel, type DemoMsg } from '@/components/demo/DemoNewtonPanel';
 import { DemoWorkspace } from '@/components/demo/DemoWorkspace';
 import { DemoStepper, type DemoStep } from '@/components/demo/DemoStepper';
+import type { DemoApproval } from '@/components/demo/demoData';
 import {
   STEP_MESSAGES, DEMO_DISCREPANCIES, DEMO_APPROVALS, DEMO_DEAL,
 } from '@/components/demo/demoData';
