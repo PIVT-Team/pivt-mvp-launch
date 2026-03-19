@@ -152,7 +152,9 @@ serve(async (req) => {
         html: htmlBody,
         text: textBody,
         reply_to: sanitizedEmail,
-        template_name: "contact-form",
+        purpose: "transactional",
+        label: "contact-form",
+        queued_at: new Date().toISOString(),
       },
     });
 
