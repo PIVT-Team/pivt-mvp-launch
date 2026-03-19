@@ -103,6 +103,17 @@ export const DemoNewtonPanel: React.FC<Props> = ({
                     <span className="text-[11px] text-validated font-medium">{msg.text}</span>
                   </div>
                 )}
+                {msg.type === 'wirepack_success' && msg.wirepackMeta && (
+                  <WirePackSuccessCard
+                    compact
+                    dealName={msg.wirepackMeta.dealName}
+                    totalAmount={msg.wirepackMeta.totalAmount}
+                    wireCount={msg.wirepackMeta.wireCount}
+                    onViewWirePack={() => {}}
+                    onDownloadPDF={() => {}}
+                    onProceedToExecution={() => {}}
+                  />
+                )}
               </motion.div>
             ))}
         </AnimatePresence>
