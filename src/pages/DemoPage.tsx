@@ -344,6 +344,7 @@ const DemoPage: React.FC = () => {
   const [stepProgress, setStepProgress] = useState(0);
   const [resolvedDiscrepancies, setResolvedDiscrepancies] = useState<Set<string>>(new Set());
   const [approvalStatuses, setApprovalStatuses] = useState<Record<string, DemoApproval['status']>>({});
+  const [requestAccessOpen, setRequestAccessOpen] = useState(false);
   const runningRef = useRef(false);
   const cancelledRef = useRef(false);
 
