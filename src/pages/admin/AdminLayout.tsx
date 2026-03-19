@@ -2,20 +2,20 @@ import { lazy, Suspense } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, Outlet, Link, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, Inbox, BarChart3, TrendingUp, AlertTriangle,
-  ScrollText, Bot, Shield, LogOut, ChevronLeft, DollarSign, KeyRound
+  LayoutDashboard, Inbox, BarChart3, Users, AlertTriangle,
+  ScrollText, Bot, Shield, LogOut, ChevronLeft, Activity, FileText, UserSearch
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const NAV_ITEMS = [
   { path: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
-  { path: "/admin/support", label: "Support Inbox", icon: Inbox },
-  { path: "/admin/auth", label: "User & Auth", icon: KeyRound },
-  { path: "/admin/analytics", label: "Platform Analytics", icon: BarChart3 },
-  { path: "/admin/deal-funnel", label: "Deal Funnel", icon: TrendingUp },
+  { path: "/admin/users", label: "User Directory", icon: UserSearch },
+  { path: "/admin/activity", label: "User Activity", icon: Activity },
+  { path: "/admin/auth", label: "Engagement Analytics", icon: BarChart3 },
+  { path: "/admin/analytics", label: "Platform Usage", icon: Users },
   { path: "/admin/newton", label: "Newton / AI", icon: Bot },
+  { path: "/admin/support", label: "Support Inbox", icon: Inbox },
   { path: "/admin/risk", label: "Risk Monitor", icon: AlertTriangle },
-  { path: "/admin/revenue", label: "Revenue", icon: DollarSign },
   { path: "/admin/audit", label: "Audit Log", icon: ScrollText },
 ];
 
@@ -47,7 +47,6 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen flex bg-muted/30">
-      {/* Sidebar */}
       <aside className="w-64 bg-background border-r border-border flex flex-col shrink-0">
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-3">
@@ -65,7 +64,7 @@ export default function AdminLayout() {
           {NAV_ITEMS.map((item) => {
             const isActive = item.exact
               ? location.pathname === item.path
-              : location.pathname.startsWith(item.path);
+              : location.pathname.startsWith(item.path) && !(item.path === "/admin/auth" && location.pathname === "/admin/activity");
             return (
               <Link
                 key={item.path}
@@ -109,7 +108,6 @@ export default function AdminLayout() {
         </div>
       </aside>
 
-      {/* Main content */}
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
