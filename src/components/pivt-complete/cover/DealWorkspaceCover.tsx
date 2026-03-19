@@ -51,7 +51,7 @@ import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 import { DealStateInspector } from './DealStateInspector';
 import { WirePackCover } from './WirePackCover';
-
+import { ExecutionPrepCover } from './ExecutionPrepCover';
 // ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai' | 'newton-agents';
 
@@ -82,6 +82,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   ],
   approvals: [],
   execution: [
+    { id: 'prep', label: 'Execution Prep' },
     { id: 'closing', label: 'Closing Readiness' },
     { id: 'wire-pack', label: 'Wire Pack' },
     { id: 'intents', label: 'Disbursement Intents' },
@@ -567,6 +568,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
     case 'approvals':
       return ApprovalsWorkflowCover;
     case 'execution':
+      if (subNavId === 'prep') return ExecutionPrepCover;
       if (subNavId === 'closing') return ClosingCenterCover;
       if (subNavId === 'wire-pack') return WirePackCover;
       if (subNavId === 'intents') return PaymentsCover;
@@ -574,7 +576,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
       if (subNavId === 'escrow') return EscrowCover;
       if (subNavId === 'authority') return ExecutionAuthorityPanel;
-      return ClosingCenterCover;
+      return ExecutionPrepCover;
     case 'compliance':
       if (subNavId === 'reports') return DealReportsCover;
       if (subNavId === 'activity') return DealActivityCover;
@@ -702,6 +704,20 @@ export const DealWorkspaceCover: React.FC = () => {
       }
     }
   }, [loadingDeal, realDeal, isDemoDeal]);
+
+  // Listen for programmatic navigation from child components (e.g. ExecutionPrepCover "Fix" buttons)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.step) {
+        setActiveStepId(detail.step as StepId);
+        const subs = STEP_SUB_NAV[detail.step as StepId];
+        setActiveSubNav(detail.sub || (subs ? subs[0].id : undefined));
+      }
+    };
+    window.addEventListener('pivt:navigate-workspace', handler);
+    return () => window.removeEventListener('pivt:navigate-workspace', handler);
+  }, []);
 
   const handleStepClick = (id: string) => {
     setActiveStepId(id as StepId);
