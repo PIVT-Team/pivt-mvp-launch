@@ -14,6 +14,7 @@ import { DemoNewtonPanel, type DemoMsg } from '@/components/demo/DemoNewtonPanel
 import { DemoWorkspace } from '@/components/demo/DemoWorkspace';
 import { DemoStepper, type DemoStep } from '@/components/demo/DemoStepper';
 import { useDemoTyping } from '@/components/demo/useDemoTyping';
+import { RequestAccessModal } from '@/components/RequestAccessModal';
 import type { DemoApproval } from '@/components/demo/demoData';
 import {
   DEMO_DISCREPANCIES, DEMO_APPROVALS, DEMO_DEAL,
