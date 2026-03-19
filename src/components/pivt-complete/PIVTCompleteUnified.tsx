@@ -143,7 +143,7 @@ export const PIVTCompleteUnified: React.FC = () => {
         {/* Logo */}
         <button
           onClick={() => setActiveSection('home' as ActiveSection)}
-          className="flex items-center gap-2.5 px-4 pt-5 pb-4 w-full cursor-pointer"
+          className="flex flex-col items-start px-4 pt-5 pb-4 w-full cursor-pointer"
         >
           <motion.img
             src={pivtLogo}
@@ -151,9 +151,9 @@ export const PIVTCompleteUnified: React.FC = () => {
             className={`${sidebarCollapsed ? 'h-7' : 'h-9'} w-auto shrink-0 transition-all duration-300`}
           />
           {!sidebarCollapsed && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-w-0">
-              <p className="text-[11px] text-muted-foreground/40 truncate">The intelligence layer behind every close.</p>
-            </motion.div>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] text-muted-foreground/40 mt-1 leading-tight">
+              The intelligence layer behind every close.
+            </motion.p>
           )}
         </button>
 
