@@ -12,6 +12,7 @@ import {
   DEMO_DEAL, DEMO_DOCUMENTS, DEMO_OBLIGATIONS,
   DEMO_DISCREPANCIES, DEMO_APPROVALS, type DemoApproval,
 } from './demoData';
+import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 
 type DemoStep = 'intro' | 'create' | 'upload' | 'obligations' | 'discrepancies' | 'approvals' | 'wirepack' | 'outro';
 
