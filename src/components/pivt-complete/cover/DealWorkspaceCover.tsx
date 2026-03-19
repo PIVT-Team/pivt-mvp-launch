@@ -17,6 +17,7 @@ import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
 import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useDealMetrics } from '@/hooks/useDealMetrics';
+import { useDealWorkflow } from '@/hooks/useDealWorkflow';
 
 // Import existing cover pages
 import { DealPartiesCover } from './DealPartiesCover';
