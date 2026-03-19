@@ -36,8 +36,64 @@ Deno.serve(async (req) => {
 
   const results: Record<string, string> = {};
 
+  // ─── Demo 0: Golden Path — fully complete deal for Demo Mode ───
+  // Every gate passes: stakeholders verified, docs uploaded, wires verified, approvals complete
+  const { data: deal0 } = await admin.from("deals").insert({
+    deal_name: "Demo — Golden Path (Summit Acquisition)",
+    deal_number: "",
+    deal_value: 220000000,
+    currency: "USD",
+    escrow_amount: 11000000,
+    owner_id: userId,
+    created_by: userId,
+    visibility: "private",
+    deal_kind: "live",
+    status: "active",
+    deal_state: "ready_for_execution",
+    buyer: "Summit Capital Partners",
+    seller: "Pinnacle Technologies Inc.",
+    deal_type: "M&A",
+    sector: "Enterprise Software",
+    target_company: "Pinnacle Tech Corp",
+    closing_date: new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0],
+  }).select("id").single();
+
+  if (deal0) {
+    results.golden = deal0.id;
+    // Stakeholders: buyer + seller, both verified
+    await admin.from("cap_table_entries").insert([
+      { deal_id: deal0.id, shareholder_name: "Pinnacle Technologies Inc.", ownership_pct: 100, payout_amount: 209000000, escrow_holdback: 11000000, role: "Seller", verification_status: "verified", email: "cfo@pinnacle.com" },
+      { deal_id: deal0.id, shareholder_name: "Summit Capital Partners", ownership_pct: 0, payout_amount: 0, escrow_holdback: 0, role: "Buyer", verification_status: "verified", email: "deals@summit.com" },
+    ]);
+    // Wire instructions: all verified
+    await admin.from("wire_instructions").insert([
+      { deal_id: deal0.id, payee_entity: "Pinnacle Technologies Inc.", amount: 209000000, currency: "USD", payment_type: "Purchase Price", verification_status: "verified", bank_name: "JPMorgan Chase", account_holder: "Pinnacle Technologies Inc.", account_number_last4: "7890", routing_number: "021000021" },
+      { deal_id: deal0.id, payee_entity: "Escrow Agent — First American", amount: 11000000, currency: "USD", payment_type: "Escrow Deposit", verification_status: "verified", bank_name: "First American Trust", account_holder: "First American Title", account_number_last4: "3456", routing_number: "021000089" },
+    ]);
+    // Documents: SPA uploaded
+    await admin.from("contract_documents").insert([
+      { deal_id: deal0.id, filename: "Stock Purchase Agreement - Executed.pdf", doc_type: "SPA", status: "PARSED" },
+      { deal_id: deal0.id, filename: "Funds Flow Memorandum.xlsx", doc_type: "FUNDS_FLOW", status: "VERIFIED" },
+      { deal_id: deal0.id, filename: "Escrow Agreement.pdf", doc_type: "ESCROW_AGREEMENT", status: "PARSED" },
+      { deal_id: deal0.id, filename: "Wire Authorization Letter.pdf", doc_type: "WIRE_INSTRUCTIONS", status: "VERIFIED" },
+      { deal_id: deal0.id, filename: "Disclosure Schedules.pdf", doc_type: "DISCLOSURE_SCHEDULES", status: "PARSED" },
+      { deal_id: deal0.id, filename: "Board Consent Resolution.pdf", doc_type: "BOARD_CONSENT", status: "PARSED" },
+      { deal_id: deal0.id, filename: "Officer Certificate.pdf", doc_type: "OFFICER_CERTIFICATE", status: "PARSED" },
+    ]);
+    // Approvals: all complete
+    await admin.from("deal_approvals").insert([
+      { deal_id: deal0.id, user_id: userId, approval_side: "buyer", approver_name: "Alex Mercer", approver_email: "amercer@summit.com", approver_role: "General Counsel", status: "completed", completed_at: new Date().toISOString() },
+      { deal_id: deal0.id, user_id: userId, approval_side: "seller", approver_name: "Priya Sharma", approver_email: "psharma@pinnacle.com", approver_role: "CFO", status: "completed", completed_at: new Date().toISOString() },
+    ]);
+    // Conditions: all satisfied
+    await admin.from("conditions").insert([
+      { deal_id: deal0.id, title: "Board approval obtained", status: "SATISFIED" },
+      { deal_id: deal0.id, title: "Regulatory clearance", status: "SATISFIED" },
+      { deal_id: deal0.id, title: "Third-party consents", status: "SATISFIED" },
+    ]);
+  }
+
   // ─── Demo 1: Healthy Deal — no blocking issues ───
-  // Mid-market scale: $185M enterprise value
   const { data: deal1 } = await admin.from("deals").insert({
     deal_name: "Demo — Healthy Close (Greenfield Solar)",
     deal_number: "",
@@ -79,7 +135,6 @@ Deno.serve(async (req) => {
   }
 
   // ─── Demo 2: Payout Mismatch Discrepancy ───
-  // Mid-market scale: $95M enterprise value
   const { data: deal2 } = await admin.from("deals").insert({
     deal_name: "Demo — Payout Mismatch (Meridian Logistics)",
     deal_number: "",
@@ -102,7 +157,6 @@ Deno.serve(async (req) => {
 
   if (deal2) {
     results.mismatch = deal2.id;
-    // Wires intentionally exceed deal value ($95M deal, $108.5M in wires)
     await admin.from("wire_instructions").insert([
       { deal_id: deal2.id, payee_entity: "Meridian Logistics Group", amount: 85500000, currency: "USD", payment_type: "Purchase Price", verification_status: "verified", bank_name: "Bank of America", account_holder: "Meridian Logistics Group Inc", account_number_last4: "1234", routing_number: "026009593" },
       { deal_id: deal2.id, payee_entity: "Advisory Fee — Lazard", amount: 14250000, currency: "USD", payment_type: "Advisory Fee", verification_status: "verified", bank_name: "Lazard Ltd", account_holder: "Lazard Frères & Co", account_number_last4: "5678", routing_number: "021000018" },
@@ -115,7 +169,6 @@ Deno.serve(async (req) => {
   }
 
   // ─── Demo 3: Unresolved Approval / Closing Blocker ───
-  // Mid-market scale: $275M enterprise value
   const { data: deal3 } = await admin.from("deals").insert({
     deal_name: "Demo — Blocked Close (Cipher Health)",
     deal_number: "",
@@ -160,7 +213,7 @@ Deno.serve(async (req) => {
     JSON.stringify({
       success: true,
       deals: results,
-      message: "3 polished demo scenarios created: Healthy Close ($185M), Payout Mismatch ($95M), Blocked Close ($275M)",
+      message: "4 demo scenarios created: Golden Path ($220M), Healthy Close ($185M), Payout Mismatch ($95M), Blocked Close ($275M)",
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );

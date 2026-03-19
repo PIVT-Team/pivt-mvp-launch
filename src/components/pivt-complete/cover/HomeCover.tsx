@@ -9,8 +9,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import {
-  Briefcase, AlertTriangle, CheckCircle2, Clock, Brain, ArrowRight, TrendingUp, Inbox,
+  Briefcase, AlertTriangle, CheckCircle2, Clock, Brain, ArrowRight, TrendingUp, Inbox, Rocket, Loader2,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 const fmt = (n: number) =>
   n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(0)}M` : `$${(n / 1_000).toFixed(0)}K`;
@@ -41,11 +43,13 @@ interface PortfolioMetrics {
 export const HomeCover: React.FC = () => {
   const { setActiveSection, setSelectedDealId } = usePIVTStore();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [deals, setDeals] = useState<RealDeal[]>([]);
   const [recentEvents, setRecentEvents] = useState<RecentEvent[]>([]);
   const [metrics, setMetrics] = useState<PortfolioMetrics>({ dealsWithBlockers: 0, pendingApprovals: 0, closingThisMonth: 0, openDiscrepancies: 0 });
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
 
   const greeting = useMemo(() => {
     const fullName = user?.user_metadata?.full_name as string | undefined;
@@ -158,9 +162,33 @@ export const HomeCover: React.FC = () => {
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-8">
       {/* Header */}
-      <motion.div variants={fadeUp}>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{greeting}</h1>
-        <p className="text-sm text-muted-foreground mt-1">Here's your portfolio at a glance.</p>
+      <motion.div variants={fadeUp} className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{greeting}</h1>
+          <p className="text-sm text-muted-foreground mt-1">Here's your portfolio at a glance.</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 text-xs"
+          disabled={seeding}
+          onClick={async () => {
+            setSeeding(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('qa-seed-deals');
+              if (error) throw error;
+              toast({ title: 'Demo deals created', description: data?.message || '4 scenarios seeded' });
+              window.location.reload();
+            } catch (e) {
+              toast({ title: 'Seeding failed', description: (e as Error).message, variant: 'destructive' });
+            } finally {
+              setSeeding(false);
+            }
+          }}
+        >
+          {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+          {seeding ? 'Seeding…' : 'Seed Demo Deals'}
+        </Button>
       </motion.div>
 
       {/* Metrics */}

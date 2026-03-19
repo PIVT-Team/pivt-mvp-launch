@@ -17,6 +17,7 @@ import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
 import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useDealMetrics } from '@/hooks/useDealMetrics';
+import { useDealWorkflow } from '@/hooks/useDealWorkflow';
 
 // Import existing cover pages
 import { DealPartiesCover } from './DealPartiesCover';
@@ -664,8 +665,9 @@ export const DealWorkspaceCover: React.FC = () => {
   };
   const resolvedDealId = effectiveDealId || DEMO_ID_MAP[selectedDealId] || undefined;
 
-  // ── SINGLE SOURCE OF TRUTH: canonical metrics ──
-  const { metrics, loading: metricsLoading } = useDealMetrics(resolvedDealId);
+  // ── SINGLE SOURCE OF TRUTH: canonical metrics + deterministic workflow ──
+  const { metrics, loading: metricsLoading, refetch: refetchMetrics } = useDealMetrics(resolvedDealId);
+  const workflow = useDealWorkflow(metrics);
 
   useEffect(() => {
     const fetchId = isRealDeal ? selectedDealId : DEMO_ID_MAP[selectedDealId];
@@ -813,7 +815,7 @@ export const DealWorkspaceCover: React.FC = () => {
 
   return (
     <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
-    <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal}>
+    <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal} metrics={metrics} metricsLoading={metricsLoading} workflow={workflow} refetchMetrics={refetchMetrics}>
     <motion.div {...staggerChildren} className="space-y-8">
       <button
         onClick={() => setActiveSection('deals')}

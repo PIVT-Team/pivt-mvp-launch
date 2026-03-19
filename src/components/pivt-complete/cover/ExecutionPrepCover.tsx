@@ -12,7 +12,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
-import { useDealMetrics } from '@/hooks/useDealMetrics';
+
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { fadeInUp } from '@/lib/animations';
@@ -97,9 +97,9 @@ const navigateToSection = (step: string, sub?: string) => {
 /* ── Component ── */
 
 export const ExecutionPrepCover: React.FC = () => {
-  const { dealId } = useDealWorkspace();
-  const { metrics, loading: metricsLoading } = useDealMetrics(dealId || undefined);
+  const { dealId, metrics, metricsLoading, workflow } = useDealWorkspace();
   const { toast } = useToast();
+  const loading = metricsLoading;
 
   const [pack, setPack] = useState<WirePack | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -255,7 +255,7 @@ export const ExecutionPrepCover: React.FC = () => {
     toast({ title: 'JSON exported' });
   }, [pack, toast]);
 
-  if (metricsLoading) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
