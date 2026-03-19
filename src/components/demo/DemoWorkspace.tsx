@@ -210,44 +210,16 @@ export const DemoWorkspace: React.FC<Props> = ({ step, progress, resolvedDiscrep
         </motion.div>
       )}
 
-      {/* Wire Pack */}
+      {/* Wire Pack — Premium Success Moment */}
       {step === 'wirepack' && progress > 0.5 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4 }}
-          className="rounded-2xl border-2 border-validated/30 bg-gradient-to-br from-validated/5 to-card p-6 space-y-4"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-validated/10 flex items-center justify-center">
-              <Download className="w-5 h-5 text-validated" />
-            </div>
-            <div>
-              <h4 className="text-base font-semibold">Wire Pack Ready</h4>
-              <p className="text-xs text-muted-foreground">Project Atlas · {formatCurrency(DEMO_DEAL.value)}</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              '6 verified wire instructions',
-              'All discrepancies resolved',
-              '4/4 approvals complete',
-              'Compliance checks passed',
-            ].map(item => (
-              <div key={item} className="flex items-center gap-1.5 text-xs text-validated">
-                <CheckCircle2 className="w-3 h-3 shrink-0" />
-                <span>{item}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            {['PDF', 'CSV', 'JSON'].map(fmt => (
-              <div key={fmt} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted/40 text-xs font-medium cursor-default">
-                <Download className="w-3 h-3" /> {fmt}
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        <WirePackSuccessCard
+          dealName={DEMO_DEAL.name}
+          totalAmount={formatCurrency(DEMO_DEAL.value)}
+          wireCount={6}
+          onViewWirePack={() => {}}
+          onDownloadPDF={() => {}}
+          onProceedToExecution={() => {}}
+        />
       )}
     </div>
   );
