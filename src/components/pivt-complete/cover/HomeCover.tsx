@@ -162,9 +162,33 @@ export const HomeCover: React.FC = () => {
   return (
     <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-8">
       {/* Header */}
-      <motion.div variants={fadeUp}>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{greeting}</h1>
-        <p className="text-sm text-muted-foreground mt-1">Here's your portfolio at a glance.</p>
+      <motion.div variants={fadeUp} className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{greeting}</h1>
+          <p className="text-sm text-muted-foreground mt-1">Here's your portfolio at a glance.</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2 text-xs"
+          disabled={seeding}
+          onClick={async () => {
+            setSeeding(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('qa-seed-deals');
+              if (error) throw error;
+              toast({ title: 'Demo deals created', description: data?.message || '4 scenarios seeded' });
+              window.location.reload();
+            } catch (e) {
+              toast({ title: 'Seeding failed', description: (e as Error).message, variant: 'destructive' });
+            } finally {
+              setSeeding(false);
+            }
+          }}
+        >
+          {seeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Rocket className="w-3.5 h-3.5" />}
+          {seeding ? 'Seeding…' : 'Seed Demo Deals'}
+        </Button>
       </motion.div>
 
       {/* Metrics */}
