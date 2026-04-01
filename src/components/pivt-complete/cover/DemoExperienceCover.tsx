@@ -1,268 +1,176 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
-import { fadeInUp, springConfig } from '@/lib/animations';
-import {
-  Play, Pause, SkipForward, CheckCircle2, AlertTriangle,
-  FileSearch, Zap, ArrowRight, RotateCcw, Sparkles,
-} from 'lucide-react';
+/**
+ * The PIVT Solution — Investor-grade narrative section
+ * 4-pillar capability flow with premium hover animations
+ */
+import React from 'react';
+import { motion } from 'framer-motion';
 
-type DemoStep = 'ingestion' | 'extraction' | 'discrepancy' | 'resolution' | 'complete';
-
-const STEPS: { id: DemoStep; label: string; icon: React.ElementType; description: string }[] = [
-  { id: 'ingestion', label: 'Deal Ingestion', icon: FileSearch, description: 'PE deal data package uploaded and parsed' },
-  { id: 'extraction', label: 'Entity Extraction', icon: Zap, description: 'AI identifies entities, amounts, and relationships' },
-  { id: 'discrepancy', label: 'Discrepancy Detection', icon: AlertTriangle, description: 'Cross-referencing cap table, waterfall, and wire instructions' },
-  { id: 'resolution', label: 'Resolution Workflow', icon: Sparkles, description: 'Automated suggestions and approval routing' },
-  { id: 'complete', label: 'Ready to Close', icon: CheckCircle2, description: 'All validations passed — deal ready for execution' },
+const PILLARS = [
+  {
+    step: '01',
+    title: 'Understand the Deal',
+    description: 'AI reads and structures transaction documents into a live system of record.',
+    gradient: 'from-accent/20 to-accent/5',
+    glowColor: 'hsl(var(--accent) / 0.3)',
+    iconPath: (
+      <path
+        d="M4 6h16M4 12h16M4 18h10"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+    ),
+  },
+  {
+    step: '02',
+    title: 'Validate Every Detail',
+    description: 'PIVT verifies stakeholders, approvals, and payment logic against binding agreements.',
+    gradient: 'from-[hsl(var(--pivt-blue))]/20 to-[hsl(var(--pivt-blue))]/5',
+    glowColor: 'hsl(var(--pivt-blue) / 0.3)',
+    iconPath: (
+      <path
+        d="M9 12l2 2 4-4M12 3a9 9 0 100 18 9 9 0 000-18z"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+    ),
+  },
+  {
+    step: '03',
+    title: 'Orchestrate the Close',
+    description: 'All conditions, approvals, and dependencies are tracked and enforced in one place.',
+    gradient: 'from-accent/20 to-[hsl(var(--pivt-blue))]/10',
+    glowColor: 'hsl(var(--accent) / 0.25)',
+    iconPath: (
+      <>
+        <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth={1.5} fill="none" />
+        <path
+          d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.2 2.2M16.2 16.2l2.2 2.2M5.6 18.4l2.2-2.2M16.2 7.8l2.2-2.2"
+          stroke="currentColor"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+        />
+      </>
+    ),
+  },
+  {
+    step: '04',
+    title: 'Execute with Confidence',
+    description: 'Payments are triggered only when every condition is satisfied — with a complete audit trail.',
+    gradient: 'from-[hsl(var(--pivt-blue))]/20 to-accent/5',
+    glowColor: 'hsl(var(--pivt-blue) / 0.3)',
+    iconPath: (
+      <path
+        d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"
+        stroke="currentColor"
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        fill="none"
+      />
+    ),
+  },
 ];
 
-const DISCREPANCIES = [
-  { id: 1, field: 'Cap Table vs Waterfall', issue: 'Ownership % mismatch for Tiger Global (8.0% vs 7.8%)', severity: 'high' as const, resolved: false },
-  { id: 2, field: 'Wire Instructions', issue: 'Missing bank details for Employee Option Pool trust', severity: 'critical' as const, resolved: false },
-  { id: 3, field: 'Escrow Holdback', issue: 'Escrow amount differs between merger agreement ($280M) and schedule ($275M)', severity: 'medium' as const, resolved: false },
-];
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.12 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 24 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] },
+  },
+};
 
 export const DemoExperienceCover: React.FC = () => {
-  const deal = useSelectedDeal();
-  const [currentStep, setCurrentStep] = useState<DemoStep>('ingestion');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [resolvedIds, setResolvedIds] = useState<Set<number>>(new Set());
-
-  const currentIdx = STEPS.findIndex(s => s.id === currentStep);
-
-  const nextStep = () => {
-    const next = STEPS[currentIdx + 1];
-    if (next) setCurrentStep(next.id);
-  };
-
-  const resetDemo = () => {
-    setCurrentStep('ingestion');
-    setResolvedIds(new Set());
-    setIsPlaying(false);
-  };
-
-  const resolveDiscrepancy = (id: number) => {
-    setResolvedIds(prev => new Set([...prev, id]));
-  };
-
-  // Auto-advance timer
-  React.useEffect(() => {
-    if (!isPlaying) return;
-    const timer = setTimeout(() => {
-      if (currentIdx < STEPS.length - 1) {
-        nextStep();
-      } else {
-        setIsPlaying(false);
-      }
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [isPlaying, currentStep]);
-
-  const severityColors = {
-    low: 'border-muted text-muted-foreground',
-    medium: 'border-discrepancy/50 text-discrepancy',
-    high: 'border-accent/50 text-accent',
-    critical: 'border-blocking/50 text-blocking',
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Live Demo Experience</h2>
-          <p className="text-sm text-muted-foreground mt-1">{deal.codeName} — {deal.buyerName} acquiring {deal.targetCompany}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+    <section className="py-20 px-6 md:px-12 lg:px-20">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+        className="text-center max-w-3xl mx-auto mb-16"
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent mb-4">
+          The PIVT Solution
+        </p>
+        <h2 className="text-3xl md:text-4xl lg:text-[2.75rem] font-bold leading-tight text-foreground mb-5">
+          From Signed Deal to Settled Funds —{' '}
+          <span className="bg-gradient-to-r from-accent to-[hsl(var(--pivt-blue))] bg-clip-text text-transparent">
+            Without the Chaos
+          </span>
+        </h2>
+        <p className="text-base md:text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+          PIVT is the intelligence and orchestration layer that transforms fragmented deal documents,
+          approvals, and payment instructions into a single, verified execution workflow.
+        </p>
+      </motion.div>
+
+      {/* Pillar Cards */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: '-60px' }}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto relative"
+      >
+        {/* Connecting line (desktop) */}
+        <div className="hidden lg:block absolute top-[4.5rem] left-[12%] right-[12%] h-px bg-gradient-to-r from-accent/30 via-[hsl(var(--pivt-blue))]/20 to-accent/30 z-0" />
+
+        {PILLARS.map((pillar, i) => (
+          <motion.div
+            key={pillar.step}
+            variants={itemVariants}
+            whileHover={{ y: -6, transition: { duration: 0.25 } }}
+            className="relative z-10 group"
           >
-            {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            {isPlaying ? 'Pause' : 'Auto-Play'}
-          </button>
-          <button onClick={resetDemo} className="p-2 rounded-lg hover:bg-muted transition-colors">
-            <RotateCcw className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-      </div>
-
-      {/* Progress Steps */}
-      <div className="pivt-card p-6">
-        <div className="flex items-center gap-2">
-          {STEPS.map((step, i) => {
-            const isActive = step.id === currentStep;
-            const isDone = i < currentIdx;
-            return (
-              <React.Fragment key={step.id}>
-                <button
-                  onClick={() => setCurrentStep(step.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                    isActive
-                      ? 'bg-accent/10 text-accent font-medium'
-                      : isDone
-                        ? 'text-validated'
-                        : 'text-muted-foreground'
-                  }`}
-                >
-                  {isDone ? (
-                    <CheckCircle2 className="w-4 h-4" />
-                  ) : (
-                    <step.icon className="w-4 h-4" />
-                  )}
-                  <span className="hidden md:inline">{step.label}</span>
-                </button>
-                {i < STEPS.length - 1 && (
-                  <ArrowRight className={`w-3 h-3 ${i < currentIdx ? 'text-validated' : 'text-muted-foreground/30'}`} />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Step Content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={springConfig.standard}
-        >
-          {currentStep === 'ingestion' && (
-            <div className="pivt-card p-6 space-y-4">
-              <h3 className="font-semibold text-lg">Deal Package Ingestion</h3>
-              <p className="text-sm text-muted-foreground">
-                Parsing deal documents including merger agreement, cap table, waterfall schedule, wire instructions, and escrow terms.
-              </p>
-              <div className="space-y-3">
-                {['Merger Agreement (78 pages)', 'Cap Table — Final (12 sheets)', 'Waterfall Schedule v3', 'Wire Instructions Bundle', 'Escrow Agreement'].map((doc, i) => (
-                  <motion.div
-                    key={doc}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.15 }}
-                    className="flex items-center gap-3 text-sm"
-                  >
-                    <div className="w-2 h-2 rounded-full bg-accent" />
-                    <span>{doc}</span>
-                    <span className="ml-auto text-xs text-validated font-medium">Parsed</span>
-                  </motion.div>
-                ))}
-              </div>
-              <button onClick={nextStep} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium mt-4">
-                Continue to Extraction <SkipForward className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {currentStep === 'extraction' && (
-            <div className="pivt-card p-6 space-y-4">
-              <h3 className="font-semibold text-lg">Entity Extraction Results</h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { label: 'Entities Found', value: '47', sub: 'Stakeholders, Funds, Trusts' },
-                  { label: 'Financial Figures', value: '128', sub: 'Amounts, percentages, dates' },
-                  { label: 'Relationships', value: '83', sub: 'Ownership, payout, escrow links' },
-                  { label: 'Confidence Score', value: '96.2%', sub: 'Across all extracted data' },
-                ].map(stat => (
-                  <div key={stat.label} className="pivt-card p-4 bg-muted/30">
-                    <p className="pivt-stat text-lg">{stat.value}</p>
-                    <p className="text-xs font-medium mt-1">{stat.label}</p>
-                    <p className="text-xs text-muted-foreground">{stat.sub}</p>
-                  </div>
-                ))}
-              </div>
-              <button onClick={nextStep} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium mt-2">
-                Run Cross-Validation <SkipForward className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {currentStep === 'discrepancy' && (
-            <div className="pivt-card p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-lg">Discrepancies Detected</h3>
-                <span className="text-sm text-blocking font-medium">{DISCREPANCIES.length - resolvedIds.size} unresolved</span>
-              </div>
-              <div className="space-y-3">
-                {DISCREPANCIES.map(d => (
-                  <div key={d.id} className={`pivt-card p-4 border-l-4 ${resolvedIds.has(d.id) ? 'border-validated opacity-60' : severityColors[d.severity]} transition-all`}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="text-xs font-medium uppercase text-muted-foreground">{d.field}</p>
-                        <p className="text-sm font-medium mt-1">{d.issue}</p>
-                        <span className={`inline-block mt-1 text-xs px-1.5 py-0.5 rounded ${
-                          d.severity === 'critical' ? 'bg-blocking/10 text-blocking' : d.severity === 'high' ? 'bg-accent/10 text-accent' : 'bg-discrepancy/10 text-discrepancy'
-                        }`}>{d.severity}</span>
-                      </div>
-                      {!resolvedIds.has(d.id) ? (
-                        <button onClick={() => resolveDiscrepancy(d.id)} className="text-xs px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors font-medium">
-                          Resolve
-                        </button>
-                      ) : (
-                        <CheckCircle2 className="w-5 h-5 text-validated" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button onClick={nextStep} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium mt-2">
-                View Resolution <SkipForward className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {currentStep === 'resolution' && (
-            <div className="pivt-card p-6 space-y-4">
-              <h3 className="font-semibold text-lg">Resolution Workflow</h3>
-              <p className="text-sm text-muted-foreground">
-                AI-generated resolution suggestions have been routed to the appropriate approvers.
-              </p>
-              <div className="space-y-3">
-                {[
-                  { action: 'Ownership % corrected to 8.0% in waterfall', approver: 'Seller Counsel', status: 'Approved' },
-                  { action: 'Wire instructions requested from ESOP trustee', approver: 'Deal Admin', status: 'Pending' },
-                  { action: 'Escrow amount aligned to merger agreement ($280M)', approver: 'Buyer Counsel', status: 'Approved' },
-                ].map((r, i) => (
-                  <div key={i} className="flex items-center gap-4 p-3 pivt-card">
-                    <div className={`w-2 h-2 rounded-full ${r.status === 'Approved' ? 'bg-validated' : 'bg-discrepancy'}`} />
-                    <div className="flex-1">
-                      <p className="text-sm">{r.action}</p>
-                      <p className="text-xs text-muted-foreground">{r.approver}</p>
-                    </div>
-                    <span className={`text-xs font-medium ${r.status === 'Approved' ? 'text-validated' : 'text-discrepancy'}`}>{r.status}</span>
-                  </div>
-                ))}
-              </div>
-              <button onClick={nextStep} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium mt-2">
-                Finalize <SkipForward className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-
-          {currentStep === 'complete' && (
-            <div className="pivt-card p-8 text-center space-y-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={springConfig.snapBack}
+            <div
+              className="relative rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-7 h-full
+                         transition-all duration-300
+                         group-hover:border-accent/40 group-hover:shadow-[0_0_30px_-8px_var(--glow)]"
+              style={{ '--glow': pillar.glowColor } as React.CSSProperties}
+            >
+              {/* Icon */}
+              <div
+                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${pillar.gradient} flex items-center justify-center mb-5
+                            border border-border/30 group-hover:border-accent/30 transition-colors`}
               >
-                <CheckCircle2 className="w-16 h-16 text-validated mx-auto" />
-              </motion.div>
-              <h3 className="font-semibold text-xl">Deal Ready for Closing</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                All {deal.documentsUploaded} documents validated, {deal.totalRecipients} recipients confirmed,
-                and waterfall reconciled to ${(deal.consideration / 1e6).toFixed(1)}M.
+                <svg
+                  width="22"
+                  height="22"
+                  viewBox="0 0 24 24"
+                  className="text-foreground"
+                >
+                  {pillar.iconPath}
+                </svg>
+              </div>
+
+              {/* Step number */}
+              <span className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground/60 mb-2 block">
+                Step {pillar.step}
+              </span>
+
+              {/* Title */}
+              <h3 className="text-lg font-semibold text-foreground mb-2 leading-snug">
+                {pillar.title}
+              </h3>
+
+              {/* Description */}
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {pillar.description}
               </p>
-              <button onClick={resetDemo} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-accent-foreground text-sm font-medium mx-auto mt-4">
-                <RotateCcw className="w-4 h-4" /> Replay Demo
-              </button>
             </div>
-          )}
-        </motion.div>
-      </AnimatePresence>
-    </div>
+          </motion.div>
+        ))}
+      </motion.div>
+    </section>
   );
 };
