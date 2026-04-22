@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogIn, AlertCircle, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,8 @@ import pivtLogo from '@/assets/pivt-logo.png';
 
 const LoginPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +30,9 @@ const LoginPage: React.FC = () => {
     );
   }
 
-  if (user) return <Navigate to="/?section=deals" replace />;
+  const nextPath = searchParams.get('next') || '/?section=deals';
+
+  if (user) return <Navigate to={nextPath} replace />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +47,7 @@ const LoginPage: React.FC = () => {
       } else {
         toast.success('Welcome back');
         trackAuthEvent({ eventType: 'user_login', userId: data.user?.id, email, loginMethod: 'password' });
+        navigate(nextPath, { replace: true });
       }
     } else {
       if (!fullName.trim()) { setError('Full name is required.'); setLoading(false); return; }
@@ -61,6 +66,7 @@ const LoginPage: React.FC = () => {
         toast.success('Account created — you are now signed in.');
         trackAuthEvent({ eventType: 'account_created', userId: data.user?.id, email, loginMethod: 'password' });
         trackAuthEvent({ eventType: 'user_login', userId: data.user?.id, email, loginMethod: 'password', metadata: { first_login: true } });
+        navigate(nextPath, { replace: true });
       }
     }
     setLoading(false);
