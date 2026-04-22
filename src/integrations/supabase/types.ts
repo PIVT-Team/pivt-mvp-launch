@@ -4378,6 +4378,7 @@ export type Database = {
         | "ops_admin"
         | "support_admin"
         | "read_only"
+        | "intelligence"
       compliance_check_status:
         | "pending"
         | "submitted"
@@ -4712,6 +4713,7 @@ export const Constants = {
         "ops_admin",
         "support_admin",
         "read_only",
+        "intelligence",
       ],
       compliance_check_status: [
         "pending",
