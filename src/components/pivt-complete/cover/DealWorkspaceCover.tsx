@@ -16,8 +16,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
 import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { NewtonProvider, useNewtonContext, type NewtonRecordType, type NewtonWorkspaceTab } from '@/contexts/NewtonContext';
 import { useDealMetrics } from '@/hooks/useDealMetrics';
 import { useDealWorkflow } from '@/hooks/useDealWorkflow';
+import { NewtonRail } from '@/components/newton/NewtonRail';
 
 // Import existing cover pages
 import { DealPartiesCover } from './DealPartiesCover';
@@ -32,7 +34,6 @@ import { EscrowCover } from './EscrowCover';
 import { DealReportsCover } from './DealReportsCover';
 import { DealActivityCover } from './DealActivityCover';
 import { AIDashboardCover } from './AIDashboardCover';
-import { NewtonAgentPanel } from './NewtonAgentPanel';
 import { CommentsCover } from './CommentsCover';
 import { DealInputsCover } from './DealInputsCover';
 import { FinancialInputs } from './deal-inputs/FinancialInputs';
@@ -55,7 +56,7 @@ import { WirePackCover } from './WirePackCover';
 import { ExecutionPrepCover } from './ExecutionPrepCover';
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai' | 'newton-agents';
+type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -537,10 +538,59 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       return DealAuditSection;
     case 'comments': return CommentsCover;
     case 'ai': return AIDashboardCover;
-    case 'newton-agents': return NewtonAgentPanel;
     default: return OverviewSection;
   }
 }
+
+const STEP_TO_NEWTON_TAB: Record<StepId, NewtonWorkspaceTab> = {
+  overview: 'overview',
+  stakeholders: 'stakeholders',
+  'deal-inputs': 'deal-inputs',
+  verification: 'verification',
+  approvals: 'approvals',
+  execution: 'execution',
+  compliance: 'compliance',
+  comments: 'comments',
+  ai: 'ai',
+};
+
+const SUBNAV_TO_RECORD_TYPE: Partial<Record<string, NewtonRecordType>> = {
+  'deal-parties': 'stakeholder',
+  contacts: 'stakeholder',
+  kyc: 'stakeholder',
+  review: 'stakeholder',
+  financial: 'document',
+  'cap-table': 'stakeholder',
+  waterfall: 'payment',
+  wires: 'payment',
+  tax: 'document',
+  contracts: 'document',
+  governance: 'document',
+  obligations: 'document',
+  readiness: 'deal',
+  'wire-instructions': 'payment',
+  allocations: 'payment',
+  discrepancies: 'discrepancy',
+  reports: 'document',
+  activity: 'comment',
+  audit: 'deal',
+  prep: 'deal',
+  closing: 'deal',
+  'wire-pack': 'document',
+  intents: 'payment',
+  payments: 'payment',
+  escrow: 'entity',
+  authority: 'approval',
+};
+
+const ENTITY_TO_RECORD_TYPE: Record<string, NewtonRecordType> = {
+  deal: 'deal',
+  stakeholder: 'stakeholder',
+  document: 'document',
+  payment: 'payment',
+  escrow: 'entity',
+  approval: 'approval',
+};
 
 // ── Deal Workspace Sidebar ──
 const WorkspaceSidebar: React.FC<{
