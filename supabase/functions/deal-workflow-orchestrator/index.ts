@@ -128,7 +128,11 @@ Deno.serve(async (req) => {
       }
 
       // ── Step 5: Write all audit events ──
-      const auditRows = auditEvents.map((evt) => ({
+      const auditRows: Array<{
+        deal_id: string;
+        action: string;
+        details: Record<string, unknown>;
+      }> = auditEvents.map((evt) => ({
         deal_id,
         action: evt.action,
         details: { ...evt.details, document_id, doc_type: docType, orchestrator_version: "2.0" },
