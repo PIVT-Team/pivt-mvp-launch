@@ -182,7 +182,7 @@ export const RegulatoryConditionsPanel: React.FC = () => {
     if (!dealId) return;
     setSaving(true);
 
-    const payload: Tables<'regulatory_conditions'>['Insert'] = {
+    const payload = {
       deal_id: dealId,
       condition_type: createForm.conditionType,
       status: createForm.status,
@@ -231,7 +231,7 @@ export const RegulatoryConditionsPanel: React.FC = () => {
     if (!updateTarget) return;
     setSaving(true);
 
-    const patch: Tables<'regulatory_conditions'>['Update'] = {
+    const patch = {
       status: updateForm.status,
       filed_at: updateForm.filedAt || null,
       waiting_period_end: conditionAllowsAutoDeadline(updateTarget.condition_type) ? null : updateForm.waitingPeriodEnd || null,
