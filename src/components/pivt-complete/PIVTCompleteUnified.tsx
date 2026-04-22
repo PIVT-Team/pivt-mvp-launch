@@ -31,6 +31,7 @@ import { TimelineCover } from './cover/TimelineCover';
 import { AIDashboardCover } from './cover/AIDashboardCover';
 import { HomeCover } from './cover/HomeCover';
 import { CommunicationsHub } from './cover/CommunicationsHub';
+import { IntelligenceDashboardCover } from './cover/IntelligenceDashboardCover';
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 import { SupportPanel } from '../support/SupportPanel';
@@ -47,6 +48,7 @@ const DEAL_SCOPED_SECTIONS = new Set([
 const coverSections: Record<string, React.FC> = {
   home: HomeCover,
   deals: DealsCover,
+  intelligence: IntelligenceDashboardCover,
   workspace: DealWorkspaceCover,
   reports: GlobalReportsCover,
   audit: AuditCover,

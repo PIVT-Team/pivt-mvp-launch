@@ -6,7 +6,7 @@ import { create } from 'zustand';
 export type ViewMode = 'cover' | 'glass';
 
 export type ActiveSection =
-  | 'home' | 'deals' | 'audit' | 'settings' | 'workspace'
+  | 'home' | 'deals' | 'intelligence' | 'audit' | 'settings' | 'workspace'
   | 'waterfall' | 'stakeholders' | 'documents'
   | 'escrow' | 'approvals' | 'payments' | 'reports'
   | 'ingestion' | 'closing' | 'verification' | 'admin-verification'
