@@ -481,6 +481,7 @@ export type Database = {
           entity_id: string | null
           id: string
           parent_id: string | null
+          regulatory_condition_id: string | null
           responsible_party_id: string | null
           satisfied_at: string | null
           satisfied_by: string | null
@@ -500,6 +501,7 @@ export type Database = {
           entity_id?: string | null
           id?: string
           parent_id?: string | null
+          regulatory_condition_id?: string | null
           responsible_party_id?: string | null
           satisfied_at?: string | null
           satisfied_by?: string | null
@@ -519,6 +521,7 @@ export type Database = {
           entity_id?: string | null
           id?: string
           parent_id?: string | null
+          regulatory_condition_id?: string | null
           responsible_party_id?: string | null
           satisfied_at?: string | null
           satisfied_by?: string | null
@@ -564,6 +567,13 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "closing_checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_checklist_items_regulatory_condition_id_fkey"
+            columns: ["regulatory_condition_id"]
+            isOneToOne: true
+            referencedRelation: "regulatory_conditions"
             referencedColumns: ["id"]
           },
           {
@@ -3178,6 +3188,73 @@ export type Database = {
         }
         Relationships: []
       }
+      regulatory_conditions: {
+        Row: {
+          assigned_to: string | null
+          checklist_item_id: string | null
+          cleared_at: string | null
+          condition_type: string
+          created_at: string
+          deal_id: string
+          early_termination_granted_at: string | null
+          filed_at: string | null
+          id: string
+          notes: string | null
+          status: string
+          waiting_period_end: string | null
+        }
+        Insert: {
+          assigned_to?: string | null
+          checklist_item_id?: string | null
+          cleared_at?: string | null
+          condition_type: string
+          created_at?: string
+          deal_id: string
+          early_termination_granted_at?: string | null
+          filed_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          waiting_period_end?: string | null
+        }
+        Update: {
+          assigned_to?: string | null
+          checklist_item_id?: string | null
+          cleared_at?: string | null
+          condition_type?: string
+          created_at?: string
+          deal_id?: string
+          early_termination_granted_at?: string | null
+          filed_at?: string | null
+          id?: string
+          notes?: string | null
+          status?: string
+          waiting_period_end?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "regulatory_conditions_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "deal_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_conditions_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: true
+            referencedRelation: "closing_checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "regulatory_conditions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relationships: {
         Row: {
           confidence: number | null
@@ -4355,6 +4432,10 @@ export type Database = {
             }
             Returns: string
           }
+      regulatory_condition_checklist_status: {
+        Args: { _filed_at: string; _status: string }
+        Returns: string
+      }
       search_entities: {
         Args: { entity_type?: string; search_term: string }
         Returns: {
