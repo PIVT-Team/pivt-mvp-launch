@@ -1,6 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/**
+ * LEGITIMATELY_UNAUTHENTICATED
+ *
+ * This function powers the public request-access flow for prospective users.
+ * It must remain accessible before authentication and therefore cannot require a user JWT.
+ */
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
