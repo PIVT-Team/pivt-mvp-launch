@@ -48,6 +48,7 @@ interface ChecklistItemProps {
   item: ChecklistItemModel;
   depth?: number;
   isSection?: boolean;
+  isExpanded?: boolean;
   isSelected: boolean;
   isReadOnly: boolean;
   responsiblePartyLabel?: string | null;
@@ -57,6 +58,7 @@ interface ChecklistItemProps {
   comments: ChecklistComment[];
   presenceUsers?: ChecklistPresenceUser[];
   onSelect: (checked: boolean) => void;
+  onToggleExpanded?: () => void;
   onMarkSatisfied: () => void;
   onWaive: () => void;
   onOpenEntity: () => void;
@@ -103,6 +105,7 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
   item,
   depth = 0,
   isSection = false,
+  isExpanded = true,
   isSelected,
   isReadOnly,
   responsiblePartyLabel,
@@ -112,6 +115,7 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
   comments,
   presenceUsers = [],
   onSelect,
+  onToggleExpanded,
   onMarkSatisfied,
   onWaive,
   onOpenEntity,
@@ -176,9 +180,13 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
             <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
                 {hasChildren ? (
-                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                    {isSection ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  </span>
+                  <button
+                    type="button"
+                    onClick={onToggleExpanded}
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-md bg-muted text-muted-foreground transition-colors hover:bg-muted/80"
+                  >
+                    {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                  </button>
                 ) : null}
                 <h3 className={cn('truncate', isSection ? 'text-base font-semibold' : 'text-sm font-semibold')}>
                   {item.title}
@@ -308,7 +316,7 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
             </CollapsibleContent>
           </Collapsible>
 
-          {hasChildren ? <div className="space-y-3 pt-1">{children}</div> : null}
+          {hasChildren && isExpanded ? <div className="space-y-3 pt-1">{children}</div> : null}
         </div>
       </div>
     </div>
