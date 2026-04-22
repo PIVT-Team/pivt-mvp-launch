@@ -836,9 +836,6 @@ export const DealWorkspaceCover: React.FC = () => {
     return Object.values(ss).filter(s => s === 'blocked').length;
   }, [metrics]);
 
-  const subNavItems = STEP_SUB_NAV[activeStepId];
-  const ContentComponent = getContentComponent(activeStepId, activeSubNav);
-
   if (loadingDeal) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -861,6 +858,7 @@ export const DealWorkspaceCover: React.FC = () => {
   return (
     <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
     <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal} metrics={metrics} metricsLoading={metricsLoading} workflow={workflow} refetchMetrics={refetchMetrics}>
+    <NewtonProvider currentDealId={resolvedDealId || selectedDealId}>
     <div className="space-y-5">
       {/* Back + Deal Header */}
       <div className="flex items-center gap-3">
@@ -943,35 +941,17 @@ export const DealWorkspaceCover: React.FC = () => {
       />
 
       {/* ── 3-Panel Layout: Sidebar + Content ── */}
-      <div className="flex gap-6 min-h-[600px]">
-        {/* Left Sidebar */}
-        <WorkspaceSidebar
-          activeStepId={activeStepId}
-          onStepClick={(id) => handleStepClick(id)}
-          subNavItems={subNavItems}
-          activeSubNav={activeSubNav}
-          onSubChange={setActiveSubNav}
-          stageStatuses={metrics?.stageStatuses}
-        />
-
-        {/* Center Content */}
-        <div className="flex-1 min-w-0">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${activeStepId}-${activeSubNav}`}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            >
-              {activeStepId === 'overview'
-                ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
-                : <ContentComponent />
-              }
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
+      <WorkspaceShell
+        activeStepId={activeStepId}
+        activeSubNav={activeSubNav}
+        setActiveStepId={setActiveStepId}
+        setActiveSubNav={setActiveSubNav}
+        metrics={metrics}
+        realDeal={realDeal}
+        isDemoDeal={isDemoDeal}
+        demoDealSeedKey={demoDealSeedKey}
+        selectedDealId={selectedDealId}
+      />
 
       <DealStateInspector />
 
@@ -979,6 +959,7 @@ export const DealWorkspaceCover: React.FC = () => {
         <EditDealDrawer open={editDrawerOpen} onOpenChange={setEditDrawerOpen} deal={realDeal} onSaved={(updated) => setRealDeal(updated)} />
       )}
     </div>
+    </NewtonProvider>
     </DealWorkspaceProvider>
     </EditGuardProvider>
   );
