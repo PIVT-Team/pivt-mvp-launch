@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AiConfidenceBadge } from '@/components/AiConfidenceBadge';
 import { hasMeaningfulChange, isAiDerivedRecord, recordFieldCorrections } from '@/lib/fieldCorrections';
+import { FieldHistoryButton } from './FieldHistoryButton';
 
 type StakeholderType = 'individual' | 'entity';
 
@@ -243,15 +244,15 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
             </div>
 
             {/* Name */}
-            <div className="space-y-1.5">
-               <Label className="text-xs flex items-center gap-2">{type === 'entity' ? 'Entity Name' : 'Full Legal Name'}{isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}</Label>
+             <div className="space-y-1.5 group">
+                <Label className="text-xs flex items-center gap-2">{type === 'entity' ? 'Entity Name' : 'Full Legal Name'}{isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}<FieldHistoryButton tableName="cap_table_entries" recordId={stakeholder.id} fieldName="shareholder_name" fieldLabel={type === 'entity' ? 'Entity Name' : 'Full Legal Name'} currentValue={name} /></Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={type === 'entity' ? 'Acme Holdings LLC' : 'John Smith'} />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
             {/* Email */}
-            <div className="space-y-1.5">
-               <Label className="text-xs flex items-center gap-2">Email{isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}</Label>
+             <div className="space-y-1.5 group">
+                <Label className="text-xs flex items-center gap-2">Email{isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}<FieldHistoryButton tableName="cap_table_entries" recordId={stakeholder.id} fieldName="email" fieldLabel="Email" currentValue={email} /></Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
