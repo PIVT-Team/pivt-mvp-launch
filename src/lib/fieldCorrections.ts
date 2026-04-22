@@ -18,6 +18,7 @@ export interface FieldCorrectionInput {
   humanCorrection: Primitive;
   documentSpan?: CorrectionDocumentSpan | null;
   aiConfidence?: number | null;
+  resolutionType?: "ai_accepted" | "human_kept" | "human_corrected" | "waived" | null;
 }
 
 const AI_SOURCES = new Set(["ai", "newton", "agent"]);
@@ -48,6 +49,7 @@ export async function recordFieldCorrections(corrections: FieldCorrectionInput[]
       p_human_correction: stringifyCorrectionValue(correction.humanCorrection),
       p_document_span: (correction.documentSpan ?? null) as Json,
       p_ai_confidence: correction.aiConfidence ?? null,
+      p_resolution_type: correction.resolutionType ?? null,
     });
 
     if (error) {
