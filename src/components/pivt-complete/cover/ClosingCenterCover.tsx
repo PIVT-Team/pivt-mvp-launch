@@ -1,334 +1,791 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { jsPDF } from 'jspdf';
 import {
-  CheckCircle2, Circle, Lock, Shield, FileText, CreditCard, Users,
-  AlertTriangle, Rocket, ClipboardCheck,
+  CheckCircle2,
+  Download,
+  FileUp,
+  Filter,
+  Layers3,
+  Plus,
+  ShieldCheck,
+  Users,
 } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { RealtimeChannel } from '@supabase/supabase-js';
+
+import { supabase } from '@/integrations/supabase/client';
+import type { Tables } from '@/integrations/supabase/types';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { usePIVTStore } from '@/stores/pivtStore';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
-import { useDealMetrics } from '@/hooks/useDealMetrics';
-import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
-import { dealStateMachineService } from '@/services/dealStateMachineService';
-import { fadeInUp } from '@/lib/animations';
-import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ChecklistItem, type ChecklistComment, type ChecklistItemModel, type ChecklistPresenceUser } from './checklist/ChecklistItem';
 
-interface GateItem {
-  id: string;
+type ChecklistRow = Tables<'closing_checklist_items'>;
+type DealDocumentRow = Tables<'deal_documents'>;
+type DealMemberRow = Tables<'deal_members'>;
+type EntityRow = Tables<'entities'>;
+type DealCommentRow = Tables<'deal_comments'>;
+
+type ChecklistStatus = ChecklistRow['status'];
+type ChecklistCategory = 'Legal' | 'Financial' | 'Regulatory' | 'Technical';
+
+interface PresencePayload {
+  userId: string;
   label: string;
-  description: string;
-  icon: React.ElementType;
-  passed: boolean;
-  detail?: string;
+  section: ChecklistCategory | 'All';
+  checklistItemId?: string | null;
 }
 
+interface SatisfactionDraft {
+  item: ChecklistRow | null;
+  note: string;
+  selectedDocumentId: string;
+  uploadingFile: File | null;
+}
+
+interface WaiveDraft {
+  item: ChecklistRow | null;
+  justification: string;
+}
+
+const CATEGORY_ORDER: ChecklistCategory[] = ['Legal', 'Financial', 'Regulatory', 'Technical'];
+
+const CATEGORY_COPY: Record<ChecklistCategory, { label: string; detail: string }> = {
+  Legal: { label: 'Legal', detail: 'Agreements, approvals, signatures, and legal deliverables.' },
+  Financial: { label: 'Financial', detail: 'Funds flow, payouts, fees, and settlement readiness.' },
+  Regulatory: { label: 'Regulatory', detail: 'Compliance, verification, and external clearances.' },
+  Technical: { label: 'Technical', detail: 'Systems, cutover, data room, and operational dependencies.' },
+};
+
+const STATUS_PRIORITY: ChecklistStatus[] = ['pending', 'in_progress', 'waived', 'not_applicable', 'satisfied'];
+
+const memberLabel = (member: DealMemberRow) => `${member.role.replace(/_/g, ' ')} · ${member.user_id.slice(0, 6)}`;
+
+const commentAuthorLabel = (comment: DealCommentRow, currentUserId?: string) => {
+  if (comment.author_user_id === currentUserId) return 'You';
+  return `User ${comment.author_user_id.slice(0, 6)}`;
+};
+
+const statusRank = (status: ChecklistStatus) => STATUS_PRIORITY.indexOf(status);
+
+const sortChecklistItems = (items: ChecklistRow[]) =>
+  [...items].sort((a, b) => {
+    const byOrder = a.sort_order - b.sort_order;
+    if (byOrder !== 0) return byOrder;
+    return a.title.localeCompare(b.title);
+  });
+
 export const ClosingCenterCover: React.FC = () => {
-  const { dealId, realDeal } = useDealWorkspace();
-  const { metrics: readinessMetrics, loading: readinessLoading } = useDealMetrics(dealId || undefined);
-  const readiness = {
-    stakeholdersConfigured: readinessMetrics?.gates.stakeholdersConfigured ?? false,
-    sellerVerified: readinessMetrics?.gates.sellerVerified ?? false,
-    buyerVerified: readinessMetrics?.gates.buyerVerified ?? false,
-    spaUploaded: readinessMetrics?.gates.spaUploaded ?? false,
-    wireInstructionsUploaded: readinessMetrics?.gates.wireInstructionsUploaded ?? false,
-    paymentApproved: readinessMetrics?.gates.paymentsApproved ?? false,
-    approvalsComplete: readinessMetrics?.gates.approvalsComplete ?? false,
-    readyToClose: readinessMetrics?.gates.readyToClose ?? false,
-    stakeholdersTotal: readinessMetrics?.totalStakeholders ?? 0,
-    documentsUploaded: readinessMetrics?.totalUploadedDocuments ?? 0,
-    paymentsConfigured: readinessMetrics?.verifiedWireInstructions ?? 0,
-    paymentsTotal: readinessMetrics?.totalWireInstructions ?? 0,
-    approvalsGranted: readinessMetrics?.grantedApprovals ?? 0,
-    approvalsTotal: readinessMetrics?.totalApprovals ?? 0,
-    loading: readinessLoading,
-  };
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [confirmNotes, setConfirmNotes] = useState('');
-  const [executing, setExecuting] = useState(false);
+  const { dealId, isDemoDeal, realDeal, refetchMetrics } = useDealWorkspace();
+  const { user } = useAuth();
+  const { setActiveSection, setSelectedEntity } = usePIVTStore();
 
-  const m = readinessMetrics;
+  const [items, setItems] = useState<ChecklistRow[]>([]);
+  const [documents, setDocuments] = useState<DealDocumentRow[]>([]);
+  const [members, setMembers] = useState<DealMemberRow[]>([]);
+  const [entities, setEntities] = useState<EntityRow[]>([]);
+  const [commentsByItem, setCommentsByItem] = useState<Record<string, DealCommentRow[]>>({});
+  const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkAssignee, setBulkAssignee] = useState<string>('');
+  const [categoryFilter, setCategoryFilter] = useState<ChecklistCategory | 'All'>('All');
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
+  const [focusedSection, setFocusedSection] = useState<ChecklistCategory | 'All'>('All');
+  const [seenCounts, setSeenCounts] = useState<Record<string, number>>({});
+  const [satisfactionDraft, setSatisfactionDraft] = useState<SatisfactionDraft>({ item: null, note: '', selectedDocumentId: '', uploadingFile: null });
+  const [savingSatisfaction, setSavingSatisfaction] = useState(false);
+  const [waiveDraft, setWaiveDraft] = useState<WaiveDraft>({ item: null, justification: '' });
+  const [savingWaiver, setSavingWaiver] = useState(false);
+  const [creatingItem, setCreatingItem] = useState(false);
+  const [newItem, setNewItem] = useState({ title: '', description: '', category: 'Legal' as ChecklistCategory });
+  const [presenceMap, setPresenceMap] = useState<Record<string, PresencePayload>>({});
+  const presenceChannelRef = useRef<RealtimeChannel | null>(null);
 
-  const gates: GateItem[] = [
-    {
-      id: 'stakeholders-configured',
-      label: 'Stakeholders Configured',
-      description: 'At least one buyer and one seller have been added to the deal',
-      icon: Users,
-      passed: readiness.stakeholdersConfigured,
-      detail: `${m?.totalStakeholders ?? 0} total · ${m?.buyerSideStakeholders ?? 0} buyer / ${m?.sellerSideStakeholders ?? 0} seller`,
-    },
-    {
-      id: 'seller-verified',
-      label: 'Seller Verified',
-      description: 'All seller-side stakeholders have completed KYC/KYB verification',
-      icon: Users,
-      passed: readiness.sellerVerified,
-      detail: m ? `${m.sellerSideStakeholders} seller-side stakeholders` : undefined,
-    },
-    {
-      id: 'buyer-verified',
-      label: 'Buyer Verified',
-      description: 'All buyer-side stakeholders have completed KYC/KYB verification',
-      icon: Users,
-      passed: readiness.buyerVerified,
-      detail: m ? `${m.buyerSideStakeholders} buyer-side stakeholders` : undefined,
-    },
-    {
-      id: 'spa-uploaded',
-      label: 'SPA / Agreement Uploaded',
-      description: 'Primary transaction agreement has been uploaded and processed',
-      icon: FileText,
-      passed: readiness.spaUploaded,
-      detail: `${m?.totalUploadedDocuments ?? 0} documents uploaded · ${m?.completedRequiredDocuments ?? 0}/${m?.requiredDocuments ?? 0} required complete`,
-    },
-    {
-      id: 'wire-uploaded',
-      label: 'Wire Instructions Uploaded',
-      description: 'Banking and wire transfer instructions are on file',
-      icon: FileText,
-      passed: readiness.wireInstructionsUploaded,
-      detail: m ? `${m.totalWireInstructions} wire instruction${m.totalWireInstructions !== 1 ? 's' : ''} on file` : undefined,
-    },
-    {
-      id: 'payment-approved',
-      label: 'Payments Approved',
-      description: 'All payment instructions have been confirmed and authorized',
-      icon: CreditCard,
-      passed: readiness.paymentApproved,
-      detail: m && m.totalWireInstructions > 0 ? `${m.verifiedWireInstructions}/${m.totalWireInstructions} verified` : undefined,
-    },
-    {
-      id: 'approvals-complete',
-      label: 'Approvals Complete',
-      description: 'All required approvals from buyer and seller counsel have been granted',
-      icon: ClipboardCheck,
-      passed: readiness.approvalsComplete,
-      detail: m && m.totalApprovals > 0 ? `${m.grantedApprovals}/${m.totalApprovals} total · ${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved` : undefined,
-    },
-  ];
+  const loadChecklist = useCallback(async () => {
+    if (!dealId) {
+      setLoading(false);
+      return;
+    }
 
-  const passedCount = gates.filter(g => g.passed).length;
-  const progressPct = Math.round((passedCount / gates.length) * 100);
-
-  const handleExecute = async () => {
-    if (!dealId) return;
-    setExecuting(true);
+    setLoading(true);
     try {
-      await dealStateMachineService.applyEvent(dealId, 'EXECUTION_STARTED', {
-        notes: confirmNotes,
-        triggered_at: new Date().toISOString(),
+      const [itemsRes, docsRes, membersRes, entitiesRes, commentsRes] = await Promise.all([
+        supabase
+          .from('closing_checklist_items')
+          .select('*')
+          .eq('deal_id', dealId)
+          .order('sort_order', { ascending: true }),
+        supabase
+          .from('deal_documents')
+          .select('*')
+          .eq('deal_id', dealId)
+          .order('created_at', { ascending: false }),
+        supabase
+          .from('deal_members')
+          .select('*')
+          .eq('deal_id', dealId)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('entities')
+          .select('*')
+          .eq('source_deal_id', dealId)
+          .order('canonical_name', { ascending: true }),
+        supabase
+          .from('deal_comments')
+          .select('*')
+          .eq('deal_id', dealId)
+          .like('section_context', 'checklist:%')
+          .order('created_at', { ascending: true }),
+      ]);
+
+      if (itemsRes.error) throw itemsRes.error;
+      if (docsRes.error) throw docsRes.error;
+      if (membersRes.error) throw membersRes.error;
+      if (entitiesRes.error) throw entitiesRes.error;
+      if (commentsRes.error) throw commentsRes.error;
+
+      const nextItems = sortChecklistItems((itemsRes.data || []) as ChecklistRow[]);
+      setItems(nextItems);
+      setDocuments((docsRes.data || []) as DealDocumentRow[]);
+      setMembers((membersRes.data || []) as DealMemberRow[]);
+      setEntities((entitiesRes.data || []) as EntityRow[]);
+
+      const groupedComments = ((commentsRes.data || []) as DealCommentRow[]).reduce<Record<string, DealCommentRow[]>>((acc, comment) => {
+        const itemId = comment.section_context?.replace('checklist:', '') || 'unknown';
+        acc[itemId] = acc[itemId] || [];
+        acc[itemId].push(comment);
+        return acc;
+      }, {});
+      setCommentsByItem(groupedComments);
+
+      setExpandedSections((current) => {
+        const next = { ...current };
+        nextItems.filter((item) => item.parent_id === null).forEach((item) => {
+          if (next[item.id] === undefined) next[item.id] = true;
+        });
+        return next;
       });
-      toast.success('Closing execution initiated successfully');
-    } catch (err) {
-      toast.error('Failed to initiate closing execution');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load closing checklist');
     } finally {
-      setExecuting(false);
-      setConfirmOpen(false);
-      setConfirmNotes('');
+      setLoading(false);
+    }
+  }, [dealId]);
+
+  useEffect(() => {
+    loadChecklist();
+  }, [loadChecklist]);
+
+  useEffect(() => {
+    if (!dealId) return;
+
+    const channel = supabase
+      .channel(`closing-checklist-${dealId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'closing_checklist_items', filter: `deal_id=eq.${dealId}` }, () => {
+        loadChecklist();
+        refetchMetrics();
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_comments', filter: `deal_id=eq.${dealId}` }, loadChecklist)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_documents', filter: `deal_id=eq.${dealId}` }, loadChecklist)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [dealId, loadChecklist, refetchMetrics]);
+
+  useEffect(() => {
+    if (!dealId || !user) return;
+
+    const channel = supabase.channel(`checklist:${dealId}`, {
+      config: { presence: { key: user.id } },
+    });
+
+    presenceChannelRef.current = channel;
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState<PresencePayload>();
+        const flattened = Object.values(state).flat();
+        setPresenceMap(
+          flattened.reduce<Record<string, PresencePayload>>((acc, entry) => {
+            acc[entry.userId] = entry;
+            return acc;
+          }, {}),
+        );
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track({
+            userId: user.id,
+            label: user.email?.split('@')[0] || 'You',
+            section: focusedSection,
+            checklistItemId: selectedIds[0] || null,
+          });
+        }
+      });
+
+    return () => {
+      channel.untrack();
+      supabase.removeChannel(channel);
+    };
+  }, [dealId, user]);
+
+  useEffect(() => {
+    const channel = presenceChannelRef.current;
+    if (!channel || !user) return;
+
+    channel.track({
+      userId: user.id,
+      label: user.email?.split('@')[0] || 'You',
+      section: focusedSection,
+      checklistItemId: selectedIds[0] || null,
+    });
+  }, [focusedSection, selectedIds, user]);
+
+  const memberMap = useMemo(() => new Map(members.map((member) => [member.id, member])), [members]);
+  const documentMap = useMemo(() => new Map(documents.map((document) => [document.id, document])), [documents]);
+  const entityMap = useMemo(() => new Map(entities.map((entity) => [entity.id, entity])), [entities]);
+
+  const filteredItems = useMemo(() => {
+    if (categoryFilter === 'All') return items;
+    return items.filter((item) => item.category === categoryFilter);
+  }, [categoryFilter, items]);
+
+  const topLevelItems = useMemo(() => filteredItems.filter((item) => item.parent_id === null), [filteredItems]);
+  const childrenByParent = useMemo(
+    () => filteredItems.reduce<Record<string, ChecklistRow[]>>((acc, item) => {
+      if (!item.parent_id) return acc;
+      acc[item.parent_id] = acc[item.parent_id] || [];
+      acc[item.parent_id].push(item);
+      return acc;
+    }, {}),
+    [filteredItems],
+  );
+
+  const actionableItems = useMemo(() => items.filter((item) => !childrenByParent[item.id]?.length), [items, childrenByParent]);
+
+  const progress = useMemo(() => {
+    const total = actionableItems.length;
+    const satisfied = actionableItems.filter((item) => item.status === 'satisfied').length;
+    const pct = total === 0 ? 0 : Math.round((satisfied / total) * 100);
+    const breakdown = CATEGORY_ORDER.map((category) => {
+      const categoryItems = actionableItems.filter((item) => item.category === category);
+      const categorySatisfied = categoryItems.filter((item) => item.status === 'satisfied').length;
+      return {
+        category,
+        total: categoryItems.length,
+        satisfied: categorySatisfied,
+        pct: categoryItems.length === 0 ? 0 : Math.round((categorySatisfied / categoryItems.length) * 100),
+      };
+    });
+    return { total, satisfied, pct, breakdown };
+  }, [actionableItems]);
+
+  const presenceBySection = useMemo(() => {
+    return CATEGORY_ORDER.reduce<Record<ChecklistCategory, ChecklistPresenceUser[]>>((acc, category) => {
+      acc[category] = Object.values(presenceMap)
+        .filter((entry) => entry.section === category)
+        .map((entry) => ({ key: entry.userId, label: entry.label }));
+      return acc;
+    }, {} as Record<ChecklistCategory, ChecklistPresenceUser[]>);
+  }, [presenceMap]);
+
+  const commentModels = useMemo(() => {
+    return Object.entries(commentsByItem).reduce<Record<string, ChecklistComment[]>>((acc, [itemId, comments]) => {
+      acc[itemId] = comments.map((comment) => ({
+        id: comment.id,
+        authorLabel: commentAuthorLabel(comment, user?.id),
+        body: comment.body,
+        createdAt: comment.created_at,
+      }));
+      return acc;
+    }, {});
+  }, [commentsByItem, user?.id]);
+
+  const unreadCounts = useMemo(() => {
+    return Object.fromEntries(
+      Object.entries(commentModels).map(([itemId, comments]) => [itemId, Math.max(comments.length - (seenCounts[itemId] || 0), 0)]),
+    );
+  }, [commentModels, seenCounts]);
+
+  const toggleSelected = (itemId: string, checked: boolean) => {
+    setSelectedIds((current) => (checked ? [...new Set([...current, itemId])] : current.filter((id) => id !== itemId)));
+  };
+
+  const handleCommentsViewed = (itemId: string) => {
+    setSeenCounts((current) => ({ ...current, [itemId]: commentModels[itemId]?.length || 0 }));
+  };
+
+  const addComment = async (itemId: string, body: string) => {
+    if (!dealId || !user) return;
+    const { error } = await supabase.from('deal_comments').insert({
+      deal_id: dealId,
+      author_user_id: user.id,
+      body,
+      visibility: 'internal',
+      section_context: `checklist:${itemId}`,
+    } as any);
+
+    if (error) {
+      toast.error(error.message || 'Could not add comment');
+      return;
+    }
+
+    loadChecklist();
+  };
+
+  const updateChecklistItems = async (ids: string[], payload: Partial<ChecklistRow>) => {
+    if (ids.length === 0 || isDemoDeal) return;
+    const { error } = await supabase.from('closing_checklist_items').update(payload).in('id', ids);
+    if (error) {
+      toast.error(error.message || 'Could not update checklist items');
+      return;
+    }
+    toast.success('Checklist updated');
+    setSelectedIds([]);
+    loadChecklist();
+    refetchMetrics();
+  };
+
+  const uploadEvidenceDocument = async (file: File) => {
+    if (!dealId || !user) return null;
+    const ext = file.name.split('.').pop() || 'pdf';
+    const storagePath = `${dealId}/closing_checklist_${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage.from('deal-documents').upload(storagePath, file, { upsert: false });
+    if (uploadError) throw uploadError;
+
+    const { data, error } = await supabase.from('deal_documents').insert({
+      deal_id: dealId,
+      file_name: file.name,
+      file_path: storagePath,
+      file_size: file.size,
+      mime_type: file.type,
+      status: 'uploaded',
+      doc_type: 'closing_checklist_evidence',
+      uploaded_by: user.id,
+    } as any).select('*').single();
+
+    if (error) throw error;
+    return data as DealDocumentRow;
+  };
+
+  const confirmSatisfaction = async () => {
+    const item = satisfactionDraft.item;
+    if (!item || !user) return;
+
+    setSavingSatisfaction(true);
+    try {
+      let supportingDocumentId = satisfactionDraft.selectedDocumentId || null;
+
+      if (satisfactionDraft.uploadingFile) {
+        const uploadedDocument = await uploadEvidenceDocument(satisfactionDraft.uploadingFile);
+        supportingDocumentId = uploadedDocument?.id || null;
+      }
+
+      const { error } = await supabase.from('closing_checklist_items').update({
+        status: 'satisfied',
+        satisfied_by: user.id,
+        satisfied_at: new Date().toISOString(),
+        supporting_document_id: supportingDocumentId,
+      } as any).eq('id', item.id);
+
+      if (error) throw error;
+
+      if (satisfactionDraft.note.trim()) {
+        await addComment(item.id, satisfactionDraft.note.trim());
+      }
+
+      toast.success('Checklist item marked satisfied');
+      setSatisfactionDraft({ item: null, note: '', selectedDocumentId: '', uploadingFile: null });
+      loadChecklist();
+      refetchMetrics();
+    } catch (error: any) {
+      toast.error(error.message || 'Could not mark checklist item satisfied');
+    } finally {
+      setSavingSatisfaction(false);
     }
   };
 
-  if (readiness.loading) {
+  const confirmWaiver = async () => {
+    const item = waiveDraft.item;
+    if (!item) return;
+    if (!waiveDraft.justification.trim()) {
+      toast.error('A written justification is required to waive an item');
+      return;
+    }
+
+    setSavingWaiver(true);
+    try {
+      const { error } = await supabase.from('closing_checklist_items').update({
+        status: 'waived',
+        waiver_justification: waiveDraft.justification.trim(),
+      } as any).eq('id', item.id);
+      if (error) throw error;
+
+      await addComment(item.id, `Waiver justification: ${waiveDraft.justification.trim()}`);
+      toast.success('Checklist item waived');
+      setWaiveDraft({ item: null, justification: '' });
+      loadChecklist();
+      refetchMetrics();
+    } catch (error: any) {
+      toast.error(error.message || 'Could not waive checklist item');
+    } finally {
+      setSavingWaiver(false);
+    }
+  };
+
+  const exportSelectedToPdf = () => {
+    const exportItems = actionableItems.filter((item) => selectedIds.includes(item.id));
+    if (exportItems.length === 0) {
+      toast.error('Select checklist items to export');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'portrait' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 18;
+
+    doc.setFontSize(18);
+    doc.text('PIVT Closing Checklist Export', 14, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.text(realDeal?.deal_name || 'Deal', 14, y);
+    y += 10;
+
+    exportItems.forEach((item, index) => {
+      if (y > 260) {
+        doc.addPage();
+        y = 18;
+      }
+
+      const responsible = item.responsible_party_id ? memberLabel(memberMap.get(item.responsible_party_id)!) : 'Unassigned';
+      const entity = item.entity_id ? entityMap.get(item.entity_id)?.canonical_name || 'Linked entity' : '—';
+      const supporting = item.supporting_document_id ? documentMap.get(item.supporting_document_id)?.file_name || 'Evidence linked' : '—';
+
+      doc.setDrawColor(220);
+      doc.roundedRect(14, y, pageWidth - 28, 28, 3, 3);
+      doc.setFontSize(11);
+      doc.text(`${index + 1}. ${item.title}`, 18, y + 7);
+      doc.setFontSize(9);
+      doc.text(`Status: ${item.status}`, 18, y + 13);
+      doc.text(`Category: ${item.category}`, 72, y + 13);
+      doc.text(`Owner: ${responsible}`, 18, y + 19);
+      doc.text(`Entity: ${entity}`, 100, y + 19);
+      doc.text(`Evidence: ${supporting}`, 18, y + 25);
+      y += 34;
+    });
+
+    doc.save(`closing-checklist-${realDeal?.deal_number || 'deal'}.pdf`);
+  };
+
+  const createManualItem = async () => {
+    if (!dealId || !newItem.title.trim()) return;
+    try {
+      const nextOrder = items.length === 0 ? 0 : Math.max(...items.map((item) => item.sort_order)) + 1;
+      const { error } = await supabase.from('closing_checklist_items').insert({
+        deal_id: dealId,
+        title: newItem.title.trim(),
+        description: newItem.description.trim() || null,
+        category: newItem.category,
+        status: 'pending',
+        source: 'manual',
+        sort_order: nextOrder,
+      } as any);
+      if (error) throw error;
+      setNewItem({ title: '', description: '', category: 'Legal' });
+      setCreatingItem(false);
+      toast.success('Checklist item added');
+      loadChecklist();
+    } catch (error: any) {
+      toast.error(error.message || 'Could not create checklist item');
+    }
+  };
+
+  const renderItemTree = (item: ChecklistRow, depth = 0): React.ReactNode => {
+    const children = sortChecklistItems(childrenByParent[item.id] || []);
+    const comments = commentModels[item.id] || [];
+    const member = item.responsible_party_id ? memberMap.get(item.responsible_party_id) : null;
+    const entity = item.entity_id ? entityMap.get(item.entity_id) : null;
+    const document = item.supporting_document_id ? documentMap.get(item.supporting_document_id) : null;
+    const sectionPresence = CATEGORY_ORDER.includes(item.category as ChecklistCategory)
+      ? presenceBySection[item.category as ChecklistCategory]
+      : [];
+
+    return (
+      <ChecklistItem
+        key={item.id}
+        item={item as ChecklistItemModel}
+        depth={depth}
+        isSection={children.length > 0}
+        isExpanded={expandedSections[item.id] !== false}
+        isSelected={selectedIds.includes(item.id)}
+        isReadOnly={isDemoDeal}
+        responsiblePartyLabel={member ? memberLabel(member) : null}
+        entityLabel={entity?.canonical_name || null}
+        supportingDocumentLabel={document?.file_name || null}
+        unreadCount={unreadCounts[item.id] || 0}
+        comments={comments}
+        presenceUsers={children.length > 0 ? sectionPresence : []}
+        onSelect={(checked) => toggleSelected(item.id, checked)}
+        onToggleExpanded={() => setExpandedSections((current) => ({ ...current, [item.id]: current[item.id] === false ? true : false }))}
+        onMarkSatisfied={() => setSatisfactionDraft({ item, note: '', selectedDocumentId: item.supporting_document_id || '', uploadingFile: null })}
+        onWaive={() => setWaiveDraft({ item, justification: item.waiver_justification || '' })}
+        onOpenEntity={() => {
+          if (!entity) return;
+          setSelectedEntity({ id: entity.id, type: 'deal', name: entity.canonical_name, status: 'linked' });
+          setActiveSection('ontology');
+        }}
+        onAddComment={(body) => addComment(item.id, body)}
+        onCommentsViewed={() => handleCommentsViewed(item.id)}
+      >
+        {children.map((child) => renderItemTree(child, depth + 1))}
+      </ChecklistItem>
+    );
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header Card */}
-      <motion.div {...fadeInUp} className="pivt-card border border-border/50 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Shield className="w-5 h-5 text-primary" />
+      <section className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
+              <Layers3 className="h-3.5 w-3.5" />
+              Closing Checklist
             </div>
             <div>
-              <h2 className="text-lg font-semibold">Closing Readiness</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {readiness.readyToClose
-                  ? 'All gates clear — ready for execution'
-                  : `${gates.length - passedCount} item${gates.length - passedCount !== 1 ? 's' : ''} remaining`}
+              <h2 className="text-2xl font-semibold">{progress.satisfied} of {progress.total} conditions satisfied</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                The checklist is now the shared operating frame for legal, financial, regulatory, and technical close work.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge className={`text-xs font-mono px-3 py-1 ${
-              readiness.readyToClose
-                ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                : progressPct >= 60
-                ? 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                : 'bg-red-500/10 text-red-500 border-red-500/20'
-            }`}>
-              {readiness.readyToClose ? 'Ready' : progressPct >= 60 ? 'In Progress' : 'Blocked'}
-            </Badge>
-            <span className={`text-3xl font-bold font-mono ${
-              readiness.readyToClose ? 'text-emerald-500' : progressPct >= 60 ? 'text-amber-500' : 'text-red-500'
-            }`}>
-              {progressPct}%
-            </span>
-          </div>
-        </div>
-        <Progress value={progressPct} className={`h-2 ${
-          readiness.readyToClose ? '[&>div]:bg-emerald-500'
-            : progressPct >= 60 ? '[&>div]:bg-amber-500' : '[&>div]:bg-red-500'
-        }`} />
-      </motion.div>
 
-      {/* Visual Progress Steps */}
-      <motion.div {...fadeInUp} className="pivt-card border border-border/50 p-6">
-        <h3 className="text-sm font-semibold mb-5 text-muted-foreground uppercase tracking-wider">Deal Progress</h3>
-        <div className="space-y-0">
-          {gates.map((gate, index) => {
-            const isLast = index === gates.length - 1;
-            const Icon = gate.icon;
-            return (
-              <div key={gate.id} className="flex items-stretch gap-4">
-                <div className="flex flex-col items-center w-8">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                    gate.passed ? 'bg-emerald-500/15 text-emerald-500' : 'bg-muted/60 text-muted-foreground'
-                  }`}>
-                    {gate.passed ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
-                  </div>
-                  {!isLast && (
-                    <div className={`w-0.5 flex-1 min-h-[24px] ${gate.passed ? 'bg-emerald-500/30' : 'bg-border/40'}`} />
-                  )}
-                </div>
-                <div className={`flex-1 ${isLast ? 'pb-0' : 'pb-5'}`}>
-                  <div className="flex items-center gap-2">
-                    <Icon className={`w-3.5 h-3.5 ${gate.passed ? 'text-emerald-500' : 'text-muted-foreground'}`} />
-                    <span className={`text-sm font-medium ${gate.passed ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {gate.label}
-                    </span>
-                    {gate.detail && (
-                      <span className="text-[10px] text-muted-foreground font-mono">{gate.detail}</span>
-                    )}
-                    <Badge className={`text-[9px] ml-auto ${
-                      gate.passed
-                        ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                        : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
-                    }`}>
-                      {gate.passed ? 'Complete' : 'Pending'}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1 ml-5">{gate.description}</p>
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Execute Closing row */}
-          <div className="flex items-stretch gap-4 pt-2">
-            <div className="flex flex-col items-center w-8">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                readiness.readyToClose ? 'bg-primary/15 text-primary' : 'bg-muted/40 text-muted-foreground/50'
-              }`}>
-                {readiness.readyToClose ? <Rocket className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-              </div>
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-semibold ${readiness.readyToClose ? 'text-foreground' : 'text-muted-foreground/60'}`}>
-                  Execute Closing
-                </span>
-                <Badge className={`text-[9px] ml-auto ${
-                  readiness.readyToClose
-                    ? 'bg-primary/10 text-primary border-primary/20'
-                    : 'bg-muted/60 text-muted-foreground/60'
-                }`}>
-                  {readiness.readyToClose ? 'Unlocked' : <><Lock className="w-2.5 h-2.5 mr-1 inline" /> Locked</>}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {readiness.readyToClose
-                  ? 'All prerequisites met — you may proceed with closing execution.'
-                  : 'Complete all verification, documents, and approvals before executing payments.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Execute Button */}
-      <motion.div {...fadeInUp}>
-        <Button
-          size="lg"
-          disabled={!readiness.readyToClose}
-          onClick={() => setConfirmOpen(true)}
-          className="w-full gap-2 text-sm font-semibold h-12"
-        >
-          {readiness.readyToClose ? (
-            <><Rocket className="w-4 h-4" /> Execute Closing</>
-          ) : (
-            <><Lock className="w-4 h-4" /> Execute Closing (Locked)</>
-          )}
-        </Button>
-        {!readiness.readyToClose && (
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Complete all verification, documents, and approvals before executing payments.
-          </p>
-        )}
-      </motion.div>
-
-      {/* Confirm Dialog */}
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" />
-              Confirm Closing Execution
-            </DialogTitle>
-            <DialogDescription>
-              This action will initiate deal closing and trigger payment disbursements. This cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {realDeal && (
-              <div className="space-y-1.5 text-sm bg-muted/30 rounded-lg p-3">
-                <div className="flex justify-between"><span className="text-muted-foreground">Deal</span><span className="font-medium">{realDeal.deal_name}</span></div>
-                {realDeal.seller && <div className="flex justify-between"><span className="text-muted-foreground">Seller</span><span>{realDeal.seller}</span></div>}
-                {realDeal.buyer && <div className="flex justify-between"><span className="text-muted-foreground">Buyer</span><span>{realDeal.buyer}</span></div>}
-                <div className="flex justify-between"><span className="text-muted-foreground">Value</span><span className="font-mono">${realDeal.deal_value?.toLocaleString()}</span></div>
-              </div>
-            )}
-            <div className="space-y-2">
-              {gates.map(gate => (
-                <div key={gate.id} className="flex items-center gap-2 text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>{gate.label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Execution notes (optional)</label>
-              <Textarea
-                placeholder="Add any closing notes..."
-                value={confirmNotes}
-                onChange={e => setConfirmNotes(e.target.value)}
-                rows={3}
-              />
-            </div>
-          </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>Cancel</Button>
-            <Button
-              onClick={handleExecute}
-              disabled={executing}
-              className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-            >
-              {executing ? (
-                <><div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Executing...</>
-              ) : (
-                <><Rocket className="w-4 h-4" /> Confirm & Execute</>
-              )}
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setCreatingItem((current) => !current)} disabled={isDemoDeal}>
+              <Plus className="h-4 w-4" />
+              Add checklist item
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <Button variant="outline" className="gap-2" onClick={exportSelectedToPdf} disabled={selectedIds.length === 0}>
+              <Download className="h-4 w-4" />
+              Export selected to PDF
+            </Button>
+          </div>
+        </div>
+
+        <Progress value={progress.pct} className="h-2 [&>div]:bg-accent" />
+
+        <div className="grid gap-3 lg:grid-cols-4">
+          {progress.breakdown.map((bucket) => (
+            <button
+              key={bucket.category}
+              type="button"
+              onClick={() => {
+                setCategoryFilter(bucket.category);
+                setFocusedSection(bucket.category);
+              }}
+              className="rounded-xl border border-border/60 bg-background/70 p-4 text-left transition-colors hover:border-accent/20"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold">{bucket.category}</span>
+                <Badge variant="outline" className="text-[10px]">{bucket.satisfied}/{bucket.total}</Badge>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">{CATEGORY_COPY[bucket.category].detail}</p>
+              <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${bucket.pct}%` }} />
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {creatingItem ? (
+          <div className="rounded-xl border border-border/60 bg-background/70 p-4 space-y-4">
+            <div className="grid gap-4 md:grid-cols-[1.4fr,1fr]">
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input value={newItem.title} onChange={(event) => setNewItem((current) => ({ ...current, title: event.target.value }))} placeholder="Add a closing deliverable" />
+              </div>
+              <div className="space-y-2">
+                <Label>Category</Label>
+                <Select value={newItem.category} onValueChange={(value) => setNewItem((current) => ({ ...current, category: value as ChecklistCategory }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORY_ORDER.map((category) => (
+                      <SelectItem key={category} value={category}>{category}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea value={newItem.description} onChange={(event) => setNewItem((current) => ({ ...current, description: event.target.value }))} placeholder="Add the context the team should collaborate around" />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setCreatingItem(false)}>Cancel</Button>
+              <Button onClick={createManualItem}>Create item</Button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-background/70 px-4 py-3">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+            <Filter className="h-3.5 w-3.5" /> Bulk actions
+          </div>
+          <span className="text-sm text-foreground">{selectedIds.length} selected</span>
+          <Button size="sm" variant="outline" disabled={selectedIds.length === 0 || isDemoDeal} onClick={() => updateChecklistItems(selectedIds, { status: 'not_applicable' })}>
+            Mark not applicable
+          </Button>
+          <div className="w-56">
+            <Select value={bulkAssignee} onValueChange={setBulkAssignee}>
+              <SelectTrigger>
+                <SelectValue placeholder="Assign responsible party" />
+              </SelectTrigger>
+              <SelectContent>
+                {members.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>{memberLabel(member)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button size="sm" disabled={!bulkAssignee || selectedIds.length === 0 || isDemoDeal} onClick={() => updateChecklistItems(selectedIds, { responsible_party_id: bulkAssignee })}>
+            Assign owner
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => {
+            setCategoryFilter('All');
+            setFocusedSection('All');
+          }}>
+            Clear filter
+          </Button>
+        </div>
+      </section>
+
+      {items.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-muted/20 p-10 text-center">
+          <ShieldCheck className="mx-auto h-10 w-10 text-accent" />
+          <h3 className="mt-4 text-xl font-semibold">No closing checklist items yet</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Start with the first legal, financial, regulatory, or technical deliverable and let the team collaborate around it here.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {topLevelItems.map((item) => renderItemTree(item))}
+        </div>
+      )}
+
+      <Sheet open={Boolean(satisfactionDraft.item)} onOpenChange={(open) => !open && setSatisfactionDraft({ item: null, note: '', selectedDocumentId: '', uploadingFile: null })}>
+        <SheetContent className="sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>Mark satisfied with evidence</SheetTitle>
+            <SheetDescription>
+              Confirm completion, attach supporting evidence, and leave a note for the deal team.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="space-y-4 py-4">
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+              <p className="text-sm font-semibold">{satisfactionDraft.item?.title}</p>
+              {satisfactionDraft.item?.description ? <p className="mt-1 text-sm text-muted-foreground">{satisfactionDraft.item.description}</p> : null}
+            </div>
+            <div className="space-y-2">
+              <Label>Select existing supporting document</Label>
+              <Select value={satisfactionDraft.selectedDocumentId} onValueChange={(value) => setSatisfactionDraft((current) => ({ ...current, selectedDocumentId: value, uploadingFile: null }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a document" />
+                </SelectTrigger>
+                <SelectContent>
+                  {documents.map((document) => (
+                    <SelectItem key={document.id} value={document.id}>{document.file_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Or upload new evidence</Label>
+              <label className="flex cursor-pointer items-center justify-between rounded-xl border border-dashed border-border/70 bg-background px-4 py-3 text-sm text-muted-foreground hover:border-accent/30 hover:text-foreground">
+                <span className="inline-flex items-center gap-2"><FileUp className="h-4 w-4" /> {satisfactionDraft.uploadingFile?.name || 'Choose a file'}</span>
+                <input
+                  type="file"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0] || null;
+                    setSatisfactionDraft((current) => ({ ...current, uploadingFile: file, selectedDocumentId: '' }));
+                  }}
+                />
+              </label>
+            </div>
+            <div className="space-y-2">
+              <Label>Note</Label>
+              <Textarea value={satisfactionDraft.note} onChange={(event) => setSatisfactionDraft((current) => ({ ...current, note: event.target.value }))} placeholder="Add what was completed and any evidence context" />
+            </div>
+          </div>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setSatisfactionDraft({ item: null, note: '', selectedDocumentId: '', uploadingFile: null })}>Cancel</Button>
+            <Button onClick={confirmSatisfaction} disabled={savingSatisfaction || isDemoDeal || (!satisfactionDraft.selectedDocumentId && !satisfactionDraft.uploadingFile)}>
+              {savingSatisfaction ? 'Saving…' : 'Confirm satisfaction'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <Sheet open={Boolean(waiveDraft.item)} onOpenChange={(open) => !open && setWaiveDraft({ item: null, justification: '' })}>
+        <SheetContent className="sm:max-w-xl">
+          <SheetHeader>
+            <SheetTitle>Waive checklist item</SheetTitle>
+            <SheetDescription>
+              A written justification is required before this item can be waived.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="py-4 space-y-4">
+            <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+              <p className="text-sm font-semibold">{waiveDraft.item?.title}</p>
+            </div>
+            <div className="space-y-2">
+              <Label>Waiver justification</Label>
+              <Textarea value={waiveDraft.justification} onChange={(event) => setWaiveDraft((current) => ({ ...current, justification: event.target.value }))} placeholder="Explain why this item is being waived" />
+            </div>
+          </div>
+          <SheetFooter>
+            <Button variant="outline" onClick={() => setWaiveDraft({ item: null, justification: '' })}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmWaiver} disabled={savingWaiver || isDemoDeal || !waiveDraft.justification.trim()}>
+              {savingWaiver ? 'Saving…' : 'Waive item'}
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

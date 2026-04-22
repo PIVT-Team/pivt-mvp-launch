@@ -472,6 +472,116 @@ export type Database = {
           },
         ]
       }
+      closing_checklist_items: {
+        Row: {
+          category: string
+          created_at: string
+          deal_id: string
+          description: string | null
+          entity_id: string | null
+          id: string
+          parent_id: string | null
+          responsible_party_id: string | null
+          satisfied_at: string | null
+          satisfied_by: string | null
+          sort_order: number
+          source: string
+          status: string
+          supporting_document_id: string | null
+          title: string
+          updated_at: string
+          waiver_justification: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          deal_id: string
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          parent_id?: string | null
+          responsible_party_id?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          sort_order?: number
+          source?: string
+          status?: string
+          supporting_document_id?: string | null
+          title: string
+          updated_at?: string
+          waiver_justification?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          deal_id?: string
+          description?: string | null
+          entity_id?: string | null
+          id?: string
+          parent_id?: string | null
+          responsible_party_id?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          sort_order?: number
+          source?: string
+          status?: string
+          supporting_document_id?: string | null
+          title?: string
+          updated_at?: string
+          waiver_justification?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_checklist_items_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_checklist_items_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_from_id"]
+          },
+          {
+            foreignKeyName: "closing_checklist_items_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_to_id"]
+          },
+          {
+            foreignKeyName: "closing_checklist_items_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_checklist_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "closing_checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_checklist_items_responsible_party_id_fkey"
+            columns: ["responsible_party_id"]
+            isOneToOne: false
+            referencedRelation: "deal_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_checklist_items_supporting_document_id_fkey"
+            columns: ["supporting_document_id"]
+            isOneToOne: false
+            referencedRelation: "deal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comment_mentions: {
         Row: {
           comment_id: string
