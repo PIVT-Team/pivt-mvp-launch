@@ -16,6 +16,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { AiConfidenceBadge } from '@/components/AiConfidenceBadge';
+import { isAiDerivedRecord } from '@/lib/fieldCorrections';
 
 type VerificationStatus = 'pending' | 'in_review' | 'verified' | 'rejected';
 
@@ -41,6 +43,8 @@ interface WireInstruction {
   verification_status: VerificationStatus;
   source_document_id: string | null;
   created_at: string;
+  created_by_source?: string;
+  confidence_status?: string;
 }
 
 interface PaymentAllocation {
@@ -83,7 +87,7 @@ export const PaymentVerificationCover: React.FC = () => {
       const [wiresRes, allocsRes] = await Promise.all([
         supabase
           .from('wire_instructions')
-          .select('id, payee_entity, payer_entity, bank_name, account_holder, account_number_last4, routing_number, swift_bic, currency, amount, payment_type, verification_status, source_document_id, created_at')
+          .select('id, payee_entity, payer_entity, bank_name, account_holder, account_number_last4, routing_number, swift_bic, currency, amount, payment_type, verification_status, source_document_id, created_at, created_by_source, confidence_status')
           .eq('deal_id', dealId)
           .order('created_at', { ascending: true }),
         supabase
@@ -127,7 +131,7 @@ export const PaymentVerificationCover: React.FC = () => {
   const handleVerify = async (wire: WireInstruction) => {
     const { error } = await supabase
       .from('wire_instructions')
-      .update({ verification_status: 'verified', verified_at: new Date().toISOString() } as any)
+      .update({ verification_status: 'verified', verified_at: new Date().toISOString(), confidence_status: 'human_verified', needs_review: false, last_updated_by_source: 'manual' } as any)
       .eq('id', wire.id);
     if (error) { toast.error('Failed to verify'); return; }
     toast.success(`${wire.payee_entity} verified`);
@@ -153,7 +157,7 @@ export const PaymentVerificationCover: React.FC = () => {
     if (!selectedWire) return;
     await supabase
       .from('wire_instructions')
-      .update({ verification_status: 'rejected' } as any)
+      .update({ verification_status: 'rejected', confidence_status: 'human_verified', needs_review: false, last_updated_by_source: 'manual' } as any)
       .eq('id', selectedWire.id);
     toast.success(`${selectedWire.payee_entity} flagged for review`);
     setWireInstructions(prev => prev.map(w => w.id === selectedWire.id ? { ...w, verification_status: 'rejected' as VerificationStatus } : w));
@@ -266,6 +270,7 @@ export const PaymentVerificationCover: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{wire.payee_entity}</span>
                       <Badge variant="outline" className="text-xs">{wire.payment_type}</Badge>
+                      {isAiDerivedRecord(wire.created_by_source, wire.confidence_status) && <AiConfidenceBadge />}
                       <Badge variant="outline" className={`text-xs gap-1 ${cfg.color}`}>
                         <Icon className="w-3 h-3" /> {cfg.label}
                       </Badge>
