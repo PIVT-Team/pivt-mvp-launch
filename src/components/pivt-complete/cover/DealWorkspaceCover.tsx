@@ -814,19 +814,21 @@ const WorkspaceShell: React.FC<{
   const emptyState = getWorkspaceEmptyState(activeStepId, metrics, openNewton);
 
   return (
-    <div className="grid min-h-[600px] gap-6 xl:grid-cols-[22rem,minmax(0,1fr),20rem] items-start">
+    <div className="grid min-h-[600px] gap-6 xl:grid-cols-[22rem,13rem,minmax(0,1fr),20rem] items-start">
       <div className="min-w-0 xl:sticky xl:top-0 xl:self-start">
         <ClosingCenterCover mode="frame" />
       </div>
 
-      <WorkspaceSidebar
-        activeStepId={activeStepId}
-        onStepClick={handleStepClick}
-        subNavItems={subNavItems}
-        activeSubNav={activeSubNav}
-        onSubChange={setActiveSubNav}
-        stageStatuses={metrics?.stageStatuses}
-      />
+      <div className="min-w-0 xl:sticky xl:top-0 xl:self-start">
+        <WorkspaceSidebar
+          activeStepId={activeStepId}
+          onStepClick={handleStepClick}
+          subNavItems={subNavItems}
+          activeSubNav={activeSubNav}
+          onSubChange={setActiveSubNav}
+          stageStatuses={metrics?.stageStatuses}
+        />
+      </div>
 
       <div className="flex-1 min-w-0">
         {emptyState ? (
