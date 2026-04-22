@@ -184,7 +184,7 @@ export const NewtonRail: React.FC = () => {
       id: currentDealId || dealId,
       name: realDeal.deal_name,
       number: realDeal.deal_number,
-      state: realDeal.deal_state,
+      state: realDeal.status,
       status: realDeal.status,
       value: realDeal.deal_value,
       closing_date: realDeal.closing_date,
@@ -197,10 +197,10 @@ export const NewtonRail: React.FC = () => {
     summary: metrics ? {
       readiness_percent: metrics.readinessPercent,
       pending_approvals: metrics.totalApprovals - metrics.grantedApprovals,
-      unresolved_discrepancies: metrics.openDiscrepancies,
+      unresolved_discrepancies: discrepancies.length,
       low_confidence_fields: lowConfidenceFields.length,
     } : null,
-  }), [currentDealId, currentRecordId, currentRecordType, currentTab, dealId, lowConfidenceFields.length, metrics, realDeal]);
+  }), [currentDealId, currentRecordId, currentRecordType, currentTab, dealId, discrepancies.length, lowConfidenceFields.length, metrics, realDeal]);
 
   const sendMessage = useCallback(async () => {
     if (!input.trim() || sending) return;
