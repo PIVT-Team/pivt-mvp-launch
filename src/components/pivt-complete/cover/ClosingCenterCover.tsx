@@ -41,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ChecklistItem, type ChecklistComment, type ChecklistItemModel, type ChecklistPresenceUser } from './checklist/ChecklistItem';
+import { cn } from '@/lib/utils';
 
 type ChecklistRow = Tables<'closing_checklist_items'>;
 type DealDocumentRow = Tables<'deal_documents'>;
@@ -97,7 +98,12 @@ const sortChecklistItems = (items: ChecklistRow[]) =>
     return a.title.localeCompare(b.title);
   });
 
-export const ClosingCenterCover: React.FC = () => {
+interface ClosingCenterCoverProps {
+  mode?: 'surface' | 'frame';
+  className?: string;
+}
+
+export const ClosingCenterCover: React.FC<ClosingCenterCoverProps> = ({ mode = 'surface', className }) => {
   const { dealId, isDemoDeal, realDeal, refetchMetrics } = useDealWorkspace();
   const { user } = useAuth();
   const { setActiveSection, setSelectedEntity } = usePIVTStore();
@@ -575,31 +581,35 @@ export const ClosingCenterCover: React.FC = () => {
     );
   }
 
+  const isFrameMode = mode === 'frame';
+
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-border/60 bg-card p-6 space-y-5">
+    <div className={cn('space-y-6', isFrameMode && 'space-y-4', className)}>
+      <section className={cn('rounded-2xl border border-border/60 bg-card space-y-5', isFrameMode ? 'p-5' : 'p-6')}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
               <Layers3 className="h-3.5 w-3.5" />
-              Closing Checklist
+              {isFrameMode ? 'Workspace Checklist' : 'Closing Checklist'}
             </div>
             <div>
-              <h2 className="text-2xl font-semibold">{progress.satisfied} of {progress.total} conditions satisfied</h2>
+              <h2 className={cn('font-semibold', isFrameMode ? 'text-xl' : 'text-2xl')}>{progress.satisfied} of {progress.total} conditions satisfied</h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                The checklist is now the shared operating frame for legal, financial, regulatory, and technical close work.
+                {isFrameMode
+                  ? 'This checklist now anchors collaboration across every workspace view.'
+                  : 'The checklist is now the shared operating frame for legal, financial, regulatory, and technical close work.'}
               </p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" className="gap-2" onClick={() => setCreatingItem((current) => !current)} disabled={isDemoDeal}>
+             <Button variant="outline" className="gap-2" onClick={() => setCreatingItem((current) => !current)} disabled={isDemoDeal}>
               <Plus className="h-4 w-4" />
-              Add checklist item
+               {isFrameMode ? 'Add item' : 'Add checklist item'}
             </Button>
-            <Button variant="outline" className="gap-2" onClick={exportSelectedToPdf} disabled={selectedIds.length === 0}>
+             <Button variant="outline" className="gap-2" onClick={exportSelectedToPdf} disabled={selectedIds.length === 0}>
               <Download className="h-4 w-4" />
-              Export selected to PDF
+               {isFrameMode ? 'Export PDF' : 'Export selected to PDF'}
             </Button>
           </div>
         </div>
@@ -702,7 +712,7 @@ export const ClosingCenterCover: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className={cn('space-y-4', isFrameMode && 'max-h-[calc(100vh-19rem)] overflow-y-auto pr-1')}>
           {topLevelItems.map((item) => renderItemTree(item))}
         </div>
       )}
