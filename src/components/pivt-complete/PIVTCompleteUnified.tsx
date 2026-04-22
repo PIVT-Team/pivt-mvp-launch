@@ -32,6 +32,7 @@ import { AIDashboardCover } from './cover/AIDashboardCover';
 import { HomeCover } from './cover/HomeCover';
 import { CommunicationsHub } from './cover/CommunicationsHub';
 import { DealWizard } from '../deal-wizard/DealWizard';
+import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 import { SupportPanel } from '../support/SupportPanel';
 import { OntologyCover } from './cover/OntologyCover';
 import { PortfolioPaymentsCover } from './cover/PortfolioPaymentsCover';
@@ -116,7 +117,14 @@ export const PIVTCompleteUnified: React.FC = () => {
     if (activeSection !== 'ai') return;
 
     window.dispatchEvent(new CustomEvent('pivt:open-newton'));
-    setActiveSection(selectedDealId ? 'workspace' : 'deals');
+    if (selectedDealId) setActiveSection('workspace');
+  }, [activeSection, selectedDealId, setActiveSection]);
+
+  const handleOpenNewton = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+    if (selectedDealId && activeSection !== 'workspace') {
+      setActiveSection('workspace');
+    }
   }, [activeSection, selectedDealId, setActiveSection]);
 
   useEffect(() => {
@@ -196,10 +204,7 @@ export const PIVTCompleteUnified: React.FC = () => {
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => {
-                            if (item.path === 'newton' || item.path === 'ai') {
-                              window.dispatchEvent(new CustomEvent('pivt:open-newton'));
-                              setActiveSection(selectedDealId ? 'workspace' : 'deals');
-                            }
+                            if (item.path === 'newton' || item.path === 'ai') handleOpenNewton();
                             else if (item.path === 'support') window.dispatchEvent(new CustomEvent('pivt:open-support'));
                             else setActiveSection(item.path as ActiveSection);
                           }}
@@ -255,7 +260,7 @@ export const PIVTCompleteUnified: React.FC = () => {
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                onClick={() => window.dispatchEvent(new CustomEvent('pivt:open-newton'))}
+                onClick={handleOpenNewton}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white transition-all hover:opacity-90"
                 style={{ background: 'var(--pivt-gradient-primary)' }}
               >
@@ -361,6 +366,7 @@ export const PIVTCompleteUnified: React.FC = () => {
       </main>
 
       <DealWizard />
+      <NewtonDealIntelligence />
       <SupportPanel />
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />
