@@ -102,22 +102,18 @@ Deno.serve(async (req) => {
         results.discrepancy_engine_triggered = false;
       }
 
-      // ── Step 4: Rebuild Deal Graph ──
+      // ── Step 4: Queue Deal Graph Rebuild ──
       try {
         const graphRes = await admin.functions.invoke("build-deal-graph", {
           body: { deal_id },
           headers: { Authorization: authHeader },
         });
-        results.graph_rebuilt = true;
-        results.graph_state = graphRes?.data?.deal_state || null;
-        results.graph_nodes = graphRes?.data?.node_count || 0;
-        results.graph_edges = graphRes?.data?.edge_count || 0;
+        results.graph_rebuilt = Boolean(graphRes?.data?.queued);
+        results.graph_job_id = graphRes?.data?.job_status_id || null;
         auditEvents.push({
-          action: "deal_graph_rebuilt",
+          action: "deal_graph_rebuild_queued",
           details: {
-            node_count: results.graph_nodes,
-            edge_count: results.graph_edges,
-            deal_state: results.graph_state,
+            job_status_id: results.graph_job_id,
           },
         });
       } catch (e) {
