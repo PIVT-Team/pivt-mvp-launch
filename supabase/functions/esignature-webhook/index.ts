@@ -1,5 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+/**
+ * LEGITIMATELY_UNAUTHENTICATED
+ *
+ * This function receives provider-style e-signature callbacks and simulated webhook events.
+ * It stays unauthenticated because external signing providers do not present end-user JWTs.
+ */
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
