@@ -806,6 +806,7 @@ const WorkspaceShell: React.FC<{
 
   const subNavItems = STEP_SUB_NAV[activeStepId];
   const ContentComponent = getContentComponent(activeStepId, activeSubNav);
+  const showingChecklistSurface = activeStepId === 'execution' && activeSubNav === 'closing';
   const openNewton = () => {
     window.dispatchEvent(new CustomEvent('pivt:open-newton'));
     window.dispatchEvent(new CustomEvent('pivt:newton-create-deal'));
@@ -813,7 +814,11 @@ const WorkspaceShell: React.FC<{
   const emptyState = getWorkspaceEmptyState(activeStepId, metrics, openNewton);
 
   return (
-    <div className="flex gap-6 min-h-[600px] items-start">
+    <div className="grid min-h-[600px] gap-6 xl:grid-cols-[22rem,minmax(0,1fr),20rem] items-start">
+      <div className="min-w-0 xl:sticky xl:top-0 xl:self-start">
+        <ClosingCenterCover mode="frame" />
+      </div>
+
       <WorkspaceSidebar
         activeStepId={activeStepId}
         onStepClick={handleStepClick}
@@ -835,7 +840,15 @@ const WorkspaceShell: React.FC<{
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             >
-              {activeStepId === 'overview'
+              {showingChecklistSurface ? (
+                <div className="rounded-2xl border border-border/60 bg-card/50 p-8 text-center space-y-3">
+                  <ShieldCheck className="mx-auto h-8 w-8 text-accent" />
+                  <h3 className="text-xl font-semibold">The checklist is now your deal command surface</h3>
+                  <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+                    Keep working from the persistent checklist on the left while Newton and this panel stay focused on the selected execution context.
+                  </p>
+                </div>
+              ) : activeStepId === 'overview'
                 ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
                 : <ContentComponent />
               }
