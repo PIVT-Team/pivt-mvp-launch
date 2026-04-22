@@ -4002,8 +4002,6 @@ export type Database = {
           source_deal_id: string
         }[]
       }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_deal: { Args: { _deal_id: string }; Returns: boolean }
       start_job_processing: {
         Args: { p_job_status_id: string }
