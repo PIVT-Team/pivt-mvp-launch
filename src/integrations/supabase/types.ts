@@ -1495,7 +1495,10 @@ export type Database = {
           needs_review: boolean
           object_id: string
           object_type: string
+          resolution_note: string | null
+          resolution_type: string | null
           resolved_at: string | null
+          resolved_by: string | null
           rule_key: string
           severity: Database["public"]["Enums"]["discrepancy_severity"]
           status: Database["public"]["Enums"]["discrepancy_status"]
@@ -1518,7 +1521,10 @@ export type Database = {
           needs_review?: boolean
           object_id: string
           object_type: string
+          resolution_note?: string | null
+          resolution_type?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
           rule_key: string
           severity: Database["public"]["Enums"]["discrepancy_severity"]
           status?: Database["public"]["Enums"]["discrepancy_status"]
@@ -1541,7 +1547,10 @@ export type Database = {
           needs_review?: boolean
           object_id?: string
           object_type?: string
+          resolution_note?: string | null
+          resolution_type?: string | null
           resolved_at?: string | null
+          resolved_by?: string | null
           rule_key?: string
           severity?: Database["public"]["Enums"]["discrepancy_severity"]
           status?: Database["public"]["Enums"]["discrepancy_status"]
@@ -2036,6 +2045,7 @@ export type Database = {
           human_correction: string | null
           id: string
           record_id: string
+          resolution_type: string | null
           table_name: string
           user_id: string
         }
@@ -2050,6 +2060,7 @@ export type Database = {
           human_correction?: string | null
           id?: string
           record_id: string
+          resolution_type?: string | null
           table_name: string
           user_id: string
         }
@@ -2064,6 +2075,7 @@ export type Database = {
           human_correction?: string | null
           id?: string
           record_id?: string
+          resolution_type?: string | null
           table_name?: string
           user_id?: string
         }
@@ -4096,18 +4108,32 @@ export type Database = {
           read_ct: number
         }[]
       }
-      record_field_correction: {
-        Args: {
-          p_ai_confidence?: number
-          p_ai_output: string
-          p_document_span?: Json
-          p_field_name: string
-          p_human_correction: string
-          p_record_id: string
-          p_table_name: string
-        }
-        Returns: string
-      }
+      record_field_correction:
+        | {
+            Args: {
+              p_ai_confidence?: number
+              p_ai_output: string
+              p_document_span?: Json
+              p_field_name: string
+              p_human_correction: string
+              p_record_id: string
+              p_table_name: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_ai_confidence?: number
+              p_ai_output: string
+              p_document_span?: Json
+              p_field_name: string
+              p_human_correction: string
+              p_record_id: string
+              p_resolution_type?: string
+              p_table_name: string
+            }
+            Returns: string
+          }
       search_entities: {
         Args: { entity_type?: string; search_term: string }
         Returns: {
