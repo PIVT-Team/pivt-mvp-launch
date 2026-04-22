@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { supabase } from '@/integrations/supabase/client';
+import { hasMeaningfulChange, recordFieldCorrections } from '@/lib/fieldCorrections';
 
 const DEAL_TYPES = [
   'Private Company Share Purchase',
@@ -124,6 +125,48 @@ export const EditDealDrawer: React.FC<EditDealDrawerProps> = ({ open, onOpenChan
     }
 
     setSaving(true);
+    const corrections = [
+      hasMeaningfulChange(deal.buyer, buyer) ? {
+        tableName: 'deals',
+        recordId: deal.id,
+        fieldName: 'buyer',
+        aiOutput: deal.buyer,
+        humanCorrection: buyer.trim(),
+      } : null,
+      hasMeaningfulChange(deal.seller, seller) ? {
+        tableName: 'deals',
+        recordId: deal.id,
+        fieldName: 'seller',
+        aiOutput: deal.seller,
+        humanCorrection: seller.trim(),
+      } : null,
+      hasMeaningfulChange(deal.target_company, targetCompany) ? {
+        tableName: 'deals',
+        recordId: deal.id,
+        fieldName: 'target_company',
+        aiOutput: deal.target_company,
+        humanCorrection: targetCompany.trim(),
+      } : null,
+      hasMeaningfulChange(deal.closing_date, closingDate ? format(closingDate, 'yyyy-MM-dd') : null) ? {
+        tableName: 'deals',
+        recordId: deal.id,
+        fieldName: 'closing_date',
+        aiOutput: deal.closing_date,
+        humanCorrection: closingDate ? format(closingDate, 'yyyy-MM-dd') : null,
+      } : null,
+    ].filter(Boolean);
+
+    if (corrections.length > 0) {
+      try {
+        await recordFieldCorrections(corrections);
+        toast({ title: 'Correction saved — helping PIVT learn' });
+      } catch (correctionError: any) {
+        setSaving(false);
+        toast({ title: 'Failed to save correction', description: correctionError.message, variant: 'destructive' });
+        return;
+      }
+    }
+
     const payload: Record<string, any> = {
       deal_name: dealName.trim(),
       deal_type: dealType || null,

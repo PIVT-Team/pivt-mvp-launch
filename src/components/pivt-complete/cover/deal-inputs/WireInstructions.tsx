@@ -21,6 +21,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { AiConfidenceBadge } from '@/components/AiConfidenceBadge';
+import { hasMeaningfulChange, isAiDerivedRecord, recordFieldCorrections } from '@/lib/fieldCorrections';
 
 /* ── Constants ── */
 const WIRE_DOC_TYPES = [
@@ -71,6 +73,9 @@ interface WireInstruction {
   routing_aba: string;
   swift_iban: string;
   status: string;
+  source_document_id?: string | null;
+  created_by_source?: string;
+  confidence_status?: string;
 }
 
 const statusColor = (s: string) =>
@@ -91,6 +96,7 @@ export const WireInstructions: React.FC = () => {
   const [selectedDocType, setSelectedDocType] = useState('FUNDS_FLOW');
   const [wires, setWires] = useState<WireInstruction[]>([]);
   const [showAddWire, setShowAddWire] = useState(false);
+  const [editingWire, setEditingWire] = useState<WireInstruction | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<WireDoc | null>(null);
@@ -134,6 +140,9 @@ export const WireInstructions: React.FC = () => {
       routing_aba: w.routing_number || '',
       swift_iban: w.swift_bic || '',
       status: w.verification_status === 'verified' ? 'Verified' : 'Pending',
+      source_document_id: w.source_document_id,
+      created_by_source: w.created_by_source,
+      confidence_status: w.confidence_status,
     })));
     setLoading(false);
   }, [dealId]);
@@ -309,6 +318,90 @@ export const WireInstructions: React.FC = () => {
     await fetchDocs();
   }, [newWire, dealId, fetchDocs]);
 
+  const handleSaveWireEdits = useCallback(async () => {
+    if (!editingWire || !dealId) return;
+
+    const isAiDerived = isAiDerivedRecord(editingWire.created_by_source, editingWire.confidence_status);
+    const normalizedAccountNumber = editingWire.account_number.replace(/[^0-9]/g, '');
+    const corrections = isAiDerived ? [
+      hasMeaningfulChange(wires.find(w => w.id === editingWire.id)?.stakeholder, editingWire.stakeholder) ? {
+        tableName: 'wire_instructions',
+        recordId: editingWire.id,
+        fieldName: 'payee_entity',
+        aiOutput: wires.find(w => w.id === editingWire.id)?.stakeholder,
+        humanCorrection: editingWire.stakeholder,
+        documentSpan: editingWire.source_document_id ? { document_id: editingWire.source_document_id } : null,
+      } : null,
+      hasMeaningfulChange(wires.find(w => w.id === editingWire.id)?.amount, editingWire.amount) ? {
+        tableName: 'wire_instructions',
+        recordId: editingWire.id,
+        fieldName: 'amount',
+        aiOutput: wires.find(w => w.id === editingWire.id)?.amount,
+        humanCorrection: editingWire.amount,
+        documentSpan: editingWire.source_document_id ? { document_id: editingWire.source_document_id } : null,
+      } : null,
+      hasMeaningfulChange(wires.find(w => w.id === editingWire.id)?.bank_name, editingWire.bank_name) ? {
+        tableName: 'wire_instructions',
+        recordId: editingWire.id,
+        fieldName: 'bank_name',
+        aiOutput: wires.find(w => w.id === editingWire.id)?.bank_name,
+        humanCorrection: editingWire.bank_name,
+        documentSpan: editingWire.source_document_id ? { document_id: editingWire.source_document_id } : null,
+      } : null,
+      hasMeaningfulChange((wires.find(w => w.id === editingWire.id)?.account_number || '').replace(/[^0-9]/g, ''), normalizedAccountNumber) ? {
+        tableName: 'wire_instructions',
+        recordId: editingWire.id,
+        fieldName: 'account_number_last4',
+        aiOutput: (wires.find(w => w.id === editingWire.id)?.account_number || '').replace(/[^0-9]/g, ''),
+        humanCorrection: normalizedAccountNumber,
+        documentSpan: editingWire.source_document_id ? { document_id: editingWire.source_document_id } : null,
+      } : null,
+      hasMeaningfulChange(wires.find(w => w.id === editingWire.id)?.routing_aba, editingWire.routing_aba) ? {
+        tableName: 'wire_instructions',
+        recordId: editingWire.id,
+        fieldName: 'routing_number',
+        aiOutput: wires.find(w => w.id === editingWire.id)?.routing_aba,
+        humanCorrection: editingWire.routing_aba,
+        documentSpan: editingWire.source_document_id ? { document_id: editingWire.source_document_id } : null,
+      } : null,
+    ].filter(Boolean) : [];
+
+    if (corrections.length > 0) {
+      try {
+        await recordFieldCorrections(corrections);
+        toast.success('Correction saved — helping PIVT learn');
+      } catch (error: any) {
+        toast.error(`Failed to save correction: ${error.message}`);
+        return;
+      }
+    }
+
+    const { error } = await supabase.from('wire_instructions').update({
+      payee_entity: editingWire.stakeholder,
+      payment_type: editingWire.payment_type,
+      amount: parseFloat(editingWire.amount.replace(/[^0-9.]/g, '')) || 0,
+      currency: editingWire.currency,
+      bank_name: editingWire.bank_name || null,
+      account_holder: editingWire.account_name || null,
+      account_number_last4: normalizedAccountNumber ? normalizedAccountNumber.slice(-4) : null,
+      routing_number: editingWire.routing_aba || null,
+      swift_bic: editingWire.swift_iban || null,
+      last_updated_by_source: 'manual',
+      last_updated_by_user_id: user?.id || null,
+      needs_review: false,
+      confidence_status: corrections.length > 0 ? 'human_verified' : editingWire.confidence_status,
+    } as any).eq('id', editingWire.id);
+
+    if (error) {
+      toast.error('Failed to update wire instruction');
+      return;
+    }
+
+    toast.success('Wire instruction updated');
+    setEditingWire(null);
+    await fetchDocs();
+  }, [dealId, editingWire, fetchDocs, user?.id, wires]);
+
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return '';
     if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(1)} MB`;
@@ -446,16 +539,24 @@ export const WireInstructions: React.FC = () => {
             </thead>
             <tbody>
               {wires.map(w => (
-                <tr key={w.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
-                  <td className="px-4 py-2.5 font-medium">{w.stakeholder}</td>
+              <tr key={w.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors">
+                  <td className="px-4 py-2.5 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{w.stakeholder}</span>
+                      {isAiDerivedRecord(w.created_by_source, w.confidence_status) && <AiConfidenceBadge />}
+                    </div>
+                  </td>
                   <td className="px-4 py-2.5"><Badge variant="outline" className="text-xs">{w.payment_type}</Badge></td>
                   <td className="px-4 py-2.5">{w.amount}</td>
                   <td className="px-4 py-2.5 text-muted-foreground">{w.currency}</td>
                   <td className="px-4 py-2.5">{w.bank_name || <span className="text-muted-foreground italic text-xs">Not provided</span>}</td>
                   <td className="px-4 py-2.5">
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${statusColor(w.status)}`}>
-                      {statusIcon(w.status)}{w.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2 py-1 rounded-full ${statusColor(w.status)}`}>
+                        {statusIcon(w.status)}{w.status}
+                      </span>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setEditingWire(w)}>Edit</Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -557,6 +658,63 @@ export const WireInstructions: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddWire(false)}>Cancel</Button>
             <Button onClick={handleAddWire}>Add Wire</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingWire} onOpenChange={(open) => !open && setEditingWire(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Wire Instruction</DialogTitle>
+            <DialogDescription>Review and correct AI-extracted payment details.</DialogDescription>
+          </DialogHeader>
+          {editingWire && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+              <div className="sm:col-span-2">
+                <Label className="text-xs text-muted-foreground flex items-center gap-2">Recipient Stakeholder{isAiDerivedRecord(editingWire.created_by_source, editingWire.confidence_status) && <AiConfidenceBadge />}</Label>
+                <Input className="mt-1.5" value={editingWire.stakeholder} onChange={e => setEditingWire(p => p ? ({ ...p, stakeholder: e.target.value }) : p)} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Payment Type</Label>
+                <select className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm mt-1.5 focus:outline-none focus:border-accent/40" value={editingWire.payment_type} onChange={e => setEditingWire(p => p ? ({ ...p, payment_type: e.target.value }) : p)}>
+                  {PAYMENT_TYPES.map(t => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground flex items-center gap-2">Amount{isAiDerivedRecord(editingWire.created_by_source, editingWire.confidence_status) && <AiConfidenceBadge />}</Label>
+                <Input className="mt-1.5" value={editingWire.amount} onChange={e => setEditingWire(p => p ? ({ ...p, amount: e.target.value }) : p)} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Currency</Label>
+                <select className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm mt-1.5 focus:outline-none focus:border-accent/40" value={editingWire.currency} onChange={e => setEditingWire(p => p ? ({ ...p, currency: e.target.value }) : p)}>
+                  <option>USD</option><option>EUR</option><option>GBP</option><option>CAD</option><option>CHF</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Bank Name</Label>
+                <Input className="mt-1.5" value={editingWire.bank_name} onChange={e => setEditingWire(p => p ? ({ ...p, bank_name: e.target.value }) : p)} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Account Name</Label>
+                <Input className="mt-1.5" value={editingWire.account_name} onChange={e => setEditingWire(p => p ? ({ ...p, account_name: e.target.value }) : p)} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground flex items-center gap-2">Account Number (Last 4){isAiDerivedRecord(editingWire.created_by_source, editingWire.confidence_status) && <AiConfidenceBadge />}</Label>
+                <Input className="mt-1.5" value={editingWire.account_number} onChange={e => setEditingWire(p => p ? ({ ...p, account_number: e.target.value }) : p)} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground flex items-center gap-2">Routing / ABA{isAiDerivedRecord(editingWire.created_by_source, editingWire.confidence_status) && <AiConfidenceBadge />}</Label>
+                <Input className="mt-1.5" value={editingWire.routing_aba} onChange={e => setEditingWire(p => p ? ({ ...p, routing_aba: e.target.value }) : p)} />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">SWIFT / IBAN</Label>
+                <Input className="mt-1.5" value={editingWire.swift_iban} onChange={e => setEditingWire(p => p ? ({ ...p, swift_iban: e.target.value }) : p)} />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingWire(null)}>Cancel</Button>
+            <Button onClick={handleSaveWireEdits}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
