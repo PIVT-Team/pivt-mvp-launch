@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { requireJwt } from "../_shared/require-jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { authHeader } = await requireJwt(req, corsHeaders);
     const { deal_id, document_id, doc_type, extracted_fields, action } = await req.json();
 
     if (!deal_id) {
@@ -89,7 +91,10 @@ Deno.serve(async (req) => {
 
       // ── Step 3: Run Discrepancy Engine ──
       try {
-        await admin.functions.invoke("discrepancy-engine", { body: { deal_id } });
+        await admin.functions.invoke("discrepancy-engine", {
+          body: { deal_id },
+          headers: { Authorization: authHeader },
+        });
         results.discrepancy_engine_triggered = true;
         auditEvents.push({ action: "discrepancy_engine_triggered", details: { deal_id } });
       } catch (e) {
@@ -99,7 +104,10 @@ Deno.serve(async (req) => {
 
       // ── Step 4: Rebuild Deal Graph ──
       try {
-        const graphRes = await admin.functions.invoke("build-deal-graph", { body: { deal_id } });
+        const graphRes = await admin.functions.invoke("build-deal-graph", {
+          body: { deal_id },
+          headers: { Authorization: authHeader },
+        });
         results.graph_rebuilt = true;
         results.graph_state = graphRes?.data?.deal_state || null;
         results.graph_nodes = graphRes?.data?.node_count || 0;

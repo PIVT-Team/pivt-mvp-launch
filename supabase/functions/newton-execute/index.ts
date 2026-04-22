@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { requireJwt } from "../_shared/require-jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,6 +30,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { userId } = await requireJwt(req, corsHeaders);
     const { action_id } = await req.json();
     if (!action_id) {
       return jsonResponse({ success: false, error: "action_id required" }, 400);
@@ -101,6 +103,7 @@ Deno.serve(async (req) => {
       // Audit log
       await admin.from("audit_log").insert({
         deal_id: action.deal_id,
+        user_id: userId,
         action: "newton_action_executed",
         details: {
           action_id,
@@ -122,6 +125,7 @@ Deno.serve(async (req) => {
 
       await admin.from("audit_log").insert({
         deal_id: action.deal_id,
+        user_id: userId,
         action: "newton_action_failed",
         details: { action_id, action_type: action.action_type, error: msg },
       });

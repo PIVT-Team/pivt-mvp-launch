@@ -1,5 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/**
+ * LEGITIMATELY_UNAUTHENTICATED
+ *
+ * This function validates time-bound standalone verification links used by external stakeholders.
+ * Recipients access it via tokenized URLs rather than authenticated product sessions,
+ * so it must remain publicly reachable.
+ */
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

@@ -10,6 +10,15 @@ import { RecoveryEmail } from '../_shared/email-templates/recovery.tsx'
 import { EmailChangeEmail } from '../_shared/email-templates/email-change.tsx'
 import { ReauthenticationEmail } from '../_shared/email-templates/reauthentication.tsx'
 
+/**
+ * LEGITIMATELY_UNAUTHENTICATED
+ *
+ * This function is an authentication email hook invoked by the backend email pipeline.
+ * It must remain publicly reachable so the platform can render and send auth emails.
+ * Access is protected by webhook signature validation and preview-mode API key checks,
+ * not end-user JWTs.
+ */
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':

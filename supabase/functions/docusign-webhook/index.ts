@@ -1,6 +1,14 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/**
+ * LEGITIMATELY_UNAUTHENTICATED
+ *
+ * This function is a DocuSign webhook receiver called by DocuSign's external delivery system.
+ * It cannot require an end-user JWT because the caller is not a signed-in app user.
+ * It remains public so provider callbacks can update approval state.
+ */
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",

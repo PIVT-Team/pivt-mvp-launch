@@ -1,6 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+/**
+ * LEGITIMATELY_UNAUTHENTICATED
+ *
+ * This function accepts submissions from the public contact/support form.
+ * It must remain reachable before login, so it intentionally does not require a user JWT.
+ */
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":

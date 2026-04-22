@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireJwt } from "../_shared/require-jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    await requireJwt(req, corsHeaders);
     const { deal_id } = await req.json();
     if (!deal_id) {
       return new Response(JSON.stringify({ error: "deal_id required" }), {

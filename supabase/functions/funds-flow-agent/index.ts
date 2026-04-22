@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { requireJwt } from "../_shared/require-jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -488,6 +489,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
+    const { authHeader, userId: triggeredBy } = await requireJwt(req, corsHeaders);
     const { deal_id } = await req.json();
     if (!deal_id) {
       return new Response(
@@ -499,20 +501,6 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
-
-    // Identify the triggering user (optional — edge function may be called by service)
-    let triggeredBy: string | null = null;
-    const authHeader = req.headers.get("authorization");
-    if (authHeader) {
-      try {
-        const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-        const userClient = createClient(supabaseUrl, anonKey, {
-          global: { headers: { Authorization: authHeader } },
-        });
-        const { data: { user } } = await userClient.auth.getUser();
-        triggeredBy = user?.id || null;
-      } catch { /* anonymous trigger */ }
-    }
 
     // Check for recent running agent (prevent duplicates)
     const { data: recentRuns } = await admin
@@ -708,6 +696,15 @@ serve(async (req) => {
         if (discError) {
           console.error("Failed to insert discrepancies:", discError);
         }
+      }
+
+      try {
+        await admin.functions.invoke("discrepancy-engine", {
+          body: { deal_id },
+          headers: { Authorization: authHeader },
+        });
+      } catch (invokeError) {
+        console.error("Failed to rerun discrepancy engine:", invokeError);
       }
 
       // Audit event

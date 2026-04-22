@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { requireJwt } from "../_shared/require-jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,22 +15,10 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { userId } = await requireJwt(req, corsHeaders);
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
-
-    // Try to get the authenticated user from the JWT
-    const authHeader = req.headers.get("authorization") || "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    let userId = DEMO_USER_ID;
-
-    if (authHeader.startsWith("Bearer ") && authHeader.slice(7) !== anonKey) {
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } },
-      });
-      const { data: { user } } = await userClient.auth.getUser();
-      if (user) userId = user.id;
-    }
 
     const body = await req.json();
     const { action, params } = body;
