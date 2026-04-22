@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { supabase } from '@/integrations/supabase/client';
 import { hasMeaningfulChange, recordFieldCorrections } from '@/lib/fieldCorrections';
+import { FieldHistoryButton } from './FieldHistoryButton';
 
 const DEAL_TYPES = [
   'Private Company Share Purchase',
@@ -225,8 +226,11 @@ export const EditDealDrawer: React.FC<EditDealDrawerProps> = ({ open, onOpenChan
           <div className="space-y-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Transaction Overview</h3>
 
-            <div>
-              <Label htmlFor="edit-deal-name">Deal Name *</Label>
+            <div className="group space-y-1.5">
+              <Label htmlFor="edit-deal-name" className="flex items-center gap-2">
+                Deal Name *
+                <FieldHistoryButton tableName="deals" recordId={deal.id} fieldName="deal_name" fieldLabel="Deal Name" currentValue={dealName} />
+              </Label>
               <Input id="edit-deal-name" value={dealName} onChange={e => setDealName(e.target.value)} className="mt-1" />
             </div>
 
@@ -250,17 +254,26 @@ export const EditDealDrawer: React.FC<EditDealDrawerProps> = ({ open, onOpenChan
           <div className="space-y-4">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Parties</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Buyer</Label>
+              <div className="group space-y-1.5">
+                <Label className="flex items-center gap-2">
+                  Buyer
+                  <FieldHistoryButton tableName="deals" recordId={deal.id} fieldName="buyer" fieldLabel="Buyer" currentValue={buyer} />
+                </Label>
                 <Input value={buyer} onChange={e => setBuyer(e.target.value)} className="mt-1" />
               </div>
-              <div>
-                <Label>Seller</Label>
+              <div className="group space-y-1.5">
+                <Label className="flex items-center gap-2">
+                  Seller
+                  <FieldHistoryButton tableName="deals" recordId={deal.id} fieldName="seller" fieldLabel="Seller" currentValue={seller} />
+                </Label>
                 <Input value={seller} onChange={e => setSeller(e.target.value)} className="mt-1" />
               </div>
             </div>
-            <div>
-              <Label>Target Company</Label>
+            <div className="group space-y-1.5">
+              <Label className="flex items-center gap-2">
+                Target Company
+                <FieldHistoryButton tableName="deals" recordId={deal.id} fieldName="target_company" fieldLabel="Target Company" currentValue={targetCompany} />
+              </Label>
               <Input value={targetCompany} onChange={e => setTargetCompany(e.target.value)} className="mt-1" />
             </div>
           </div>
@@ -327,8 +340,11 @@ export const EditDealDrawer: React.FC<EditDealDrawerProps> = ({ open, onOpenChan
                   </PopoverContent>
                 </Popover>
               </div>
-              <div>
-                <Label>Expected Close Date</Label>
+              <div className="group space-y-1.5">
+                <Label className="flex items-center gap-2">
+                  Expected Close Date
+                  <FieldHistoryButton tableName="deals" recordId={deal.id} fieldName="closing_date" fieldLabel="Expected Close Date" currentValue={closingDate ? format(closingDate, 'yyyy-MM-dd') : null} />
+                </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className={cn("w-full mt-1 justify-start text-left font-normal", !closingDate && "text-muted-foreground")}>
