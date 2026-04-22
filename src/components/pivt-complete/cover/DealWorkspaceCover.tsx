@@ -666,6 +666,85 @@ const WorkspaceSidebar: React.FC<{
   );
 };
 
+const WorkspaceShell: React.FC<{
+  activeStepId: StepId;
+  activeSubNav?: string;
+  setActiveStepId: React.Dispatch<React.SetStateAction<StepId>>;
+  setActiveSubNav: React.Dispatch<React.SetStateAction<string | undefined>>;
+  metrics: ReturnType<typeof useDealMetrics>['metrics'];
+  realDeal: RealDeal | null;
+  isDemoDeal: boolean;
+  demoDealSeedKey: string | null;
+  selectedDealId: string;
+}> = ({ activeStepId, activeSubNav, setActiveStepId, setActiveSubNav, metrics, realDeal, isDemoDeal, demoDealSeedKey, selectedDealId }) => {
+  const { selectedEntity } = usePIVTStore();
+  const { setCurrentTab, setFocusedRecord } = useNewtonContext();
+
+  useEffect(() => {
+    setCurrentTab(STEP_TO_NEWTON_TAB[activeStepId]);
+  }, [activeStepId, setCurrentTab]);
+
+  useEffect(() => {
+    const entityType = selectedEntity?.type ? ENTITY_TO_RECORD_TYPE[selectedEntity.type] : null;
+    const fallbackType = activeSubNav ? SUBNAV_TO_RECORD_TYPE[activeSubNav] ?? null : null;
+
+    if (selectedEntity?.id && entityType) {
+      setFocusedRecord({ id: selectedEntity.id, type: entityType });
+      return;
+    }
+
+    if (activeSubNav && fallbackType) {
+      setFocusedRecord({ id: activeSubNav, type: fallbackType });
+      return;
+    }
+
+    setFocusedRecord({ id: undefined, type: null });
+  }, [activeSubNav, selectedEntity, setFocusedRecord]);
+
+  const handleStepClick = (id: StepId) => {
+    setActiveStepId(id);
+    const subs = STEP_SUB_NAV[id];
+    setActiveSubNav(subs ? subs[0].id : undefined);
+  };
+
+  const subNavItems = STEP_SUB_NAV[activeStepId];
+  const ContentComponent = getContentComponent(activeStepId, activeSubNav);
+
+  return (
+    <div className="flex gap-6 min-h-[600px] items-start">
+      <WorkspaceSidebar
+        activeStepId={activeStepId}
+        onStepClick={handleStepClick}
+        subNavItems={subNavItems}
+        activeSubNav={activeSubNav}
+        onSubChange={setActiveSubNav}
+        stageStatuses={metrics?.stageStatuses}
+      />
+
+      <div className="flex-1 min-w-0">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${activeStepId}-${activeSubNav}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          >
+            {activeStepId === 'overview'
+              ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
+              : <ContentComponent />
+            }
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div className="sticky top-0 self-start">
+        <NewtonRail />
+      </div>
+    </div>
+  );
+};
+
 
 // ── Main Component ──
 export const DealWorkspaceCover: React.FC = () => {
