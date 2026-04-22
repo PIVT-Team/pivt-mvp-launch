@@ -19,6 +19,7 @@ import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspac
 import { NewtonProvider, useNewtonContext, type NewtonRecordType, type NewtonWorkspaceTab } from '@/contexts/NewtonContext';
 import { useDealMetrics } from '@/hooks/useDealMetrics';
 import { useDealWorkflow } from '@/hooks/useDealWorkflow';
+import type { DealMetrics } from '@/services/dealMetricsService';
 import { NewtonRail } from '@/components/newton/NewtonRail';
 
 // Import existing cover pages
@@ -805,6 +806,11 @@ const WorkspaceShell: React.FC<{
 
   const subNavItems = STEP_SUB_NAV[activeStepId];
   const ContentComponent = getContentComponent(activeStepId, activeSubNav);
+  const openNewton = () => {
+    window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+    window.dispatchEvent(new CustomEvent('pivt:newton-create-deal'));
+  };
+  const emptyState = getWorkspaceEmptyState(activeStepId, metrics, openNewton);
 
   return (
     <div className="flex gap-6 min-h-[600px] items-start">
@@ -818,20 +824,24 @@ const WorkspaceShell: React.FC<{
       />
 
       <div className="flex-1 min-w-0">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`${activeStepId}-${activeSubNav}`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          >
-            {activeStepId === 'overview'
-              ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
-              : <ContentComponent />
-            }
-          </motion.div>
-        </AnimatePresence>
+        {emptyState ? (
+          <WorkspaceEmptyState {...emptyState} />
+        ) : (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${activeStepId}-${activeSubNav}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+            >
+              {activeStepId === 'overview'
+                ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
+                : <ContentComponent />
+              }
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
 
       <div className="sticky top-0 self-start">
