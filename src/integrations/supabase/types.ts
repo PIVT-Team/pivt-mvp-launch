@@ -869,6 +869,153 @@ export type Database = {
           },
         ]
       }
+      counterparty_invitations: {
+        Row: {
+          accepted_at: string | null
+          counterparty_profile_id: string | null
+          created_at: string
+          deal_id: string
+          email: string
+          expires_at: string | null
+          firm_name_snapshot: string | null
+          id: string
+          invite_token: string
+          invited_by: string
+          role_type: string | null
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          counterparty_profile_id?: string | null
+          created_at?: string
+          deal_id: string
+          email: string
+          expires_at?: string | null
+          firm_name_snapshot?: string | null
+          id?: string
+          invite_token: string
+          invited_by: string
+          role_type?: string | null
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          counterparty_profile_id?: string | null
+          created_at?: string
+          deal_id?: string
+          email?: string
+          expires_at?: string | null
+          firm_name_snapshot?: string | null
+          id?: string
+          invite_token?: string
+          invited_by?: string
+          role_type?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counterparty_invitations_counterparty_profile_id_fkey"
+            columns: ["counterparty_profile_id"]
+            isOneToOne: false
+            referencedRelation: "counterparty_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counterparty_invitations_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      counterparty_kyc_documents: {
+        Row: {
+          counterparty_profile_id: string
+          created_at: string
+          deal_id: string | null
+          document_type: string
+          file_path: string
+          id: string
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+        }
+        Insert: {
+          counterparty_profile_id: string
+          created_at?: string
+          deal_id?: string | null
+          document_type: string
+          file_path: string
+          id?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Update: {
+          counterparty_profile_id?: string
+          created_at?: string
+          deal_id?: string | null
+          document_type?: string
+          file_path?: string
+          id?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "counterparty_kyc_documents_counterparty_profile_id_fkey"
+            columns: ["counterparty_profile_id"]
+            isOneToOne: false
+            referencedRelation: "counterparty_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "counterparty_kyc_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      counterparty_profiles: {
+        Row: {
+          created_at: string
+          deals_participated: number
+          display_name: string | null
+          firm_name: string | null
+          id: string
+          kyc_status: string
+          kyc_verified_at: string | null
+          role_type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deals_participated?: number
+          display_name?: string | null
+          firm_name?: string | null
+          id?: string
+          kyc_status?: string
+          kyc_verified_at?: string | null
+          role_type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deals_participated?: number
+          display_name?: string | null
+          firm_name?: string | null
+          id?: string
+          kyc_status?: string
+          kyc_verified_at?: string | null
+          role_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       deal_approvals: {
         Row: {
           approval_side: string
@@ -3146,6 +3293,53 @@ export type Database = {
           requirement_group?: string
         }
         Relationships: []
+      }
+      saved_bank_instructions: {
+        Row: {
+          account_number_encrypted: string
+          bank_name: string | null
+          counterparty_profile_id: string
+          created_at: string
+          id: string
+          label: string
+          routing_number: string | null
+          swift_code: string | null
+          verified: boolean
+          verified_at: string | null
+        }
+        Insert: {
+          account_number_encrypted: string
+          bank_name?: string | null
+          counterparty_profile_id: string
+          created_at?: string
+          id?: string
+          label: string
+          routing_number?: string | null
+          swift_code?: string | null
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Update: {
+          account_number_encrypted?: string
+          bank_name?: string | null
+          counterparty_profile_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          routing_number?: string | null
+          swift_code?: string | null
+          verified?: boolean
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_bank_instructions_counterparty_profile_id_fkey"
+            columns: ["counterparty_profile_id"]
+            isOneToOne: false
+            referencedRelation: "counterparty_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_tickets: {
         Row: {
