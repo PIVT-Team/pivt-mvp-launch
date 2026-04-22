@@ -24,11 +24,13 @@ export interface BuildDealGraphResult {
   next_actions: string[];
 }
 
+type RowRecord = Record<string, any>;
+
 export async function buildDealGraphJob(
   supabase: ReturnType<typeof createClient>,
   dealId: string,
 ): Promise<BuildDealGraphResult> {
-  const { data: deal } = await supabase.from("deals").select("*").eq("id", dealId).single();
+  const { data: deal } = await supabase.from("deals").select("*").eq("id", dealId).single<RowRecord>();
   if (!deal) throw new Error("Deal not found");
 
   const nodes: NodeDef[] = [];
@@ -42,7 +44,7 @@ export async function buildDealGraphJob(
     source_entity_id: deal.id,
   });
 
-  const { data: dealParties } = await supabase.from("deal_parties").select("id, party_type, organization:organizations(id, name)").eq("deal_id", dealId);
+  const { data: dealParties } = await supabase.from("deal_parties").select("id, party_type, organization:organizations(id, name)").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const dp of dealParties || []) {
     const orgName = (dp.organization as { name?: string } | null)?.name || dp.party_type;
     nodes.push({
@@ -55,7 +57,7 @@ export async function buildDealGraphJob(
     edgeDefs.push({ from_source: dp.id, to_source: deal.id, edge_type: "PARTICIPATES_IN" });
   }
 
-  const { data: capEntries } = await supabase.from("cap_table_entries").select("*").eq("deal_id", dealId);
+  const { data: capEntries } = await supabase.from("cap_table_entries").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const s of capEntries || []) {
     const equityRoles = ["Seller", "Target", "Shareholder", "Founder", "Employee", "Advisor"];
     const isShareholder = equityRoles.includes(s.role) && (s.ownership_pct > 0);
@@ -81,7 +83,7 @@ export async function buildDealGraphJob(
     });
   }
 
-  const { data: docs } = await supabase.from("contract_documents").select("*").eq("deal_id", dealId);
+  const { data: docs } = await supabase.from("contract_documents").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const d of docs || []) {
     const capTableTypes = ["CAP_TABLE"];
     const waterfallTypes = ["WATERFALL_MODEL", "DISTRIBUTION_SCHEDULE"];
@@ -114,7 +116,7 @@ export async function buildDealGraphJob(
     edgeDefs.push({ from_source: d.id, to_source: deal.id, edge_type: "SUBMITTED_DOCUMENT" });
   }
 
-  const { data: obligations } = await supabase.from("obligations").select("*").eq("deal_id", dealId);
+  const { data: obligations } = await supabase.from("obligations").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const ob of obligations || []) {
     const obStatus = ob.status === "CONFIRMED"
       ? "complete"
@@ -134,7 +136,7 @@ export async function buildDealGraphJob(
     edgeDefs.push({ from_source: deal.id, to_source: ob.id, edge_type: "HAS_OBLIGATION" });
   }
 
-  const { data: checks } = await supabase.from("compliance_checks").select("*").eq("deal_id", dealId);
+  const { data: checks } = await supabase.from("compliance_checks").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const c of checks || []) {
     const cStatus = c.status === "passed" ? "complete" : c.status === "failed" ? "failed" : "in_progress";
     nodes.push({
@@ -147,7 +149,7 @@ export async function buildDealGraphJob(
     edgeDefs.push({ from_source: c.id, to_source: deal.id, edge_type: "VERIFIED_AGAINST" });
   }
 
-  const { data: approvals } = await supabase.from("deal_approvals").select("*").eq("deal_id", dealId);
+  const { data: approvals } = await supabase.from("deal_approvals").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const a of approvals || []) {
     const aStatus = a.status === "approved" ? "complete" : a.status === "rejected" ? "failed" : "not_started";
     nodes.push({
@@ -160,7 +162,7 @@ export async function buildDealGraphJob(
     edgeDefs.push({ from_source: deal.id, to_source: a.id, edge_type: "REQUIRES_APPROVAL" });
   }
 
-  const { data: intents } = await supabase.from("disbursement_intents").select("*").eq("deal_id", dealId);
+  const { data: intents } = await supabase.from("disbursement_intents").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const di of intents || []) {
     const pStatus = di.status === "settled" ? "complete" : di.status === "failed" ? "failed" : di.status === "draft" ? "not_started" : "in_progress";
     nodes.push({
@@ -174,7 +176,7 @@ export async function buildDealGraphJob(
     edgeDefs.push({ from_source: di.id, to_source: di.recipient_id, edge_type: "RECEIVES_PAYOUT" });
   }
 
-  const { data: discreps } = await supabase.from("discrepancies").select("*").eq("deal_id", dealId).neq("status", "resolved");
+  const { data: discreps } = await supabase.from("discrepancies").select("*").eq("deal_id", dealId).neq("status", "resolved") as { data: RowRecord[] | null };
   for (const disc of discreps || []) {
     nodes.push({
       node_type: "discrepancy",
@@ -188,7 +190,7 @@ export async function buildDealGraphJob(
     }
   }
 
-  const { data: tiers } = await supabase.from("waterfall_tiers").select("*").eq("deal_id", dealId);
+  const { data: tiers } = await supabase.from("waterfall_tiers").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const t of tiers || []) {
     nodes.push({
       node_type: "waterfall_model",
@@ -200,7 +202,7 @@ export async function buildDealGraphJob(
     edgeDefs.push({ from_source: deal.id, to_source: t.id, edge_type: "DERIVED_FROM_DOCUMENT" });
   }
 
-  const { data: taxForms } = await supabase.from("tax_forms").select("*").eq("deal_id", dealId);
+  const { data: taxForms } = await supabase.from("tax_forms").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const tf of taxForms || []) {
     const tfStatus = tf.status === "verified" || tf.status === "received" ? "complete" : "in_progress";
     nodes.push({
@@ -213,7 +215,7 @@ export async function buildDealGraphJob(
     edgeDefs.push({ from_source: tf.recipient_id, to_source: tf.id, edge_type: "HAS_TAX_FORM" });
   }
 
-  const { data: wireInstructions } = await supabase.from("wire_instructions").select("*").eq("deal_id", dealId);
+  const { data: wireInstructions } = await supabase.from("wire_instructions").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const w of wireInstructions || []) {
     const wStatus = w.verification_status === "verified" ? "complete" : "in_progress";
     nodes.push({
@@ -236,7 +238,7 @@ export async function buildDealGraphJob(
     }
   }
 
-  const { data: payAllocs } = await supabase.from("payment_allocations").select("*").eq("deal_id", dealId);
+  const { data: payAllocs } = await supabase.from("payment_allocations").select("*").eq("deal_id", dealId) as { data: RowRecord[] | null };
   for (const pa of payAllocs || []) {
     const paStatus = pa.status === "matched" ? "complete" : "in_progress";
     nodes.push({
