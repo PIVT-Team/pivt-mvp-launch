@@ -32,7 +32,6 @@ import { AIDashboardCover } from './cover/AIDashboardCover';
 import { HomeCover } from './cover/HomeCover';
 import { CommunicationsHub } from './cover/CommunicationsHub';
 import { DealWizard } from '../deal-wizard/DealWizard';
-import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
 import { SupportPanel } from '../support/SupportPanel';
 import { OntologyCover } from './cover/OntologyCover';
 import { PortfolioPaymentsCover } from './cover/PortfolioPaymentsCover';
@@ -114,6 +113,13 @@ export const PIVTCompleteUnified: React.FC = () => {
   }, [activeSection, selectedDealId]);
 
   useEffect(() => {
+    if (activeSection !== 'ai') return;
+
+    window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+    setActiveSection(selectedDealId ? 'workspace' : 'deals');
+  }, [activeSection, selectedDealId, setActiveSection]);
+
+  useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setCommandOpen(true); }
       if ((e.metaKey || e.ctrlKey) && e.key === 'g') { e.preventDefault(); toggleGlassMode(); }
@@ -183,14 +189,17 @@ export const PIVTCompleteUnified: React.FC = () => {
               )}
               <div className="space-y-0.5">
                 {group.items.map((item) => {
-                  const isPanelItem = item.path === 'newton' || item.path === 'support';
+                  const isPanelItem = item.path === 'newton' || item.path === 'support' || item.path === 'ai';
                   const isActive = activeSection === item.path;
                   return (
                     <Tooltip key={item.path}>
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => {
-                            if (item.path === 'newton') window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+                            if (item.path === 'newton' || item.path === 'ai') {
+                              window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+                              setActiveSection(selectedDealId ? 'workspace' : 'deals');
+                            }
                             else if (item.path === 'support') window.dispatchEvent(new CustomEvent('pivt:open-support'));
                             else setActiveSection(item.path as ActiveSection);
                           }}
@@ -352,7 +361,6 @@ export const PIVTCompleteUnified: React.FC = () => {
       </main>
 
       <DealWizard />
-      <NewtonDealIntelligence />
       <SupportPanel />
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />

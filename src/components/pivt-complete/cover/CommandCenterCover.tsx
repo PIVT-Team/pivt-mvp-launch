@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import { Shield, FileCheck, TrendingUp, Clock, Plus } from 'lucide-react';
-import { NewtonInsights } from './NewtonInsights';
 import { ActivityFeed } from './ActivityFeed';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { supabase } from '@/integrations/supabase/client';
@@ -112,11 +111,8 @@ export const CommandCenterCover: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Newton Insights + Activity Feed side by side */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <motion.div {...fadeInUp} className="pivt-card p-6">
-          <NewtonInsights />
-        </motion.div>
+      {/* Activity Feed */}
+      <div className="grid grid-cols-1 gap-5">
         <motion.div {...fadeInUp} className="pivt-card p-6 max-h-[500px] overflow-y-auto">
           <ActivityFeed />
         </motion.div>

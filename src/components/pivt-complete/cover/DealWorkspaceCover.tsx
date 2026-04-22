@@ -16,8 +16,10 @@ import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
 import { DealWorkspaceProvider, useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { NewtonProvider, useNewtonContext, type NewtonRecordType, type NewtonWorkspaceTab } from '@/contexts/NewtonContext';
 import { useDealMetrics } from '@/hooks/useDealMetrics';
 import { useDealWorkflow } from '@/hooks/useDealWorkflow';
+import { NewtonRail } from '@/components/newton/NewtonRail';
 
 // Import existing cover pages
 import { DealPartiesCover } from './DealPartiesCover';
@@ -32,7 +34,6 @@ import { EscrowCover } from './EscrowCover';
 import { DealReportsCover } from './DealReportsCover';
 import { DealActivityCover } from './DealActivityCover';
 import { AIDashboardCover } from './AIDashboardCover';
-import { NewtonAgentPanel } from './NewtonAgentPanel';
 import { CommentsCover } from './CommentsCover';
 import { DealInputsCover } from './DealInputsCover';
 import { FinancialInputs } from './deal-inputs/FinancialInputs';
@@ -55,7 +56,7 @@ import { WirePackCover } from './WirePackCover';
 import { ExecutionPrepCover } from './ExecutionPrepCover';
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai' | 'newton-agents';
+type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -537,10 +538,59 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       return DealAuditSection;
     case 'comments': return CommentsCover;
     case 'ai': return AIDashboardCover;
-    case 'newton-agents': return NewtonAgentPanel;
     default: return OverviewSection;
   }
 }
+
+const STEP_TO_NEWTON_TAB: Record<StepId, NewtonWorkspaceTab> = {
+  overview: 'overview',
+  stakeholders: 'stakeholders',
+  'deal-inputs': 'deal-inputs',
+  verification: 'verification',
+  approvals: 'approvals',
+  execution: 'execution',
+  compliance: 'compliance',
+  comments: 'comments',
+  ai: 'ai',
+};
+
+const SUBNAV_TO_RECORD_TYPE: Partial<Record<string, NewtonRecordType>> = {
+  'deal-parties': 'stakeholder',
+  contacts: 'stakeholder',
+  kyc: 'stakeholder',
+  review: 'stakeholder',
+  financial: 'document',
+  'cap-table': 'stakeholder',
+  waterfall: 'payment',
+  wires: 'payment',
+  tax: 'document',
+  contracts: 'document',
+  governance: 'document',
+  obligations: 'document',
+  readiness: 'deal',
+  'wire-instructions': 'payment',
+  allocations: 'payment',
+  discrepancies: 'discrepancy',
+  reports: 'document',
+  activity: 'comment',
+  audit: 'deal',
+  prep: 'deal',
+  closing: 'deal',
+  'wire-pack': 'document',
+  intents: 'payment',
+  payments: 'payment',
+  escrow: 'entity',
+  authority: 'approval',
+};
+
+const ENTITY_TO_RECORD_TYPE: Record<string, NewtonRecordType> = {
+  deal: 'deal',
+  stakeholder: 'stakeholder',
+  document: 'document',
+  payment: 'payment',
+  escrow: 'entity',
+  approval: 'approval',
+};
 
 // ── Deal Workspace Sidebar ──
 const WorkspaceSidebar: React.FC<{
@@ -612,6 +662,85 @@ const WorkspaceSidebar: React.FC<{
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+const WorkspaceShell: React.FC<{
+  activeStepId: StepId;
+  activeSubNav?: string;
+  setActiveStepId: React.Dispatch<React.SetStateAction<StepId>>;
+  setActiveSubNav: React.Dispatch<React.SetStateAction<string | undefined>>;
+  metrics: ReturnType<typeof useDealMetrics>['metrics'];
+  realDeal: RealDeal | null;
+  isDemoDeal: boolean;
+  demoDealSeedKey: string | null;
+  selectedDealId: string;
+}> = ({ activeStepId, activeSubNav, setActiveStepId, setActiveSubNav, metrics, realDeal, isDemoDeal, demoDealSeedKey, selectedDealId }) => {
+  const { selectedEntity } = usePIVTStore();
+  const { setCurrentTab, setFocusedRecord } = useNewtonContext();
+
+  useEffect(() => {
+    setCurrentTab(STEP_TO_NEWTON_TAB[activeStepId]);
+  }, [activeStepId, setCurrentTab]);
+
+  useEffect(() => {
+    const entityType = selectedEntity?.type ? ENTITY_TO_RECORD_TYPE[selectedEntity.type] : null;
+    const fallbackType = activeSubNav ? SUBNAV_TO_RECORD_TYPE[activeSubNav] ?? null : null;
+
+    if (selectedEntity?.id && entityType) {
+      setFocusedRecord({ id: selectedEntity.id, type: entityType });
+      return;
+    }
+
+    if (activeSubNav && fallbackType) {
+      setFocusedRecord({ id: activeSubNav, type: fallbackType });
+      return;
+    }
+
+    setFocusedRecord({ id: undefined, type: null });
+  }, [activeSubNav, selectedEntity, setFocusedRecord]);
+
+  const handleStepClick = (id: StepId) => {
+    setActiveStepId(id);
+    const subs = STEP_SUB_NAV[id];
+    setActiveSubNav(subs ? subs[0].id : undefined);
+  };
+
+  const subNavItems = STEP_SUB_NAV[activeStepId];
+  const ContentComponent = getContentComponent(activeStepId, activeSubNav);
+
+  return (
+    <div className="flex gap-6 min-h-[600px] items-start">
+      <WorkspaceSidebar
+        activeStepId={activeStepId}
+        onStepClick={handleStepClick}
+        subNavItems={subNavItems}
+        activeSubNav={activeSubNav}
+        onSubChange={setActiveSubNav}
+        stageStatuses={metrics?.stageStatuses}
+      />
+
+      <div className="flex-1 min-w-0">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${activeStepId}-${activeSubNav}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          >
+            {activeStepId === 'overview'
+              ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
+              : <ContentComponent />
+            }
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <div className="sticky top-0 self-start">
+        <NewtonRail />
+      </div>
     </div>
   );
 };
@@ -707,9 +836,6 @@ export const DealWorkspaceCover: React.FC = () => {
     return Object.values(ss).filter(s => s === 'blocked').length;
   }, [metrics]);
 
-  const subNavItems = STEP_SUB_NAV[activeStepId];
-  const ContentComponent = getContentComponent(activeStepId, activeSubNav);
-
   if (loadingDeal) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -732,6 +858,7 @@ export const DealWorkspaceCover: React.FC = () => {
   return (
     <EditGuardProvider realDeal={realDeal} isDemoDeal={isDemoDeal}>
     <DealWorkspaceProvider dealId={resolvedDealId || selectedDealId} isDemoDeal={isDemoDeal} realDeal={realDeal} metrics={metrics} metricsLoading={metricsLoading} workflow={workflow} refetchMetrics={refetchMetrics}>
+    <NewtonProvider currentDealId={resolvedDealId || selectedDealId}>
     <div className="space-y-5">
       {/* Back + Deal Header */}
       <div className="flex items-center gap-3">
@@ -814,35 +941,17 @@ export const DealWorkspaceCover: React.FC = () => {
       />
 
       {/* ── 3-Panel Layout: Sidebar + Content ── */}
-      <div className="flex gap-6 min-h-[600px]">
-        {/* Left Sidebar */}
-        <WorkspaceSidebar
-          activeStepId={activeStepId}
-          onStepClick={(id) => handleStepClick(id)}
-          subNavItems={subNavItems}
-          activeSubNav={activeSubNav}
-          onSubChange={setActiveSubNav}
-          stageStatuses={metrics?.stageStatuses}
-        />
-
-        {/* Center Content */}
-        <div className="flex-1 min-w-0">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${activeStepId}-${activeSubNav}`}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            >
-              {activeStepId === 'overview'
-                ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
-                : <ContentComponent />
-              }
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </div>
+      <WorkspaceShell
+        activeStepId={activeStepId}
+        activeSubNav={activeSubNav}
+        setActiveStepId={setActiveStepId}
+        setActiveSubNav={setActiveSubNav}
+        metrics={metrics}
+        realDeal={realDeal}
+        isDemoDeal={isDemoDeal}
+        demoDealSeedKey={demoDealSeedKey}
+        selectedDealId={selectedDealId}
+      />
 
       <DealStateInspector />
 
@@ -850,6 +959,7 @@ export const DealWorkspaceCover: React.FC = () => {
         <EditDealDrawer open={editDrawerOpen} onOpenChange={setEditDrawerOpen} deal={realDeal} onSaved={(updated) => setRealDeal(updated)} />
       )}
     </div>
+    </NewtonProvider>
     </DealWorkspaceProvider>
     </EditGuardProvider>
   );
