@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 
 type Primitive = string | number | null | undefined;
 
@@ -45,7 +46,7 @@ export async function recordFieldCorrections(corrections: FieldCorrectionInput[]
       p_field_name: correction.fieldName,
       p_ai_output: stringifyCorrectionValue(correction.aiOutput),
       p_human_correction: stringifyCorrectionValue(correction.humanCorrection),
-      p_document_span: correction.documentSpan ?? null,
+      p_document_span: (correction.documentSpan ?? null) as Json,
       p_ai_confidence: correction.aiConfidence ?? null,
     });
 
