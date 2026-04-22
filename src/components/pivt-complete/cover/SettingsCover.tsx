@@ -10,6 +10,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useTeamStore, TeamRole, ROLE_PERMISSIONS } from '@/stores/teamStore';
 import { InviteTeamMemberModal } from '../InviteTeamMemberModal';
+import { CounterpartyInviteDrawer } from '@/components/counterparty/CounterpartyInviteDrawer';
 import { toast } from 'sonner';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
@@ -117,6 +118,7 @@ export const SettingsCover: React.FC = () => {
   const [defaultRate, setDefaultRate] = useState('4.25');
   const [defaultPlatformSplit, setDefaultPlatformSplit] = useState('15');
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [counterpartyInviteOpen, setCounterpartyInviteOpen] = useState(false);
 
   const { members, seedDemo, revokeInvite, removeMember, resendInvite } = useTeamStore();
 
@@ -165,6 +167,12 @@ export const SettingsCover: React.FC = () => {
                   className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-white"
                 >
                   <Plus className="w-4 h-4" /> Invite Member
+                </button>
+                <button
+                  onClick={() => setCounterpartyInviteOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium border border-border bg-background text-foreground hover:bg-muted/40 transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Invite Counterparty
                 </button>
               </div>
               <div className="pivt-card overflow-hidden">
@@ -351,6 +359,7 @@ export const SettingsCover: React.FC = () => {
       </AnimatePresence>
 
       <InviteTeamMemberModal open={inviteOpen} onOpenChange={setInviteOpen} />
+      <CounterpartyInviteDrawer open={counterpartyInviteOpen} onOpenChange={setCounterpartyInviteOpen} dealId="atlas" dealName="Project ATLAS" />
     </motion.div>
   );
 };
