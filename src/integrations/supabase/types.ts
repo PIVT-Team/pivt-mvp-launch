@@ -4144,6 +4144,7 @@ export type Database = {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
       }
+      can_access_intelligence: { Args: { _user_id: string }; Returns: boolean }
       can_write_deal: {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
@@ -4238,6 +4239,32 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_condition_precedent_benchmarks: {
+        Args: { _deal_id: string }
+        Returns: {
+          average_days_to_satisfaction: number
+          benchmark_sample_size: number
+          cp_type: string
+          current_days_outstanding: number
+          has_minimum_group: boolean
+          status_indicator: string
+        }[]
+      }
+      get_deal_benchmark_panel: {
+        Args: { _deal_id: string }
+        Returns: {
+          benchmark_conditions_satisfied_pct: number
+          benchmark_days_since_signing: number
+          benchmark_open_discrepancies: number
+          benchmark_sample_size: number
+          current_conditions_satisfied_pct: number
+          current_days_since_signing: number
+          current_open_discrepancies: number
+          deal_id: string
+          deal_type: string
+          has_minimum_group: boolean
+        }[]
       }
       get_job_status: {
         Args: { p_job_status_id: string }
@@ -4378,6 +4405,7 @@ export type Database = {
         | "ops_admin"
         | "support_admin"
         | "read_only"
+        | "intelligence"
       compliance_check_status:
         | "pending"
         | "submitted"
@@ -4712,6 +4740,7 @@ export const Constants = {
         "ops_admin",
         "support_admin",
         "read_only",
+        "intelligence",
       ],
       compliance_check_status: [
         "pending",

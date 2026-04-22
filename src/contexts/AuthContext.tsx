@@ -11,6 +11,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  isIntelligenceUser: boolean;
   isPlatformAdmin: boolean;
   isApprovedAdmin: boolean;
   adminRole: AdminRole;
@@ -22,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   isAdmin: false,
+  isIntelligenceUser: false,
   isPlatformAdmin: false,
   isApprovedAdmin: false,
   adminRole: null,
@@ -35,6 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isIntelligenceUser, setIsIntelligenceUser] = useState(false);
   const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
   const [isApprovedAdmin, setIsApprovedAdmin] = useState(false);
   const [adminRole, setAdminRole] = useState<AdminRole>(null);
@@ -43,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check basic admin role
     supabase.rpc("has_role", { _user_id: userId, _role: "admin" as any })
       .then(({ data }) => setIsAdmin(!!data));
+
+    supabase.rpc("has_role", { _user_id: userId, _role: "intelligence" as any })
+      .then(({ data }) => setIsIntelligenceUser(!!data));
 
     // Check platform admin (role + allowlist)
     supabase.rpc("is_platform_admin", { _user_id: userId })
@@ -82,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           checkAdminRoles(session.user.id);
         } else {
           setIsAdmin(false);
+          setIsIntelligenceUser(false);
           setIsPlatformAdmin(false);
           setIsApprovedAdmin(false);
           setAdminRole(null);
@@ -101,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, isPlatformAdmin, isApprovedAdmin, adminRole, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, isIntelligenceUser, isPlatformAdmin, isApprovedAdmin, adminRole, signOut }}>
       {children}
     </AuthContext.Provider>
   );
