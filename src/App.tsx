@@ -81,9 +81,9 @@ const App = () => (
               <Route path="/security" element={<DataSecurityPageLazy />} />
               <Route path="/acceptable-use" element={<AcceptableUsePageLazy />} />
               <Route path="/demo" element={<DemoPageLazy />} />
-              <Route path="/" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
+              <Route path="/" element={<PIVTCompletePage />} />
               <Route path="/pivt" element={<Navigate to="/" replace />} />
-              <Route path="/pivt/:section" element={<AuthGuard><PIVTCompletePage /></AuthGuard>} />
+              <Route path="/pivt/:section" element={<PIVTCompletePage />} />
               {/* Admin routes */}
               <Route path="/admin" element={<AuthGuard><AdminLayout /></AuthGuard>}>
                 <Route index element={<AdminDashboard />} />
