@@ -965,32 +965,41 @@ export type Database = {
       deal_events: {
         Row: {
           actor_id: string | null
+          chain_sequence: number | null
           created_at: string
           deal_id: string
+          event_hash: string | null
           event_type: string
           id: string
           new_state: string | null
           payload: Json
+          prev_hash: string | null
           previous_state: string | null
         }
         Insert: {
           actor_id?: string | null
+          chain_sequence?: number | null
           created_at?: string
           deal_id: string
+          event_hash?: string | null
           event_type: string
           id?: string
           new_state?: string | null
           payload?: Json
+          prev_hash?: string | null
           previous_state?: string | null
         }
         Update: {
           actor_id?: string | null
+          chain_sequence?: number | null
           created_at?: string
           deal_id?: string
+          event_hash?: string | null
           event_type?: string
           id?: string
           new_state?: string | null
           payload?: Json
+          prev_hash?: string | null
           previous_state?: string | null
         }
         Relationships: [
@@ -3862,6 +3871,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      compute_event_hash: { Args: { event_id: string }; Returns: string }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
