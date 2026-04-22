@@ -27,7 +27,7 @@ export interface BuildDealGraphResult {
 type RowRecord = Record<string, any>;
 
 export async function buildDealGraphJob(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   dealId: string,
 ): Promise<BuildDealGraphResult> {
   const { data: deal } = await supabase.from("deals").select("*").eq("id", dealId).single<RowRecord>();
@@ -273,7 +273,7 @@ export async function buildDealGraphJob(
     metadata: n.metadata,
     source_entity_id: n.source_entity_id,
   }));
-  const { data: insertedNodes, error: nodeErr } = await supabase.from("graph_nodes").insert(nodeRows).select("id, source_entity_id");
+  const { data: insertedNodes, error: nodeErr } = await (supabase.from("graph_nodes") as any).insert(nodeRows).select("id, source_entity_id");
   if (nodeErr) throw nodeErr;
 
   const sourceToNodeId = new Map<string, string>();
@@ -297,7 +297,7 @@ export async function buildDealGraphJob(
   }
 
   if (edgeRows.length > 0) {
-    const { error: edgeErr } = await supabase.from("graph_edges").insert(edgeRows);
+    const { error: edgeErr } = await (supabase.from("graph_edges") as any).insert(edgeRows);
     if (edgeErr) throw edgeErr;
   }
 
