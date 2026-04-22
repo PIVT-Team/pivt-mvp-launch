@@ -7,6 +7,8 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { AiConfidenceBadge } from '@/components/AiConfidenceBadge';
+import { hasMeaningfulChange, isAiDerivedRecord, recordFieldCorrections } from '@/lib/fieldCorrections';
 
 type StakeholderType = 'individual' | 'entity';
 
@@ -27,6 +29,8 @@ interface StakeholderData {
   ownership_pct: number;
   payout_amount: number;
   created_by_source?: string;
+  confidence_status?: string;
+  ai_confidence?: number | null;
   locked?: boolean;
   locked_reason?: string | null;
 }
@@ -51,6 +55,7 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
   const [saving, setSaving] = useState(false);
 
   const isLocked = stakeholder?.locked === true;
+  const isAiDerived = isAiDerivedRecord(stakeholder?.created_by_source, stakeholder?.confidence_status);
 
   useEffect(() => {
     if (stakeholder && open) {
@@ -84,6 +89,67 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
     setSaving(true);
 
     const wasNewtonCreated = stakeholder.created_by_source === 'newton' || stakeholder.created_by_source === 'agent';
+    const corrections = isAiDerived ? [
+      hasMeaningfulChange(stakeholder.shareholder_name, name) ? {
+        tableName: 'cap_table_entries',
+        recordId: stakeholder.id,
+        fieldName: 'shareholder_name',
+        aiOutput: stakeholder.shareholder_name,
+        humanCorrection: name.trim(),
+        aiConfidence: stakeholder.ai_confidence ?? null,
+      } : null,
+      hasMeaningfulChange(stakeholder.email, email) ? {
+        tableName: 'cap_table_entries',
+        recordId: stakeholder.id,
+        fieldName: 'email',
+        aiOutput: stakeholder.email,
+        humanCorrection: email.trim(),
+        aiConfidence: stakeholder.ai_confidence ?? null,
+      } : null,
+      hasMeaningfulChange(stakeholder.role, role) ? {
+        tableName: 'cap_table_entries',
+        recordId: stakeholder.id,
+        fieldName: 'role',
+        aiOutput: stakeholder.role,
+        humanCorrection: role,
+        aiConfidence: stakeholder.ai_confidence ?? null,
+      } : null,
+      hasMeaningfulChange(stakeholder.ownership_pct, parseFloat(ownership) || 0) ? {
+        tableName: 'cap_table_entries',
+        recordId: stakeholder.id,
+        fieldName: 'ownership_pct',
+        aiOutput: stakeholder.ownership_pct,
+        humanCorrection: parseFloat(ownership) || 0,
+        aiConfidence: stakeholder.ai_confidence ?? null,
+      } : null,
+      hasMeaningfulChange(stakeholder.payout_amount, parseFloat(payout) || 0) ? {
+        tableName: 'cap_table_entries',
+        recordId: stakeholder.id,
+        fieldName: 'payout_amount',
+        aiOutput: stakeholder.payout_amount,
+        humanCorrection: parseFloat(payout) || 0,
+        aiConfidence: stakeholder.ai_confidence ?? null,
+      } : null,
+      hasMeaningfulChange(stakeholder.stakeholder_type, type) ? {
+        tableName: 'cap_table_entries',
+        recordId: stakeholder.id,
+        fieldName: 'stakeholder_type',
+        aiOutput: stakeholder.stakeholder_type,
+        humanCorrection: type,
+        aiConfidence: stakeholder.ai_confidence ?? null,
+      } : null,
+    ].filter(Boolean) : [];
+
+    if (corrections.length > 0) {
+      try {
+        await recordFieldCorrections(corrections);
+        toast.success('Correction saved — helping PIVT learn');
+      } catch (correctionError: any) {
+        setSaving(false);
+        toast.error(`Failed to save correction: ${correctionError.message}`);
+        return;
+      }
+    }
 
     const { error } = await supabase
       .from('cap_table_entries')
@@ -97,6 +163,7 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
         last_updated_by_source: 'manual',
         last_updated_by_user_id: user?.id || null,
         needs_review: false, // User has reviewed by editing
+        confidence_status: corrections.length > 0 ? 'human_verified' : stakeholder.confidence_status,
       })
       .eq('id', stakeholder.id);
 
@@ -177,21 +244,21 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
 
             {/* Name */}
             <div className="space-y-1.5">
-              <Label className="text-xs">{type === 'entity' ? 'Entity Name' : 'Full Legal Name'}</Label>
+               <Label className="text-xs flex items-center gap-2">{type === 'entity' ? 'Entity Name' : 'Full Legal Name'}{isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={type === 'entity' ? 'Acme Holdings LLC' : 'John Smith'} />
               {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
             {/* Email */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Email</Label>
+               <Label className="text-xs flex items-center gap-2">Email{isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}</Label>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.com" />
               {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
 
             {/* Role */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Role</Label>
+               <Label className="text-xs flex items-center gap-2">Role{isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}</Label>
               <Select value={role} onValueChange={setRole}>
                 <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
                 <SelectContent className="z-[110]">
@@ -211,12 +278,12 @@ export const EditStakeholderModal: React.FC<EditStakeholderModalProps> = ({ open
             {/* Ownership + Payout row */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs">Ownership %</Label>
+                 <Label className="text-xs flex items-center gap-2">Ownership %{isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}</Label>
                 <Input type="number" min={0} max={100} step={0.01} value={ownership} onChange={(e) => setOwnership(e.target.value)} />
                 {errors.ownership && <p className="text-xs text-destructive">{errors.ownership}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Payout Amount ($)</Label>
+                 <Label className="text-xs flex items-center gap-2">Payout Amount ($){isAiDerived && <AiConfidenceBadge aiConfidence={stakeholder.ai_confidence} />}</Label>
                 <Input type="number" min={0} value={payout} onChange={(e) => setPayout(e.target.value)} />
               </div>
             </div>

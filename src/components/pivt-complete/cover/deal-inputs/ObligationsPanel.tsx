@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { AiConfidenceBadge } from '@/components/AiConfidenceBadge';
+import { recordFieldCorrections } from '@/lib/fieldCorrections';
 
 interface Obligation {
   id: string;
@@ -25,6 +27,7 @@ interface Obligation {
   source_text_snippet: string | null;
   mapping_status: string;
   timing_type: string;
+  source_document_id?: string | null;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -79,7 +82,7 @@ export const ObligationsPanel: React.FC = () => {
       setLoading(true);
       const { data } = await supabase
         .from('obligations')
-        .select('id, obligation_type, status, payor_label, payee_label, amount_type, amount_value_minor, amount_currency, percent_basis_points, percent_base_reference, confidence_score, source_text_snippet, mapping_status, timing_type')
+        .select('id, obligation_type, status, payor_label, payee_label, amount_type, amount_value_minor, amount_currency, percent_basis_points, percent_base_reference, confidence_score, source_text_snippet, mapping_status, timing_type, source_document_id')
         .eq('deal_id', dealId)
         .order('created_at', { ascending: false });
 
@@ -98,6 +101,7 @@ export const ObligationsPanel: React.FC = () => {
         source_text_snippet: d.source_text_snippet,
         mapping_status: d.mapping_status,
         timing_type: d.timing_type,
+        source_document_id: d.source_document_id,
       })));
       setLoading(false);
     };
@@ -116,12 +120,26 @@ export const ObligationsPanel: React.FC = () => {
   }), [obligations]);
 
   const handleConfirm = useCallback(async (id: string) => {
+    const obligation = obligations.find(o => o.id === id);
+    if (!obligation) return;
     if (!isDemoDeal && dealId) {
+      await recordFieldCorrections([
+        {
+          tableName: 'obligations',
+          recordId: id,
+          fieldName: 'obligation_type',
+          aiOutput: obligation.obligation_type,
+          humanCorrection: obligation.obligation_type,
+          aiConfidence: obligation.confidence_score,
+          documentSpan: obligation.source_document_id ? { document_id: obligation.source_document_id } : null,
+        },
+      ]);
       await supabase.from('obligations').update({ status: 'CONFIRMED' } as any).eq('id', id);
     }
     setObligations(prev => prev.map(o => o.id === id ? { ...o, status: 'CONFIRMED' } : o));
+    toast.success('Correction saved — helping PIVT learn');
     toast.success('Obligation confirmed');
-  }, [isDemoDeal, dealId]);
+  }, [dealId, isDemoDeal, obligations]);
 
   const handleReject = useCallback(async (id: string) => {
     if (!isDemoDeal && dealId) {
@@ -201,7 +219,12 @@ export const ObligationsPanel: React.FC = () => {
               const st = STATUS_STYLES[ob.status] || STATUS_STYLES.DRAFT_EXTRACTED;
               return (
                 <tr key={ob.id} className="border-b border-border/20 hover:bg-muted/20 transition-colors cursor-pointer" onClick={() => setSelected(ob)}>
-                  <td className="px-4 py-2.5 font-medium">{TYPE_LABELS[ob.obligation_type] || ob.obligation_type}</td>
+                  <td className="px-4 py-2.5 font-medium">
+                    <div className="flex items-center gap-2">
+                      <span>{TYPE_LABELS[ob.obligation_type] || ob.obligation_type}</span>
+                      <AiConfidenceBadge aiConfidence={ob.confidence_score} className="text-[9px] px-1.5 py-0" />
+                    </div>
+                  </td>
                   <td className="px-4 py-2.5 text-muted-foreground">{ob.payor_label || '—'}</td>
                   <td className="px-4 py-2.5 font-mono text-xs">{formatAmount(ob)}</td>
                   <td className="px-4 py-2.5 text-xs">{ob.timing_type.replace(/_/g, ' ')}</td>
