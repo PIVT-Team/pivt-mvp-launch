@@ -30,7 +30,7 @@ export async function buildDealGraphJob(
   supabase: any,
   dealId: string,
 ): Promise<BuildDealGraphResult> {
-  const { data: deal } = await supabase.from("deals").select("*").eq("id", dealId).single<RowRecord>();
+  const { data: deal } = await (supabase.from("deals").select("*").eq("id", dealId).single() as Promise<{ data: RowRecord | null }>);
   if (!deal) throw new Error("Deal not found");
 
   const nodes: NodeDef[] = [];
