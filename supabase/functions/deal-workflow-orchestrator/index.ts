@@ -102,18 +102,24 @@ Deno.serve(async (req) => {
         results.discrepancy_engine_triggered = false;
       }
 
-      // ── Step 4: Queue Deal Graph Rebuild ──
+      // ── Step 4: Queue Deal Graph Rebuild only when new documents are processed ──
       try {
-        const graphRes = await admin.functions.invoke("build-deal-graph", {
-          body: { deal_id },
+        const graphRes = await admin.functions.invoke("enqueue-job", {
+          body: {
+            queue_name: "deal_graph_builds",
+            deal_id,
+            job_type: "build_deal_graph",
+            payload: { deal_id, trigger: "document_added", document_id },
+          },
           headers: { Authorization: authHeader },
         });
-        results.graph_rebuilt = Boolean(graphRes?.data?.queued);
+        results.graph_rebuilt = Boolean(graphRes?.data?.job_status_id);
         results.graph_job_id = graphRes?.data?.job_status_id || null;
         auditEvents.push({
           action: "deal_graph_rebuild_queued",
           details: {
             job_status_id: results.graph_job_id,
+            trigger: "document_added",
           },
         });
       } catch (e) {
@@ -122,7 +128,11 @@ Deno.serve(async (req) => {
       }
 
       // ── Step 5: Write all audit events ──
-      const auditRows = auditEvents.map((evt) => ({
+      const auditRows: Array<{
+        deal_id: string;
+        action: string;
+        details: Record<string, unknown>;
+      }> = auditEvents.map((evt) => ({
         deal_id,
         action: evt.action,
         details: { ...evt.details, document_id, doc_type: docType, orchestrator_version: "2.0" },

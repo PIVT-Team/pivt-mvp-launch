@@ -7,6 +7,25 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ALLOWED_ENTITY_TYPES = new Set([
+  "organization",
+  "person",
+  "instrument",
+  "bank_account",
+  "regulatory_body",
+]);
+
+const ALLOWED_RELATIONSHIP_TYPES = new Set([
+  "controls",
+  "beneficially_owns",
+  "signs_for",
+  "pays_to",
+  "acts_as_escrow",
+  "acts_as_counsel",
+  "acts_as_advisor",
+  "is_counterparty_to",
+]);
+
 // ── Deterministic keyword-based document classifier ──
 // Runs BEFORE AI classification for speed; AI refines after
 const DOC_TYPE_KEYWORDS: Record<string, { keywords: string[]; priority: number }> = {
@@ -112,25 +131,6 @@ const EXTRACTION_SCHEMAS: Record<string, object> = {
   },
 };
 
-function classifyByKeywords(filename: string, textContent: string): { doc_type: string; confidence: number } | null {
-  const combined = `${filename} ${(textContent || "").slice(0, 3000)}`.toLowerCase();
-  let bestMatch: { doc_type: string; confidence: number; priority: number } | null = null;
-
-  for (const [docType, { keywords, priority }] of Object.entries(DOC_TYPE_KEYWORDS)) {
-    for (const kw of keywords) {
-      if (combined.includes(kw)) {
-        const confidence = 0.7 + (priority / 50); // 0.8-0.9 range
-        if (!bestMatch || priority > bestMatch.priority) {
-          bestMatch = { doc_type: docType, confidence: Math.min(confidence, 0.95), priority };
-        }
-        break;
-      }
-    }
-  }
-  return bestMatch ? { doc_type: bestMatch.doc_type, confidence: bestMatch.confidence } : null;
-}
-
-// ── AI Classification Prompt (extended for binder) ──
 const CLASSIFICATION_PROMPT = `You are a document classification and extraction engine for M&A transactions and closing binders.
 
 Given the filename and text content of a document, you must:
@@ -139,6 +139,7 @@ Given the filename and text content of a document, you must:
 3. Extract key structured fields based on the document type
 4. Identify validation flags (issues, missing fields, discrepancies)
 5. Determine the document role: buyer_side, seller_side, or mutual
+6. Extract ontology-ready entity candidates and relationships
 
 For SPAs: Extract buyer_name, seller_name, target_name, purchase_price, closing_date, escrow_amount, governing_law
 For Funds Flow: Extract total_sources, total_uses, escrow_amount, line_items (recipient_name, amount, item_type)
@@ -146,6 +147,11 @@ For Escrow: Extract escrow_amount, escrow_agent, release_conditions
 For Cap Tables: Extract fully_diluted_shares, major_holders
 For Working Capital: Extract estimated_wc, target_wc, true_up_timeline_days
 For Certificates: Extract certifying_entity, date, covers_agreement
+
+For ontology extraction:
+- identified_entities should include every named party, person, organization, financial instrument, bank account, or regulator mentioned in the document when reasonably clear
+- identified_relationships should include directional links between those entities using only: controls, beneficially_owns, signs_for, pays_to, acts_as_escrow, acts_as_counsel, acts_as_advisor, is_counterparty_to
+- prefer organizations for companies, banks, law firms, escrow agents, and counterparties unless the document clearly names a person
 
 Respond using the extract_document_data tool.`;
 
@@ -159,6 +165,366 @@ You have access to extracted document data. When answering:
 - If information is not in the documents, say so clearly
 
 Available document data is provided in the context.`;
+
+type EntityCandidate = {
+  name: string;
+  entity_type?: string;
+  confidence?: number;
+  aliases?: string[];
+  metadata?: Record<string, unknown>;
+};
+
+type RelationshipCandidate = {
+  from_name: string;
+  to_name: string;
+  relationship_type: string;
+  provenance?: string;
+  confidence?: number;
+  effective_date?: string;
+};
+
+function classifyByKeywords(filename: string, textContent: string): { doc_type: string; confidence: number } | null {
+  const combined = `${filename} ${(textContent || "").slice(0, 3000)}`.toLowerCase();
+  let bestMatch: { doc_type: string; confidence: number; priority: number } | null = null;
+
+  for (const [docType, { keywords, priority }] of Object.entries(DOC_TYPE_KEYWORDS)) {
+    for (const kw of keywords) {
+      if (combined.includes(kw)) {
+        const confidence = 0.7 + (priority / 50);
+        if (!bestMatch || priority > bestMatch.priority) {
+          bestMatch = { doc_type: docType, confidence: Math.min(confidence, 0.95), priority };
+        }
+        break;
+      }
+    }
+  }
+  return bestMatch ? { doc_type: bestMatch.doc_type, confidence: bestMatch.confidence } : null;
+}
+
+function normalizeEntityType(value: unknown): string {
+  const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return ALLOWED_ENTITY_TYPES.has(candidate) ? candidate : "organization";
+}
+
+function normalizeRelationshipType(value: unknown): string | null {
+  const candidate = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return ALLOWED_RELATIONSHIP_TYPES.has(candidate) ? candidate : null;
+}
+
+function normalizeName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.replace(/\s+/g, " ").trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function uniqueStrings(values: unknown[]): string[] {
+  const seen = new Set<string>();
+  const output: string[] = [];
+  for (const value of values) {
+    const normalized = normalizeName(value);
+    if (!normalized) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push(normalized);
+  }
+  return output;
+}
+
+function inferEntitiesFromFields(fields: Record<string, any>): EntityCandidate[] {
+  const entities: EntityCandidate[] = [];
+
+  const namedOrganizations = [
+    fields.buyer_name,
+    fields.seller_name,
+    fields.target_name,
+    fields.escrow_agent,
+    fields.certifying_entity,
+  ];
+
+  for (const name of namedOrganizations) {
+    const normalized = normalizeName(name);
+    if (normalized) {
+      entities.push({ name: normalized, entity_type: "organization", confidence: 0.84 });
+    }
+  }
+
+  if (Array.isArray(fields.major_holders)) {
+    for (const holder of fields.major_holders) {
+      const holderName = normalizeName(holder?.name);
+      if (!holderName) continue;
+      entities.push({
+        name: holderName,
+        entity_type: "person",
+        confidence: 0.8,
+        metadata: {
+          shares: holder?.shares ?? null,
+          percentage: holder?.percentage ?? null,
+        },
+      });
+    }
+  }
+
+  if (Array.isArray(fields.line_items)) {
+    for (const item of fields.line_items) {
+      const recipient = normalizeName(item?.recipient_name ?? item?.payee);
+      const payer = normalizeName(item?.payor ?? item?.payer);
+      if (recipient) entities.push({ name: recipient, entity_type: "organization", confidence: 0.78 });
+      if (payer) entities.push({ name: payer, entity_type: "organization", confidence: 0.78 });
+    }
+  }
+
+  return entities;
+}
+
+function inferRelationshipsFromFields(fields: Record<string, any>, fileName: string | null): RelationshipCandidate[] {
+  const relationships: RelationshipCandidate[] = [];
+  const provenance = fileName || "document_ai_extraction";
+
+  const buyer = normalizeName(fields.buyer_name);
+  const seller = normalizeName(fields.seller_name);
+  const target = normalizeName(fields.target_name);
+  const escrowAgent = normalizeName(fields.escrow_agent);
+
+  if (buyer && seller) {
+    relationships.push({ from_name: buyer, to_name: seller, relationship_type: "is_counterparty_to", provenance, confidence: 0.84 });
+    relationships.push({ from_name: seller, to_name: buyer, relationship_type: "is_counterparty_to", provenance, confidence: 0.84 });
+  }
+
+  if (seller && target) {
+    relationships.push({ from_name: seller, to_name: target, relationship_type: "beneficially_owns", provenance, confidence: 0.8 });
+  }
+
+  if (escrowAgent && target) {
+    relationships.push({ from_name: escrowAgent, to_name: target, relationship_type: "acts_as_escrow", provenance, confidence: 0.82 });
+  }
+
+  if (Array.isArray(fields.line_items)) {
+    for (const item of fields.line_items) {
+      const payer = normalizeName(item?.payor ?? item?.payer);
+      const recipient = normalizeName(item?.recipient_name ?? item?.payee);
+      if (payer && recipient) {
+        relationships.push({
+          from_name: payer,
+          to_name: recipient,
+          relationship_type: "pays_to",
+          provenance,
+          confidence: typeof item?.amount === "number" ? 0.88 : 0.8,
+        });
+      }
+    }
+  }
+
+  return relationships;
+}
+
+function dedupeEntities(candidates: EntityCandidate[]): EntityCandidate[] {
+  const seen = new Set<string>();
+  return candidates.filter((candidate) => {
+    const name = normalizeName(candidate.name);
+    if (!name) return false;
+    const key = `${name.toLowerCase()}::${normalizeEntityType(candidate.entity_type)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).map((candidate) => ({
+    ...candidate,
+    name: normalizeName(candidate.name)!,
+    entity_type: normalizeEntityType(candidate.entity_type),
+    aliases: uniqueStrings([candidate.name, ...(Array.isArray(candidate.aliases) ? candidate.aliases : [])]),
+  }));
+}
+
+function dedupeRelationships(candidates: RelationshipCandidate[]): RelationshipCandidate[] {
+  const seen = new Set<string>();
+  const output: RelationshipCandidate[] = [];
+
+  for (const candidate of candidates) {
+    const fromName = normalizeName(candidate.from_name);
+    const toName = normalizeName(candidate.to_name);
+    const relationshipType = normalizeRelationshipType(candidate.relationship_type);
+    if (!fromName || !toName || !relationshipType) continue;
+
+    const key = `${fromName.toLowerCase()}::${toName.toLowerCase()}::${relationshipType}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    output.push({
+      ...candidate,
+      from_name: fromName,
+      to_name: toName,
+      relationship_type: relationshipType,
+    });
+  }
+
+  return output;
+}
+
+async function resolveOrCreateEntity(
+  adminClient: any,
+  dealId: string,
+  documentId: string | null,
+  fileName: string | null,
+  candidate: EntityCandidate,
+  counters: { entitiesCreated: number; resolutionsCreated: number; matchedEntities: number },
+): Promise<{ relationshipEntityId: string; variantEntityId?: string; canonicalEntityId: string }> {
+  const normalizedName = normalizeName(candidate.name);
+  if (!normalizedName) {
+    throw new Error("Entity candidate name is required");
+  }
+
+  const entityType = normalizeEntityType(candidate.entity_type);
+  const candidateConfidence = typeof candidate.confidence === "number" ? candidate.confidence : 0.8;
+  const metadata = {
+    ...(candidate.metadata && typeof candidate.metadata === "object" ? candidate.metadata : {}),
+    extracted_from_document_id: documentId,
+    extracted_from_file: fileName,
+  };
+
+  const { data: searchMatches, error: searchError } = await adminClient.rpc("search_entities", {
+    search_term: normalizedName,
+    entity_type: entityType,
+  });
+  if (searchError) throw searchError;
+
+  const bestMatch = (searchMatches || []).find((match: any) => Number(match.similarity_score || 0) > 0.8);
+
+  if (bestMatch?.entity_id) {
+    counters.matchedEntities += 1;
+
+    const { data: variantEntity, error: variantError } = await adminClient
+      .from("entities")
+      .insert({
+        canonical_id: bestMatch.entity_id,
+        entity_type: entityType,
+        canonical_name: normalizedName,
+        name_variants: uniqueStrings([normalizedName, ...(candidate.aliases || [])]),
+        source_deal_id: dealId,
+        confidence: Math.max(candidateConfidence, Number(bestMatch.similarity_score || 0)),
+        metadata: {
+          ...metadata,
+          resolution_status: "automatic_match",
+        },
+        created_by_source: "ai_extraction",
+      })
+      .select("id")
+      .single();
+    if (variantError) throw variantError;
+
+    const { error: resolutionError } = await adminClient
+      .from("entity_resolution")
+      .insert({
+        variant_entity_id: variantEntity.id,
+        canonical_entity_id: bestMatch.entity_id,
+        resolution_method: "automatic_name_match",
+        confidence: Number(bestMatch.similarity_score || candidateConfidence),
+        resolved_by: null,
+      });
+    if (resolutionError) throw resolutionError;
+
+    counters.resolutionsCreated += 1;
+
+    return {
+      relationshipEntityId: bestMatch.entity_id,
+      variantEntityId: variantEntity.id,
+      canonicalEntityId: bestMatch.entity_id,
+    };
+  }
+
+  const { data: insertedEntity, error: insertError } = await adminClient
+    .from("entities")
+    .insert({
+      canonical_id: null,
+      entity_type: entityType,
+      canonical_name: normalizedName,
+      name_variants: uniqueStrings([normalizedName, ...(candidate.aliases || [])]),
+      source_deal_id: dealId,
+      confidence: candidateConfidence,
+      metadata,
+      created_by_source: "ai_extraction",
+    })
+    .select("id")
+    .single();
+  if (insertError) throw insertError;
+
+  counters.entitiesCreated += 1;
+
+  return {
+    relationshipEntityId: insertedEntity.id,
+    canonicalEntityId: insertedEntity.id,
+  };
+}
+
+async function syncOntologyExtraction(
+  adminClient: any,
+  args: {
+    dealId: string;
+    documentId: string | null;
+    fileName: string | null;
+    extractedFields: Record<string, any>;
+    identifiedEntities?: EntityCandidate[];
+    identifiedRelationships?: RelationshipCandidate[];
+  },
+) {
+  const counters = {
+    entitiesCreated: 0,
+    resolutionsCreated: 0,
+    matchedEntities: 0,
+    relationshipsCreated: 0,
+  };
+
+  const inferredEntities = inferEntitiesFromFields(args.extractedFields || {});
+  const inferredRelationships = inferRelationshipsFromFields(args.extractedFields || {}, args.fileName);
+
+  const entityCandidates = dedupeEntities([
+    ...(Array.isArray(args.identifiedEntities) ? args.identifiedEntities : []),
+    ...inferredEntities,
+  ]);
+
+  const entityMap = new Map<string, { relationshipEntityId: string; canonicalEntityId: string; variantEntityId?: string }>();
+
+  for (const candidate of entityCandidates) {
+    const resolved = await resolveOrCreateEntity(
+      adminClient,
+      args.dealId,
+      args.documentId,
+      args.fileName,
+      candidate,
+      counters,
+    );
+    entityMap.set(candidate.name.toLowerCase(), resolved);
+  }
+
+  const relationshipCandidates = dedupeRelationships([
+    ...(Array.isArray(args.identifiedRelationships) ? args.identifiedRelationships : []),
+    ...inferredRelationships,
+  ]);
+
+  const relationshipRows = relationshipCandidates.flatMap((candidate) => {
+    const fromEntity = entityMap.get(candidate.from_name.toLowerCase());
+    const toEntity = entityMap.get(candidate.to_name.toLowerCase());
+    if (!fromEntity || !toEntity) return [];
+
+    return [{
+      deal_id: args.dealId,
+      entity_from_id: fromEntity.relationshipEntityId,
+      entity_to_id: toEntity.relationshipEntityId,
+      relationship_type: candidate.relationship_type,
+      provenance: candidate.provenance || args.fileName || args.documentId || "document_ai_extraction",
+      confidence: typeof candidate.confidence === "number" ? candidate.confidence : 0.8,
+      effective_date: candidate.effective_date || null,
+    }];
+  });
+
+  if (relationshipRows.length > 0) {
+    const { error: relationshipsError } = await adminClient
+      .from("relationships")
+      .insert(relationshipRows);
+    if (relationshipsError) throw relationshipsError;
+    counters.relationshipsCreated = relationshipRows.length;
+  }
+
+  return counters;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -176,11 +542,7 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceKey);
 
     if (action === "classify") {
-      // Step 1: Fast deterministic classification
       const keywordResult = classifyByKeywords(fileName || "", textContent || "");
-
-      // Step 2: AI-powered classification + extraction
-      // Build extraction schema hint based on keyword classification
       const hintType = keywordResult?.doc_type || "OTHER";
       const extractionSchema = EXTRACTION_SCHEMAS[hintType];
       const schemaHint = extractionSchema
@@ -205,7 +567,7 @@ serve(async (req) => {
             type: "function",
             function: {
               name: "extract_document_data",
-              description: "Extract classification, fields, and flags from document",
+              description: "Extract classification, fields, flags, ontology entities, and ontology relationships from document",
               parameters: {
                 type: "object",
                 properties: {
@@ -232,6 +594,35 @@ serve(async (req) => {
                   requirement_group: { type: "string", enum: ["Core Closing", "Ancillary", "IP & Employment", "Tax", "Compliance", "Financial", "Approvals", "Other"] },
                   page_count_estimate: { type: "number" },
                   summary: { type: "string", description: "2-3 sentence summary of the document" },
+                  identified_entities: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        entity_type: { type: "string", enum: ["organization", "person", "instrument", "bank_account", "regulatory_body"] },
+                        confidence: { type: "number" },
+                        aliases: { type: "array", items: { type: "string" } },
+                        metadata: { type: "object", additionalProperties: true },
+                      },
+                      required: ["name", "entity_type"],
+                    },
+                  },
+                  identified_relationships: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        from_name: { type: "string" },
+                        to_name: { type: "string" },
+                        relationship_type: { type: "string", enum: ["controls", "beneficially_owns", "signs_for", "pays_to", "acts_as_escrow", "acts_as_counsel", "acts_as_advisor", "is_counterparty_to"] },
+                        provenance: { type: "string" },
+                        confidence: { type: "number" },
+                        effective_date: { type: "string" },
+                      },
+                      required: ["from_name", "to_name", "relationship_type"],
+                    },
+                  },
                 },
                 required: ["doc_type", "confidence", "extracted_fields", "validation_flags", "summary"],
                 additionalProperties: false,
@@ -261,21 +652,23 @@ serve(async (req) => {
         requirement_group: "Other",
         summary: "Unable to classify",
         page_count_estimate: 1,
+        identified_entities: [],
+        identified_relationships: [],
       };
 
       if (toolCall?.function?.arguments) {
         try {
           const aiResult = JSON.parse(toolCall.function.arguments);
-          // Merge: prefer AI classification if higher confidence, otherwise use keyword
           if (keywordResult && keywordResult.confidence > (aiResult.confidence || 0)) {
             aiResult.doc_type = keywordResult.doc_type;
             aiResult.confidence = keywordResult.confidence;
           }
           result = { ...result, ...aiResult };
-        } catch { /* use keyword/defaults */ }
+        } catch {
+          // fall back to deterministic result
+        }
       }
 
-      // Update deal_documents table
       if (documentId) {
         await adminClient.from("deal_documents").update({
           doc_type: result.doc_type.toLowerCase(),
@@ -288,7 +681,6 @@ serve(async (req) => {
         }).eq("id", documentId);
       }
 
-      // Also upsert into contract_documents if deal_id available
       if (dealId && result.doc_type !== "OTHER") {
         await adminClient.from("contract_documents").upsert({
           deal_id: dealId,
@@ -304,8 +696,18 @@ serve(async (req) => {
         }, { onConflict: "id" });
       }
 
-      // Trigger workflow orchestrator after classification (non-blocking)
-      // This populates wire_instructions, payment_allocations, runs discrepancy engine
+      let ontologyWriteSummary = null;
+      if (dealId) {
+        ontologyWriteSummary = await syncOntologyExtraction(adminClient, {
+          dealId,
+          documentId: documentId || null,
+          fileName: fileName || null,
+          extractedFields: result.extracted_fields || {},
+          identifiedEntities: result.identified_entities || [],
+          identifiedRelationships: result.identified_relationships || [],
+        });
+      }
+
       if (dealId) {
         adminClient.functions.invoke("deal-workflow-orchestrator", {
           body: {
@@ -318,12 +720,12 @@ serve(async (req) => {
         }).catch((err: any) => console.error("Orchestrator trigger failed:", err));
       }
 
-      return new Response(JSON.stringify({ success: true, result }), {
+      return new Response(JSON.stringify({ success: true, result, ontology: ontologyWriteSummary }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
 
-    } else if (action === "qa") {
-      // Q&A over documents - streaming
+    if (action === "qa") {
       const docsContext = (documents || []).map((d: any) =>
         `Document: ${d.file_name} (Type: ${d.doc_type})\nExtracted Fields: ${JSON.stringify(d.extracted_fields)}\nFlags: ${JSON.stringify(d.validation_flags)}\nText Preview: ${(d.extracted_text || '').slice(0, 2000)}`
       ).join("\n\n---\n\n");
@@ -357,12 +759,14 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), {
-      status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("document-ai error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

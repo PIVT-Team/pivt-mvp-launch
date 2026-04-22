@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { getPersistentDealGraph } from "../_shared/build-deal-graph.ts";
 import { requireJwt } from "../_shared/require-jwt.ts";
 
 const corsHeaders = {
@@ -12,7 +13,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { authHeader } = await requireJwt(req, corsHeaders);
+    await requireJwt(req, corsHeaders);
     const { deal_id } = await req.json();
 
     if (!deal_id) {
@@ -27,24 +28,10 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { data, error } = await supabase.functions.invoke("enqueue-job", {
-      body: {
-        queue_name: "deal_graph_builds",
-        deal_id,
-        job_type: "build_deal_graph",
-        payload: { deal_id },
-      },
-      headers: { Authorization: authHeader },
-    });
+    const graph = await getPersistentDealGraph(supabase, deal_id);
 
-    if (error) throw error;
-
-    return new Response(JSON.stringify({
-      success: true,
-      queued: true,
-      job_status_id: data?.job_status_id ?? null,
-    }), {
-      status: 202,
+    return new Response(JSON.stringify(graph), {
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
