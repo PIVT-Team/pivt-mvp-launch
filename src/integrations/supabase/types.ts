@@ -1978,6 +1978,65 @@ export type Database = {
           },
         ]
       }
+      job_status: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          deal_id: string | null
+          error: string | null
+          id: string
+          job_type: string
+          max_attempts: number
+          next_retry_at: string | null
+          payload: Json
+          queue_name: string
+          queued_at: string
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          deal_id?: string | null
+          error?: string | null
+          id?: string
+          job_type: string
+          max_attempts?: number
+          next_retry_at?: string | null
+          payload?: Json
+          queue_name: string
+          queued_at?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          deal_id?: string | null
+          error?: string | null
+          id?: string
+          job_type?: string
+          max_attempts?: number
+          next_retry_at?: string | null
+          payload?: Json
+          queue_name?: string
+          queued_at?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_status_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       kyc_uploads: {
         Row: {
           doc_type: string
@@ -3492,6 +3551,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ack_job_message: {
+        Args: { p_msg_id: number; p_queue_name: string }
+        Returns: boolean
+      }
       can_access_deal: {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
@@ -3500,6 +3563,45 @@ export type Database = {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
       }
+      claim_next_job: {
+        Args: {
+          p_qty?: number
+          p_queue_name: string
+          p_visibility_timeout?: number
+        }
+        Returns: {
+          job_status_id: string
+          job_type: string
+          message: Json
+          msg_id: number
+          read_ct: number
+        }[]
+      }
+      complete_job_processing: {
+        Args: { p_job_status_id: string; p_result?: Json }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          deal_id: string | null
+          error: string | null
+          id: string
+          job_type: string
+          max_attempts: number
+          next_retry_at: string | null
+          payload: Json
+          queue_name: string
+          queued_at: string
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_status"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -3507,6 +3609,74 @@ export type Database = {
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
+      }
+      enqueue_job_status: {
+        Args: {
+          p_deal_id: string
+          p_job_type: string
+          p_max_attempts?: number
+          p_payload?: Json
+          p_queue_name: string
+        }
+        Returns: string
+      }
+      ensure_pgmq_queue_exists: {
+        Args: { p_queue_name: string }
+        Returns: undefined
+      }
+      fail_job_processing: {
+        Args: {
+          p_error: string
+          p_job_status_id: string
+          p_retry_delay_minutes?: number
+        }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          deal_id: string | null
+          error: string | null
+          id: string
+          job_type: string
+          max_attempts: number
+          next_retry_at: string | null
+          payload: Json
+          queue_name: string
+          queued_at: string
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_status"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      get_job_status: {
+        Args: { p_job_status_id: string }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          deal_id: string | null
+          error: string | null
+          id: string
+          job_type: string
+          max_attempts: number
+          next_retry_at: string | null
+          payload: Json
+          queue_name: string
+          queued_at: string
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_status"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       has_deal_role: {
         Args: {
@@ -3559,6 +3729,31 @@ export type Database = {
         Returns: string
       }
       soft_delete_deal: { Args: { _deal_id: string }; Returns: boolean }
+      start_job_processing: {
+        Args: { p_job_status_id: string }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          deal_id: string | null
+          error: string | null
+          id: string
+          job_type: string
+          max_attempts: number
+          next_retry_at: string | null
+          payload: Json
+          queue_name: string
+          queued_at: string
+          result: Json | null
+          started_at: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "job_status"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       allocation_logic_type: "fixed" | "percentage" | "pro_rata" | "threshold"

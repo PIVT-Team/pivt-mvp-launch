@@ -36,6 +36,17 @@ interface DbEdge {
   metadata: Record<string, unknown>;
 }
 
+interface JobStatusRow {
+  id: string;
+  status: string;
+  result: {
+    deal_state?: string | null;
+    blockers?: string[];
+    next_actions?: string[];
+  } | null;
+  error: string | null;
+}
+
 interface PositionedNode extends DbNode {
   x: number;
   y: number;
@@ -189,10 +200,26 @@ export const IntelligenceMapCover: React.FC = () => {
       const { data } = await supabase.functions.invoke('build-deal-graph', {
         body: { deal_id: workspaceDealId },
       });
-      if (data) {
-        setDealState(data.deal_state);
-        setBlockers(data.blockers || []);
-        setNextActions(data.next_actions || []);
+      if (data?.job_status_id) {
+        for (let attempt = 0; attempt < 15; attempt += 1) {
+          const { data: job } = await supabase.rpc('get_job_status', {
+            p_job_status_id: data.job_status_id,
+          });
+
+          const typedJob = job as JobStatusRow | null;
+          if (typedJob?.status === 'completed') {
+            setDealState(typedJob.result?.deal_state ?? null);
+            setBlockers(typedJob.result?.blockers ?? []);
+            setNextActions(typedJob.result?.next_actions ?? []);
+            break;
+          }
+
+          if (typedJob?.status === 'failed') {
+            throw new Error(typedJob.error || 'Graph build failed');
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+        }
       }
       // Refresh graph data
       const [nodesRes, edgesRes] = await Promise.all([
