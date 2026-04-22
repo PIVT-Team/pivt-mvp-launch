@@ -55,9 +55,10 @@ import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 import { DealStateInspector } from './DealStateInspector';
 import { WirePackCover } from './WirePackCover';
 import { ExecutionPrepCover } from './ExecutionPrepCover';
+import { AuditConsoleCover } from './AuditConsoleCover';
 
 // ── Step definitions ──
-type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'compliance' | 'comments' | 'ai';
+type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'audit' | 'comments' | 'ai';
 
 interface SubNav { id: string; label: string }
 
@@ -95,7 +96,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'escrow', label: 'Escrow' },
     { id: 'authority', label: 'Execution Authority' },
   ],
-  compliance: [
+  audit: [
     { id: 'audit', label: 'Audit Log' },
     { id: 'reports', label: 'Reports' },
     { id: 'activity', label: 'Activity' },
@@ -116,7 +117,7 @@ const SIDEBAR_NAV: SidebarNavItem[] = [
   { id: 'verification', label: 'Verification', icon: ShieldCheck },
   { id: 'approvals', label: 'Approvals', icon: ClipboardCheck },
   { id: 'execution', label: 'Execution', icon: Zap },
-  { id: 'compliance', label: 'Compliance', icon: Scale },
+  { id: 'audit', label: 'Audit', icon: Scale },
   { id: 'comments', label: 'Comments', icon: MessageCircle },
 ];
 
@@ -465,43 +466,6 @@ const ProtectedDealBanner: React.FC = () => {
   );
 };
 
-const DealAuditSection: React.FC = () => {
-  const { dealId } = useDealWorkspace();
-  const [entries, setEntries] = useState<{ action: string; actor: string; time: string }[]>([]);
-
-  useEffect(() => {
-    if (!dealId) return;
-    supabase.from('audit_log').select('action, created_at').eq('deal_id', dealId).order('created_at', { ascending: false }).limit(20)
-      .then(({ data }) => {
-        setEntries((data || []).map((e: any) => ({ action: e.action, actor: 'System', time: new Date(e.created_at).toLocaleString() })));
-      });
-  }, [dealId]);
-
-  if (entries.length === 0) return <div className="pivt-card p-12 text-center text-muted-foreground text-sm">No audit activity recorded yet.</div>;
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2 mb-3">
-        <FileText className="w-4 h-4 text-muted-foreground" />
-        <h3 className="font-medium">Deal Audit Log</h3>
-      </div>
-      <div className="relative pl-5 space-y-3">
-        <div className="absolute left-1.5 top-1 bottom-1 w-0.5 bg-border/40" />
-        {entries.map((entry, i) => (
-          <div key={i} className="relative flex items-start gap-3">
-            <div className="absolute left-[-14px] w-2 h-2 rounded-full bg-accent mt-1.5" />
-            <div className="flex-1">
-              <p className="text-sm">{entry.action}</p>
-              <p className="text-[10px] text-muted-foreground">{entry.actor}</p>
-            </div>
-            <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">{entry.time}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 const WorkspaceEmptyState: React.FC<{
   icon: React.ElementType;
   eyebrow: string;
@@ -584,12 +548,12 @@ function getWorkspaceEmptyState(stepId: StepId, metrics: DealMetrics | null, ope
     };
   }
 
-  if (stepId === 'compliance' && metrics.totalConditions === 0 && metrics.totalApprovals === 0 && metrics.totalUploadedDocuments === 0) {
+  if (stepId === 'audit' && metrics.totalConditions === 0 && metrics.totalApprovals === 0 && metrics.totalUploadedDocuments === 0) {
     return {
       icon: Scale,
-      eyebrow: 'Compliance',
-      title: 'Compliance artifacts will build as the deal progresses',
-      description: 'Audit history, reports, and operational activity appear here once documents, approvals, and workflow events start flowing through the deal.',
+      eyebrow: 'Audit',
+      title: 'Audit evidence appears as soon as deal activity begins',
+      description: 'State changes, document access, AI actions, and approval history will surface here once the first live actions are recorded on the deal.',
       ctaLabel: 'Launch guided setup in Newton',
       onCta: openNewton,
     };
@@ -629,10 +593,10 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'escrow') return EscrowCover;
       if (subNavId === 'authority') return ExecutionAuthorityPanel;
       return ExecutionPrepCover;
-    case 'compliance':
+    case 'audit':
       if (subNavId === 'reports') return DealReportsCover;
       if (subNavId === 'activity') return DealActivityCover;
-      return DealAuditSection;
+      return AuditConsoleCover;
     case 'comments': return CommentsCover;
     case 'ai': return AIDashboardCover;
     default: return OverviewSection;
@@ -646,7 +610,7 @@ const STEP_TO_NEWTON_TAB: Record<StepId, NewtonWorkspaceTab> = {
   verification: 'verification',
   approvals: 'approvals',
   execution: 'execution',
-  compliance: 'compliance',
+  audit: 'compliance',
   comments: 'comments',
   ai: 'ai',
 };
