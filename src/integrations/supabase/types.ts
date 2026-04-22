@@ -1764,6 +1764,59 @@ export type Database = {
           },
         ]
       }
+      field_corrections: {
+        Row: {
+          ai_confidence: number | null
+          ai_output: string | null
+          created_at: string
+          deal_id: string
+          deal_type: string | null
+          document_span: Json | null
+          field_name: string
+          human_correction: string | null
+          id: string
+          record_id: string
+          table_name: string
+          user_id: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          ai_output?: string | null
+          created_at?: string
+          deal_id: string
+          deal_type?: string | null
+          document_span?: Json | null
+          field_name: string
+          human_correction?: string | null
+          id?: string
+          record_id: string
+          table_name: string
+          user_id: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          ai_output?: string | null
+          created_at?: string
+          deal_id?: string
+          deal_type?: string | null
+          document_span?: Json | null
+          field_name?: string
+          human_correction?: string | null
+          id?: string
+          record_id?: string
+          table_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "field_corrections_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fx_quotes: {
         Row: {
           base_currency: string
@@ -3492,6 +3545,18 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      record_field_correction: {
+        Args: {
+          p_ai_confidence?: number
+          p_ai_output: string
+          p_document_span?: Json
+          p_field_name: string
+          p_human_correction: string
+          p_record_id: string
+          p_table_name: string
+        }
+        Returns: string
       }
       soft_delete_deal: { Args: { _deal_id: string }; Returns: boolean }
     }
