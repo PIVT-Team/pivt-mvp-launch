@@ -6,7 +6,7 @@ import {
   ArrowLeft, AlertTriangle, Ban, CheckCircle2, Rocket,
   FileText, Users, Search, Sparkles, Calendar, Brain, ShieldAlert, Copy, Pencil,
   LayoutDashboard, UserCheck, Layers, ShieldCheck, ClipboardCheck, Zap, Scale, MessageCircle, Bot,
-  ChevronRight, Circle, CreditCard,
+  ChevronRight, Circle, CreditCard, Upload, Wand2,
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -500,6 +500,102 @@ const DealAuditSection: React.FC = () => {
     </div>
   );
 };
+
+const WorkspaceEmptyState: React.FC<{
+  icon: React.ElementType;
+  eyebrow: string;
+  title: string;
+  description: string;
+  ctaLabel: string;
+  onCta: () => void;
+}> = ({ icon: Icon, eyebrow, title, description, ctaLabel, onCta }) => (
+  <motion.div {...fadeInUp} className="pivt-card p-10 md:p-12 text-center space-y-5">
+    <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+      <Icon className="h-6 w-6" />
+    </div>
+    <div className="space-y-2 max-w-xl mx-auto">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">{eyebrow}</p>
+      <h3 className="text-xl font-semibold">{title}</h3>
+      <p className="text-sm text-muted-foreground">{description}</p>
+    </div>
+    <Button onClick={onCta} className="gap-2">
+      <Sparkles className="h-4 w-4" />
+      {ctaLabel}
+    </Button>
+  </motion.div>
+);
+
+function getWorkspaceEmptyState(stepId: StepId, metrics: DealMetrics | null, openNewton: () => void) {
+  if (!metrics) return null;
+
+  if (stepId === 'stakeholders' && metrics.totalStakeholders === 0) {
+    return {
+      icon: Users,
+      eyebrow: 'Stakeholders',
+      title: 'Start with the deal parties and team',
+      description: 'Buyer, seller, target, and supporting contacts will appear here once Newton or your team adds the first participants.',
+      ctaLabel: 'Create deal structure with Newton',
+      onCta: openNewton,
+    };
+  }
+
+  if (stepId === 'deal-inputs' && metrics.totalUploadedDocuments === 0 && metrics.totalObligations === 0) {
+    return {
+      icon: Upload,
+      eyebrow: 'Deal Inputs',
+      title: 'Upload the transaction documents to populate this workspace',
+      description: 'SPA terms, funds flow, tax inputs, governance docs, and extracted obligations will land here after the first intake pass.',
+      ctaLabel: 'Open Newton intake',
+      onCta: openNewton,
+    };
+  }
+
+  if (stepId === 'verification' && metrics.totalWireInstructions === 0) {
+    return {
+      icon: ShieldCheck,
+      eyebrow: 'Verification',
+      title: 'Verification starts once payment details exist',
+      description: 'Wire confirmations, allocation checks, and discrepancy review appear here after deal inputs and payment instructions are added.',
+      ctaLabel: 'Generate payment setup with Newton',
+      onCta: openNewton,
+    };
+  }
+
+  if (stepId === 'approvals' && metrics.totalApprovals === 0) {
+    return {
+      icon: ClipboardCheck,
+      eyebrow: 'Approvals',
+      title: 'No approval workflow has been configured yet',
+      description: 'Newton can scaffold approvers, signing flows, and approval requests once the core deal documents and stakeholders are ready.',
+      ctaLabel: 'Ask Newton to stage approvals',
+      onCta: openNewton,
+    };
+  }
+
+  if (stepId === 'execution' && metrics.totalSettlementRecords === 0 && metrics.totalWireInstructions === 0) {
+    return {
+      icon: Zap,
+      eyebrow: 'Execution',
+      title: 'Execution activates after verification is complete',
+      description: 'Wire packs, payment intents, escrow actions, and settlement records will show up here when the deal is ready to move funds.',
+      ctaLabel: 'Prepare execution plan with Newton',
+      onCta: openNewton,
+    };
+  }
+
+  if (stepId === 'compliance' && metrics.totalConditions === 0 && metrics.totalApprovals === 0 && metrics.totalUploadedDocuments === 0) {
+    return {
+      icon: Scale,
+      eyebrow: 'Compliance',
+      title: 'Compliance artifacts will build as the deal progresses',
+      description: 'Audit history, reports, and operational activity appear here once documents, approvals, and workflow events start flowing through the deal.',
+      ctaLabel: 'Launch guided setup in Newton',
+      onCta: openNewton,
+    };
+  }
+
+  return null;
+}
 
 // ── Content resolver ──
 function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
