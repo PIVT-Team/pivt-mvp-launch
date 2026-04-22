@@ -16,7 +16,7 @@ const PROCESSABLE_QUEUES = new Set([
 ]);
 
 async function dispatchJob(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   jobType: string,
   payload: Record<string, unknown>,
 ) {
