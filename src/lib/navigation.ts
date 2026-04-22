@@ -37,7 +37,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
       category: 'Advanced Tools',
       items: [
         { label: 'Intelligence Map', icon: Network, path: 'intelligence-map', iconColor: '#8B5CF6' },
-        { label: 'Newton', icon: Brain, path: 'ai', iconColor: '#5E3BEE' },
+        { label: 'Newton', icon: Brain, path: 'workspace', iconColor: '#5E3BEE' },
         { label: 'Support', icon: HelpCircle, path: 'support', iconColor: '#22C55E' },
         { label: 'Ontology', icon: BookOpen, path: 'ontology', iconColor: '#8B5CF6' },
         { label: 'Risk Monitor', icon: ShieldAlert, path: 'risk-monitor', iconColor: '#EF4444' },
