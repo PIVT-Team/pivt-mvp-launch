@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X } from 'lucide-react';
+import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X, Sparkles, Upload, Wand2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -146,6 +147,7 @@ const DealCard: React.FC<{
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold leading-tight">{deal.deal_name}</h3>
+                {isDemo && <Badge className="bg-accent/10 text-accent border-accent/20">DEMO</Badge>}
               </div>
               <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                 <span className={`inline-flex items-center w-2 h-2 rounded-full ${
@@ -239,6 +241,21 @@ const DealCard: React.FC<{
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
+          {isDemo && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onClick={(e) => e.stopPropagation()}
+                  className="p-1 rounded text-muted-foreground/50 cursor-not-allowed"
+                  aria-label="Demo deal actions disabled"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>This is a demo deal</TooltipContent>
+            </Tooltip>
+          )}
           <ChevronRight className="w-4 h-4" />
         </div>
       </div>
@@ -277,7 +294,7 @@ export const DealsCover: React.FC = () => {
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
-    const data = await fetchDeals();
+    const data = await fetchDeals({ includeDemo: true });
     setAllDeals(data);
     if (data.length > 0) {
       const sums = await fetchDealSummaries(data.map(d => d.id));
@@ -353,7 +370,12 @@ export const DealsCover: React.FC = () => {
   const sortedPrivate = [...privateDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
   const sortedDemo = [...demoDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
   const totalDeals = sortedPrivate.length + sortedDemo.length;
-  const showOnboarding = !loading && privateDeals.length === 0 && demoDeals.length === 0;
+  const showOnboarding = !loading && privateDeals.length === 0;
+
+  const openCreateInNewton = () => {
+    window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+    window.dispatchEvent(new CustomEvent('pivt:newton-create-deal'));
+  };
 
   return (
     <div className="space-y-6">
@@ -379,19 +401,48 @@ export const DealsCover: React.FC = () => {
           <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
         </div>
       ) : showOnboarding ? (
-        <motion.div {...fadeInUp} className="border border-border rounded-xl bg-card p-10 text-center space-y-6">
-          <h3 className="text-lg font-semibold">Welcome to PIVT</h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Get started by creating your first deal to see how the platform works.
-          </p>
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <Button
-              onClick={() => setShowCreate(true)}
-              className="pivt-btn-primary gap-2 px-6 py-3 rounded-xl"
-            >
-              <Briefcase className="w-4 h-4" />
-              Create Your First Deal
+        <motion.div {...fadeInUp} className="border border-border rounded-xl bg-card p-8 md:p-10 space-y-8">
+          <div className="max-w-xl space-y-3">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-semibold">Close your first deal in minutes</h3>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Newton can stand up your workspace from the agreement, extract the core deal data, and prep collaboration without making you start from a blank slate.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              { icon: Upload, title: 'Upload SPA', detail: 'Add the signed agreement and any supporting materials to seed the workspace.' },
+              { icon: Wand2, title: 'AI extracts deal data', detail: 'Newton maps parties, obligations, approvals, and core terms automatically.' },
+              { icon: Users, title: 'Invite your team', detail: 'Bring in legal, finance, and approvers once the deal shell is ready.' },
+            ].map((step, index) => (
+              <div key={step.title} className="rounded-xl border border-border/60 bg-muted/20 p-5">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                    <step.icon className="h-4 w-4" />
+                  </div>
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">Step {index + 1}</span>
+                </div>
+                <h4 className="text-base font-semibold">{step.title}</h4>
+                <p className="mt-1 text-sm text-muted-foreground">{step.detail}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={openCreateInNewton} className="gap-2 px-6 py-3 rounded-xl">
+              <Sparkles className="h-4 w-4" />
+              Create your first deal
             </Button>
+            {sortedDemo.length > 0 && (
+              <Button variant="link" className="px-0" onClick={() => openDeal(sortedDemo[0].id)}>
+                Explore a demo deal first
+              </Button>
+            )}
           </div>
         </motion.div>
       ) : (
@@ -421,9 +472,9 @@ export const DealsCover: React.FC = () => {
           {sortedDemo.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Demo Deals</h3>
-              <p className="text-[11px] text-muted-foreground">
-                These are read-only demo deals. Duplicate one to create your own editable copy.
-              </p>
+               <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/80">
+                 <span className="font-semibold">These are read-only demo deals.</span> Create a real deal to get started.
+               </div>
               <div className="grid gap-4">
                 {sortedDemo.map((deal) => (
                   <DealCard
