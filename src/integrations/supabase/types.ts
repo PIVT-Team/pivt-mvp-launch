@@ -1619,6 +1619,147 @@ export type Database = {
         }
         Relationships: []
       }
+      entities: {
+        Row: {
+          canonical_id: string | null
+          canonical_name: string
+          confidence: number | null
+          created_at: string
+          created_by_source: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          name_variants: string[] | null
+          source_deal_id: string | null
+        }
+        Insert: {
+          canonical_id?: string | null
+          canonical_name: string
+          confidence?: number | null
+          created_at?: string
+          created_by_source?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          name_variants?: string[] | null
+          source_deal_id?: string | null
+        }
+        Update: {
+          canonical_id?: string | null
+          canonical_name?: string
+          confidence?: number | null
+          created_at?: string
+          created_by_source?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          name_variants?: string[] | null
+          source_deal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entities_canonical_id_fkey"
+            columns: ["canonical_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_from_id"]
+          },
+          {
+            foreignKeyName: "entities_canonical_id_fkey"
+            columns: ["canonical_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_to_id"]
+          },
+          {
+            foreignKeyName: "entities_canonical_id_fkey"
+            columns: ["canonical_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entities_source_deal_id_fkey"
+            columns: ["source_deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      entity_resolution: {
+        Row: {
+          canonical_entity_id: string
+          confidence: number | null
+          id: string
+          resolution_method: string | null
+          resolved_at: string
+          resolved_by: string | null
+          variant_entity_id: string
+        }
+        Insert: {
+          canonical_entity_id: string
+          confidence?: number | null
+          id?: string
+          resolution_method?: string | null
+          resolved_at?: string
+          resolved_by?: string | null
+          variant_entity_id: string
+        }
+        Update: {
+          canonical_entity_id?: string
+          confidence?: number | null
+          id?: string
+          resolution_method?: string | null
+          resolved_at?: string
+          resolved_by?: string | null
+          variant_entity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "entity_resolution_canonical_entity_id_fkey"
+            columns: ["canonical_entity_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_from_id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_canonical_entity_id_fkey"
+            columns: ["canonical_entity_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_to_id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_canonical_entity_id_fkey"
+            columns: ["canonical_entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_variant_entity_id_fkey"
+            columns: ["variant_entity_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_from_id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_variant_entity_id_fkey"
+            columns: ["variant_entity_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_to_id"]
+          },
+          {
+            foreignKeyName: "entity_resolution_variant_entity_id_fkey"
+            columns: ["variant_entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       escrow_accounts: {
         Row: {
           account_type: string
@@ -2759,6 +2900,92 @@ export type Database = {
         }
         Relationships: []
       }
+      relationships: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          deal_id: string
+          effective_date: string | null
+          entity_from_id: string
+          entity_to_id: string
+          id: string
+          provenance: string | null
+          relationship_type: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          deal_id: string
+          effective_date?: string | null
+          entity_from_id: string
+          entity_to_id: string
+          id?: string
+          provenance?: string | null
+          relationship_type: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          deal_id?: string
+          effective_date?: string | null
+          entity_from_id?: string
+          entity_to_id?: string
+          id?: string
+          provenance?: string | null
+          relationship_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationships_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationships_entity_from_id_fkey"
+            columns: ["entity_from_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_from_id"]
+          },
+          {
+            foreignKeyName: "relationships_entity_from_id_fkey"
+            columns: ["entity_from_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_to_id"]
+          },
+          {
+            foreignKeyName: "relationships_entity_from_id_fkey"
+            columns: ["entity_from_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "relationships_entity_to_id_fkey"
+            columns: ["entity_to_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_from_id"]
+          },
+          {
+            foreignKeyName: "relationships_entity_to_id_fkey"
+            columns: ["entity_to_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_to_id"]
+          },
+          {
+            foreignKeyName: "relationships_entity_to_id_fkey"
+            columns: ["entity_to_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       required_document_matrix: {
         Row: {
           condition_expression: string | null
@@ -3548,7 +3775,40 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      deal_entity_graph: {
+        Row: {
+          deal_id: string | null
+          effective_date: string | null
+          entity_from_canonical_id: string | null
+          entity_from_canonical_name: string | null
+          entity_from_id: string | null
+          entity_from_metadata: Json | null
+          entity_from_name: string | null
+          entity_from_type: string | null
+          entity_from_variants: string[] | null
+          entity_to_canonical_id: string | null
+          entity_to_canonical_name: string | null
+          entity_to_id: string | null
+          entity_to_metadata: Json | null
+          entity_to_name: string | null
+          entity_to_type: string | null
+          entity_to_variants: string[] | null
+          provenance: string | null
+          relationship_confidence: number | null
+          relationship_created_at: string | null
+          relationship_id: string | null
+          relationship_type: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "relationships_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       ack_job_message: {
@@ -3728,6 +3988,22 @@ export type Database = {
         }
         Returns: string
       }
+      search_entities: {
+        Args: { entity_type?: string; search_term: string }
+        Returns: {
+          canonical_id: string
+          canonical_name: string
+          created_by_source: string
+          entity_id: string
+          entity_type: string
+          matched_name: string
+          metadata: Json
+          similarity_score: number
+          source_deal_id: string
+        }[]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       soft_delete_deal: { Args: { _deal_id: string }; Returns: boolean }
       start_job_processing: {
         Args: { p_job_status_id: string }
