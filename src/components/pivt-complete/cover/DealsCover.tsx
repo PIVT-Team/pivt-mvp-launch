@@ -472,9 +472,9 @@ export const DealsCover: React.FC = () => {
           {sortedDemo.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Demo Deals</h3>
-               <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/80">
-                 <span className="font-semibold">These are read-only demo deals.</span> Create a real deal to get started.
-               </div>
+              <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/80">
+                <span className="font-semibold">These are read-only demo deals. Create a real deal to get started.</span>
+              </div>
               <div className="grid gap-4">
                 {sortedDemo.map((deal) => (
                   <DealCard

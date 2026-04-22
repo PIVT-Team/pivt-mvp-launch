@@ -454,8 +454,8 @@ const ProtectedDealBanner: React.FC = () => {
     <motion.div {...fadeInUp} className="flex items-center justify-between gap-3 px-5 py-3 rounded-2xl border border-accent/20 bg-accent/5">
       <div className="flex items-center gap-3">
         <ShieldAlert className="w-4 h-4 text-accent shrink-0" />
-        <span className="text-sm text-foreground/80">
-          <span className="font-semibold">Read-only.</span> This is a shared demo deal. Duplicate it to make changes.
+        <span className="text-sm text-foreground/80 font-medium">
+          You are viewing a demo deal. No changes will be saved.
         </span>
       </div>
       <Button size="sm" variant="outline" className="gap-1.5 text-xs shrink-0 border-accent/30 text-accent hover:bg-accent/10" onClick={() => guardEdit('DUPLICATE', null, () => {})}>
