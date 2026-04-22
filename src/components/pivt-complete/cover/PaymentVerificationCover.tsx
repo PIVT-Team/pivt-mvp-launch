@@ -270,7 +270,7 @@ export const PaymentVerificationCover: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{wire.payee_entity}</span>
                       <Badge variant="outline" className="text-xs">{wire.payment_type}</Badge>
-                      {isAiDerivedRecord(wire.created_by_source, wire.confidence_status) && <AiConfidenceBadge />}
+                      {isAiDerivedRecord(wire.created_by_source, wire.confidence_status) && <AiConfidenceBadge className="text-[9px] px-1.5 py-0" />}
                       <Badge variant="outline" className={`text-xs gap-1 ${cfg.color}`}>
                         <Icon className="w-3 h-3" /> {cfg.label}
                       </Badge>
