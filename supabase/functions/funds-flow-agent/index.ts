@@ -489,7 +489,7 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    const { userId: triggeredBy } = await requireJwt(req, corsHeaders);
+    const { authHeader, userId: triggeredBy } = await requireJwt(req, corsHeaders);
     const { deal_id } = await req.json();
     if (!deal_id) {
       return new Response(
@@ -696,6 +696,15 @@ serve(async (req) => {
         if (discError) {
           console.error("Failed to insert discrepancies:", discError);
         }
+      }
+
+      try {
+        await admin.functions.invoke("discrepancy-engine", {
+          body: { deal_id },
+          headers: { Authorization: authHeader },
+        });
+      } catch (invokeError) {
+        console.error("Failed to rerun discrepancy engine:", invokeError);
       }
 
       // Audit event
