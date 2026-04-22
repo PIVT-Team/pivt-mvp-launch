@@ -8,11 +8,23 @@ import { NewtonDiscrepancyPanel, type DiscrepancyItem } from './newton/NewtonDis
 type DiscrepancyRow = {
   id: string;
   rule_key: string;
-  severity: 'critical' | 'high' | 'medium' | 'low';
+  severity: 'blocker' | 'warn' | 'info';
   status: string;
   message: string;
   object_type: string;
   details: Record<string, unknown> | null;
+};
+
+const mapSeverity = (severity: DiscrepancyRow['severity']): DiscrepancyItem['severity'] => {
+  switch (severity) {
+    case 'blocker':
+      return 'critical';
+    case 'warn':
+      return 'medium';
+    case 'info':
+    default:
+      return 'low';
+  }
 };
 
 const buildDiscrepancyItem = (row: DiscrepancyRow): DiscrepancyItem => {
@@ -30,7 +42,7 @@ const buildDiscrepancyItem = (row: DiscrepancyRow): DiscrepancyItem => {
   return {
     id: row.id,
     rule_key: row.rule_key,
-    severity: row.severity,
+    severity: mapSeverity(row.severity),
     category: typeof details.category === 'string' ? details.category : row.object_type,
     title: typeof details.title === 'string' ? details.title : row.message,
     description: row.message,
@@ -77,7 +89,7 @@ export const DiscrepancyPanelCover: React.FC = () => {
       return;
     }
 
-    setItems((data ?? []).map((row) => buildDiscrepancyItem(row as DiscrepancyRow)));
+    setItems((data ?? []).map((row) => buildDiscrepancyItem(row as unknown as DiscrepancyRow)));
     setLoading(false);
   }, [dealId, toast]);
 
