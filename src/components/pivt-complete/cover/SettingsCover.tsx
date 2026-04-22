@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useTeamStore, TeamRole, ROLE_PERMISSIONS } from '@/stores/teamStore';
+import { usePIVTStore } from '@/stores/pivtStore';
 import { InviteTeamMemberModal } from '../InviteTeamMemberModal';
 import { CounterpartyInviteDrawer } from '@/components/counterparty/CounterpartyInviteDrawer';
 import { toast } from 'sonner';
@@ -119,6 +120,7 @@ export const SettingsCover: React.FC = () => {
   const [defaultPlatformSplit, setDefaultPlatformSplit] = useState('15');
   const [inviteOpen, setInviteOpen] = useState(false);
   const [counterpartyInviteOpen, setCounterpartyInviteOpen] = useState(false);
+  const { deals } = usePIVTStore();
 
   const { members, seedDemo, revokeInvite, removeMember, resendInvite } = useTeamStore();
 
@@ -359,7 +361,12 @@ export const SettingsCover: React.FC = () => {
       </AnimatePresence>
 
       <InviteTeamMemberModal open={inviteOpen} onOpenChange={setInviteOpen} />
-      <CounterpartyInviteDrawer open={counterpartyInviteOpen} onOpenChange={setCounterpartyInviteOpen} dealId="atlas" dealName="Project ATLAS" />
+      <CounterpartyInviteDrawer
+        open={counterpartyInviteOpen}
+        onOpenChange={setCounterpartyInviteOpen}
+        dealId={deals[0]?.id || 'atlas'}
+        dealName={deals[0]?.name || 'Project ATLAS'}
+      />
     </motion.div>
   );
 };
