@@ -152,11 +152,17 @@ export function useDealOperations() {
     return (data as DealTemplate[]) || [];
   };
 
-  const fetchDeals = async (): Promise<RealDeal[]> => {
-    // RLS handles visibility: global_demo deals + user's own private deals
-    const { data } = await (supabase.from("deals").select("*") as any)
+  const fetchDeals = async (options?: { includeDemo?: boolean }): Promise<RealDeal[]> => {
+    const includeDemo = options?.includeDemo ?? false;
+    let query = (supabase.from("deals").select("*") as any)
       .neq("deal_kind", "template")
       .order("created_at", { ascending: false });
+
+    if (!includeDemo) {
+      query = query.eq("is_demo", false);
+    }
+
+    const { data } = await query;
     return (data as RealDeal[]) || [];
   };
 

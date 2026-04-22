@@ -131,6 +131,19 @@ export const NewtonAgentPanel: React.FC = () => {
 
   useEffect(() => { fetchDeals(); }, [fetchDeals]);
 
+  useEffect(() => {
+    const handleCreateDeal = () => {
+      setShowIntake(false);
+      setShowDiscrepancyPanel(false);
+      setCreateDealPrefill({});
+      setShowCreateDealForm(true);
+      setOperationMode(selectedDealId ? 'deal' : 'global');
+    };
+
+    window.addEventListener('pivt:newton-create-deal', handleCreateDeal as EventListener);
+    return () => window.removeEventListener('pivt:newton-create-deal', handleCreateDeal as EventListener);
+  }, [selectedDealId]);
+
   // ── Fetch counts ──
   const fetchCounts = useCallback(async () => {
     if (!selectedDealId) return;
