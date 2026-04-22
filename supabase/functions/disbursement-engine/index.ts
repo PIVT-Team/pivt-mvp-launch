@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { requireJwt } from "../_shared/require-jwt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -150,6 +151,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const { userId } = await requireJwt(req, corsHeaders);
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
     const body = req.method === "POST" ? await req.json() : {};
@@ -177,7 +179,7 @@ Deno.serve(async (req) => {
           await supabase.from("disbursement_intents").update({ status: newStatus }).eq("id", intent_id);
           await supabase.from("audit_events").insert({
             deal_id: intent.deal_id,
-            actor_id: body.actor_id || null,
+            actor_id: userId,
             entity_type: "disbursement_intent",
             entity_id: intent_id,
             event_type: "status_changed",
@@ -191,7 +193,7 @@ Deno.serve(async (req) => {
 
       // ---- Execute intent (mock provider) ----
       case "execute": {
-        const { intent_id, actor_id } = body;
+        const { intent_id } = body;
         const { data: intent } = await supabase
           .from("disbursement_intents")
           .select("*")
@@ -240,7 +242,7 @@ Deno.serve(async (req) => {
 
         await supabase.from("audit_events").insert({
           deal_id: intent.deal_id,
-          actor_id,
+          actor_id: userId,
           entity_type: "disbursement_intent",
           entity_id: intent_id,
           event_type: "execution_initiated",
@@ -340,7 +342,7 @@ Deno.serve(async (req) => {
 
           await supabase.from("audit_events").insert({
             deal_id,
-            actor_id: body.actor_id || null,
+            actor_id: userId,
             entity_type: "waterfall",
             entity_id: allocation.id,
             event_type: "calculated",
@@ -354,7 +356,7 @@ Deno.serve(async (req) => {
 
       // ---- Create FX quote ----
       case "create-fx-quote": {
-        const { deal_id, base_currency, quote_currency, actor_id } = body;
+        const { deal_id, base_currency, quote_currency } = body;
         // Mock FX rate
         const mockRates: Record<string, number> = {
           "USD/EUR": 0.92, "EUR/USD": 1.087, "USD/GBP": 0.79, "GBP/USD": 1.265,
@@ -378,7 +380,7 @@ Deno.serve(async (req) => {
         if (quote) {
           await supabase.from("audit_events").insert({
             deal_id,
-            actor_id,
+            actor_id: userId,
             entity_type: "fx_quote",
             entity_id: quote.id,
             event_type: "created",
@@ -392,14 +394,14 @@ Deno.serve(async (req) => {
 
       // ---- Lock FX quote ----
       case "lock-fx-quote": {
-        const { quote_id, actor_id } = body;
+        const { quote_id } = body;
         const { data: quote } = await supabase.from("fx_quotes").select("*").eq("id", quote_id).single();
         if (!quote) return new Response(JSON.stringify({ error: "Quote not found" }), { status: 404, headers: corsHeaders });
 
         await supabase.from("fx_quotes").update({ locked: true, locked_at: new Date().toISOString() }).eq("id", quote_id);
         await supabase.from("audit_events").insert({
           deal_id: quote.deal_id,
-          actor_id,
+          actor_id: userId,
           entity_type: "fx_quote",
           entity_id: quote_id,
           event_type: "locked",
