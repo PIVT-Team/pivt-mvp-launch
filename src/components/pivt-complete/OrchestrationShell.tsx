@@ -117,26 +117,26 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
       {/* RIGHT — Next Action + Verification (sticky)                     */}
       {/* ──────────────────────────────────────────────────────────────── */}
       <aside className="hidden lg:block">
-        <div className="sticky top-4 space-y-4">
+        <div className="sticky top-6 space-y-6">
           {/* Next Required Action */}
-          <div className="pivt-card p-4 border-accent/30">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="pivt-card p-6 shadow-sm border-accent/30">
+            <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-3.5 h-3.5 text-accent" />
               <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-accent">
                 Next Required Action
               </h4>
             </div>
-            <p className="text-[13px] font-semibold text-foreground leading-snug mb-1">
+            <p className="text-[13px] font-semibold text-foreground leading-snug mb-2">
               {selectedDealId ? `Review ${sectionLabel || 'pending items'}` : 'Select a deal to begin'}
             </p>
-            <p className="text-[11px] text-muted-foreground/70 leading-relaxed mb-3">
+            <p className="text-[11px] text-muted-foreground/70 leading-relaxed mb-4">
               {selectedDealId
                 ? 'Resolve outstanding items to advance closing readiness.'
                 : 'Pick an active deal from the breadcrumb above.'}
             </p>
             <Button
               size="sm"
-              className="w-full h-8 text-[12px]"
+              className="w-full h-9 text-[12px]"
               disabled={!selectedDealId}
               onClick={() => setActiveSection('workspace' as ActiveSection)}
             >
@@ -145,20 +145,20 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
           </div>
 
           {/* Verification Summary */}
-          <div className="pivt-card p-4">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="pivt-card p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
               <ShieldCheck className="w-3.5 h-3.5 text-validated" />
               <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
                 Verification
               </h4>
             </div>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               <Row icon={CheckCircle2} tone="text-validated" label="Verified" value="0" />
               <Row icon={Clock}        tone="text-warning"   label="Pending"  value="0" />
               <Row icon={AlertTriangle} tone="text-blocking" label="Failed"   value="0" />
             </div>
-            <div className="mt-3 pt-3 border-t border-border/40">
-              <div className="flex items-center justify-between mb-1.5">
+            <div className="mt-4 pt-4 border-t border-border/40">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Readiness</span>
                 <span className="text-[11px] font-mono text-muted-foreground">0%</span>
               </div>
@@ -167,8 +167,8 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
           </div>
 
           {/* Contextual quick action */}
-          <div className="pivt-card p-4">
-            <div className="flex items-center gap-2 mb-2">
+          <div className="pivt-card p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
               <FileSignature className="w-3.5 h-3.5 text-muted-foreground" />
               <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
                 {sectionLabel || 'Quick Actions'}
@@ -177,7 +177,7 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
             <p className="text-[11px] text-muted-foreground/70 leading-relaxed">
               Progress and recent activity for this section appear here as items are completed.
             </p>
-            <div className="mt-3 flex items-center gap-1.5">
+            <div className="mt-4 flex items-center gap-2">
               <Badge variant="outline" className="text-[10px] font-mono">Live</Badge>
               <span className="text-[10px] text-muted-foreground/50">Last updated just now</span>
             </div>
