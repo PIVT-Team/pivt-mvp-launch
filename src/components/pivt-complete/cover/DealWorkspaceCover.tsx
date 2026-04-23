@@ -254,6 +254,9 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
         ))}
       </div>
 
+      {/* Orchestration Hub */}
+      <OrchestrationHub />
+
       {/* Blockers */}
       {blockers.length > 0 && (
         <div className="space-y-2">
