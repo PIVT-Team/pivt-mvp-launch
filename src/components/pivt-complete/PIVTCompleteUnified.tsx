@@ -43,11 +43,24 @@ import { ClosingChecklistCover } from './cover/ClosingChecklistCover';
 import { ConditionsPrecedentCover } from './cover/ConditionsPrecedentCover';
 import { SignaturePacketsCover } from './cover/SignaturePacketsCover';
 import { ClosingBookCover } from './cover/ClosingBookCover';
+import { DealContextBar } from './DealContextBar';
 
+// Deal-scoped sections that historically only render *inside* the workspace.
+// If user navigates here without a workspace context, we redirect to deals/workspace.
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
   'payments', 'ingestion', 'closing', 'verification', 'cap-table',
   'waterfall', 'kyc', 'deal-inputs', 'execution',
+]);
+
+// Deal-AWARE sections render in place at the top-level but operate on the
+// currently selected deal. They show the persistent DealContextBar above
+// their own content and surface their own "Select a deal" empty state when
+// no deal is selected.
+const DEAL_AWARE_SECTIONS = new Set([
+  'closing-checklist', 'conditions-precedent', 'signature-packets',
+  'closing-book', 'timeline', 'communications', 'intelligence',
+  'intelligence-map', 'workspace',
 ]);
 
 const coverSections: Record<string, React.FC> = {
@@ -341,6 +354,14 @@ export const PIVTCompleteUnified: React.FC = () => {
         </div>
 
         <RiskMonitorStrip />
+
+        {/* Persistent deal selector — visible above any deal-aware top-level
+            section so users can switch deal context without leaving the page.
+            Hidden inside the dedicated workspace cover (which has its own
+            ATLAS-style deal header) to avoid duplication. */}
+        {DEAL_AWARE_SECTIONS.has(activeSection) && activeSection !== 'workspace' && (
+          <DealContextBar />
+        )}
 
         <AnimatePresence mode="wait">
           <motion.div

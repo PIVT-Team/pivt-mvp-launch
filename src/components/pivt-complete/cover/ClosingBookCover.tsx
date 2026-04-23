@@ -336,12 +336,14 @@ export const ClosingBookCover: React.FC = () => {
 
   // ── Empty / no deal state ──
   if (!dealId) {
+    const setActiveSection = usePIVTStore.getState().setActiveSection;
     return (
       <div className="space-y-4">
         <Header title="Closing Book" subtitle="Auto-assembled binder of executed documents, evidence, and disbursements" />
         <div className="pivt-card p-8 text-center">
           <BookOpen className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-          <p className="text-sm text-muted-foreground">Select a deal to assemble its closing book.</p>
+          <p className="text-sm text-muted-foreground mb-4">Select a deal to assemble its closing book.</p>
+          <Button onClick={() => setActiveSection('deals' as any)}>Go to Deals</Button>
         </div>
       </div>
     );

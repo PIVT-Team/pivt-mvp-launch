@@ -242,11 +242,13 @@ export const SignaturePacketsCover: React.FC = () => {
   }, [packets, user?.id]);
 
   if (!dealId) {
+    const setActiveSection = usePIVTStore.getState().setActiveSection;
     return (
       <div className="space-y-6">
         <header>
           <h1 className="text-2xl font-semibold tracking-tight">Signature Packets</h1>
           <p className="text-sm text-muted-foreground mt-1">Select a deal to manage signature packets.</p>
+          <Button className="mt-4" onClick={() => setActiveSection('deals' as any)}>Go to Deals</Button>
         </header>
       </div>
     );
