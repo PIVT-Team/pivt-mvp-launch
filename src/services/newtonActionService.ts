@@ -32,6 +32,10 @@ export type NewtonActionType =
   | 'parse_funds_flow'
   | 'run_discrepancy_check'
   | 'generate_wire_pack'
+  | 'summarize_closing_risks'
+  | 'suggest_next_actions'
+  | 'predict_delays'
+  | 'draft_certificate'
   | 'unsupported';
 
 export type NewtonIntentScope = 'global' | 'deal' | 'info';
