@@ -567,49 +567,141 @@ export const DealsCover: React.FC = () => {
         </motion.div>
       ) : (
         <div className="space-y-6">
-          {/* User's private deals */}
-          {sortedPrivate.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Deals</h3>
-              <div className="grid gap-4">
-                {sortedPrivate.map((deal) => (
-                  <DealCard
-                    key={deal.id}
-                    deal={deal}
-                    summary={summaries[deal.id]}
-                    isDemo={false}
-                    onView={() => openDeal(deal.id)}
-                    onDuplicate={() => {}}
-                    duplicating={false}
-                    onDelete={() => setDeleteTarget(deal)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+            {kpiCards.map((metric) => (
+              <motion.div key={metric.label} {...fadeInUp} className="pivt-metric-card flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="pivt-icon-chip w-8 h-8">
+                    <metric.icon className={`w-4 h-4 ${metric.accent}`} />
+                  </div>
+                  <span className="pivt-metric-label">{metric.label}</span>
+                </div>
+                <span className="pivt-stat-lg text-3xl text-center w-full">{metric.value}</span>
+              </motion.div>
+            ))}
+          </div>
 
-          {/* Demo deals */}
-          {sortedDemo.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Demo Deals</h3>
-              <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/80">
-                <span className="font-semibold">These are read-only demo deals. Create a real deal to get started.</span>
-              </div>
-              <div className="grid gap-4">
-                {sortedDemo.map((deal) => (
-                  <DealCard
-                    key={deal.id}
-                    deal={deal}
-                    summary={summaries[deal.id]}
-                    isDemo={true}
-                    onView={() => openDeal(deal.id)}
-                    onDuplicate={() => handleDuplicate(deal.id)}
-                    duplicating={duplicatingId === deal.id}
-                  />
-                ))}
-              </div>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
+            <div className="space-y-6">
+              {/* User's private deals */}
+              {sortedPrivate.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Deals</h3>
+                  <div className="grid gap-4">
+                    {sortedPrivate.map((deal) => (
+                      <DealCard
+                        key={deal.id}
+                        deal={deal}
+                        summary={summaries[deal.id]}
+                        isDemo={false}
+                        onView={() => openDeal(deal.id)}
+                        onDuplicate={() => {}}
+                        duplicating={false}
+                        onDelete={() => setDeleteTarget(deal)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Demo deals */}
+              {sortedDemo.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Demo Deals</h3>
+                  <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/80">
+                    <span className="font-semibold">These are read-only demo deals. Create a real deal to get started.</span>
+                  </div>
+                  <div className="grid gap-4">
+                    {sortedDemo.map((deal) => (
+                      <DealCard
+                        key={deal.id}
+                        deal={deal}
+                        summary={summaries[deal.id]}
+                        isDemo={true}
+                        onView={() => openDeal(deal.id)}
+                        onDuplicate={() => handleDuplicate(deal.id)}
+                        duplicating={duplicatingId === deal.id}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+
+            <div className="space-y-4 xl:sticky xl:top-4">
+              <motion.section {...fadeInUp} className="pivt-card-ai p-6 relative">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-4 pivt-section-bar">
+                    <div className="pivt-icon-chip w-7 h-7 pivt-icon-purple">
+                      <Brain className="w-3.5 h-3.5" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground">Newton Portfolio Signals</h3>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    {portfolioInsights.map((insight) => (
+                      <div key={insight.id} className="flex items-start gap-2.5">
+                        <insight.icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${insight.accent}`} />
+                        <span className="text-foreground">{insight.text}</span>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setActiveSection('intelligence')}
+                      className="mt-2 flex items-center gap-1 text-[11px] font-medium text-accent hover:opacity-80 transition-opacity"
+                    >
+                      Open intelligence view <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </motion.section>
+
+              <motion.section {...fadeInUp} className="pivt-card p-6">
+                <h3 className="text-sm font-semibold text-foreground mb-4 pivt-section-bar">Recent Cross-Deal Activity</h3>
+                <div className="space-y-3">
+                  {recentEvents.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Activity will appear here as portfolio work progresses.</p>
+                  ) : (
+                    recentEvents.map((event) => (
+                      <div key={event.id} className="flex items-start gap-3">
+                        <div className="pivt-icon-chip w-7 h-7 mt-0.5">
+                          <TrendingUp className="w-3.5 h-3.5 text-accent" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-foreground truncate capitalize">{event.action}</p>
+                          <p className="text-xs text-muted-foreground">{event.dealName} · {new Date(event.timestamp).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.section>
+
+              <motion.section {...fadeInUp} className="pivt-card p-6">
+                <h3 className="text-sm font-semibold text-foreground mb-4 pivt-section-bar">Upcoming Deadlines</h3>
+                <div className="space-y-3">
+                  {upcomingDeadlines.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Closing dates will surface here once deals are scheduled.</p>
+                  ) : (
+                    upcomingDeadlines.map((deal) => (
+                      <button
+                        key={deal.id}
+                        onClick={() => openDeal(deal.id)}
+                        className="w-full flex items-start gap-3 text-left rounded-lg hover:bg-muted/30 p-2 -m-2 transition-colors"
+                      >
+                        <div className="pivt-icon-chip w-7 h-7 mt-0.5">
+                          <Clock className="w-3.5 h-3.5 text-discrepancy" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{deal.deal_name}</p>
+                          <p className="text-xs text-muted-foreground">Expected close · {deal.closing_date ? new Date(deal.closing_date).toLocaleDateString() : 'TBD'}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                      </button>
+                    ))
+                  )}
+                </div>
+              </motion.section>
+            </div>
+          </div>
         </div>
       )}
 
