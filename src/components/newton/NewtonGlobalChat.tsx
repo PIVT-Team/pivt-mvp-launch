@@ -168,6 +168,38 @@ export const NewtonGlobalChat: React.FC = () => {
             result = await executePrepareApprovalPackage(selectedDealId, user?.id);
           }
           break;
+        case 'summarize_closing_risks':
+          if (!selectedDealId) {
+            result = { success: false, message: 'No deal selected. Please select a deal first.' };
+          } else {
+            const { executeSummarizeClosingRisks } = await import('@/services/newtonActionService');
+            result = await executeSummarizeClosingRisks(selectedDealId);
+          }
+          break;
+        case 'suggest_next_actions':
+          if (!selectedDealId) {
+            result = { success: false, message: 'No deal selected. Please select a deal first.' };
+          } else {
+            const { executeSuggestNextActions } = await import('@/services/newtonActionService');
+            result = await executeSuggestNextActions(selectedDealId, intent.params?.scope || 'all');
+          }
+          break;
+        case 'predict_delays':
+          if (!selectedDealId) {
+            result = { success: false, message: 'No deal selected. Please select a deal first.' };
+          } else {
+            const { executePredictDelays } = await import('@/services/newtonActionService');
+            result = await executePredictDelays(selectedDealId);
+          }
+          break;
+        case 'draft_certificate':
+          if (!selectedDealId) {
+            result = { success: false, message: 'No deal selected. Please select a deal first.' };
+          } else {
+            const { executeDraftCertificate } = await import('@/services/newtonActionService');
+            result = await executeDraftCertificate(selectedDealId, intent.params?.certificate_type);
+          }
+          break;
         case 'list_deals':
           result = await executeListDeals(user?.id);
           break;
