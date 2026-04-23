@@ -1,3 +1,24 @@
+/* ════════════════════════════════════════════════════════════════════
+ * OrchestrationHub
+ * --------------------------------------------------------------------
+ * Added as part of the orchestration layer rollout (Closing Checklist,
+ * Conditions Precedent, Signature Packets, Closing Book).
+ *
+ * MERGE NOTES (safe to integrate):
+ *  - Pure additive component. No existing files restructured beyond the
+ *    two import + render injections in `DealWorkspaceCover.tsx`.
+ *  - Reads from existing tables only: closing_checklist_items,
+ *    conditions, deal_approvals + canonical metrics from
+ *    DealWorkspaceContext. No schema changes.
+ *  - Visual tokens used MUST stay aligned with PIVT DLS:
+ *      .pivt-card / .pivt-metric-label / .pivt-next-action
+ *      semantic colors: validated | blocking | discrepancy | accent
+ *      tints: /10 fills, /20 borders, /4 surface washes
+ *      icon chip: w-9 h-9 rounded-xl bg-accent/12
+ *      badges:   text-[10px] with bg-{tone}/10 text-{tone} border-{tone}/20
+ *  - Section anchors are clearly commented for easy diffing.
+ * ════════════════════════════════════════════════════════════════════ */
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
@@ -19,17 +40,26 @@ import {
   Loader2,
 } from 'lucide-react';
 
+// ── Local row shapes (narrow projections from Supabase) ─────────────
 interface ChecklistRow { status: string }
 interface ConditionRow { status: string }
 interface PacketRow { status: string; packet_name: string | null; approval_side: string }
 
+/* ──────────────────────────────────────────────────────────────────
+ * Status badge — mirrors the exact pattern used in ApprovalsCover,
+ * DocumentsCover, DealReportsCover (text-[10px], /10 fill, /20 border)
+ * ────────────────────────────────────────────────────────────────── */
 const statusBadge = (variant: 'ready' | 'progress' | 'blocking', label: string) => {
   const cls = variant === 'ready'
-    ? 'bg-validated/10 text-validated'
+    ? 'bg-validated/10 text-validated border-validated/20'
     : variant === 'blocking'
-      ? 'bg-blocking/10 text-blocking'
-      : 'bg-discrepancy/10 text-discrepancy';
-  return <Badge className={`text-[9px] ${cls}`}>{label}</Badge>;
+      ? 'bg-blocking/10 text-blocking border-blocking/20'
+      : 'bg-discrepancy/10 text-discrepancy border-discrepancy/20';
+  return (
+    <Badge variant="outline" className={`text-[10px] ${cls}`}>
+      {label}
+    </Badge>
+  );
 };
 
 export const OrchestrationHub: React.FC = () => {
@@ -42,6 +72,7 @@ export const OrchestrationHub: React.FC = () => {
   const [packets, setPackets] = useState<PacketRow[]>([]);
   const [closing, setClosing] = useState(false);
 
+  // ── Data fetch — parallel, scoped, cancellable ────────────────────
   useEffect(() => {
     if (!dealId) return;
     let cancelled = false;
@@ -59,6 +90,7 @@ export const OrchestrationHub: React.FC = () => {
     return () => { cancelled = true; };
   }, [dealId]);
 
+  // ── Derived stats ─────────────────────────────────────────────────
   const checklistStats = useMemo(() => {
     const total = checklist.length;
     const done = checklist.filter(c => c.status === 'satisfied' || c.status === 'waived').length;
@@ -84,9 +116,9 @@ export const OrchestrationHub: React.FC = () => {
     return { total, completed, pending };
   }, [packets]);
 
-  // Derive next actions (deterministic)
+  // ── Next Actions (deterministic) ──────────────────────────────────
   const nextActions = useMemo(() => {
-    const actions: { label: string; section: ActiveSection; tone: 'blocking' | 'progress' | 'ready' }[] = [];
+    const actions: { label: string; section: ActiveSection; tone: 'blocking' | 'progress' }[] = [];
     if (cpStats.open > 0) {
       actions.push({
         label: `${cpStats.open} condition${cpStats.open > 1 ? 's' : ''} precedent outstanding`,
@@ -130,17 +162,14 @@ export const OrchestrationHub: React.FC = () => {
     return actions.slice(0, 4);
   }, [cpStats, checklistStats, sigStats, metrics]);
 
-  // One-Click Close gating
-  const closeGates = useMemo(() => {
-    const items = [
-      { label: 'All conditions precedent satisfied', met: cpStats.total > 0 && cpStats.open === 0 },
-      { label: 'Closing checklist complete', met: checklistStats.total > 0 && checklistStats.done === checklistStats.total },
-      { label: 'All signature packets executed', met: sigStats.total > 0 && sigStats.completed === sigStats.total },
-      { label: 'Wire instructions verified', met: !!metrics && metrics.totalWireInstructions > 0 && metrics.verifiedWireInstructions === metrics.totalWireInstructions },
-      { label: 'Approvals granted', met: !!metrics && metrics.totalApprovals > 0 && metrics.grantedApprovals === metrics.totalApprovals },
-    ];
-    return items;
-  }, [cpStats, checklistStats, sigStats, metrics]);
+  // ── One-Click Close gating ────────────────────────────────────────
+  const closeGates = useMemo(() => [
+    { label: 'All conditions precedent satisfied', met: cpStats.total > 0 && cpStats.open === 0 },
+    { label: 'Closing checklist complete', met: checklistStats.total > 0 && checklistStats.done === checklistStats.total },
+    { label: 'All signature packets executed', met: sigStats.total > 0 && sigStats.completed === sigStats.total },
+    { label: 'Wire instructions verified', met: !!metrics && metrics.totalWireInstructions > 0 && metrics.verifiedWireInstructions === metrics.totalWireInstructions },
+    { label: 'Approvals granted', met: !!metrics && metrics.totalApprovals > 0 && metrics.grantedApprovals === metrics.totalApprovals },
+  ], [cpStats, checklistStats, sigStats, metrics]);
 
   const allGatesMet = closeGates.every(g => g.met);
   const failedGates = closeGates.filter(g => !g.met);
@@ -159,7 +188,6 @@ export const OrchestrationHub: React.FC = () => {
       return;
     }
     setClosing(true);
-    // Route to execution → wire pack for actual disbursement trigger
     setTimeout(() => {
       setClosing(false);
       setActiveSection('execution');
@@ -170,6 +198,7 @@ export const OrchestrationHub: React.FC = () => {
     }, 600);
   };
 
+  // ── Summary cards config (Checklist / CP / Signatures) ────────────
   const summaryCards: {
     key: string;
     title: string;
@@ -188,9 +217,9 @@ export const OrchestrationHub: React.FC = () => {
       primary: `${checklistStats.done}/${checklistStats.total || 0}`,
       secondary: checklistStats.total === 0 ? 'No items yet' : `${checklistStats.total - checklistStats.done} remaining`,
       badge: checklistStats.total === 0
-        ? statusBadge('progress', 'empty')
+        ? statusBadge('progress', 'Empty')
         : checklistStats.pct === 100
-          ? statusBadge('ready', 'complete')
+          ? statusBadge('ready', 'Complete')
           : statusBadge('progress', `${checklistStats.pct}%`),
       section: 'closing-checklist',
     },
@@ -202,10 +231,10 @@ export const OrchestrationHub: React.FC = () => {
       primary: `${cpStats.satisfied}/${cpStats.total || 0}`,
       secondary: cpStats.total === 0 ? 'None tracked' : `${cpStats.open} open`,
       badge: cpStats.total === 0
-        ? statusBadge('progress', 'empty')
+        ? statusBadge('progress', 'Empty')
         : cpStats.open === 0
-          ? statusBadge('ready', 'satisfied')
-          : statusBadge('blocking', `${cpStats.open} open`),
+          ? statusBadge('ready', 'Satisfied')
+          : statusBadge('blocking', `${cpStats.open} Open`),
       section: 'conditions-precedent',
     },
     {
@@ -216,27 +245,30 @@ export const OrchestrationHub: React.FC = () => {
       primary: `${sigStats.completed}/${sigStats.total || 0}`,
       secondary: sigStats.total === 0 ? 'No packets' : `${sigStats.pending} awaiting`,
       badge: sigStats.total === 0
-        ? statusBadge('progress', 'none')
+        ? statusBadge('progress', 'None')
         : sigStats.pending === 0
-          ? statusBadge('ready', 'executed')
-          : statusBadge('progress', `${sigStats.pending} pending`),
+          ? statusBadge('ready', 'Executed')
+          : statusBadge('progress', `${sigStats.pending} Pending`),
       section: 'signature-packets',
     },
   ];
 
   return (
     <div className="space-y-4">
+      {/* ── Section header — matches "What's Blocking Close" style ──── */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-sm font-semibold">Orchestration Hub</h3>
-          <p className="text-[11px] text-muted-foreground mt-0.5">Live readiness across closing, conditions and signatures</p>
+          <h3 className="text-sm font-medium text-foreground/80">Orchestration Hub</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Live readiness across closing, conditions and signatures
+          </p>
         </div>
         <Badge variant="outline" className="text-[10px] font-mono">
           {closeGates.filter(g => g.met).length}/{closeGates.length} gates
         </Badge>
       </div>
 
-      {/* Summary cards — match existing pivt-card grid */}
+      {/* ── Summary cards — pivt-card grid (3-up on md+) ───────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {summaryCards.map(card => {
           const Icon = card.icon;
@@ -245,16 +277,20 @@ export const OrchestrationHub: React.FC = () => {
               key={card.key}
               {...fadeInUp}
               onClick={() => setActiveSection(card.section)}
-              className="pivt-card p-5 text-left hover:border-accent/40 hover:shadow-md transition-all group"
+              className="pivt-card p-5 text-left group"
             >
               <div className="flex items-start justify-between mb-3">
-                <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center">
+                {/* Icon chip — matches Next Required Action chip exactly */}
+                <div className="w-9 h-9 rounded-xl bg-accent/12 flex items-center justify-center">
                   <Icon className="w-4 h-4 text-accent" />
                 </div>
                 {card.badge}
               </div>
               <p className="pivt-metric-label">{card.title}</p>
-              <p className="text-xl font-semibold mt-1 font-mono" style={{ letterSpacing: '-0.02em' }}>
+              <p
+                className="text-xl font-semibold mt-2 font-mono"
+                style={{ letterSpacing: '-0.02em' }}
+              >
                 {card.primary}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{card.secondary}</p>
@@ -267,13 +303,16 @@ export const OrchestrationHub: React.FC = () => {
         })}
       </div>
 
-      {/* Next Actions + One-Click Close */}
+      {/* ── Next Actions + One-Click Close (2/3 + 1/3 split) ───────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Next Actions panel — same look as Reconciliation Results list */}
         <motion.div {...fadeInUp} className="pivt-card p-5 lg:col-span-2">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-4 h-4 text-discrepancy" />
-            <h4 className="text-sm font-semibold">Next Actions</h4>
-            <span className="text-[10px] text-muted-foreground ml-auto">{nextActions.length} item{nextActions.length !== 1 ? 's' : ''}</span>
+            <h4 className="text-sm font-medium text-foreground/80">Next Actions</h4>
+            <span className="text-[10px] text-muted-foreground ml-auto">
+              {nextActions.length} item{nextActions.length !== 1 ? 's' : ''}
+            </span>
           </div>
           {nextActions.length === 0 ? (
             <div className="flex items-center gap-2 text-sm text-validated py-4">
@@ -286,33 +325,37 @@ export const OrchestrationHub: React.FC = () => {
                 <button
                   key={i}
                   onClick={() => setActiveSection(a.section)}
-                  className={`w-full flex items-center gap-2 p-3 rounded-lg border text-left transition-all hover:border-accent/40 ${
+                  /* border-l-4 pattern matches blocker rows in DemoOverviewSection */
+                  className={`w-full flex items-center gap-2 p-3 rounded-lg border-l-4 text-left transition-colors ${
                     a.tone === 'blocking'
-                      ? 'border-blocking/20 bg-blocking/4'
-                      : 'border-discrepancy/20 bg-discrepancy/4'
+                      ? 'border-blocking bg-blocking/4 hover:bg-blocking/8'
+                      : 'border-discrepancy bg-discrepancy/4 hover:bg-discrepancy/8'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${a.tone === 'blocking' ? 'bg-blocking' : 'bg-discrepancy'}`} />
-                  <span className="text-xs flex-1">{a.label}</span>
-                  <ArrowRight className="w-3 h-3 text-muted-foreground" />
+                  <AlertTriangle
+                    className={`w-3.5 h-3.5 ${a.tone === 'blocking' ? 'text-blocking' : 'text-discrepancy'}`}
+                  />
+                  <span className="text-sm flex-1">{a.label}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
               ))}
             </div>
           )}
         </motion.div>
 
+        {/* One-Click Close — mirrors the "Activate Deal" prereq card */}
         <motion.div {...fadeInUp} className="pivt-card p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-3">
             <Rocket className="w-4 h-4 text-accent" />
-            <h4 className="text-sm font-semibold">One-Click Close</h4>
+            <h4 className="text-sm font-medium text-foreground/80">One-Click Close</h4>
           </div>
           <div className="space-y-1.5 mb-4 flex-1">
             {closeGates.map((g, i) => (
               <div key={i} className="flex items-center gap-2 text-[11px]">
                 {g.met ? (
-                  <CheckCircle2 className="w-3 h-3 text-validated shrink-0" />
+                  <CheckCircle2 className="w-3.5 h-3.5 text-validated shrink-0" />
                 ) : (
-                  <div className="w-3 h-3 rounded-full border border-muted-foreground/30 shrink-0" />
+                  <div className="w-3.5 h-3.5 rounded-full border-2 border-muted-foreground/30 shrink-0" />
                 )}
                 <span className={g.met ? 'text-foreground' : 'text-muted-foreground'}>{g.label}</span>
               </div>

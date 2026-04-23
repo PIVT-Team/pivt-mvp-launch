@@ -57,6 +57,7 @@ import { DealStateInspector } from './DealStateInspector';
 import { WirePackCover } from './WirePackCover';
 import { ExecutionPrepCover } from './ExecutionPrepCover';
 import { AuditConsoleCover } from './AuditConsoleCover';
+// [orchestration-layer] Added — see OrchestrationHub.tsx for merge notes
 import { OrchestrationHub } from './OrchestrationHub';
 
 // ── Step definitions ──
@@ -254,7 +255,7 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
         ))}
       </div>
 
-      {/* Orchestration Hub */}
+      {/* [orchestration-layer] Orchestration Hub — additive, no layout impact */}
       <OrchestrationHub />
 
       {/* Blockers */}
@@ -398,7 +399,7 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
         </div>
       )}
 
-      {/* Orchestration Hub */}
+      {/* [orchestration-layer] Orchestration Hub — additive, no layout impact */}
       <OrchestrationHub />
     </div>
   );
