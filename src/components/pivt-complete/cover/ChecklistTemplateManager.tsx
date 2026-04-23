@@ -341,9 +341,9 @@ export const ChecklistTemplateManager: React.FC<ChecklistTemplateManagerProps> =
     const { data, error } = await supabase.rpc('create_checklist_template_version', { _template_id: selectedTemplate.id });
     if (error || !data) return toast.error('Unable to create version.');
     toast.success('New minor version created.');
+    const { data: nextTemplate } = await supabase.from('checklist_templates').select('*').eq('id', data).single();
     await load();
-    const nextTemplate = templates.find((template) => template.id === data);
-    if (nextTemplate) setSelectedTemplate(nextTemplate);
+    if (nextTemplate) setSelectedTemplate(nextTemplate as TemplateRow);
   };
 
   const createTemplate = async () => {
@@ -511,11 +511,40 @@ export const ChecklistTemplateManager: React.FC<ChecklistTemplateManagerProps> =
                       <Button size="sm" onClick={saveTemplate} disabled={saving}>{saving ? 'Saving…' : 'Save template'}</Button>
                     </div>
                   ) : (
-                    <Button size="sm" onClick={() => onSelectTemplate?.(selectedTemplate)}>Use template</Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" onClick={() => { setSelectedTemplate(null); onSelectTemplate?.(null); }}>No template</Button>
+                      <Button size="sm" onClick={() => onSelectTemplate?.(selectedTemplate)}>Use template</Button>
+                    </div>
                   )}
                 </div>
               </div>
 
+              {mode === 'inline-selector' ? (
+                <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                  <div className="pivt-card p-4 space-y-3">
+                    <p className="text-sm font-medium text-foreground">Selected template summary</p>
+                    <div className="flex flex-wrap gap-1">
+                      {(selectedTemplate.deal_types || []).map((type) => <Badge key={type} variant="secondary" className="text-[10px]">{type}</Badge>)}
+                    </div>
+                    <p className="text-sm text-muted-foreground">This template will generate the initial closing checklist and users can modify items after application.</p>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg border border-border bg-background/40 p-3">
+                        <p className="text-xs text-muted-foreground">Version</p>
+                        <p className="mt-1 text-base font-semibold text-foreground">{selectedTemplate.version}</p>
+                      </div>
+                      <div className="rounded-lg border border-border bg-background/40 p-3">
+                        <p className="text-xs text-muted-foreground">Deals using template</p>
+                        <p className="mt-1 text-base font-semibold text-foreground">{analytics?.deals_using_template ?? 0}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="pivt-card p-4 space-y-3">
+                    <p className="text-sm font-medium text-foreground">Why this fits</p>
+                    <p className="text-sm text-muted-foreground">Rules are evaluated against the current deal type and size before checklist items are created.</p>
+                    <pre className="overflow-auto rounded-lg border border-border bg-muted/20 p-3 text-[11px] text-muted-foreground">{stringifyJson({ deal_type: dealTypeFilter, deal_value: dealValue })}</pre>
+                  </div>
+                </div>
+              ) : (
               <Tabs defaultValue="editor" className="space-y-4">
                 <TabsList>
                   <TabsTrigger value="editor">Editor</TabsTrigger>
@@ -660,6 +689,7 @@ export const ChecklistTemplateManager: React.FC<ChecklistTemplateManagerProps> =
                   </div>
                 </TabsContent>
               </Tabs>
+              )}
             </>
           ) : (
             <div className="pivt-card p-6 text-sm text-muted-foreground">Select a template to manage its versions, checklist items, and analytics.</div>
