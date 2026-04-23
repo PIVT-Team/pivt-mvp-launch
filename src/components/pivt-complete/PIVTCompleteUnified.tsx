@@ -40,6 +40,7 @@ import { PortfolioPaymentsCover } from './cover/PortfolioPaymentsCover';
 import { RiskMonitorCover } from './cover/RiskMonitorCover';
 import { RiskMonitorStrip } from './RiskMonitorStrip';
 import { ClosingChecklistCover } from './cover/ClosingChecklistCover';
+import { ConditionsPrecedentCover } from './cover/ConditionsPrecedentCover';
 
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
@@ -64,6 +65,7 @@ const coverSections: Record<string, React.FC> = {
   'risk-monitor': RiskMonitorCover,
   'ontology': OntologyCover,
   'closing-checklist': ClosingChecklistCover,
+  'conditions-precedent': ConditionsPrecedentCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {

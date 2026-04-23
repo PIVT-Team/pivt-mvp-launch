@@ -823,28 +823,61 @@ export type Database = {
       }
       conditions: {
         Row: {
+          at_risk: boolean
+          at_risk_reason: string | null
           created_at: string
           deal_id: string
+          description: string | null
+          due_date: string | null
+          evidence_document_id: string | null
+          evidence_note: string | null
           id: string
+          owner_id: string | null
+          owner_name: string | null
+          satisfied_at: string | null
+          satisfied_by: string | null
           status: Database["public"]["Enums"]["condition_status"]
           title: string
           updated_at: string
+          waiver_justification: string | null
         }
         Insert: {
+          at_risk?: boolean
+          at_risk_reason?: string | null
           created_at?: string
           deal_id: string
+          description?: string | null
+          due_date?: string | null
+          evidence_document_id?: string | null
+          evidence_note?: string | null
           id?: string
+          owner_id?: string | null
+          owner_name?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
           status?: Database["public"]["Enums"]["condition_status"]
           title: string
           updated_at?: string
+          waiver_justification?: string | null
         }
         Update: {
+          at_risk?: boolean
+          at_risk_reason?: string | null
           created_at?: string
           deal_id?: string
+          description?: string | null
+          due_date?: string | null
+          evidence_document_id?: string | null
+          evidence_note?: string | null
           id?: string
+          owner_id?: string | null
+          owner_name?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
           status?: Database["public"]["Enums"]["condition_status"]
           title?: string
           updated_at?: string
+          waiver_justification?: string | null
         }
         Relationships: [
           {
@@ -852,6 +885,13 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conditions_evidence_document_id_fkey"
+            columns: ["evidence_document_id"]
+            isOneToOne: false
+            referencedRelation: "deal_documents"
             referencedColumns: ["id"]
           },
         ]

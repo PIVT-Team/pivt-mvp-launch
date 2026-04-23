@@ -14,7 +14,7 @@ export type ActiveSection =
   | 'cap-table' | 'recipient' | 'lp-portal' | 'onboarding'
   | 'integrations' | 'intelligence-map' | 'ai' | 'newton' | 'support'
   | 'payments-execution' | 'portfolio-payments' | 'risk-monitor' | 'ontology'
-  | 'deal-inputs' | 'execution' | 'command-center' | 'closing-checklist';
+  | 'deal-inputs' | 'execution' | 'command-center' | 'closing-checklist' | 'conditions-precedent';
 
 export type EntityType = 'deal' | 'stakeholder' | 'document' | 'payment' | 'escrow' | 'approval';
 
