@@ -140,7 +140,7 @@ export const RiskMonitorStrip: React.FC = () => {
       }
 
       const deduped = nextAlerts
-        .sort((a, b) => Number(a.tone === "blocking") - Number(b.tone === "blocking") || a.dealName.localeCompare(b.dealName))
+        .sort((a, b) => Number(b.tone === "blocking") - Number(a.tone === "blocking") || a.dealName.localeCompare(b.dealName))
         .filter((alert, index, arr) => arr.findIndex((item) => item.dealId === alert.dealId && item.description === alert.description) === index)
         .slice(0, 10);
 
@@ -151,7 +151,7 @@ export const RiskMonitorStrip: React.FC = () => {
 
     loadAlerts();
     return () => {
-      cancelled = True
+      cancelled = true;
     };
   }, [deals]);
 
