@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CookieBanner } from "@/components/CookieBanner";
 import Dashboard from "@/pages/Dashboard";
 import DealDetail from "@/pages/DealDetail";
+import DealCommandCenter from "@/pages/DealCommandCenter";
 import AppLayout from "@/components/AppLayout";
 import NotFound from "./pages/NotFound";
 
@@ -105,6 +106,7 @@ const App = () => (
               <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/deals/:id" element={<DealDetail />} />
+                <Route path="/deals/:id/command-center" element={<DealCommandCenter />} />
               </Route>
               <Route path="*" element={<AuthGuard><NotFound /></AuthGuard>} />
             </Routes>

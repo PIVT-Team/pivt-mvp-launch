@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Network } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 import DealOverview from "@/components/deal/DealOverview";
 import WaterfallTab from "@/components/deal/WaterfallTab";
@@ -48,6 +50,14 @@ export default function DealDetail() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto">
+      <div className="flex justify-end mb-3">
+        <Button asChild size="sm" variant="outline">
+          <Link to={`/deals/${deal.id}/command-center`}>
+            <Network className="w-3.5 h-3.5 mr-1.5" />
+            Open Command Center
+          </Link>
+        </Button>
+      </div>
       <DealOverview deal={deal} onUpdate={fetchDeal} />
 
       <Tabs defaultValue="waterfall" className="mt-8">
