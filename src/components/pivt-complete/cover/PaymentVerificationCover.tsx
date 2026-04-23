@@ -18,6 +18,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { AiConfidenceBadge } from '@/components/AiConfidenceBadge';
 import { isAiDerivedRecord } from '@/lib/fieldCorrections';
+import { RegulatoryConditionsPanel } from './RegulatoryConditionsPanel';
 
 type VerificationStatus = 'pending' | 'in_review' | 'verified' | 'rejected';
 
@@ -219,6 +220,8 @@ export const PaymentVerificationCover: React.FC = () => {
         </h2>
         <p className="text-sm text-muted-foreground mt-1">Graph-derived wire instructions and payment allocations for verification</p>
       </div>
+
+      <RegulatoryConditionsPanel />
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
