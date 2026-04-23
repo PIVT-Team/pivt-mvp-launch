@@ -21,7 +21,7 @@
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Briefcase, ChevronDown, Layers, Circle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Layers, Circle } from 'lucide-react';
 import { usePIVTStore, useActiveSection } from '@/stores/pivtStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -166,62 +166,45 @@ export const DealContextBar: React.FC = () => {
   return (
     <div className="sticky top-0 z-30 shrink-0 px-8 lg:px-10 pt-4 pb-3 bg-background/85 backdrop-blur-md border-b border-border/40">
       <div className="max-w-6xl mx-auto w-full">
-        <div className="flex items-center gap-4 px-4 py-3 rounded-xl bg-card border border-border/60 shadow-sm">
-          {/* Icon chip — matches "Next Required Action" w-9 h-9 rounded-xl bg-accent/12 pattern */}
-          <div className="w-9 h-9 rounded-xl bg-accent/12 flex items-center justify-center shrink-0">
-            <Briefcase className="w-4 h-4 text-accent" />
-          </div>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-card border border-border/60 shadow-sm">
+          {/* ── Breadcrumb row: Deals › [Deal Name ▾] › Section ───────────── */}
+          <nav
+            aria-label="Breadcrumb"
+            className="flex items-center gap-1.5 min-w-0 flex-1 text-sm"
+          >
+            {/* Root crumb */}
+            <button
+              onClick={() => usePIVTStore.getState().setActiveSection('deals')}
+              className="text-muted-foreground hover:text-foreground transition-colors text-[13px] font-medium shrink-0"
+            >
+              Deals
+            </button>
 
-          {/* Label + selector group */}
-          <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-              <span>Active Deal</span>
-              {sectionLabel && (
-                <>
-                  <span className="opacity-40">/</span>
-                  <span className="text-foreground/70">{sectionLabel}</span>
-                </>
-              )}
-            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
 
+            {/* Deal crumb — acts as the dropdown trigger */}
             <Select
               value={selectedDealId || undefined}
               onValueChange={(v) => setSelectedDealId(v)}
             >
-              <SelectTrigger className="h-auto -ml-1 mt-0.5 border-0 bg-transparent hover:bg-muted/30 px-1 py-0.5 gap-2 focus:ring-0 focus:ring-offset-0 shadow-none w-auto justify-start [&>svg]:hidden">
+              <SelectTrigger className="h-auto border-0 bg-transparent hover:bg-muted/30 px-1.5 py-0.5 gap-1.5 focus:ring-0 focus:ring-offset-0 shadow-none w-auto justify-start rounded-md [&>svg]:hidden min-w-0">
                 {current ? (
-                  <span className="flex items-center gap-2.5 min-w-0 flex-wrap">
+                  <span className="flex items-center gap-2 min-w-0">
                     <span
-                      className="text-base font-semibold text-foreground truncate"
-                      style={{ letterSpacing: '-0.02em' }}
+                      className="text-[13px] font-semibold text-foreground truncate"
+                      style={{ letterSpacing: '-0.01em' }}
                     >
                       {current.label}
                     </span>
                     {current.dealNumber && (
-                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono text-muted-foreground">
+                      <span className="hidden md:inline-flex items-center px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono text-muted-foreground shrink-0">
                         {current.dealNumber}
                       </span>
                     )}
-                    {current.status && (
-                      <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium capitalize ${statusToneCls}`}>
-                        <Circle className="w-1.5 h-1.5 fill-current" />
-                        {current.status}
-                      </span>
-                    )}
-                    {compactValue && (
-                      <span className="text-[11px] font-mono text-muted-foreground">
-                        {compactValue}
-                      </span>
-                    )}
-                    {current.isLive && (
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
-                        Live
-                      </span>
-                    )}
-                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-60 ml-1" />
+                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-60 shrink-0" />
                   </span>
                 ) : (
-                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
                     <Layers className="w-3.5 h-3.5" />
                     Select a deal…
                     <ChevronDown className="w-3.5 h-3.5 opacity-60" />
@@ -273,12 +256,41 @@ export const DealContextBar: React.FC = () => {
                 )}
               </SelectContent>
             </Select>
-          </div>
 
-          {!selectedDealId && (
-            <span className="text-[11px] text-muted-foreground hidden sm:inline shrink-0">
-              No deal selected
-            </span>
+            {/* Section crumb (terminal — current page) */}
+            {sectionLabel && (
+              <>
+                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
+                <span
+                  aria-current="page"
+                  className="text-[13px] font-medium text-foreground truncate"
+                >
+                  {sectionLabel}
+                </span>
+              </>
+            )}
+          </nav>
+
+          {/* ── Right-side meta: status, value, live tag ─────────────────── */}
+          {current && (
+            <div className="hidden md:flex items-center gap-2 shrink-0 pl-3 border-l border-border/40">
+              {current.status && (
+                <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-medium capitalize ${statusToneCls}`}>
+                  <Circle className="w-1.5 h-1.5 fill-current" />
+                  {current.status}
+                </span>
+              )}
+              {compactValue && (
+                <span className="text-[11px] font-mono text-muted-foreground">
+                  {compactValue}
+                </span>
+              )}
+              {current.isLive && (
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+                  Live
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
