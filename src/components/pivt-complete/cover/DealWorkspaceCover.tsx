@@ -6,8 +6,9 @@ import {
   ArrowLeft, AlertTriangle, Ban, CheckCircle2, Rocket,
   FileText, Users, Search, Sparkles, Calendar, Brain, ShieldAlert, Copy, Pencil,
   LayoutDashboard, UserCheck, Layers, ShieldCheck, ClipboardCheck, Zap, Scale, MessageCircle, Bot,
-  ChevronRight, Circle, CreditCard, Upload, Wand2,
+  ChevronRight, Circle, CreditCard, Upload, Wand2, Network,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1001,6 +1002,13 @@ export const DealWorkspaceCover: React.FC = () => {
             </div>
           </div>
 
+          {resolvedDealId && (
+            <Button asChild size="sm" variant="outline" className="gap-1.5 text-xs h-8">
+              <Link to={`/deals/${resolvedDealId}/command-center`}>
+                <Network className="w-3 h-3" /> Command Center
+              </Link>
+            </Button>
+          )}
           {!isDemoDeal && realDeal && (
             <Button size="sm" variant="outline" className="gap-1.5 text-xs h-8" onClick={() => setEditDrawerOpen(true)}>
               <Pencil className="w-3 h-3" /> Edit
