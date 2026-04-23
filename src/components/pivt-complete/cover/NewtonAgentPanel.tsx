@@ -431,6 +431,50 @@ export const NewtonAgentPanel: React.FC = () => {
             : [{ label: 'Check Readiness', prompt: 'Check readiness' }];
           break;
         }
+        case 'summarize_closing_risks': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          const { executeSummarizeClosingRisks } = await import('@/services/newtonActionService');
+          result = await executeSummarizeClosingRisks(selectedDealId);
+          msgType = result.success ? 'insight' : 'alert';
+          actionButtons = [
+            { label: 'Suggest Next Actions', prompt: 'Suggest next actions', primary: true },
+            { label: 'Predict Delays', prompt: 'Predict closing delays' },
+          ];
+          break;
+        }
+        case 'suggest_next_actions': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          const { executeSuggestNextActions } = await import('@/services/newtonActionService');
+          result = await executeSuggestNextActions(selectedDealId, intent.params?.scope || 'all');
+          msgType = result.success ? 'insight' : 'alert';
+          actionButtons = [
+            { label: 'Show Blockers', prompt: 'List all blockers' },
+            { label: 'Closing Risks', prompt: 'Summarize closing risks' },
+          ];
+          break;
+        }
+        case 'predict_delays': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          const { executePredictDelays } = await import('@/services/newtonActionService');
+          result = await executePredictDelays(selectedDealId);
+          msgType = result.success ? 'insight' : 'alert';
+          actionButtons = [
+            { label: 'Suggest Next Actions', prompt: 'Suggest next actions', primary: true },
+            { label: 'Closing Risks', prompt: 'Summarize closing risks' },
+          ];
+          break;
+        }
+        case 'draft_certificate': {
+          if (!selectedDealId) { result = { success: false, message: 'Select a deal first.' }; break; }
+          setOperationMode('deal');
+          const { executeDraftCertificate } = await import('@/services/newtonActionService');
+          result = await executeDraftCertificate(selectedDealId, intent.params?.certificate_type);
+          msgType = result.success ? 'response' : 'alert';
+          break;
+        }
         case 'open_wire_instructions':
         case 'open_tax_forms':
         case 'open_approvals':
