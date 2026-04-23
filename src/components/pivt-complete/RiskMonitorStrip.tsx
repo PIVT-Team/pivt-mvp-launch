@@ -106,7 +106,7 @@ export const RiskMonitorStrip: React.FC = () => {
           elapsedLabel: `${formatDistanceToNowStrict(new Date(row.created_at))} active`,
           step: row.object_type?.toLowerCase().includes("document") ? "verification" : "execution",
           sub: row.object_type?.toLowerCase().includes("document") ? undefined : "discrepancies",
-          tone: row.severity === "critical" || row.severity === "high" ? "blocking" : "warning",
+          tone: row.severity === "blocker" ? "blocking" : "warning",
         });
       }
 
