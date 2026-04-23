@@ -128,7 +128,7 @@ export const ConditionsPrecedentCover: React.FC = () => {
     const { error } = await supabase.from('conditions').insert({
       deal_id: dealId,
       title: newTitle.trim(),
-      status: 'pending',
+      status: 'NOT_STARTED' as any,
     } as any);
     setCreating(false);
     if (error) {
@@ -179,7 +179,7 @@ export const ConditionsPrecedentCover: React.FC = () => {
   const confirmSatisfy = async () => {
     if (!satisfyTarget) return;
     await updateRow(satisfyTarget.id, {
-      status: 'satisfied' as any,
+      status: 'SATISFIED' as any,
       satisfied_at: new Date().toISOString(),
       evidence_document_id: satisfyDocId || null,
       evidence_note: satisfyNote.trim() || null,
