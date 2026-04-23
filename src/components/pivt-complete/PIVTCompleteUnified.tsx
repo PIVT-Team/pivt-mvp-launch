@@ -355,6 +355,14 @@ export const PIVTCompleteUnified: React.FC = () => {
 
         <RiskMonitorStrip />
 
+        {/* Persistent deal selector — visible above any deal-aware top-level
+            section so users can switch deal context without leaving the page.
+            Hidden inside the dedicated workspace cover (which has its own
+            ATLAS-style deal header) to avoid duplication. */}
+        {DEAL_AWARE_SECTIONS.has(activeSection) && activeSection !== 'workspace' && (
+          <DealContextBar />
+        )}
+
         <AnimatePresence mode="wait">
           <motion.div
             key={`cover-${activeSection}`}
