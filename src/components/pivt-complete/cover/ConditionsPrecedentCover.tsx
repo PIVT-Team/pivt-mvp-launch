@@ -47,13 +47,13 @@ type ConditionRow = Tables<'conditions'> & {
 };
 type DealDocRow = Tables<'deal_documents'>;
 
-type Status = 'pending' | 'in_review' | 'satisfied' | 'waived';
+type Status = 'NOT_STARTED' | 'IN_PROGRESS' | 'SATISFIED' | 'WAIVED';
 
 const STATUS_META: Record<Status, { label: string; badge: string; icon: React.ElementType }> = {
-  pending:   { label: 'Pending',   badge: 'bg-muted text-muted-foreground border-transparent',  icon: Circle },
-  in_review: { label: 'In Review', badge: 'bg-accent/10 text-accent border-accent/20',          icon: AlertTriangle },
-  satisfied: { label: 'Satisfied', badge: 'bg-validated/10 text-validated border-validated/20', icon: CheckCircle2 },
-  waived:    { label: 'Waived',    badge: 'bg-blocking/10 text-blocking border-blocking/20',    icon: Ban },
+  NOT_STARTED: { label: 'Pending',   badge: 'bg-muted text-muted-foreground border-transparent',  icon: Circle },
+  IN_PROGRESS: { label: 'In Review', badge: 'bg-accent/10 text-accent border-accent/20',          icon: AlertTriangle },
+  SATISFIED:   { label: 'Satisfied', badge: 'bg-validated/10 text-validated border-validated/20', icon: CheckCircle2 },
+  WAIVED:      { label: 'Waived',    badge: 'bg-blocking/10 text-blocking border-blocking/20',    icon: Ban },
 };
 
 const DEMO_ID_MAP: Record<string, string> = {
@@ -63,8 +63,10 @@ const DEMO_ID_MAP: Record<string, string> = {
 };
 
 const normalizeStatus = (s: string | null | undefined): Status => {
-  if (s === 'satisfied' || s === 'in_review' || s === 'waived') return s;
-  return 'pending';
+  if (s === 'SATISFIED' || s === 'IN_PROGRESS' || s === 'WAIVED' || s === 'BLOCKED') {
+    return s === 'BLOCKED' ? 'WAIVED' : s;
+  }
+  return 'NOT_STARTED';
 };
 
 export const ConditionsPrecedentCover: React.FC = () => {
