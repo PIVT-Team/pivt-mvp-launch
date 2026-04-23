@@ -1,0 +1,1 @@
+ALTER TABLE public.closing_checklist_items ADD COLUMN IF NOT EXISTS due_date timestamptz;
