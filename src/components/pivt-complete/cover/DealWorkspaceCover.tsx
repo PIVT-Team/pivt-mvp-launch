@@ -57,6 +57,7 @@ import { DealStateInspector } from './DealStateInspector';
 import { WirePackCover } from './WirePackCover';
 import { ExecutionPrepCover } from './ExecutionPrepCover';
 import { AuditConsoleCover } from './AuditConsoleCover';
+// [orchestration-layer] Added — see OrchestrationHub.tsx for merge notes
 import { OrchestrationHub } from './OrchestrationHub';
 
 // ── Step definitions ──
