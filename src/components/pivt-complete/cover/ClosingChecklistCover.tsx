@@ -536,8 +536,8 @@ export const ClosingChecklistCover: React.FC = () => {
           <Button
             onClick={generateFromAgreement}
             disabled={generating || isReadOnly}
-            className="gap-1.5"
-            style={{ background: 'var(--pivt-gradient-primary)', color: 'white' }}
+            className="gap-1.5 text-primary-foreground"
+            style={{ background: 'var(--pivt-gradient-primary)' }}
           >
             {generating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
             Generate Checklist from Purchase Agreement
