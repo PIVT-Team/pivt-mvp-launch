@@ -397,6 +397,9 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
           ))}
         </div>
       )}
+
+      {/* Orchestration Hub */}
+      <OrchestrationHub />
     </div>
   );
 };
