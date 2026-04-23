@@ -255,7 +255,7 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
         ))}
       </div>
 
-      {/* Orchestration Hub */}
+      {/* [orchestration-layer] Orchestration Hub — additive, no layout impact */}
       <OrchestrationHub />
 
       {/* Blockers */}
