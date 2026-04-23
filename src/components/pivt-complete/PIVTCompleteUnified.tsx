@@ -38,6 +38,7 @@ import { SupportPanel } from '../support/SupportPanel';
 import { OntologyCover } from './cover/OntologyCover';
 import { PortfolioPaymentsCover } from './cover/PortfolioPaymentsCover';
 import { RiskMonitorCover } from './cover/RiskMonitorCover';
+import { RiskMonitorStrip } from './RiskMonitorStrip';
 
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
@@ -330,6 +331,8 @@ export const PIVTCompleteUnified: React.FC = () => {
             <TooltipContent>Logout</TooltipContent>
           </Tooltip>
         </div>
+
+        <RiskMonitorStrip />
 
         <AnimatePresence mode="wait">
           <motion.div
