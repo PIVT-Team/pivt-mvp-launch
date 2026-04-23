@@ -21,17 +21,19 @@ function initIntegrations(): Integration[] {
     if (i.status === 'connected') {
       const extras: Record<string, Partial<Integration>> = {
         docusign: { details: 'OAuth 2.0 — 12 envelopes sent this month', lastSync: '5 min ago', demo: true },
+        datasite: { details: 'VDR linked — 3 active deal rooms, 1,284 files indexed', lastSync: '12 min ago', demo: true },
         plaid: { details: '28 accounts verified', lastSync: '1 hr ago', demo: true },
         aws: { details: '2.4 TB stored across 3 buckets', lastSync: '30 sec ago', demo: true },
       };
       return { ...i, ...(extras[i.id] || { demo: true, lastSync: 'Just now' }) };
     }
+    if (i.id === 'imanage') return { ...i, details: 'Awaiting workspace admin approval' };
     if (i.id === 'complyadvantage') return { ...i, details: 'Awaiting API key approval' };
     return { ...i };
   });
 }
 
-const CATEGORIES = ['All', 'Banking', 'Legal', 'Compliance', 'Payments', 'Data', 'Storage', 'CRM', 'Legal DMS', 'Cap Table'];
+const CATEGORIES = ['All', 'VDR', 'Legal DMS', 'Legal', 'Banking', 'Compliance', 'Payments', 'Data', 'Storage', 'CRM', 'Cap Table'];
 
 function StatusBadge({ status, demo }: { status: IntegrationStatus; demo?: boolean }) {
   const cfg = STATUS_CONFIG[status];
