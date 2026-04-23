@@ -1211,6 +1211,8 @@ export type Database = {
       }
       deal_approvals: {
         Row: {
+          ai_confidence: number | null
+          ai_generated: boolean
           approval_side: string
           approval_type: string | null
           approver_email: string | null
@@ -1227,18 +1229,25 @@ export type Database = {
           expired_at: string | null
           id: string
           last_reminder_at: string | null
+          linked_checklist_item_id: string | null
+          linked_condition_id: string | null
+          packet_name: string | null
+          packet_type: string | null
           recipient_id_ds: string | null
           related_document_id: string | null
           reminder_count: number | null
           required: boolean | null
           sent_at: string | null
           signed_document_url: string | null
+          source_document_id: string | null
           status: string
           updated_at: string
           user_id: string
           viewed_at: string | null
         }
         Insert: {
+          ai_confidence?: number | null
+          ai_generated?: boolean
           approval_side: string
           approval_type?: string | null
           approver_email?: string | null
@@ -1255,18 +1264,25 @@ export type Database = {
           expired_at?: string | null
           id?: string
           last_reminder_at?: string | null
+          linked_checklist_item_id?: string | null
+          linked_condition_id?: string | null
+          packet_name?: string | null
+          packet_type?: string | null
           recipient_id_ds?: string | null
           related_document_id?: string | null
           reminder_count?: number | null
           required?: boolean | null
           sent_at?: string | null
           signed_document_url?: string | null
+          source_document_id?: string | null
           status?: string
           updated_at?: string
           user_id: string
           viewed_at?: string | null
         }
         Update: {
+          ai_confidence?: number | null
+          ai_generated?: boolean
           approval_side?: string
           approval_type?: string | null
           approver_email?: string | null
@@ -1283,12 +1299,17 @@ export type Database = {
           expired_at?: string | null
           id?: string
           last_reminder_at?: string | null
+          linked_checklist_item_id?: string | null
+          linked_condition_id?: string | null
+          packet_name?: string | null
+          packet_type?: string | null
           recipient_id_ds?: string | null
           related_document_id?: string | null
           reminder_count?: number | null
           required?: boolean | null
           sent_at?: string | null
           signed_document_url?: string | null
+          source_document_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -1300,6 +1321,27 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_approvals_linked_checklist_item_id_fkey"
+            columns: ["linked_checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "closing_checklist_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_approvals_linked_condition_id_fkey"
+            columns: ["linked_condition_id"]
+            isOneToOne: false
+            referencedRelation: "conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_approvals_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
             referencedColumns: ["id"]
           },
         ]
