@@ -349,6 +349,28 @@ export async function executeRunDiscrepancyCheck(dealId: string): Promise<Newton
   return callNewtonAction('run_discrepancy_check', { deal_id: dealId });
 }
 
+export async function executeSummarizeClosingRisks(dealId: string): Promise<NewtonActionResult> {
+  return callNewtonAction('summarize_closing_risks', { deal_id: dealId });
+}
+
+export async function executeSuggestNextActions(
+  dealId: string,
+  scope: 'checklist' | 'cp' | 'all' = 'all',
+): Promise<NewtonActionResult> {
+  return callNewtonAction('suggest_next_actions', { deal_id: dealId, scope });
+}
+
+export async function executePredictDelays(dealId: string): Promise<NewtonActionResult> {
+  return callNewtonAction('predict_delays', { deal_id: dealId });
+}
+
+export async function executeDraftCertificate(
+  dealId: string,
+  certificateType = "Officer's Closing Certificate",
+): Promise<NewtonActionResult> {
+  return callNewtonAction('draft_certificate', { deal_id: dealId, certificate_type: certificateType });
+}
+
 export const SUPPORTED_ACTIONS_TEXT = `I can't complete that yet. I can help you with:
 - **Create a new deal**
 - **Show all deals** / **Open a deal by name**
@@ -356,7 +378,10 @@ export const SUPPORTED_ACTIONS_TEXT = `I can't complete that yet. I can help you
 - **Upload/review deal documents**
 - **Parse funds flow & wire instructions**
 - **Run wire discrepancy checks**
-- **Summarize readiness** / **List blockers**
+- **Summarize readiness** / **List blockers** / **Summarize closing risks**
+- **Suggest next actions** for checklist or conditions precedent
+- **Predict delays** to the closing date
+- **Draft a closing certificate** (Officer's, Secretary's, Incumbency, etc.)
 - **What should I do next?**
 - **Execute the deal** (checks readiness)
 - **Generate KYC/KYB requests**
