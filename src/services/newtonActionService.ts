@@ -132,6 +132,12 @@ const INTENT_PATTERNS: IntentPattern[] = [
   { pattern: /\b(generate|create|send|prepare)\b.*\b(kyc|kyb).*(request|check|verification)\b/i, action: 'generate_kyc_requests', scope: 'deal' },
   // ── Approval Package ──
   { pattern: /\b(prepare|generate|create)\b.*\b(approval|sign.?off)\b.*\b(package|bundle)\b/i, action: 'prepare_approval_package', scope: 'deal' },
+  // ── AI Capabilities ──
+  { pattern: /\b(summari[sz]e|what\s+are|show\s+me)\b.*\b(closing\s+risks?|deal\s+risks?|risk\s+(?:summary|profile|assessment))\b/i, action: 'summarize_closing_risks', scope: 'deal' },
+  { pattern: /\b(suggest|recommend|what\s+are\s+the)\b.*\b(next\s+actions?|next\s+steps?\s+for\s+(?:checklist|cp|conditions?))\b/i, action: 'suggest_next_actions', scope: 'deal' },
+  { pattern: /\b(predict|forecast|estimate)\b.*\b(delay|slippage|closing\s+date|timing)\b/i, action: 'predict_delays', scope: 'deal' },
+  { pattern: /\b(will|are)\b.*\b(we|this\s+deal)\b.*\b(close\s+on\s+time|miss\s+(?:the\s+)?closing)\b/i, action: 'predict_delays', scope: 'deal' },
+  { pattern: /\b(draft|generate|prepare|create)\b.*\b(certificate|officer'?s?\s+certificate|secretary'?s?\s+certificate|closing\s+certificate|incumbency)\b/i, action: 'draft_certificate', scope: 'deal' },
   // ── Metadata ──
   { pattern: /\b(update|change|modify|edit)\b.*\b(deal|transaction)\b.*\b(name|value|date|buyer|seller|status)\b/i, action: 'update_deal_metadata', scope: 'deal' },
 ];
