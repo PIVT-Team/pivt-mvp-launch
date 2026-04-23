@@ -1,6 +1,6 @@
 import {
   Briefcase, History, Settings, FileBarChart, Plug, Users, Network, Clock, Brain, Home, LineChart,
-  HelpCircle, MessageSquareText, Banknote, BookOpen, ShieldAlert, ListChecks, ClipboardCheck,
+  HelpCircle, MessageSquareText, Banknote, BookOpen, ShieldAlert, ListChecks, ClipboardCheck, FileSignature,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -28,6 +28,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
         { label: 'Deals', icon: Briefcase, path: 'deals', iconColor: '#5B3DF5' },
         { label: 'Closing Checklist', icon: ListChecks, path: 'closing-checklist', iconColor: '#22C55E' },
         { label: 'Conditions Precedent', icon: ClipboardCheck, path: 'conditions-precedent', iconColor: '#0EA5E9' },
+        { label: 'Signature Packets', icon: FileSignature, path: 'signature-packets', iconColor: '#5B3DF5' },
         { label: 'Intelligence', icon: LineChart, path: 'intelligence', iconColor: '#0EA5E9' },
         { label: 'Timeline', icon: Clock, path: 'timeline', iconColor: '#F59E0B' },
         { label: 'Communications', icon: MessageSquareText, path: 'communications', iconColor: '#2F6BFF' },
