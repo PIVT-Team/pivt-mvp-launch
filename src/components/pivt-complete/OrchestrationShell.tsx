@@ -46,26 +46,26 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
   const sectionLabel = SECTION_LABEL[activeSection] ?? '';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_280px] gap-6 px-6 lg:px-8 py-6 lg:py-8 w-full max-w-[1600px] mx-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_300px] gap-8 lg:gap-10 px-6 lg:px-10 py-8 lg:py-10 w-full max-w-[1600px] mx-auto">
       {/* ──────────────────────────────────────────────────────────────── */}
       {/* LEFT — Workspace Checklist (sticky)                             */}
       {/* ──────────────────────────────────────────────────────────────── */}
       <aside className="hidden lg:block">
-        <div className="sticky top-4 space-y-4">
-          <div className="pivt-card p-4">
-            <div className="flex items-center gap-2 mb-3">
+        <div className="sticky top-6 space-y-6">
+          <div className="pivt-card p-6 shadow-sm">
+            <div className="flex items-center gap-2.5 mb-4">
               <ListChecks className="w-4 h-4 text-accent" />
               <h3 className="text-[13px] font-semibold text-foreground">Workspace Checklist</h3>
             </div>
-            <p className="text-[11px] text-muted-foreground/70 mb-3 leading-relaxed">
+            <p className="text-[11px] text-muted-foreground/70 mb-5 leading-relaxed">
               0 of 0 conditions complete
             </p>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.key}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md text-[12px] text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-[12px] text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
                 >
                   <cat.icon className={`w-3.5 h-3.5 ${cat.tone}`} />
                   <span className="flex-1 text-left">{cat.label}</span>
@@ -74,26 +74,26 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
               ))}
             </div>
 
-            <div className="mt-4 pt-3 border-t border-border/40 space-y-1.5">
-              <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-[12px] text-muted-foreground hover:text-foreground">
+            <div className="mt-5 pt-4 border-t border-border/40 space-y-1">
+              <Button variant="ghost" size="sm" className="w-full justify-start h-9 text-[12px] text-muted-foreground hover:text-foreground">
                 <ArrowRight className="w-3 h-3" /> Add item
               </Button>
-              <Button variant="ghost" size="sm" className="w-full justify-start h-8 text-[12px] text-muted-foreground hover:text-foreground">
+              <Button variant="ghost" size="sm" className="w-full justify-start h-9 text-[12px] text-muted-foreground hover:text-foreground">
                 <ArrowRight className="w-3 h-3" /> Export PDF
               </Button>
             </div>
           </div>
 
           {/* Bulk Actions */}
-          <div className="pivt-card p-4">
-            <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60 mb-2.5">
+          <div className="pivt-card p-6 shadow-sm">
+            <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60 mb-3.5">
               Bulk Actions
             </h4>
-            <div className="space-y-1.5">
-              <Button variant="outline" size="sm" className="w-full justify-start h-8 text-[12px]">
+            <div className="space-y-2">
+              <Button variant="outline" size="sm" className="w-full justify-start h-9 text-[12px]">
                 Mark all reviewed
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start h-8 text-[12px]">
+              <Button variant="outline" size="sm" className="w-full justify-start h-9 text-[12px]">
                 Assign owners
               </Button>
             </div>
