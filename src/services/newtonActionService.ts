@@ -32,6 +32,10 @@ export type NewtonActionType =
   | 'parse_funds_flow'
   | 'run_discrepancy_check'
   | 'generate_wire_pack'
+  | 'summarize_closing_risks'
+  | 'suggest_next_actions'
+  | 'predict_delays'
+  | 'draft_certificate'
   | 'unsupported';
 
 export type NewtonIntentScope = 'global' | 'deal' | 'info';
@@ -128,6 +132,12 @@ const INTENT_PATTERNS: IntentPattern[] = [
   { pattern: /\b(generate|create|send|prepare)\b.*\b(kyc|kyb).*(request|check|verification)\b/i, action: 'generate_kyc_requests', scope: 'deal' },
   // ── Approval Package ──
   { pattern: /\b(prepare|generate|create)\b.*\b(approval|sign.?off)\b.*\b(package|bundle)\b/i, action: 'prepare_approval_package', scope: 'deal' },
+  // ── AI Capabilities ──
+  { pattern: /\b(summari[sz]e|what\s+are|show\s+me)\b.*\b(closing\s+risks?|deal\s+risks?|risk\s+(?:summary|profile|assessment))\b/i, action: 'summarize_closing_risks', scope: 'deal' },
+  { pattern: /\b(suggest|recommend|what\s+are\s+the)\b.*\b(next\s+actions?|next\s+steps?\s+for\s+(?:checklist|cp|conditions?))\b/i, action: 'suggest_next_actions', scope: 'deal' },
+  { pattern: /\b(predict|forecast|estimate)\b.*\b(delay|slippage|closing\s+date|timing)\b/i, action: 'predict_delays', scope: 'deal' },
+  { pattern: /\b(will|are)\b.*\b(we|this\s+deal)\b.*\b(close\s+on\s+time|miss\s+(?:the\s+)?closing)\b/i, action: 'predict_delays', scope: 'deal' },
+  { pattern: /\b(draft|generate|prepare|create)\b.*\b(certificate|officer'?s?\s+certificate|secretary'?s?\s+certificate|closing\s+certificate|incumbency)\b/i, action: 'draft_certificate', scope: 'deal' },
   // ── Metadata ──
   { pattern: /\b(update|change|modify|edit)\b.*\b(deal|transaction)\b.*\b(name|value|date|buyer|seller|status)\b/i, action: 'update_deal_metadata', scope: 'deal' },
 ];
@@ -223,6 +233,14 @@ export function detectIntent(message: string): NewtonIntent {
       let params: Record<string, any> = {};
       if (action === 'create_deal') params = parseCreateDealPrefill(message);
       if (action === 'open_deal') params = { deal_name: extractDealNameFromPrompt(message) };
+      if (action === 'suggest_next_actions') {
+        const m = message.match(/\b(checklist|cp|conditions?\s+precedent)\b/i);
+        params = { scope: m ? (m[1].toLowerCase().startsWith('check') ? 'checklist' : 'cp') : 'all' };
+      }
+      if (action === 'draft_certificate') {
+        const m = message.match(/\b(officer'?s?|secretary'?s?|incumbency|closing|good\s+standing|bring[- ]down)\b[^.\n]*?certificate/i);
+        params = { certificate_type: m ? `${m[0]}` : "Officer's Closing Certificate" };
+      }
       return {
         action,
         scope,
@@ -331,6 +349,28 @@ export async function executeRunDiscrepancyCheck(dealId: string): Promise<Newton
   return callNewtonAction('run_discrepancy_check', { deal_id: dealId });
 }
 
+export async function executeSummarizeClosingRisks(dealId: string): Promise<NewtonActionResult> {
+  return callNewtonAction('summarize_closing_risks', { deal_id: dealId });
+}
+
+export async function executeSuggestNextActions(
+  dealId: string,
+  scope: 'checklist' | 'cp' | 'all' = 'all',
+): Promise<NewtonActionResult> {
+  return callNewtonAction('suggest_next_actions', { deal_id: dealId, scope });
+}
+
+export async function executePredictDelays(dealId: string): Promise<NewtonActionResult> {
+  return callNewtonAction('predict_delays', { deal_id: dealId });
+}
+
+export async function executeDraftCertificate(
+  dealId: string,
+  certificateType = "Officer's Closing Certificate",
+): Promise<NewtonActionResult> {
+  return callNewtonAction('draft_certificate', { deal_id: dealId, certificate_type: certificateType });
+}
+
 export const SUPPORTED_ACTIONS_TEXT = `I can't complete that yet. I can help you with:
 - **Create a new deal**
 - **Show all deals** / **Open a deal by name**
@@ -338,7 +378,10 @@ export const SUPPORTED_ACTIONS_TEXT = `I can't complete that yet. I can help you
 - **Upload/review deal documents**
 - **Parse funds flow & wire instructions**
 - **Run wire discrepancy checks**
-- **Summarize readiness** / **List blockers**
+- **Summarize readiness** / **List blockers** / **Summarize closing risks**
+- **Suggest next actions** for checklist or conditions precedent
+- **Predict delays** to the closing date
+- **Draft a closing certificate** (Officer's, Secretary's, Incumbency, etc.)
 - **What should I do next?**
 - **Execute the deal** (checks readiness)
 - **Generate KYC/KYB requests**

@@ -640,6 +640,62 @@ Deno.serve(async (req) => {
         });
       }
 
+      // ─── AI-Powered Capabilities (Lovable AI Gateway) ───
+      case "summarize_closing_risks": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+        const ctx = await gatherDealRiskContext(admin, dealId);
+        const out = await callLovableAI(
+          "You are Newton, a senior M&A closing risk analyst. Be concise, specific, and institutional in tone. Use markdown with bold headings and bullet points. Identify the TOP risks that could delay or derail closing, ranked by severity.",
+          `Summarize the top closing risks for this deal based on the following snapshot:\n\n${JSON.stringify(ctx, null, 2)}\n\nReturn:\n- **Top 3 Risks** (ranked, with severity tags 🔴/🟡/🟢)\n- **Likely Impact** on closing date\n- **Recommended Mitigation** (one sentence each)`
+        );
+        return json({ success: true, message: out });
+      }
+
+      case "suggest_next_actions": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+        const ctx = await gatherDealRiskContext(admin, dealId);
+        const scope = params?.scope || "all"; // "checklist" | "cp" | "all"
+        const out = await callLovableAI(
+          "You are Newton, an M&A closing copilot. Recommend the next 3-5 highest-leverage actions the deal team should take RIGHT NOW. Be specific and actionable, not generic. Use markdown with checkboxes.",
+          `Scope: ${scope} (checklist items and/or conditions precedent).\n\nDeal snapshot:\n${JSON.stringify(ctx, null, 2)}\n\nReturn a prioritized action list:\n- [ ] **Action** — Why it matters (1 line)\n\nFocus on unblocking checklist items, satisfying outstanding CPs, and clearing critical discrepancies.`
+        );
+        return json({ success: true, message: out });
+      }
+
+      case "predict_delays": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+        const ctx = await gatherDealRiskContext(admin, dealId);
+        const { data: deal } = await admin
+          .from("deals")
+          .select("deal_name, signing_date, closing_date, deal_type")
+          .eq("id", dealId)
+          .maybeSingle();
+        const out = await callLovableAI(
+          "You are Newton, a deal-timing forecaster. Predict whether this deal will hit its target closing date based on current pace and outstanding items. Be quantitative where possible (estimated slippage in days). Use markdown.",
+          `Deal: ${JSON.stringify(deal)}\n\nSnapshot:\n${JSON.stringify(ctx, null, 2)}\n\nReturn:\n- **Predicted Closing Date** vs target\n- **Estimated Slippage** (days)\n- **Confidence** (Low/Medium/High)\n- **Key Drivers** of delay (bullet list)`
+        );
+        return json({ success: true, message: out });
+      }
+
+      case "draft_certificate": {
+        const dealId = params?.deal_id;
+        if (!dealId) return json({ success: false, error: "deal_id required" }, 400);
+        const certType = params?.certificate_type || "Officer's Closing Certificate";
+        const { data: deal } = await admin
+          .from("deals")
+          .select("deal_name, deal_number, buyer, seller, target_company, closing_date, jurisdiction, deal_value, currency")
+          .eq("id", dealId)
+          .maybeSingle();
+        const out = await callLovableAI(
+          "You are Newton, an M&A documentation drafter. Produce a clean, professional first-draft of the requested closing certificate. Use formal legal style, proper structure (Title, Recitals, Certifications, Signature Block), and placeholder brackets [LIKE_THIS] where info is missing. Output as markdown.",
+          `Certificate type: ${certType}\n\nDeal: ${JSON.stringify(deal)}\n\nDraft a complete certificate ready for counsel review.`
+        );
+        return json({ success: true, message: out });
+      }
+
       default:
         return json({ success: false, error: `Unknown action: ${action}` }, 400);
     }
@@ -656,4 +712,60 @@ function json(data: Record<string, unknown>, status = 200) {
       "Content-Type": "application/json",
     },
   });
+}
+
+// ─── AI Helpers ──────────────────────────────────────────────────
+
+async function callLovableAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) {
+    return "⚠️ AI gateway is not configured. Please contact support.";
+  }
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+    if (resp.status === 429) return "⚠️ AI rate limit reached — please try again in a moment.";
+    if (resp.status === 402) return "⚠️ AI credits exhausted for this workspace.";
+    if (!resp.ok) {
+      const t = await resp.text();
+      console.error("Lovable AI error:", resp.status, t);
+      return `⚠️ AI gateway error (${resp.status}). Please retry.`;
+    }
+    const data = await resp.json();
+    return data?.choices?.[0]?.message?.content || "_(no response)_";
+  } catch (e) {
+    console.error("callLovableAI error:", e);
+    return `⚠️ AI request failed: ${e instanceof Error ? e.message : "Unknown error"}`;
+  }
+}
+
+async function gatherDealRiskContext(admin: any, dealId: string) {
+  const [condRes, appRes, docsRes, discRes, stakRes, checklistRes] = await Promise.all([
+    admin.from("conditions").select("title, status, due_date, at_risk, owner_name").eq("deal_id", dealId),
+    admin.from("deal_approvals").select("approval_type, approver_name, status, sent_at").eq("deal_id", dealId),
+    admin.from("contract_documents").select("filename, doc_type, status").eq("deal_id", dealId),
+    admin.from("discrepancies").select("message, severity, status, object_type").eq("deal_id", dealId).neq("status", "resolved"),
+    admin.from("cap_table_entries").select("shareholder_name, role, verification_status").eq("deal_id", dealId),
+    admin.from("closing_checklist_items").select("title, status, due_date, category").eq("deal_id", dealId),
+  ]);
+  return {
+    conditions: condRes.data || [],
+    approvals: appRes.data || [],
+    documents: docsRes.data || [],
+    discrepancies: discRes.data || [],
+    stakeholders: stakRes.data || [],
+    checklist: checklistRes.data || [],
+  };
 }
