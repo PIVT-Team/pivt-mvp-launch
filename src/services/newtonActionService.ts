@@ -50,6 +50,8 @@ export interface NewtonCreateDealParams {
   escrow_amount?: number;
   internal_reference?: string;
   primary_deal_owner?: string;
+  template_id?: string;
+  template_version?: string;
 }
 
 export interface NewtonIntent {
@@ -273,11 +275,15 @@ export async function executeCreateDeal(
 
   if (result.success && result.data) {
     const dealNumber = result.data.deal_number || result.data.deal_id;
+    const templateLine = params.template_id
+      ? `- **Template applied:** ${params.template_version || 'Selected template'}\n`
+      : '';
     return {
       success: true,
       message:
         `**${params.deal_name}** created successfully.\n\n` +
         `- **Matter ID:** ${dealNumber}\n` +
+        templateLine +
         `- **Readiness:** Initialized in draft state\n\n` +
         `**Next recommended actions:**\n` +
         `- Upload stakeholder list\n` +
