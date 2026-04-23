@@ -399,7 +399,7 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
         </div>
       )}
 
-      {/* Orchestration Hub */}
+      {/* [orchestration-layer] Orchestration Hub — additive, no layout impact */}
       <OrchestrationHub />
     </div>
   );
