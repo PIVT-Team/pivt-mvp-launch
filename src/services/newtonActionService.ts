@@ -50,6 +50,8 @@ export interface NewtonCreateDealParams {
   escrow_amount?: number;
   internal_reference?: string;
   primary_deal_owner?: string;
+  template_id?: string;
+  template_version?: string;
 }
 
 export interface NewtonIntent {
@@ -271,13 +273,43 @@ export async function executeCreateDeal(
 ): Promise<NewtonActionResult> {
   const result = await callNewtonAction('create_deal', params);
 
+   if (result.success && result.data?.deal_id && params.template_id) {
+    const applyResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/apply_checklist_template_to_deal`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: ANON_KEY,
+        Authorization: `Bearer ${ANON_KEY}`,
+      },
+      body: JSON.stringify({ _deal_id: result.data.deal_id, _template_id: params.template_id }),
+    });
+
+    if (!applyResp.ok) {
+      return {
+        success: true,
+        message: `**${params.deal_name}** was created, but the checklist template could not be applied automatically.`,
+        data: {
+          deal_id: result.data.deal_id,
+          deal_name: result.data.deal_name,
+          deal_number: result.data.deal_number || result.data.deal_id,
+          template_apply_failed: true,
+        },
+        navigateTo: 'workspace',
+      };
+    }
+  }
+
   if (result.success && result.data) {
     const dealNumber = result.data.deal_number || result.data.deal_id;
+    const templateLine = params.template_id
+      ? `- **Template applied:** ${params.template_version || 'Selected template'}\n`
+      : '';
     return {
       success: true,
       message:
         `**${params.deal_name}** created successfully.\n\n` +
         `- **Matter ID:** ${dealNumber}\n` +
+        templateLine +
         `- **Readiness:** Initialized in draft state\n\n` +
         `**Next recommended actions:**\n` +
         `- Upload stakeholder list\n` +
