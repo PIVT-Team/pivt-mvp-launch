@@ -46,6 +46,8 @@ Deno.serve(async (req) => {
           visibility: "private",
           is_demo: false,
           seed_key: p.internal_reference || null,
+          template_id: p.template_id || null,
+          template_version: p.template_version || null,
         }).select().single();
 
         if (error) {
@@ -75,6 +77,12 @@ Deno.serve(async (req) => {
             action: `Newton created deal: ${p.deal_name}`,
             details: { source: "newton", timestamp: new Date().toISOString() },
           }),
+          p.template_id
+            ? admin.rpc("apply_checklist_template_to_deal", {
+                _deal_id: data.id,
+                _template_id: p.template_id,
+              })
+            : Promise.resolve({ data: null, error: null }),
         ]);
 
         return json({
@@ -82,6 +90,8 @@ Deno.serve(async (req) => {
           deal_id: data.id,
           deal_name: data.deal_name,
           deal_number: (data as any).deal_number || data.id,
+          template_id: p.template_id || null,
+          template_version: p.template_version || null,
         });
       }
 
