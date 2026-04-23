@@ -108,30 +108,34 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
         initial={{ opacity: 0, y: 4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-        className="min-w-0"
+        className="min-w-0 order-1 lg:order-2"
       >
         {/* Primary surface — the dedicated cover (Checklist / Packets / Book)
             owns the center column. Wrapped in a pivt-card so it reads as the
             main focus while left/right remain supporting context. */}
-        <div className="pivt-card shadow-sm p-6 lg:p-8">
+        <div className="pivt-card shadow-sm p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </motion.section>
 
       {/* ──────────────────────────────────────────────────────────────── */}
-      {/* RIGHT — Next Action + Verification (sticky)                     */}
+      {/* RIGHT — Next Action + Verification (sticky on desktop)          */}
       {/* ──────────────────────────────────────────────────────────────── */}
-      <aside className="hidden lg:block">
-        <div className="sticky top-6 space-y-6">
-          {/* Next Required Action */}
-          <div className="pivt-card p-6 shadow-sm border-accent/30">
+      <aside className="order-3">
+        <div className="lg:sticky lg:top-6 space-y-6">
+          {/* Next Required Action — elevated treatment so it stands out
+              clearly without competing with the center surface. */}
+          <div
+            className="pivt-card p-6 shadow-md hover:shadow-lg transition-shadow border-accent/40"
+            style={{ background: 'linear-gradient(180deg, hsl(var(--accent) / 0.06), transparent 70%)' }}
+          >
             <div className="flex items-center gap-2 mb-3">
               <AlertTriangle className="w-3.5 h-3.5 text-accent" />
               <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-accent">
                 Next Required Action
               </h4>
             </div>
-            <p className="text-[13px] font-semibold text-foreground leading-snug mb-2">
+            <p className="text-[14px] font-semibold text-foreground leading-snug mb-2">
               {selectedDealId ? `Review ${sectionLabel || 'pending items'}` : 'Select a deal to begin'}
             </p>
             <p className="text-[11px] text-muted-foreground/70 leading-relaxed mb-4">
@@ -149,30 +153,34 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
             </Button>
           </div>
 
-          {/* Verification Summary */}
-          <div className="pivt-card p-6 shadow-sm">
+          {/* Verification Summary — readiness bar promoted to the top so it
+              reads as the headline metric. */}
+          <div className="pivt-card p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-2 mb-4">
               <ShieldCheck className="w-3.5 h-3.5 text-validated" />
               <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
                 Verification
               </h4>
             </div>
-            <div className="space-y-3">
+
+            {/* Readiness — prominent */}
+            <div className="mb-5">
+              <div className="flex items-baseline justify-between mb-2">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Readiness</span>
+                <span className="text-[18px] font-semibold font-mono text-foreground tabular-nums">0%</span>
+              </div>
+              <Progress value={0} className="h-1.5" />
+            </div>
+
+            <div className="space-y-3 pt-4 border-t border-border/40">
               <Row icon={CheckCircle2} tone="text-validated" label="Verified" value="0" />
               <Row icon={Clock}        tone="text-warning"   label="Pending"  value="0" />
               <Row icon={AlertTriangle} tone="text-blocking" label="Failed"   value="0" />
             </div>
-            <div className="mt-4 pt-4 border-t border-border/40">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">Readiness</span>
-                <span className="text-[11px] font-mono text-muted-foreground">0%</span>
-              </div>
-              <Progress value={0} className="h-1" />
-            </div>
           </div>
 
           {/* Contextual quick action */}
-          <div className="pivt-card p-6 shadow-sm">
+          <div className="pivt-card p-6 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-2 mb-3">
               <FileSignature className="w-3.5 h-3.5 text-muted-foreground" />
               <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">
