@@ -46,13 +46,13 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
   const sectionLabel = SECTION_LABEL[activeSection] ?? '';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_300px] gap-8 lg:gap-10 px-6 lg:px-10 py-8 lg:py-10 w-full max-w-[1600px] mx-auto">
+    <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)_280px] gap-6 lg:gap-10 px-4 sm:px-6 lg:px-10 py-6 lg:py-10 w-full max-w-[1600px] mx-auto">
       {/* ──────────────────────────────────────────────────────────────── */}
-      {/* LEFT — Workspace Checklist (sticky)                             */}
+      {/* LEFT — Workspace Checklist (sticky on desktop, stacked on mobile)*/}
       {/* ──────────────────────────────────────────────────────────────── */}
-      <aside className="hidden lg:block">
-        <div className="sticky top-6 space-y-6">
-          <div className="pivt-card p-6 shadow-sm">
+      <aside className="order-2 lg:order-1">
+        <div className="lg:sticky lg:top-6 space-y-6">
+          <div className="pivt-card p-6 shadow-sm transition-shadow hover:shadow-md">
             <div className="flex items-center gap-2.5 mb-4">
               <ListChecks className="w-4 h-4 text-accent" />
               <h3 className="text-[13px] font-semibold text-foreground">Workspace Checklist</h3>
@@ -65,7 +65,7 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat.key}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-[12px] text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-[12px] text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
                 >
                   <cat.icon className={`w-3.5 h-3.5 ${cat.tone}`} />
                   <span className="flex-1 text-left">{cat.label}</span>
@@ -85,7 +85,7 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
           </div>
 
           {/* Bulk Actions */}
-          <div className="pivt-card p-6 shadow-sm">
+          <div className="pivt-card p-6 shadow-sm transition-shadow hover:shadow-md">
             <h4 className="text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60 mb-3.5">
               Bulk Actions
             </h4>
