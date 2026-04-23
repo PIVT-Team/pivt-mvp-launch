@@ -110,7 +110,12 @@ export const OrchestrationShell: React.FC<Props> = ({ children }) => {
         transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
         className="min-w-0"
       >
-        {children}
+        {/* Primary surface — the dedicated cover (Checklist / Packets / Book)
+            owns the center column. Wrapped in a pivt-card so it reads as the
+            main focus while left/right remain supporting context. */}
+        <div className="pivt-card shadow-sm p-6 lg:p-8">
+          {children}
+        </div>
       </motion.section>
 
       {/* ──────────────────────────────────────────────────────────────── */}
