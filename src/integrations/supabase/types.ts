@@ -600,6 +600,7 @@ export type Database = {
           deal_id: string
           deleted_from_template: boolean
           description: string | null
+          due_date: string | null
           entity_id: string | null
           id: string
           parent_id: string | null
@@ -624,6 +625,7 @@ export type Database = {
           deal_id: string
           deleted_from_template?: boolean
           description?: string | null
+          due_date?: string | null
           entity_id?: string | null
           id?: string
           parent_id?: string | null
@@ -648,6 +650,7 @@ export type Database = {
           deal_id?: string
           deleted_from_template?: boolean
           description?: string | null
+          due_date?: string | null
           entity_id?: string | null
           id?: string
           parent_id?: string | null
