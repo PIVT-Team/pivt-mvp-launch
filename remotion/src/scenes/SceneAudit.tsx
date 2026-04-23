@@ -19,6 +19,7 @@ export const SceneAudit: React.FC = () => {
   const logoIn = spring({ frame: frame - 138, fps, config: { damping: 18, stiffness: 170 } });
   const scrollY = interpolate(frame, [44, 154], [0, -210], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp', easing: Easing.inOut(Easing.cubic) });
   const panelOpacity = interpolate(frame, [0, 180, 220], [1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
+  const captionOpacity = interpolate(frame, [0, 150, 190], [1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' });
 
   return (
     <SceneFrame>
@@ -79,7 +80,9 @@ export const SceneAudit: React.FC = () => {
           </div>
         </div>
       </AbsoluteFill>
-      <Caption text="PIVT. The intelligence layer behind every close." />
+      <div style={{ opacity: captionOpacity }}>
+        <Caption text="PIVT. The intelligence layer behind every close." />
+      </div>
     </SceneFrame>
   );
 };
