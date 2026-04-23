@@ -233,6 +233,14 @@ export function detectIntent(message: string): NewtonIntent {
       let params: Record<string, any> = {};
       if (action === 'create_deal') params = parseCreateDealPrefill(message);
       if (action === 'open_deal') params = { deal_name: extractDealNameFromPrompt(message) };
+      if (action === 'suggest_next_actions') {
+        const m = message.match(/\b(checklist|cp|conditions?\s+precedent)\b/i);
+        params = { scope: m ? (m[1].toLowerCase().startsWith('check') ? 'checklist' : 'cp') : 'all' };
+      }
+      if (action === 'draft_certificate') {
+        const m = message.match(/\b(officer'?s?|secretary'?s?|incumbency|closing|good\s+standing|bring[- ]down)\b[^.\n]*?certificate/i);
+        params = { certificate_type: m ? `${m[0]}` : "Officer's Closing Certificate" };
+      }
       return {
         action,
         scope,
