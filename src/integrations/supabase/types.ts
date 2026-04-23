@@ -472,11 +472,133 @@ export type Database = {
           },
         ]
       }
+      checklist_template_items: {
+        Row: {
+          auto_apply_if: Json
+          auto_exclude_if: Json
+          condition_type: string | null
+          created_at: string
+          description: string | null
+          id: string
+          parent_id: string | null
+          sort_order: number
+          template_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          auto_apply_if?: Json
+          auto_exclude_if?: Json
+          condition_type?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          parent_id?: string | null
+          sort_order?: number
+          template_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          auto_apply_if?: Json
+          auto_exclude_if?: Json
+          condition_type?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          parent_id?: string | null
+          sort_order?: number
+          template_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_template_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_template_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      checklist_templates: {
+        Row: {
+          base_template_id: string | null
+          created_at: string
+          created_by: string
+          deal_types: string[]
+          id: string
+          is_published: boolean
+          name: string
+          org_id: string
+          previous_version_id: string | null
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          base_template_id?: string | null
+          created_at?: string
+          created_by: string
+          deal_types?: string[]
+          id?: string
+          is_published?: boolean
+          name: string
+          org_id: string
+          previous_version_id?: string | null
+          updated_at?: string
+          version: string
+        }
+        Update: {
+          base_template_id?: string | null
+          created_at?: string
+          created_by?: string
+          deal_types?: string[]
+          id?: string
+          is_published?: boolean
+          name?: string
+          org_id?: string
+          previous_version_id?: string | null
+          updated_at?: string
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_templates_base_template_id_fkey"
+            columns: ["base_template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_templates_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checklist_templates_previous_version_id_fkey"
+            columns: ["previous_version_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       closing_checklist_items: {
         Row: {
           category: string
           created_at: string
           deal_id: string
+          deleted_from_template: boolean
           description: string | null
           entity_id: string | null
           id: string
@@ -489,14 +611,18 @@ export type Database = {
           source: string
           status: string
           supporting_document_id: string | null
+          template_item_id: string | null
+          template_version: string | null
           title: string
           updated_at: string
           waiver_justification: string | null
+          was_added_post_template: boolean
         }
         Insert: {
           category?: string
           created_at?: string
           deal_id: string
+          deleted_from_template?: boolean
           description?: string | null
           entity_id?: string | null
           id?: string
@@ -509,14 +635,18 @@ export type Database = {
           source?: string
           status?: string
           supporting_document_id?: string | null
+          template_item_id?: string | null
+          template_version?: string | null
           title: string
           updated_at?: string
           waiver_justification?: string | null
+          was_added_post_template?: boolean
         }
         Update: {
           category?: string
           created_at?: string
           deal_id?: string
+          deleted_from_template?: boolean
           description?: string | null
           entity_id?: string | null
           id?: string
@@ -529,9 +659,12 @@ export type Database = {
           source?: string
           status?: string
           supporting_document_id?: string | null
+          template_item_id?: string | null
+          template_version?: string | null
           title?: string
           updated_at?: string
           waiver_justification?: string | null
+          was_added_post_template?: boolean
         }
         Relationships: [
           {
@@ -588,6 +721,13 @@ export type Database = {
             columns: ["supporting_document_id"]
             isOneToOne: false
             referencedRelation: "deal_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_checklist_items_template_item_id_fkey"
+            columns: ["template_item_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_template_items"
             referencedColumns: ["id"]
           },
         ]
@@ -1481,6 +1621,8 @@ export type Database = {
           status: string
           target_company: string | null
           template_blueprint: Json | null
+          template_id: string | null
+          template_version: string | null
           updated_at: string
           visibility: string
         }
@@ -1512,6 +1654,8 @@ export type Database = {
           status?: string
           target_company?: string | null
           template_blueprint?: Json | null
+          template_id?: string | null
+          template_version?: string | null
           updated_at?: string
           visibility?: string
         }
@@ -1543,10 +1687,20 @@ export type Database = {
           status?: string
           target_company?: string | null
           template_blueprint?: Json | null
+          template_id?: string | null
+          template_version?: string | null
           updated_at?: string
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "deals_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_templates"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       disbursement_intents: {
         Row: {
@@ -3017,6 +3171,38 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_memberships_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string
@@ -4217,11 +4403,20 @@ export type Database = {
         Args: { p_msg_id: number; p_queue_name: string }
         Returns: boolean
       }
+      apply_checklist_template_to_deal: {
+        Args: { _deal_id: string; _template_id: string }
+        Returns: number
+      }
+      bump_minor_version: { Args: { _version: string }; Returns: string }
       can_access_deal: {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
       }
       can_access_intelligence: { Args: { _user_id: string }; Returns: boolean }
+      can_manage_org_templates: {
+        Args: { _org_id: string; _user_id: string }
+        Returns: boolean
+      }
       can_write_deal: {
         Args: { _deal_id: string; _user_id: string }
         Returns: boolean
@@ -4266,6 +4461,10 @@ export type Database = {
         }
       }
       compute_event_hash: { Args: { event_id: string }; Returns: string }
+      create_checklist_template_version: {
+        Args: { _template_id: string }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -4316,6 +4515,27 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      get_checklist_template_analytics: {
+        Args: { _template_id: string }
+        Returns: {
+          avg_completion_rate_with_template: number
+          avg_completion_rate_without_template: number
+          deals_using_template: number
+          most_commonly_added: Json
+          most_commonly_deleted: Json
+        }[]
+      }
+      get_checklist_template_diff: {
+        Args: { _from_template_id: string; _to_template_id: string }
+        Returns: {
+          change_type: string
+          item_title: string
+          next_condition_type: string
+          next_description: string
+          previous_condition_type: string
+          previous_description: string
+        }[]
       }
       get_condition_precedent_benchmarks: {
         Args: { _deal_id: string }
@@ -4386,6 +4606,10 @@ export type Database = {
       is_approved_admin: { Args: { _user_id: string }; Returns: boolean }
       is_deal_accessible: {
         Args: { _deal_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_org_member: {
+        Args: { _org_id: string; _user_id: string }
         Returns: boolean
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
@@ -4475,6 +4699,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      template_rule_matches: {
+        Args: { _deal_type: string; _deal_value: number; _rules: Json }
+        Returns: boolean
       }
     }
     Enums: {
