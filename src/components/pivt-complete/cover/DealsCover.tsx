@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X, Sparkles, Upload, Wand2 } from 'lucide-react';
+import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X, Sparkles, Upload, Wand2, AlertTriangle, CheckCircle2, Clock, Brain, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
@@ -17,6 +17,14 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
+
+type PortfolioEvent = {
+  id: string;
+  dealName: string;
+  action: string;
+  timestamp: string;
+};
 
 const DEAL_TYPES = [
   'Private Company Share Purchase',
@@ -279,6 +287,9 @@ export const DealsCover: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<RealDeal | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [openDiscrepancies, setOpenDiscrepancies] = useState(0);
+  const [recentEvents, setRecentEvents] = useState<PortfolioEvent[]>([]);
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>(['USD']);
   const [signingDate, setSigningDate] = useState<Date | undefined>();
@@ -307,6 +318,70 @@ export const DealsCover: React.FC = () => {
     loadDeals();
     fetchTemplates().then(setTemplates);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPortfolioSignals = async () => {
+      if (allDeals.length === 0) {
+        if (!cancelled) {
+          setPendingApprovals(0);
+          setOpenDiscrepancies(0);
+          setRecentEvents([]);
+        }
+        return;
+      }
+
+      const dealIds = allDeals.map((deal) => deal.id);
+      const dealMap = new Map(allDeals.map((deal) => [deal.id, deal.deal_name]));
+
+      const [approvalsRes, discrepanciesRes, eventsRes] = await Promise.all([
+        supabase
+          .from('deal_approvals')
+          .select('id', { count: 'exact', head: true })
+          .in('deal_id', dealIds)
+          .eq('status', 'pending'),
+        supabase
+          .from('discrepancies')
+          .select('id', { count: 'exact', head: true })
+          .in('deal_id', dealIds)
+          .in('status', ['open', 'acknowledged']),
+        supabase
+          .from('deal_events')
+          .select('id, event_type, created_at, deal_id')
+          .in('deal_id', dealIds)
+          .order('created_at', { ascending: false })
+          .limit(18),
+      ]);
+
+      const dedupedEvents: PortfolioEvent[] = [];
+      const seen = new Set<string>();
+      for (const event of (eventsRes.data || []) as Array<{ id: string; event_type: string; created_at: string; deal_id: string }>) {
+        const key = `${event.deal_id}::${event.event_type}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        dedupedEvents.push({
+          id: event.id,
+          dealName: dealMap.get(event.deal_id) || 'Unknown Deal',
+          action: event.event_type.replace(/_/g, ' '),
+          timestamp: event.created_at,
+        });
+        if (dedupedEvents.length >= 6) break;
+      }
+
+      if (!cancelled) {
+        setPendingApprovals(approvalsRes.count || 0);
+        setOpenDiscrepancies(discrepanciesRes.count || 0);
+        setRecentEvents(dedupedEvents);
+      }
+    };
+
+    loadPortfolioSignals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allDeals]);
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -371,6 +446,51 @@ export const DealsCover: React.FC = () => {
   const sortedDemo = [...demoDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
   const totalDeals = sortedPrivate.length + sortedDemo.length;
   const showOnboarding = !loading && privateDeals.length === 0;
+  const totalDealValue = allDeals.reduce((sum, deal) => sum + Number(deal.deal_value || 0), 0);
+  const conditionsPending = Object.values(summaries).reduce((sum, summary) => sum + Math.max(summary.conditionsTotal - summary.conditionsMet, 0), 0);
+  const conditionsBlocked = allDeals.filter((deal) => Boolean((deal as any).blocked_reason)).length;
+  const dealsReadyToExecute = allDeals.filter((deal) => {
+    const summary = summaries[deal.id];
+    if (!summary || summary.conditionsTotal === 0) return false;
+    return summary.conditionsMet === summary.conditionsTotal && summary.approvalsGranted === summary.approvalsTotal && deal.status !== 'closed' && deal.status !== 'settled';
+  }).length;
+  const upcomingDeadlines = [...allDeals]
+    .filter((deal) => Boolean(deal.closing_date))
+    .sort((a, b) => new Date(a.closing_date || '').getTime() - new Date(b.closing_date || '').getTime())
+    .slice(0, 5);
+
+  const kpiCards = [
+    { label: 'Active Deals', value: totalDeals, icon: Briefcase, accent: 'text-accent' },
+    { label: 'Total Deal Value', value: fmt(totalDealValue), icon: TrendingUp, accent: 'text-accent' },
+    { label: 'Conditions Pending', value: conditionsPending, icon: Clock, accent: 'text-discrepancy' },
+    { label: 'Conditions Blocked', value: conditionsBlocked, icon: AlertTriangle, accent: 'text-blocking' },
+    { label: 'Deals Ready to Execute', value: dealsReadyToExecute, icon: CheckCircle2, accent: 'text-validated' },
+  ];
+
+  const portfolioInsights = [
+    conditionsBlocked > 0
+      ? {
+          id: 'blocked',
+          icon: AlertTriangle,
+          accent: 'text-blocking',
+          text: `${conditionsBlocked} deal${conditionsBlocked !== 1 ? 's are' : ' is'} blocked by unmet conditions.`,
+        }
+      : null,
+    openDiscrepancies > 0
+      ? {
+          id: 'discrepancies',
+          icon: AlertTriangle,
+          accent: 'text-discrepancy',
+          text: `${openDiscrepancies} open discrepanc${openDiscrepancies === 1 ? 'y remains' : 'ies remain'} across active workstreams.`,
+        }
+      : null,
+    {
+      id: 'approvals',
+      icon: Brain,
+      accent: 'text-accent',
+      text: `${pendingApprovals} approval${pendingApprovals !== 1 ? 's are' : ' is'} still pending across the portfolio.`,
+    },
+  ].filter(Boolean) as Array<{ id: string; icon: typeof Brain; accent: string; text: string }>;
 
   const openCreateInNewton = () => {
     window.dispatchEvent(new CustomEvent('pivt:open-newton'));
@@ -447,49 +567,141 @@ export const DealsCover: React.FC = () => {
         </motion.div>
       ) : (
         <div className="space-y-6">
-          {/* User's private deals */}
-          {sortedPrivate.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Deals</h3>
-              <div className="grid gap-4">
-                {sortedPrivate.map((deal) => (
-                  <DealCard
-                    key={deal.id}
-                    deal={deal}
-                    summary={summaries[deal.id]}
-                    isDemo={false}
-                    onView={() => openDeal(deal.id)}
-                    onDuplicate={() => {}}
-                    duplicating={false}
-                    onDelete={() => setDeleteTarget(deal)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="grid grid-cols-2 xl:grid-cols-5 gap-4">
+            {kpiCards.map((metric) => (
+              <motion.div key={metric.label} {...fadeInUp} className="pivt-metric-card flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="pivt-icon-chip w-8 h-8">
+                    <metric.icon className={`w-4 h-4 ${metric.accent}`} />
+                  </div>
+                  <span className="pivt-metric-label">{metric.label}</span>
+                </div>
+                <span className="pivt-stat-lg text-3xl text-center w-full">{metric.value}</span>
+              </motion.div>
+            ))}
+          </div>
 
-          {/* Demo deals */}
-          {sortedDemo.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Demo Deals</h3>
-              <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/80">
-                <span className="font-semibold">These are read-only demo deals. Create a real deal to get started.</span>
-              </div>
-              <div className="grid gap-4">
-                {sortedDemo.map((deal) => (
-                  <DealCard
-                    key={deal.id}
-                    deal={deal}
-                    summary={summaries[deal.id]}
-                    isDemo={true}
-                    onView={() => openDeal(deal.id)}
-                    onDuplicate={() => handleDuplicate(deal.id)}
-                    duplicating={duplicatingId === deal.id}
-                  />
-                ))}
-              </div>
+          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px] items-start">
+            <div className="space-y-6">
+              {/* User's private deals */}
+              {sortedPrivate.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Your Deals</h3>
+                  <div className="grid gap-4">
+                    {sortedPrivate.map((deal) => (
+                      <DealCard
+                        key={deal.id}
+                        deal={deal}
+                        summary={summaries[deal.id]}
+                        isDemo={false}
+                        onView={() => openDeal(deal.id)}
+                        onDuplicate={() => {}}
+                        duplicating={false}
+                        onDelete={() => setDeleteTarget(deal)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Demo deals */}
+              {sortedDemo.length > 0 && (
+                <div className="space-y-3">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Demo Deals</h3>
+                  <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-sm text-foreground/80">
+                    <span className="font-semibold">These are read-only demo deals. Create a real deal to get started.</span>
+                  </div>
+                  <div className="grid gap-4">
+                    {sortedDemo.map((deal) => (
+                      <DealCard
+                        key={deal.id}
+                        deal={deal}
+                        summary={summaries[deal.id]}
+                        isDemo={true}
+                        onView={() => openDeal(deal.id)}
+                        onDuplicate={() => handleDuplicate(deal.id)}
+                        duplicating={duplicatingId === deal.id}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+
+            <div className="space-y-4 xl:sticky xl:top-4">
+              <motion.section {...fadeInUp} className="pivt-card-ai p-6 relative">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-4 pivt-section-bar">
+                    <div className="pivt-icon-chip w-7 h-7 pivt-icon-purple">
+                      <Brain className="w-3.5 h-3.5" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground">Newton Portfolio Signals</h3>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    {portfolioInsights.map((insight) => (
+                      <div key={insight.id} className="flex items-start gap-2.5">
+                        <insight.icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${insight.accent}`} />
+                        <span className="text-foreground">{insight.text}</span>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => setActiveSection('intelligence')}
+                      className="mt-2 flex items-center gap-1 text-[11px] font-medium text-accent hover:opacity-80 transition-opacity"
+                    >
+                      Open intelligence view <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              </motion.section>
+
+              <motion.section {...fadeInUp} className="pivt-card p-6">
+                <h3 className="text-sm font-semibold text-foreground mb-4 pivt-section-bar">Recent Cross-Deal Activity</h3>
+                <div className="space-y-3">
+                  {recentEvents.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Activity will appear here as portfolio work progresses.</p>
+                  ) : (
+                    recentEvents.map((event) => (
+                      <div key={event.id} className="flex items-start gap-3">
+                        <div className="pivt-icon-chip w-7 h-7 mt-0.5">
+                          <TrendingUp className="w-3.5 h-3.5 text-accent" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-foreground truncate capitalize">{event.action}</p>
+                          <p className="text-xs text-muted-foreground">{event.dealName} · {new Date(event.timestamp).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.section>
+
+              <motion.section {...fadeInUp} className="pivt-card p-6">
+                <h3 className="text-sm font-semibold text-foreground mb-4 pivt-section-bar">Upcoming Deadlines</h3>
+                <div className="space-y-3">
+                  {upcomingDeadlines.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Closing dates will surface here once deals are scheduled.</p>
+                  ) : (
+                    upcomingDeadlines.map((deal) => (
+                      <button
+                        key={deal.id}
+                        onClick={() => openDeal(deal.id)}
+                        className="w-full flex items-start gap-3 text-left rounded-lg hover:bg-muted/30 p-2 -m-2 transition-colors"
+                      >
+                        <div className="pivt-icon-chip w-7 h-7 mt-0.5">
+                          <Clock className="w-3.5 h-3.5 text-discrepancy" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-foreground truncate">{deal.deal_name}</p>
+                          <p className="text-xs text-muted-foreground">Expected close · {deal.closing_date ? new Date(deal.closing_date).toLocaleDateString() : 'TBD'}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                      </button>
+                    ))
+                  )}
+                </div>
+              </motion.section>
+            </div>
+          </div>
         </div>
       )}
 
