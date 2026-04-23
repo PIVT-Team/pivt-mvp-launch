@@ -287,6 +287,9 @@ export const DealsCover: React.FC = () => {
   const [deleteTarget, setDeleteTarget] = useState<RealDeal | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [openDiscrepancies, setOpenDiscrepancies] = useState(0);
+  const [recentEvents, setRecentEvents] = useState<PortfolioEvent[]>([]);
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>(['USD']);
   const [signingDate, setSigningDate] = useState<Date | undefined>();
@@ -315,6 +318,70 @@ export const DealsCover: React.FC = () => {
     loadDeals();
     fetchTemplates().then(setTemplates);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPortfolioSignals = async () => {
+      if (allDeals.length === 0) {
+        if (!cancelled) {
+          setPendingApprovals(0);
+          setOpenDiscrepancies(0);
+          setRecentEvents([]);
+        }
+        return;
+      }
+
+      const dealIds = allDeals.map((deal) => deal.id);
+      const dealMap = new Map(allDeals.map((deal) => [deal.id, deal.deal_name]));
+
+      const [approvalsRes, discrepanciesRes, eventsRes] = await Promise.all([
+        supabase
+          .from('deal_approvals')
+          .select('id', { count: 'exact', head: true })
+          .in('deal_id', dealIds)
+          .eq('status', 'pending'),
+        supabase
+          .from('discrepancies')
+          .select('id', { count: 'exact', head: true })
+          .in('deal_id', dealIds)
+          .in('status', ['open', 'acknowledged']),
+        supabase
+          .from('deal_events')
+          .select('id, event_type, created_at, deal_id')
+          .in('deal_id', dealIds)
+          .order('created_at', { ascending: false })
+          .limit(18),
+      ]);
+
+      const dedupedEvents: PortfolioEvent[] = [];
+      const seen = new Set<string>();
+      for (const event of (eventsRes.data || []) as Array<{ id: string; event_type: string; created_at: string; deal_id: string }>) {
+        const key = `${event.deal_id}::${event.event_type}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        dedupedEvents.push({
+          id: event.id,
+          dealName: dealMap.get(event.deal_id) || 'Unknown Deal',
+          action: event.event_type.replace(/_/g, ' '),
+          timestamp: event.created_at,
+        });
+        if (dedupedEvents.length >= 6) break;
+      }
+
+      if (!cancelled) {
+        setPendingApprovals(approvalsRes.count || 0);
+        setOpenDiscrepancies(discrepanciesRes.count || 0);
+        setRecentEvents(dedupedEvents);
+      }
+    };
+
+    loadPortfolioSignals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allDeals]);
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -379,6 +446,51 @@ export const DealsCover: React.FC = () => {
   const sortedDemo = [...demoDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
   const totalDeals = sortedPrivate.length + sortedDemo.length;
   const showOnboarding = !loading && privateDeals.length === 0;
+  const totalDealValue = allDeals.reduce((sum, deal) => sum + Number(deal.deal_value || 0), 0);
+  const conditionsPending = Object.values(summaries).reduce((sum, summary) => sum + Math.max(summary.conditionsTotal - summary.conditionsMet, 0), 0);
+  const conditionsBlocked = allDeals.filter((deal) => Boolean((deal as any).blocked_reason)).length;
+  const dealsReadyToExecute = allDeals.filter((deal) => {
+    const summary = summaries[deal.id];
+    if (!summary || summary.conditionsTotal === 0) return false;
+    return summary.conditionsMet === summary.conditionsTotal && summary.approvalsGranted === summary.approvalsTotal && deal.status !== 'closed' && deal.status !== 'settled';
+  }).length;
+  const upcomingDeadlines = [...allDeals]
+    .filter((deal) => Boolean(deal.closing_date))
+    .sort((a, b) => new Date(a.closing_date || '').getTime() - new Date(b.closing_date || '').getTime())
+    .slice(0, 5);
+
+  const kpiCards = [
+    { label: 'Active Deals', value: totalDeals, icon: Briefcase, accent: 'text-accent' },
+    { label: 'Total Deal Value', value: fmt(totalDealValue), icon: TrendingUp, accent: 'text-accent' },
+    { label: 'Conditions Pending', value: conditionsPending, icon: Clock, accent: 'text-discrepancy' },
+    { label: 'Conditions Blocked', value: conditionsBlocked, icon: AlertTriangle, accent: 'text-blocking' },
+    { label: 'Deals Ready to Execute', value: dealsReadyToExecute, icon: CheckCircle2, accent: 'text-validated' },
+  ];
+
+  const portfolioInsights = [
+    conditionsBlocked > 0
+      ? {
+          id: 'blocked',
+          icon: AlertTriangle,
+          accent: 'text-blocking',
+          text: `${conditionsBlocked} deal${conditionsBlocked !== 1 ? 's are' : ' is'} blocked by unmet conditions.`,
+        }
+      : null,
+    openDiscrepancies > 0
+      ? {
+          id: 'discrepancies',
+          icon: AlertTriangle,
+          accent: 'text-discrepancy',
+          text: `${openDiscrepancies} open discrepanc${openDiscrepancies === 1 ? 'y remains' : 'ies remain'} across active workstreams.`,
+        }
+      : null,
+    {
+      id: 'approvals',
+      icon: Brain,
+      accent: 'text-accent',
+      text: `${pendingApprovals} approval${pendingApprovals !== 1 ? 's are' : ' is'} still pending across the portfolio.`,
+    },
+  ].filter(Boolean) as Array<{ id: string; icon: typeof Brain; accent: string; text: string }>;
 
   const openCreateInNewton = () => {
     window.dispatchEvent(new CustomEvent('pivt:open-newton'));
