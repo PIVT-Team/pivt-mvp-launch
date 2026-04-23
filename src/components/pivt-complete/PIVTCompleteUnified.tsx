@@ -44,6 +44,13 @@ import { ConditionsPrecedentCover } from './cover/ConditionsPrecedentCover';
 import { SignaturePacketsCover } from './cover/SignaturePacketsCover';
 import { ClosingBookCover } from './cover/ClosingBookCover';
 import { DealContextBar } from './DealContextBar';
+import { OrchestrationShell } from './OrchestrationShell';
+
+// Orchestration tabs that get the 3-column shell wrapper (left checklist nav,
+// center content, right contextual sidebar). All other tabs render unchanged.
+const ORCHESTRATION_SHELL_SECTIONS = new Set<string>([
+  'closing-checklist', 'conditions-precedent', 'signature-packets', 'closing-book',
+]);
 
 // Deal-scoped sections that historically only render *inside* the workspace.
 // If user navigates here without a workspace context, we redirect to deals/workspace.
