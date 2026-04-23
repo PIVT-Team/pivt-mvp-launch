@@ -212,9 +212,9 @@ export const ConditionsPrecedentCover: React.FC = () => {
   // ── Derived ──
   const stats = useMemo(() => {
     const total = items.length;
-    const satisfied = items.filter(i => i.status === 'satisfied').length;
-    const waived = items.filter(i => i.status === 'waived').length;
-    const atRisk = items.filter(i => i.at_risk && i.status !== 'satisfied' && i.status !== 'waived').length;
+    const satisfied = items.filter(i => i.status === 'SATISFIED').length;
+    const waived = items.filter(i => i.status === 'WAIVED').length;
+    const atRisk = items.filter(i => i.at_risk && i.status !== 'SATISFIED' && i.status !== 'WAIVED').length;
     return { total, satisfied, waived, atRisk, pct: total ? Math.round(((satisfied + waived) / total) * 100) : 0 };
   }, [items]);
 
@@ -303,7 +303,7 @@ export const ConditionsPrecedentCover: React.FC = () => {
               const status = normalizeStatus(row.status as string);
               const meta = STATUS_META[status];
               const Icon = meta.icon;
-              const overdue = row.due_date && status !== 'satisfied' && status !== 'waived' && isPast(new Date(row.due_date));
+              const overdue = row.due_date && status !== 'SATISFIED' && status !== 'WAIVED' && isPast(new Date(row.due_date));
               const evidenceDoc = row.evidence_document_id ? docMap[row.evidence_document_id] : undefined;
 
               return (
@@ -396,7 +396,7 @@ export const ConditionsPrecedentCover: React.FC = () => {
 
                   {/* Actions */}
                   <TableCell className="align-top py-3 text-right">
-                    {status !== 'satisfied' ? (
+                    {status !== 'SATISFIED' ? (
                       <Button
                         size="sm" variant="outline"
                         className="h-7 px-2.5 text-xs gap-1.5"
