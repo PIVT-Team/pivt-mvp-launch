@@ -713,3 +713,59 @@ function json(data: Record<string, unknown>, status = 200) {
     },
   });
 }
+
+// ─── AI Helpers ──────────────────────────────────────────────────
+
+async function callLovableAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  const apiKey = Deno.env.get("LOVABLE_API_KEY");
+  if (!apiKey) {
+    return "⚠️ AI gateway is not configured. Please contact support.";
+  }
+  try {
+    const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+      }),
+    });
+    if (resp.status === 429) return "⚠️ AI rate limit reached — please try again in a moment.";
+    if (resp.status === 402) return "⚠️ AI credits exhausted for this workspace.";
+    if (!resp.ok) {
+      const t = await resp.text();
+      console.error("Lovable AI error:", resp.status, t);
+      return `⚠️ AI gateway error (${resp.status}). Please retry.`;
+    }
+    const data = await resp.json();
+    return data?.choices?.[0]?.message?.content || "_(no response)_";
+  } catch (e) {
+    console.error("callLovableAI error:", e);
+    return `⚠️ AI request failed: ${e instanceof Error ? e.message : "Unknown error"}`;
+  }
+}
+
+async function gatherDealRiskContext(admin: any, dealId: string) {
+  const [condRes, appRes, docsRes, discRes, stakRes, checklistRes] = await Promise.all([
+    admin.from("conditions").select("title, status, due_date, at_risk, owner_name").eq("deal_id", dealId),
+    admin.from("deal_approvals").select("approval_type, approver_name, status, sent_at").eq("deal_id", dealId),
+    admin.from("contract_documents").select("filename, doc_type, status").eq("deal_id", dealId),
+    admin.from("discrepancies").select("message, severity, status, object_type").eq("deal_id", dealId).neq("status", "resolved"),
+    admin.from("cap_table_entries").select("shareholder_name, role, verification_status").eq("deal_id", dealId),
+    admin.from("closing_checklist_items").select("title, status, due_date, category").eq("deal_id", dealId),
+  ]);
+  return {
+    conditions: condRes.data || [],
+    approvals: appRes.data || [],
+    documents: docsRes.data || [],
+    discrepancies: discRes.data || [],
+    stakeholders: stakRes.data || [],
+    checklist: checklistRes.data || [],
+  };
+}
