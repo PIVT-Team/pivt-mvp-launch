@@ -57,6 +57,7 @@ import { DealStateInspector } from './DealStateInspector';
 import { WirePackCover } from './WirePackCover';
 import { ExecutionPrepCover } from './ExecutionPrepCover';
 import { AuditConsoleCover } from './AuditConsoleCover';
+import { OrchestrationHub } from './OrchestrationHub';
 
 // ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'audit' | 'comments' | 'ai';
@@ -253,6 +254,9 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
         ))}
       </div>
 
+      {/* Orchestration Hub */}
+      <OrchestrationHub />
+
       {/* Blockers */}
       {blockers.length > 0 && (
         <div className="space-y-2">
@@ -393,6 +397,9 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
           ))}
         </div>
       )}
+
+      {/* Orchestration Hub */}
+      <OrchestrationHub />
     </div>
   );
 };
