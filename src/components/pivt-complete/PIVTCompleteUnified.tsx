@@ -125,8 +125,11 @@ export const PIVTCompleteUnified: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams();
+    const params = new URLSearchParams(searchParams);
     if (activeSection !== 'home') params.set('section', activeSection);
+    else params.delete('section');
+    // Preserve ?dealId= so deal context survives navigation between tabs
+    if (selectedDealId) params.set('dealId', selectedDealId);
     setSearchParams(params, { replace: true });
   }, [activeSection]);
 
@@ -365,7 +368,7 @@ export const PIVTCompleteUnified: React.FC = () => {
 
         <AnimatePresence mode="wait">
           <motion.div
-            key={`cover-${activeSection}`}
+            key={`cover-${activeSection}-${DEAL_AWARE_SECTIONS.has(activeSection) ? selectedDealId || 'none' : 'global'}`}
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
