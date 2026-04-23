@@ -131,7 +131,7 @@ export const ClosingBookCover: React.FC = () => {
   const sections: BookSection[] = useMemo(() => {
     const executedPackets = approvals.filter(a => a.status === 'completed');
     const satisfiedItems = checklist.filter(c => c.status === 'satisfied');
-    const satisfiedCps   = conditions.filter(c => c.status === 'satisfied');
+    const satisfiedCps   = conditions.filter(c => (c.status as string) === 'SATISFIED' || (c.status as string) === 'satisfied');
     const verifiedDocs   = documents.filter(d => d.status === 'verified' || d.status === 'parsed');
 
     return [
@@ -187,7 +187,7 @@ export const ClosingBookCover: React.FC = () => {
     const pillars = [
       approvals.length ? approvals.filter(a => a.status === 'completed').length / approvals.length : 0,
       checklist.length ? checklist.filter(c => c.status === 'satisfied').length / checklist.length : 0,
-      conditions.length ? conditions.filter(c => c.status === 'satisfied').length / conditions.length : 0,
+      conditions.length ? conditions.filter(c => (c.status as string) === 'SATISFIED' || (c.status as string) === 'satisfied').length / conditions.length : 0,
       documents.length ? documents.filter(d => d.status === 'verified' || d.status === 'parsed').length / documents.length : 0,
     ];
     const denom = pillars.filter(p => p > 0 || true).length;
