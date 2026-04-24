@@ -49,7 +49,7 @@ import { OrchestrationShell } from './OrchestrationShell';
 // Orchestration tabs that get the 3-column shell wrapper (left checklist nav,
 // center content, right contextual sidebar). All other tabs render unchanged.
 const ORCHESTRATION_SHELL_SECTIONS = new Set<string>([
-  'closing-checklist', 'conditions-precedent', 'signature-packets', 'closing-book',
+  'workspace', 'closing-checklist', 'conditions-precedent', 'signature-packets', 'closing-book',
 ]);
 
 // Deal-scoped sections that historically only render *inside* the workspace.
