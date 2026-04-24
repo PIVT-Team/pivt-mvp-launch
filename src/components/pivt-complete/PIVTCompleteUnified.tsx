@@ -94,7 +94,7 @@ const coverSections: Record<string, React.FC> = {
 
 export const PIVTCompleteUnified: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const { activeSection, setActiveSection, selectedDealId } = usePIVTStore();
+  const { activeSection, setActiveSection, selectedDealId, setSelectedDealId } = usePIVTStore();
 
   const [sidebarCollapsed, setSidebarCollapsed] = React.useState(false);
   const [commandOpen, setCommandOpen] = React.useState(false);
@@ -127,18 +127,24 @@ export const PIVTCompleteUnified: React.FC = () => {
 
   useEffect(() => {
     const section = searchParams.get('section');
+    const dealId = searchParams.get('dealId');
+
     if (section) setActiveSection(section as ActiveSection);
     else setActiveSection('home' as ActiveSection);
-  }, []);
+
+    if (dealId && dealId !== selectedDealId) {
+      setSelectedDealId(dealId);
+    }
+  }, [searchParams, selectedDealId, setActiveSection, setSelectedDealId]);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);
     if (activeSection !== 'home') params.set('section', activeSection);
     else params.delete('section');
-    // Preserve ?dealId= so deal context survives navigation between tabs
     if (selectedDealId) params.set('dealId', selectedDealId);
+    else params.delete('dealId');
     setSearchParams(params, { replace: true });
-  }, [activeSection]);
+  }, [activeSection, searchParams, selectedDealId, setSearchParams]);
 
   useEffect(() => {
     if (DEAL_SCOPED_SECTIONS.has(activeSection) && activeSection !== 'workspace') {
