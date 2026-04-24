@@ -17,13 +17,10 @@ export const NewtonDealIntelligence: React.FC = () => {
   const [showHint, setShowHint] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // First-time hint logic
+  // Disable the first-time hint bubble; the persistent FAB keeps Newton accessible
+  // without covering workspace content on smaller viewports.
   useEffect(() => {
-    const dismissed = localStorage.getItem(HINT_STORAGE_KEY);
-    if (!dismissed) {
-      const timer = setTimeout(() => setShowHint(true), 2000);
-      return () => clearTimeout(timer);
-    }
+    setShowHint(false);
   }, []);
 
   const dismissHint = useCallback(() => {

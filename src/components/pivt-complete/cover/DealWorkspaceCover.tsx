@@ -787,12 +787,12 @@ const WorkspaceShell: React.FC<{
   const emptyState = getWorkspaceEmptyState(activeStepId, metrics, openNewton);
 
   return (
-    <div className="grid min-h-[600px] gap-6 grid-cols-1 lg:grid-cols-[20rem,minmax(0,1fr)] xl:grid-cols-[22rem,13rem,minmax(0,1fr),20rem] items-start">
-      <div className="min-w-0 order-2 lg:order-1 xl:sticky xl:top-0 xl:self-start">
+    <div className="grid min-h-[600px] grid-cols-1 gap-6 xl:grid-cols-[22rem,13rem,minmax(0,1fr),20rem] items-start">
+      <div className="min-w-0 order-2 xl:order-1 xl:sticky xl:top-0 xl:self-start">
         <ClosingCenterCover mode="frame" />
       </div>
 
-      <div className="min-w-0 order-3 lg:order-2 xl:sticky xl:top-0 xl:self-start">
+      <div className="min-w-0 order-3 xl:order-2 xl:sticky xl:top-0 xl:self-start">
         <WorkspaceSidebar
           activeStepId={activeStepId}
           onStepClick={handleStepClick}
@@ -803,7 +803,7 @@ const WorkspaceShell: React.FC<{
         />
       </div>
 
-      <div className="flex-1 min-w-0 order-1 lg:order-3 lg:col-span-2 xl:col-span-1">
+      <div className="flex-1 min-w-0 order-1 xl:order-3">
         {emptyState ? (
           <WorkspaceEmptyState {...emptyState} />
         ) : (
@@ -832,7 +832,7 @@ const WorkspaceShell: React.FC<{
         )}
       </div>
 
-      <div className="order-4 lg:col-span-2 xl:col-span-1 xl:sticky xl:top-0 xl:self-start">
+      <div className="hidden xl:block order-4 xl:sticky xl:top-0 xl:self-start">
         <NewtonRail />
       </div>
     </div>
