@@ -681,8 +681,7 @@ const WorkspaceSidebar: React.FC<{
   };
 
   return (
-    <div className="w-52 shrink-0 flex flex-col gap-1">
-      {/* Primary nav */}
+    <div className="w-full flex flex-col gap-1">
       <nav className="space-y-0.5">
         {SIDEBAR_NAV.map(item => {
           const isActive = activeStepId === item.id;
@@ -706,10 +705,9 @@ const WorkspaceSidebar: React.FC<{
         })}
       </nav>
 
-      {/* Sub-navigation */}
       {subNavItems && subNavItems.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-border/40">
-          <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+        <div className="mt-3 border-t border-border/40 pt-3">
+          <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">
             {SIDEBAR_NAV.find(s => s.id === activeStepId)?.label}
           </p>
           <div className="space-y-0.5">
@@ -787,23 +785,23 @@ const WorkspaceShell: React.FC<{
   const emptyState = getWorkspaceEmptyState(activeStepId, metrics, openNewton);
 
   return (
-    <div className="grid min-h-[600px] grid-cols-1 gap-6 xl:grid-cols-[22rem,13rem,minmax(0,1fr),20rem] items-start">
-      <div className="min-w-0 order-2 xl:order-1 xl:sticky xl:top-0 xl:self-start">
+    <div className="grid min-h-[600px] grid-cols-1 items-start gap-6 xl:grid-cols-[22rem,minmax(0,1fr)] 2xl:grid-cols-[22rem,minmax(0,1fr),20rem]">
+      <div className="order-2 min-w-0 xl:order-1 xl:sticky xl:top-0 xl:self-start">
         <ClosingCenterCover mode="frame" />
       </div>
 
-      <div className="min-w-0 order-3 xl:order-2 xl:sticky xl:top-0 xl:self-start">
-        <WorkspaceSidebar
-          activeStepId={activeStepId}
-          onStepClick={handleStepClick}
-          subNavItems={subNavItems}
-          activeSubNav={activeSubNav}
-          onSubChange={setActiveSubNav}
-          stageStatuses={metrics?.stageStatuses}
-        />
-      </div>
+      <div className="order-1 min-w-0 space-y-5 xl:order-2">
+        <div className="pivt-card p-4 transition-shadow duration-200 hover:shadow-md">
+          <WorkspaceSidebar
+            activeStepId={activeStepId}
+            onStepClick={handleStepClick}
+            subNavItems={subNavItems}
+            activeSubNav={activeSubNav}
+            onSubChange={setActiveSubNav}
+            stageStatuses={metrics?.stageStatuses}
+          />
+        </div>
 
-      <div className="flex-1 min-w-0 order-1 xl:order-3">
         {emptyState ? (
           <WorkspaceEmptyState {...emptyState} />
         ) : (
@@ -816,23 +814,22 @@ const WorkspaceShell: React.FC<{
               transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             >
               {showingChecklistSurface ? (
-                <div className="rounded-2xl border border-border/60 bg-card/50 p-8 text-center space-y-3">
+                <div className="space-y-3 rounded-2xl border border-border/60 bg-card/50 p-8 text-center">
                   <ShieldCheck className="mx-auto h-8 w-8 text-accent" />
                   <h3 className="text-xl font-semibold">The checklist is now your deal command surface</h3>
-                  <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+                  <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
                     Keep working from the persistent checklist on the left while Newton and this panel stay focused on the selected execution context.
                   </p>
                 </div>
               ) : activeStepId === 'overview'
                 ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
-                : <ContentComponent />
-              }
+                : <ContentComponent />}
             </motion.div>
           </AnimatePresence>
         )}
       </div>
 
-      <div className="hidden xl:block order-4 xl:sticky xl:top-0 xl:self-start">
+      <div className="order-3 hidden min-w-0 2xl:block 2xl:sticky 2xl:top-0 2xl:self-start">
         <NewtonRail />
       </div>
     </div>
