@@ -874,12 +874,49 @@ export const DealWorkspaceCover: React.FC = () => {
   const workflow = useDealWorkflow(metrics);
 
   useEffect(() => {
+    let cancelled = false;
     const fetchId = isRealDeal ? selectedDealId : DEMO_ID_MAP[selectedDealId];
-    if (fetchId) {
-      setLoadingDeal(true);
-      supabase.from('deals').select('*').eq('id', fetchId).single()
-        .then(({ data }) => { setRealDeal(data as RealDeal | null); setLoadingDeal(false); });
-    } else { setRealDeal(null); setLoadingDeal(false); }
+
+    const loadDeal = async () => {
+      if (!fetchId) {
+        if (!cancelled) {
+          setRealDeal(null);
+          setLoadingDeal(false);
+        }
+        return;
+      }
+
+      if (!cancelled) setLoadingDeal(true);
+
+      try {
+        const { data, error } = await supabase
+          .from('deals')
+          .select('*')
+          .eq('id', fetchId)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        if (!cancelled) {
+          setRealDeal((data as RealDeal | null) ?? null);
+        }
+      } catch (error) {
+        console.error('Failed to load workspace deal', error);
+        if (!cancelled) {
+          setRealDeal(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingDeal(false);
+        }
+      }
+    };
+
+    loadDeal();
+
+    return () => {
+      cancelled = true;
+    };
   }, [selectedDealId, isRealDeal]);
 
   useEffect(() => { if (!selectedDealId) setActiveSection('deals'); }, [selectedDealId]);
