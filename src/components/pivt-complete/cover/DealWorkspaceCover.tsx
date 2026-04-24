@@ -733,7 +733,57 @@ const WorkspaceSidebar: React.FC<{
     </div>
   );
 };
-...
+
+const WorkspaceShell: React.FC<{
+  activeStepId: StepId;
+  activeSubNav?: string;
+  setActiveStepId: React.Dispatch<React.SetStateAction<StepId>>;
+  setActiveSubNav: React.Dispatch<React.SetStateAction<string | undefined>>;
+  metrics: ReturnType<typeof useDealMetrics>['metrics'];
+  realDeal: RealDeal | null;
+  isDemoDeal: boolean;
+  demoDealSeedKey: string | null;
+  selectedDealId: string;
+}> = ({ activeStepId, activeSubNav, setActiveStepId, setActiveSubNav, metrics, realDeal, isDemoDeal, demoDealSeedKey, selectedDealId }) => {
+  const { selectedEntity } = usePIVTStore();
+  const { setCurrentTab, setFocusedRecord } = useNewtonContext();
+
+  useEffect(() => {
+    setCurrentTab(STEP_TO_NEWTON_TAB[activeStepId]);
+  }, [activeStepId, setCurrentTab]);
+
+  useEffect(() => {
+    const entityType = selectedEntity?.type ? ENTITY_TO_RECORD_TYPE[selectedEntity.type] : null;
+    const fallbackType = activeSubNav ? SUBNAV_TO_RECORD_TYPE[activeSubNav] ?? null : null;
+
+    if (selectedEntity?.id && entityType) {
+      setFocusedRecord({ id: selectedEntity.id, type: entityType });
+      return;
+    }
+
+    if (activeSubNav && fallbackType) {
+      setFocusedRecord({ id: activeSubNav, type: fallbackType });
+      return;
+    }
+
+    setFocusedRecord({ id: undefined, type: null });
+  }, [activeSubNav, selectedEntity, setFocusedRecord]);
+
+  const handleStepClick = (id: StepId) => {
+    setActiveStepId(id);
+    const subs = STEP_SUB_NAV[id];
+    setActiveSubNav(subs ? subs[0].id : undefined);
+  };
+
+  const subNavItems = STEP_SUB_NAV[activeStepId];
+  const ContentComponent = getContentComponent(activeStepId, activeSubNav);
+  const showingChecklistSurface = activeStepId === 'execution' && activeSubNav === 'closing';
+  const openNewton = () => {
+    window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+    window.dispatchEvent(new CustomEvent('pivt:newton-create-deal'));
+  };
+  const emptyState = getWorkspaceEmptyState(activeStepId, metrics, openNewton);
+
   return (
     <div className="grid min-h-[600px] grid-cols-1 items-start gap-6 xl:grid-cols-[22rem,minmax(0,1fr)] 2xl:grid-cols-[22rem,minmax(0,1fr),20rem]">
       <div className="order-2 min-w-0 xl:order-1 xl:sticky xl:top-0 xl:self-start">
@@ -764,17 +814,16 @@ const WorkspaceSidebar: React.FC<{
               transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             >
               {showingChecklistSurface ? (
-                <div className="rounded-2xl border border-border/60 bg-card/50 p-8 text-center space-y-3">
+                <div className="space-y-3 rounded-2xl border border-border/60 bg-card/50 p-8 text-center">
                   <ShieldCheck className="mx-auto h-8 w-8 text-accent" />
                   <h3 className="text-xl font-semibold">The checklist is now your deal command surface</h3>
-                  <p className="text-sm text-muted-foreground max-w-2xl mx-auto">
+                  <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
                     Keep working from the persistent checklist on the left while Newton and this panel stay focused on the selected execution context.
                   </p>
                 </div>
               ) : activeStepId === 'overview'
                 ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
-                : <ContentComponent />
-              }
+                : <ContentComponent />}
             </motion.div>
           </AnimatePresence>
         )}
