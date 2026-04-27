@@ -2,7 +2,7 @@ import React from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, X, Sparkles } from 'lucide-react';
 import { useDealWizardStore, DocUpload } from '@/stores/dealWizardStore';
 
-const DOC_TYPES = ['Cap Table', 'Waterfall', 'Escrow Agreement', 'Closing Checklist', 'Fee Schedule'];
+const DOC_TYPES = ['Cap Table', 'Waterfall', 'Escrow Agreement', 'Funds Flow', 'Fee Schedule'];
 
 export const Step5Documentation: React.FC = () => {
   const { documents, addDocument, removeDocument, wizardMode } = useDealWizardStore();
@@ -28,7 +28,7 @@ export const Step5Documentation: React.FC = () => {
       { id: `s-${Date.now()}-1`, name: 'Cap Table - ATLAS.xlsx', type: 'Cap Table', status: 'parsed', isSample: true },
       { id: `s-${Date.now()}-2`, name: 'Waterfall Schedule v3.xlsx', type: 'Waterfall', status: 'parsed', isSample: true },
       { id: `s-${Date.now()}-3`, name: 'Escrow Agreement.pdf', type: 'Escrow Agreement', status: 'parsed', isSample: true },
-      { id: `s-${Date.now()}-4`, name: 'Closing Checklist.pdf', type: 'Closing Checklist', status: 'parsed', isSample: true },
+      { id: `s-${Date.now()}-4`, name: 'Funds Flow Memo.pdf', type: 'Funds Flow', status: 'parsed', isSample: true },
       { id: `s-${Date.now()}-5`, name: 'Fee Schedule.xlsx', type: 'Fee Schedule', status: 'parsed', isSample: true },
     ];
     DEMO_DOCS.forEach(d => addDocument(d));

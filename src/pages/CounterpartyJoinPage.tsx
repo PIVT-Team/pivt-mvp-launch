@@ -452,7 +452,7 @@ const CounterpartyJoinPage: React.FC = () => {
                   <div className="rounded-lg border border-border bg-muted/20 p-4">
                     <p className="text-sm text-foreground font-medium">You can view:</p>
                     <ul className="mt-2 space-y-2 text-sm text-muted-foreground list-disc pl-5">
-                      <li>Closing checklist items assigned to you</li>
+                      <li>Payment instructions and wire packs assigned to you</li>
                       <li>Documents shared with you</li>
                     </ul>
                   </div>

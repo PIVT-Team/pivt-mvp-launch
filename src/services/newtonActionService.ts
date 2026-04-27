@@ -378,12 +378,11 @@ export const SUPPORTED_ACTIONS_TEXT = `I can't complete that yet. I can help you
 - **Upload/review deal documents**
 - **Parse funds flow & wire instructions**
 - **Run wire discrepancy checks**
-- **Summarize readiness** / **List blockers** / **Summarize closing risks**
-- **Suggest next actions** for checklist or conditions precedent
-- **Predict delays** to the closing date
-- **Draft a closing certificate** (Officer's, Secretary's, Incumbency, etc.)
+- **Summarize payment readiness** / **List blockers** / **Summarize execution risks**
+- **Suggest next actions** to advance wire readiness
+- **Predict delays** to the planned funding date
 - **What should I do next?**
-- **Execute the deal** (checks readiness)
+- **Execute the deal** (checks payment readiness)
 - **Generate KYC/KYB requests**
-- **Prepare approval package**
+- **Prepare approval package** (payment & wire authorization)
 - **Show me how this deal works** (guided tour)`;

@@ -24,8 +24,8 @@ const SIDE_CONTENT: Record<WizardStep, { needed: string[]; why: string }> = {
     why: 'Each party plays a role in the approval chain. Identifying them now enables sequential sign-off later.',
   },
   documentation: {
-    needed: ['Cap table (CSV/XLSX)', 'Waterfall schedule', 'Escrow agreement', 'Closing checklist', 'Fee schedule'],
-    why: 'Documents are parsed and cross-referenced to detect discrepancies before any funds move.',
+    needed: ['Cap table (CSV/XLSX)', 'Waterfall schedule', 'Escrow agreement', 'Funds flow memo', 'Fee schedule'],
+    why: 'Documents are parsed and cross-referenced to detect payment discrepancies before any funds move.',
   },
   validation: {
     needed: ['All documents uploaded in previous step'],

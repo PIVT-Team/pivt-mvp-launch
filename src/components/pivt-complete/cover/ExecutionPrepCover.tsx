@@ -302,7 +302,7 @@ export const ExecutionPrepCover: React.FC = () => {
 
       {/* ── Checklist ── */}
       <motion.div {...fadeInUp} className="pivt-card border border-border/50 p-6">
-        <h3 className="text-sm font-semibold mb-5 text-muted-foreground uppercase tracking-wider">Closing Checklist</h3>
+        <h3 className="text-sm font-semibold mb-5 text-muted-foreground uppercase tracking-wider">Wire Readiness Checklist</h3>
         <div className="space-y-0">
           {checklist.map((item, index) => {
             const isLast = index === checklist.length - 1;
