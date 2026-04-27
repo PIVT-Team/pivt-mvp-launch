@@ -234,13 +234,6 @@ export const NewtonCreateDealForm: React.FC<Props> = ({
         />
       </div>
 
-      <ChecklistTemplateManager
-        mode="inline-selector"
-        selectedTemplateId={selectedTemplate?.id || null}
-        onSelectTemplate={setSelectedTemplate}
-        dealTypeFilter={form.deal_type || undefined}
-        dealValue={form.deal_value.trim() ? Number(form.deal_value) : undefined}
-      />
 
       {!hasSellerOrTarget && (
         <p className="text-[10px] text-muted-foreground">Provide at least a Seller or Target Company.</p>
