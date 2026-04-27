@@ -193,7 +193,7 @@ export const PIVTCompleteUnified: React.FC = () => {
           />
           {!sidebarCollapsed && (
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] text-muted-foreground/40 mt-1 leading-tight">
-              The intelligence layer behind every close.
+              The payments execution layer for M&A.
             </motion.p>
           )}
         </button>
