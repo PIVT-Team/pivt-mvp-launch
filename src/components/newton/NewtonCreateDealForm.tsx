@@ -104,8 +104,6 @@ export const NewtonCreateDealForm: React.FC<Props> = ({
       jurisdiction: form.jurisdiction.trim() || undefined,
       internal_reference: form.internal_reference.trim() || undefined,
       primary_deal_owner: form.primary_deal_owner.trim(),
-      template_id: selectedTemplate?.id,
-      template_version: selectedTemplate?.version,
     });
   };
 
