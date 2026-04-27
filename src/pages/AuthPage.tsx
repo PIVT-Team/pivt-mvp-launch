@@ -51,7 +51,7 @@ export default function AuthPage() {
           <h1 className="text-2xl font-bold tracking-tight">PIVT</h1>
         </div>
         <p className="text-center text-muted-foreground text-sm mb-8">
-          The intelligence layer behind every close
+          The payments execution layer for M&A
         </p>
 
         <div className="pivt-card p-6">

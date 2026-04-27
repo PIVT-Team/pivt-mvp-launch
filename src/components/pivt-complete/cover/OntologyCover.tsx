@@ -10,7 +10,7 @@ import { toast } from '@/hooks/use-toast';
 const ONTOLOGY_TERMS = [
   {
     term_key: 'deal', display_name: 'Deal', entity_type: 'core_entity', status: 'active',
-    definition: 'A single M&A transaction being executed on PIVT (one closing process).',
+    definition: 'A single M&A transaction whose payments layer is being executed on PIVT.',
     required_fields: ['deal_id (human-readable ID)', 'name', 'currency_base', 'close_date_target', 'status'],
     relationships: ['1 Deal → many Parties', '1 Deal → many Documents', '1 Deal → many Conditions', '1 Deal → many Disbursement Intents', '1 Deal → many Approvals', '1 Deal → many Audit Events'],
     example: 'Project Atlas — Acquisition of Acme Co — Deal ID PIVT-2026-0012',
