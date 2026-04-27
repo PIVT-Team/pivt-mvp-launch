@@ -226,7 +226,7 @@ const DocumentsPane: React.FC<{ rows: DocRow[]; onAction?: (p: string) => void }
   if (rows.length === 0) return (
     <ActionableEmpty
       icon={FileText}
-      message="No documents uploaded yet. Newton can review agreements and extract payment obligations, sign-off requirements, and conditions precedent."
+      message="No documents uploaded yet. Newton can review agreements and extract payment obligations, wire instructions, and disbursement requirements."
       actionLabel="Upload deal documents"
       onAction={() => onAction?.('Upload deal documents')}
     />
