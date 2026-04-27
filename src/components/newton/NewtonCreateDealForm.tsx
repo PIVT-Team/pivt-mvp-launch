@@ -7,10 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus } from 'lucide-react';
-import { ChecklistTemplateManager } from '@/components/pivt-complete/cover/ChecklistTemplateManager';
-import type { Database } from '@/integrations/supabase/types';
-
-type TemplateRow = Database['public']['Tables']['checklist_templates']['Row'];
 
 export interface NewtonCreateDealPayload {
   deal_name: string;
@@ -66,7 +62,6 @@ export const NewtonCreateDealForm: React.FC<Props> = ({
   currentUserLabel,
 }) => {
   const [form, setForm] = useState(DEFAULT_FORM);
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateRow | null>(null);
 
   const initialForm = useMemo(() => ({
     ...DEFAULT_FORM,
