@@ -39,24 +39,13 @@ import { OntologyCover } from './cover/OntologyCover';
 import { PortfolioPaymentsCover } from './cover/PortfolioPaymentsCover';
 import { RiskMonitorCover } from './cover/RiskMonitorCover';
 import { RiskMonitorStrip } from './RiskMonitorStrip';
-import { ClosingChecklistCover } from './cover/ClosingChecklistCover';
-import { ConditionsPrecedentCover } from './cover/ConditionsPrecedentCover';
-import { SignaturePacketsCover } from './cover/SignaturePacketsCover';
-import { ClosingBookCover } from './cover/ClosingBookCover';
 import { DealContextBar } from './DealContextBar';
-import { OrchestrationShell } from './OrchestrationShell';
-
-// Orchestration tabs that get the 3-column shell wrapper (left checklist nav,
-// center content, right contextual sidebar). All other tabs render unchanged.
-const ORCHESTRATION_SHELL_SECTIONS = new Set<string>([
-  'closing-checklist', 'conditions-precedent', 'signature-packets', 'closing-book',
-]);
 
 // Deal-scoped sections that historically only render *inside* the workspace.
 // If user navigates here without a workspace context, we redirect to deals/workspace.
 const DEAL_SCOPED_SECTIONS = new Set([
   'workspace', 'stakeholders', 'documents', 'escrow', 'approvals',
-  'payments', 'ingestion', 'closing', 'verification', 'cap-table',
+  'payments', 'ingestion', 'verification', 'cap-table',
   'waterfall', 'kyc', 'deal-inputs', 'execution',
 ]);
 
@@ -65,8 +54,7 @@ const DEAL_SCOPED_SECTIONS = new Set([
 // their own content and surface their own "Select a deal" empty state when
 // no deal is selected.
 const DEAL_AWARE_SECTIONS = new Set([
-  'closing-checklist', 'conditions-precedent', 'signature-packets',
-  'closing-book', 'timeline', 'communications', 'intelligence',
+  'timeline', 'communications', 'intelligence',
   'intelligence-map', 'workspace',
 ]);
 
@@ -86,10 +74,6 @@ const coverSections: Record<string, React.FC> = {
   'portfolio-payments': PortfolioPaymentsCover,
   'risk-monitor': RiskMonitorCover,
   'ontology': OntologyCover,
-  'closing-checklist': ClosingChecklistCover,
-  'conditions-precedent': ConditionsPrecedentCover,
-  'signature-packets': SignaturePacketsCover,
-  'closing-book': ClosingBookCover,
 };
 
 export const PIVTCompleteUnified: React.FC = () => {
@@ -209,7 +193,7 @@ export const PIVTCompleteUnified: React.FC = () => {
           />
           {!sidebarCollapsed && (
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[10px] text-muted-foreground/40 mt-1 leading-tight">
-              The intelligence layer behind every close.
+              The payments execution layer for M&A.
             </motion.p>
           )}
         </button>
@@ -389,18 +373,10 @@ export const PIVTCompleteUnified: React.FC = () => {
             className={
               activeSection === 'intelligence-map'
                 ? 'p-4 w-full flex-1'
-                : ORCHESTRATION_SHELL_SECTIONS.has(activeSection)
-                  ? 'w-full flex-1'
-                  : 'px-8 py-6 lg:px-10 lg:py-8 max-w-6xl mx-auto w-full'
+                : 'px-8 py-6 lg:px-10 lg:py-8 max-w-6xl mx-auto w-full'
             }
           >
-            {ORCHESTRATION_SHELL_SECTIONS.has(activeSection) ? (
-              <OrchestrationShell>
-                <ActiveCoverSection />
-              </OrchestrationShell>
-            ) : (
-              <ActiveCoverSection />
-            )}
+            <ActiveCoverSection />
           </motion.div>
         </AnimatePresence>
 

@@ -50,15 +50,13 @@ import { ExecutionAuthorityPanel } from './ExecutionAuthorityPanel';
 import { EditDealDrawer } from './EditDealDrawer';
 import { VerificationReviewCover } from './VerificationReviewCover';
 import { VerificationReadinessBanner } from './VerificationReadinessBanner';
-import { ClosingCenterCover } from './ClosingCenterCover';
+
 import { PaymentVerificationCover } from './PaymentVerificationCover';
 import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 import { DealStateInspector } from './DealStateInspector';
 import { WirePackCover } from './WirePackCover';
 import { ExecutionPrepCover } from './ExecutionPrepCover';
 import { AuditConsoleCover } from './AuditConsoleCover';
-// [orchestration-layer] Added — see OrchestrationHub.tsx for merge notes
-import { OrchestrationHub } from './OrchestrationHub';
 
 // ── Step definitions ──
 type StepId = 'overview' | 'stakeholders' | 'deal-inputs' | 'verification' | 'approvals' | 'execution' | 'audit' | 'comments' | 'ai';
@@ -91,7 +89,7 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
   approvals: [],
   execution: [
     { id: 'prep', label: 'Execution Prep' },
-    { id: 'closing', label: 'Closing Readiness' },
+    { id: 'closing', label: 'Wire Readiness' },
     { id: 'wire-pack', label: 'Wire Pack' },
     { id: 'intents', label: 'Disbursement Intents' },
     { id: 'payments', label: 'Payments' },
@@ -255,8 +253,6 @@ const DemoOverviewSection: React.FC<{ seedKey?: string | null; realDeal?: RealDe
         ))}
       </div>
 
-      {/* [orchestration-layer] Orchestration Hub — additive, no layout impact */}
-      <OrchestrationHub />
 
       {/* Blockers */}
       {blockers.length > 0 && (
@@ -399,8 +395,6 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
         </div>
       )}
 
-      {/* [orchestration-layer] Orchestration Hub — additive, no layout impact */}
-      <OrchestrationHub />
     </div>
   );
 };
@@ -594,7 +588,7 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
     case 'approvals': return ApprovalsWorkflowCover;
     case 'execution':
       if (subNavId === 'prep') return ExecutionPrepCover;
-      if (subNavId === 'closing') return ClosingCenterCover;
+      if (subNavId === 'closing') return ExecutionPrepCover;
       if (subNavId === 'wire-pack') return WirePackCover;
       if (subNavId === 'intents') return PaymentsCover;
       if (subNavId === 'payments') return PaymentsCover;
@@ -777,7 +771,6 @@ const WorkspaceShell: React.FC<{
 
   const subNavItems = STEP_SUB_NAV[activeStepId];
   const ContentComponent = getContentComponent(activeStepId, activeSubNav);
-  const showingChecklistSurface = activeStepId === 'execution' && activeSubNav === 'closing';
   const openNewton = () => {
     window.dispatchEvent(new CustomEvent('pivt:open-newton'));
     window.dispatchEvent(new CustomEvent('pivt:newton-create-deal'));
@@ -785,12 +778,8 @@ const WorkspaceShell: React.FC<{
   const emptyState = getWorkspaceEmptyState(activeStepId, metrics, openNewton);
 
   return (
-    <div className="grid min-h-[600px] grid-cols-1 items-start gap-6 xl:grid-cols-[22rem,minmax(0,1fr)] 2xl:grid-cols-[22rem,minmax(0,1fr),20rem]">
-      <div className="order-2 min-w-0 xl:order-1 xl:sticky xl:top-0 xl:self-start">
-        <ClosingCenterCover mode="frame" />
-      </div>
-
-      <div className="order-1 min-w-0 space-y-5 xl:order-2">
+    <div className="grid min-h-[600px] grid-cols-1 items-start gap-6 2xl:grid-cols-[minmax(0,1fr),20rem]">
+      <div className="order-1 min-w-0 space-y-5">
         <div className="pivt-card p-4 transition-shadow duration-200 hover:shadow-md">
           <WorkspaceSidebar
             activeStepId={activeStepId}
@@ -813,15 +802,7 @@ const WorkspaceShell: React.FC<{
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
             >
-              {showingChecklistSurface ? (
-                <div className="space-y-3 rounded-2xl border border-border/60 bg-card/50 p-8 text-center">
-                  <ShieldCheck className="mx-auto h-8 w-8 text-accent" />
-                  <h3 className="text-xl font-semibold">The checklist is now your deal command surface</h3>
-                  <p className="mx-auto max-w-2xl text-sm text-muted-foreground">
-                    Keep working from the persistent checklist on the left while Newton and this panel stay focused on the selected execution context.
-                  </p>
-                </div>
-              ) : activeStepId === 'overview'
+              {activeStepId === 'overview'
                 ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
                 : <ContentComponent />}
             </motion.div>
@@ -829,7 +810,7 @@ const WorkspaceShell: React.FC<{
         )}
       </div>
 
-      <div className="order-3 hidden min-w-0 2xl:block 2xl:sticky 2xl:top-0 2xl:self-start">
+      <div className="order-2 hidden min-w-0 2xl:block 2xl:sticky 2xl:top-0 2xl:self-start">
         <NewtonRail />
       </div>
     </div>

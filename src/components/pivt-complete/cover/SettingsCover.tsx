@@ -17,9 +17,8 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { INTEGRATIONS, STATUS_CONFIG, type IntegrationStatus } from '@/config/integrations';
-import { ChecklistTemplateManager } from './ChecklistTemplateManager';
 
-type SettingsTab = 'team' | 'templates' | 'integrations' | 'escrow-defaults';
+type SettingsTab = 'team' | 'integrations' | 'escrow-defaults';
 
 const roleColors: Record<TeamRole, string> = {
   'Admin': 'border-accent/50 text-accent',
@@ -147,7 +146,6 @@ export const SettingsCover: React.FC = () => {
       <div className="flex gap-1 bg-muted/50 rounded-lg p-1 w-fit">
         {([
           { id: 'team' as SettingsTab, label: 'Team & Roles', icon: Users },
-          { id: 'templates' as SettingsTab, label: 'Checklist Templates', icon: Copy },
           { id: 'integrations' as SettingsTab, label: 'Integrations', icon: Plug },
           { id: 'escrow-defaults' as SettingsTab, label: 'Escrow Defaults', icon: TrendingUp },
         ]).map(tab => (
@@ -312,15 +310,6 @@ export const SettingsCover: React.FC = () => {
         )}
 
         {/* Integrations */}
-        {activeTab === 'templates' && (
-          <motion.div key="templates" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-4">
-            <div className="pivt-card p-5">
-              <h3 className="font-medium mb-1">Closing Checklist Templates</h3>
-              <p className="text-xs text-muted-foreground mb-4">Author, version, diff, publish, and analyze reusable firm templates for deal creation.</p>
-              <ChecklistTemplateManager mode="settings" />
-            </div>
-          </motion.div>
-        )}
 
         {/* Integrations */}
         {activeTab === 'integrations' && (

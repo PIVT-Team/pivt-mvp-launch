@@ -7,10 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Loader2, Plus } from 'lucide-react';
-import { ChecklistTemplateManager } from '@/components/pivt-complete/cover/ChecklistTemplateManager';
-import type { Database } from '@/integrations/supabase/types';
-
-type TemplateRow = Database['public']['Tables']['checklist_templates']['Row'];
 
 export interface NewtonCreateDealPayload {
   deal_name: string;
@@ -66,7 +62,6 @@ export const NewtonCreateDealForm: React.FC<Props> = ({
   currentUserLabel,
 }) => {
   const [form, setForm] = useState(DEFAULT_FORM);
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateRow | null>(null);
 
   const initialForm = useMemo(() => ({
     ...DEFAULT_FORM,
@@ -109,8 +104,6 @@ export const NewtonCreateDealForm: React.FC<Props> = ({
       jurisdiction: form.jurisdiction.trim() || undefined,
       internal_reference: form.internal_reference.trim() || undefined,
       primary_deal_owner: form.primary_deal_owner.trim(),
-      template_id: selectedTemplate?.id,
-      template_version: selectedTemplate?.version,
     });
   };
 
@@ -241,13 +234,6 @@ export const NewtonCreateDealForm: React.FC<Props> = ({
         />
       </div>
 
-      <ChecklistTemplateManager
-        mode="inline-selector"
-        selectedTemplateId={selectedTemplate?.id || null}
-        onSelectTemplate={setSelectedTemplate}
-        dealTypeFilter={form.deal_type || undefined}
-        dealValue={form.deal_value.trim() ? Number(form.deal_value) : undefined}
-      />
 
       {!hasSellerOrTarget && (
         <p className="text-[10px] text-muted-foreground">Provide at least a Seller or Target Company.</p>

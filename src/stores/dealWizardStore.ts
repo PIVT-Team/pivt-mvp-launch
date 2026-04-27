@@ -211,7 +211,7 @@ const DEMO_DOCS: DocUpload[] = [
   { id: 'd1', name: 'Cap Table - ATLAS.xlsx', type: 'Cap Table', status: 'parsed', isSample: true },
   { id: 'd2', name: 'Waterfall Schedule v3.xlsx', type: 'Waterfall', status: 'parsed', isSample: true },
   { id: 'd3', name: 'Escrow Agreement.pdf', type: 'Escrow Agreement', status: 'parsed', isSample: true },
-  { id: 'd4', name: 'Closing Checklist.pdf', type: 'Closing Checklist', status: 'parsed', isSample: true },
+  { id: 'd4', name: 'Funds Flow Memo.pdf', type: 'Funds Flow', status: 'parsed', isSample: true },
   { id: 'd5', name: 'Fee Schedule.xlsx', type: 'Fee Schedule', status: 'parsed', isSample: true },
 ];
 

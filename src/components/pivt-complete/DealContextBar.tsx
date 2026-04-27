@@ -1,23 +1,12 @@
 /**
  * DealContextBar
  * ----------------------------------------------------------------------------
- * Persistent, prominent deal selector that sits above any deal-scoped section
- * (Closing Checklist, Conditions Precedent, Signature Packets, Closing Book,
- * Timeline, Communications, Intelligence, Intelligence Map).
+ * Persistent, prominent deal selector that sits above any deal-aware section
+ * (Timeline, Communications, Intelligence, Intelligence Map).
  *
  * Visual style mirrors the existing "Project ATLAS" deal header inside
  * DealWorkspaceCover (bold deal name + mono dealNumber pill on a card surface)
- * — uses only PIVT design tokens. Sticky positioning + backdrop blur make it
- * persistent as the user scrolls through long orchestration tabs.
- *
- * Behaviour:
- *  - Reads/writes selectedDealId on the unified PIVT store.
- *  - Mirrors selectedDealId into the URL as ?dealId= so navigation deep-links
- *    survive refreshes and can be shared (without changing the section route).
- *  - Lists demo deals (always) and live deals from the deals table when the
- *    user is authenticated, matching IntelligenceDashboardCover's pattern.
- *  - Switching the deal instantly swaps the content below — no navigation,
- *    same active section.
+ * — uses only PIVT design tokens.
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -45,10 +34,6 @@ interface DealOption {
 }
 
 const SECTION_LABELS: Record<string, string> = {
-  'closing-checklist': 'Closing Checklist',
-  'conditions-precedent': 'Conditions Precedent',
-  'signature-packets': 'Signature Packets',
-  'closing-book': 'Closing Book',
   'timeline': 'Timeline',
   'communications': 'Communications',
   'intelligence': 'Intelligence',
