@@ -507,17 +507,6 @@ function getWorkspaceEmptyState(stepId: StepId, metrics: DealMetrics | null, ope
     };
   }
 
-  if (stepId === 'deal-inputs' && metrics.totalUploadedDocuments === 0 && metrics.totalObligations === 0) {
-    return {
-      icon: Upload,
-      eyebrow: 'Deal Inputs',
-      title: 'Upload the transaction documents to populate this workspace',
-      description: 'SPA terms, funds flow, tax inputs, governance docs, and extracted obligations will land here after the first intake pass.',
-      ctaLabel: 'Open Newton intake',
-      onCta: openNewton,
-    };
-  }
-
   if (stepId === 'verification' && metrics.totalWireInstructions === 0) {
     return {
       icon: ShieldCheck,
