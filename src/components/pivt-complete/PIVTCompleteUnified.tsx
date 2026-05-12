@@ -116,10 +116,10 @@ export const PIVTCompleteUnified: React.FC = () => {
     if (section) setActiveSection(section as ActiveSection);
     else setActiveSection('home' as ActiveSection);
 
-    if (dealId && dealId !== selectedDealId) {
+    if (dealId && dealId !== usePIVTStore.getState().selectedDealId) {
       setSelectedDealId(dealId);
     }
-  }, [searchParams, selectedDealId, setActiveSection, setSelectedDealId]);
+  }, [searchParams, setActiveSection, setSelectedDealId]);
 
   useEffect(() => {
     const params = new URLSearchParams(searchParams);

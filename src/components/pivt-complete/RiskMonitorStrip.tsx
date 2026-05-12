@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { formatDistanceToNowStrict } from "date-fns";
-import { AlertTriangle, Clock3, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Clock3, ShieldAlert } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { usePIVTStore } from "@/stores/pivtStore";
@@ -17,41 +17,10 @@ type RiskAlert = {
   tone: "blocking" | "warning";
 };
 
-const FALLBACK_ALERTS: RiskAlert[] = [
-  {
-    id: "atlas-kyc",
-    dealId: "atlas",
-    dealName: "Project ATLAS",
-    description: "2 counterparties still need KYC clearance",
-    elapsedLabel: "6h active",
-    step: "stakeholders",
-    sub: "kyc",
-    tone: "blocking",
-  },
-  {
-    id: "beacon-docs",
-    dealId: "beacon",
-    dealName: "Project BEACON",
-    description: "Funds flow source document is still missing",
-    elapsedLabel: "11h active",
-    step: "deal-inputs",
-    sub: "contracts",
-    tone: "warning",
-  },
-  {
-    id: "cipher-approval",
-    dealId: "cipher",
-    dealName: "Project CIPHER",
-    description: "One client sign-off remains outstanding",
-    elapsedLabel: "1d active",
-    step: "approvals",
-    tone: "warning",
-  },
-];
-
 export const RiskMonitorStrip: React.FC = () => {
-  const { deals, setActiveSection, setSelectedDealId } = usePIVTStore();
-  const [alerts, setAlerts] = useState<RiskAlert[]>(FALLBACK_ALERTS);
+  const { setActiveSection, setSelectedDealId } = usePIVTStore();
+  const [alerts, setAlerts] = useState<RiskAlert[]>([]);
+  const [hasRealDeals, setHasRealDeals] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,13 +30,14 @@ export const RiskMonitorStrip: React.FC = () => {
         .from("deals")
         .select("id, deal_name, updated_at")
         .is("deleted_at", null)
+        .eq("is_demo", false)
         .order("updated_at", { ascending: false })
         .limit(12);
 
+      if (!cancelled) setHasRealDeals(!!liveDeals?.length);
+
       if (!liveDeals?.length) {
-        if (!cancelled && deals.length > 0) {
-          setAlerts(FALLBACK_ALERTS);
-        }
+        if (!cancelled) setAlerts([]);
         return;
       }
 
@@ -145,7 +115,7 @@ export const RiskMonitorStrip: React.FC = () => {
         .slice(0, 10);
 
       if (!cancelled) {
-        setAlerts(deduped.length > 0 ? deduped : FALLBACK_ALERTS);
+        setAlerts(deduped);
       }
     };
 
@@ -153,7 +123,7 @@ export const RiskMonitorStrip: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [deals]);
+  }, []);
 
   const visibleAlerts = useMemo(() => alerts.slice(0, 10), [alerts]);
 
@@ -163,6 +133,8 @@ export const RiskMonitorStrip: React.FC = () => {
     window.dispatchEvent(new CustomEvent("pivt:navigate-workspace", { detail: { step: alert.step, sub: alert.sub } }));
   };
 
+  if (!hasRealDeals) return null;
+
   return (
     <div className="border-b border-border/30 bg-background/95 px-6 py-2 backdrop-blur-sm">
       <div className="flex items-center gap-3 overflow-x-auto">
@@ -171,21 +143,28 @@ export const RiskMonitorStrip: React.FC = () => {
           Risk Monitor
         </div>
 
-        {visibleAlerts.map((alert) => (
-          <button
-            key={alert.id}
-            onClick={() => handleOpenAlert(alert)}
-            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-left text-xs transition-colors hover:bg-muted/40"
-          >
-            <AlertTriangle className={`h-3.5 w-3.5 ${alert.tone === "blocking" ? "text-blocking" : "text-discrepancy"}`} />
-            <span className="font-medium text-foreground">{alert.dealName}</span>
-            <span className="text-muted-foreground">{alert.description}</span>
-            <Badge variant="outline" className="gap-1 border-border/70 text-[10px] text-muted-foreground">
-              <Clock3 className="h-3 w-3" />
-              {alert.elapsedLabel}
-            </Badge>
-          </button>
-        ))}
+        {visibleAlerts.length === 0 ? (
+          <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs text-muted-foreground">
+            <CheckCircle2 className="h-3.5 w-3.5 text-validated" />
+            All clear — no active risks across your deals.
+          </div>
+        ) : (
+          visibleAlerts.map((alert) => (
+            <button
+              key={alert.id}
+              onClick={() => handleOpenAlert(alert)}
+              className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-left text-xs transition-colors hover:bg-muted/40"
+            >
+              <AlertTriangle className={`h-3.5 w-3.5 ${alert.tone === "blocking" ? "text-blocking" : "text-discrepancy"}`} />
+              <span className="font-medium text-foreground">{alert.dealName}</span>
+              <span className="text-muted-foreground">{alert.description}</span>
+              <Badge variant="outline" className="gap-1 border-border/70 text-[10px] text-muted-foreground">
+                <Clock3 className="h-3 w-3" />
+                {alert.elapsedLabel}
+              </Badge>
+            </button>
+          ))
+        )}
       </div>
     </div>
   );

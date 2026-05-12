@@ -140,6 +140,7 @@ export function useDealOperations() {
       }
     }
 
+    toast({ title: "Deal created", description: data.deal_name });
     return data as RealDeal;
   };
 

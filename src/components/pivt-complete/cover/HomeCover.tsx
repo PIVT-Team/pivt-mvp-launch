@@ -62,10 +62,11 @@ export const HomeCover: React.FC = () => {
     const fetchAll = async () => {
       setLoading(true);
 
-      // 1. Deals
+      // 1. Deals — exclude demo deals from the user's portfolio overview.
       const { data: dealRows } = await supabase
         .from('deals')
         .select('*')
+        .eq('is_demo', false)
         .order('created_at', { ascending: false });
       const allDeals = (dealRows as RealDeal[]) || [];
       setDeals(allDeals);

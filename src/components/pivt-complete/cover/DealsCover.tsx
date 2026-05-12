@@ -405,6 +405,7 @@ export const DealsCover: React.FC = () => {
       setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
       setSelectedCurrencies(['USD']);
       setSigningDate(undefined);
+      await loadDeals();
       setSelectedDealId(deal.id);
       setActiveSection('workspace');
     }
@@ -446,21 +447,26 @@ export const DealsCover: React.FC = () => {
   const sortedDemo = [...demoDeals].sort((a, b) => a.deal_name.localeCompare(b.deal_name, undefined, { sensitivity: 'base' }));
   const totalDeals = sortedPrivate.length + sortedDemo.length;
   const showOnboarding = !loading && privateDeals.length === 0;
-  const totalDealValue = allDeals.reduce((sum, deal) => sum + Number(deal.deal_value || 0), 0);
-  const conditionsPending = Object.values(summaries).reduce((sum, summary) => sum + Math.max(summary.conditionsTotal - summary.conditionsMet, 0), 0);
-  const conditionsBlocked = allDeals.filter((deal) => Boolean((deal as any).blocked_reason)).length;
-  const dealsReadyToExecute = allDeals.filter((deal) => {
+  // KPIs reflect the user's own portfolio — demo deals are listed separately and excluded here.
+  const totalDealValue = privateDeals.reduce((sum, deal) => sum + Number(deal.deal_value || 0), 0);
+  const conditionsPending = privateDeals.reduce((sum, deal) => {
+    const summary = summaries[deal.id];
+    if (!summary) return sum;
+    return sum + Math.max(summary.conditionsTotal - summary.conditionsMet, 0);
+  }, 0);
+  const conditionsBlocked = privateDeals.filter((deal) => Boolean((deal as any).blocked_reason)).length;
+  const dealsReadyToExecute = privateDeals.filter((deal) => {
     const summary = summaries[deal.id];
     if (!summary || summary.conditionsTotal === 0) return false;
     return summary.conditionsMet === summary.conditionsTotal && summary.approvalsGranted === summary.approvalsTotal && deal.status !== 'closed' && deal.status !== 'settled';
   }).length;
-  const upcomingDeadlines = [...allDeals]
+  const upcomingDeadlines = [...privateDeals]
     .filter((deal) => Boolean(deal.closing_date))
     .sort((a, b) => new Date(a.closing_date || '').getTime() - new Date(b.closing_date || '').getTime())
     .slice(0, 5);
 
   const kpiCards = [
-    { label: 'Active Deals', value: totalDeals, icon: Briefcase, accent: 'text-accent' },
+    { label: 'Active Deals', value: privateDeals.length, icon: Briefcase, accent: 'text-accent' },
     { label: 'Total Deal Value', value: fmt(totalDealValue), icon: TrendingUp, accent: 'text-accent' },
     { label: 'Conditions Pending', value: conditionsPending, icon: Clock, accent: 'text-discrepancy' },
     { label: 'Conditions Blocked', value: conditionsBlocked, icon: AlertTriangle, accent: 'text-blocking' },

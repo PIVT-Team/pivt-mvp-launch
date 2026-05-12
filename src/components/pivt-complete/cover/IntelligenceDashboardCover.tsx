@@ -202,7 +202,7 @@ export const IntelligenceDashboardCover: React.FC = () => {
         return;
       }
 
-      const { data } = await supabase.from('deals').select('id, deal_name').is('deleted_at', null).order('created_at', { ascending: false });
+      const { data } = await supabase.from('deals').select('id, deal_name').is('deleted_at', null).eq('is_demo', false).order('created_at', { ascending: false });
       if (!cancelled) {
         const liveOptions = (data ?? []).map((deal) => ({ id: deal.id, label: deal.deal_name, isLive: true }));
         setDealOptions([...liveOptions, ...demoOptions]);

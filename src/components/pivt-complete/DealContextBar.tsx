@@ -98,6 +98,7 @@ export const DealContextBar: React.FC = () => {
         .from('deals')
         .select('id, deal_name, deal_number, deal_value, status')
         .is('deleted_at', null)
+        .eq('is_demo', false)
         .order('created_at', { ascending: false })
         .limit(50);
       if (!cancelled) setLiveDeals(data ?? []);

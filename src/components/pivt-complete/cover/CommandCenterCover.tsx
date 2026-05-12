@@ -15,7 +15,7 @@ export const CommandCenterCover: React.FC = () => {
   const [deals, setDeals] = useState<RealDeal[]>([]);
 
   useEffect(() => {
-    supabase.from('deals').select('*').order('created_at', { ascending: false }).limit(5)
+    supabase.from('deals').select('*').eq('is_demo', false).order('created_at', { ascending: false }).limit(5)
       .then(({ data }) => setDeals((data as RealDeal[]) || []));
   }, []);
 
