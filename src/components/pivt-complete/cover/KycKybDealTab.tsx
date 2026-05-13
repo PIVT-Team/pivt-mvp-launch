@@ -418,6 +418,9 @@ const LiveKycKybTab: React.FC = () => {
   const [stakeholders, setStakeholders] = useState<StakeholderRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<KycFilter>('all');
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const [inviteLink, setInviteLink] = useState<{ url: string; email: string } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<StakeholderRow | null>(null);
 
   const fetchStakeholders = useCallback(async () => {
     if (!dealId) return;
@@ -446,6 +449,110 @@ const LiveKycKybTab: React.FC = () => {
     return () => { supabase.removeChannel(channel); };
   }, [dealId, fetchStakeholders]);
 
+  // Bridge: if a stakeholder is still 'sent' but the counterparty has uploaded
+  // KYC docs (via /join/:token), bump the stakeholder's status to 'submitted'.
+  // This is the link between the counterparty-identity edge function (which
+  // writes counterparty_kyc_documents) and the admin's KYC tab.
+  useEffect(() => {
+    if (!dealId || stakeholders.length === 0) return;
+    const sentStakeholders = stakeholders.filter(
+      (s) => s.verification_status === 'sent' && s.email
+    );
+    if (sentStakeholders.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      const { data: kycDocs } = await supabase
+        .from('counterparty_kyc_documents')
+        .select('counterparty_profile_id, deal_id, counterparty_profiles!inner(user_id)')
+        .eq('deal_id', dealId);
+      if (!kycDocs || kycDocs.length === 0 || cancelled) return;
+
+      const profileIds = [...new Set(kycDocs.map((d: any) => d.counterparty_profile_id))];
+      if (profileIds.length === 0) return;
+
+      const { data: profiles } = await supabase
+        .from('counterparty_profiles')
+        .select('id, user_id')
+        .in('id', profileIds);
+      if (!profiles || cancelled) return;
+
+      // Map user_id → email by looking the user up in profiles (display only).
+      // Cheaper: invitation rows already have email. Use those.
+      const userIds = profiles.map((p: any) => p.user_id);
+      const { data: invites } = await supabase
+        .from('counterparty_invitations')
+        .select('email')
+        .eq('deal_id', dealId)
+        .in('counterparty_profile_id', profileIds);
+      const submittedEmails = new Set(
+        (invites || []).map((i: any) => i.email.toLowerCase())
+      );
+      void userIds;
+
+      const toBump = sentStakeholders.filter(
+        (s) => s.email && submittedEmails.has(s.email.toLowerCase())
+      );
+      if (toBump.length === 0 || cancelled) return;
+
+      await supabase
+        .from('cap_table_entries')
+        .update({ verification_status: 'submitted' })
+        .in('id', toBump.map((s) => s.id));
+      // realtime subscription on cap_table_entries will refresh the UI
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dealId, stakeholders]);
+
+  const handleSendKycRequest = async (s: StakeholderRow) => {
+    if (!s.email) {
+      toast.error(`${s.shareholder_name} has no email on file. Add an email first via Stakeholders > Contacts.`);
+      return;
+    }
+    if (!dealId) return;
+    setSendingId(s.id);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      toast.error('You need to be signed in to send a KYC request.');
+      setSendingId(null);
+      return;
+    }
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString();
+    const { error: inviteErr } = await supabase.from('counterparty_invitations').insert({
+      deal_id: dealId,
+      email: s.email,
+      invite_token: token,
+      invited_by: user.id,
+      role_type: 'counsel',
+      firm_name_snapshot: s.shareholder_name,
+      status: 'pending',
+      expires_at: expiresAt,
+    } as any);
+    if (inviteErr) {
+      toast.error(`Could not create invitation: ${inviteErr.message}`);
+      setSendingId(null);
+      return;
+    }
+    const { error: updateErr } = await supabase
+      .from('cap_table_entries')
+      .update({
+        verification_status: 'sent',
+        verification_last_sent_at: new Date().toISOString(),
+        verification_requested_at: new Date().toISOString(),
+      })
+      .eq('id', s.id);
+    if (updateErr) {
+      toast.error(`Invitation created but status update failed: ${updateErr.message}`);
+    }
+    const url = `${window.location.origin}/join/${token}`;
+    setInviteLink({ url, email: s.email });
+    setSendingId(null);
+    toast.success(`KYC request sent to ${s.email}`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center py-20">
@@ -455,11 +562,14 @@ const LiveKycKybTab: React.FC = () => {
   }
 
   const summary = computeSummary(stakeholders);
-  const hasActivity = summary.pending > 0 || summary.complete > 0 || summary.failed > 0;
+  // Show the table whenever there are stakeholders so the admin can kick off
+  // KYC requests; reserve the empty state for deals with no stakeholders yet.
+  const hasActivity = stakeholders.length > 0;
 
-  // Filter stakeholders
+  // Filter stakeholders. 'all' now actually shows everyone so the admin can
+  // start KYC for stakeholders who haven't been contacted yet.
   const filtered = stakeholders.filter(s => {
-    if (filter === 'all') return !NOT_STARTED_STATUSES.includes(s.verification_status);
+    if (filter === 'all') return true;
     if (filter === 'pending') return PENDING_STATUSES.includes(s.verification_status);
     if (filter === 'failed') return FAILED_STATUSES.includes(s.verification_status);
     if (filter === 'completed') return COMPLETE_STATUSES.includes(s.verification_status);
@@ -475,7 +585,7 @@ const LiveKycKybTab: React.FC = () => {
     });
 
   const filters: { key: KycFilter; label: string; count: number }[] = [
-    { key: 'all', label: 'All Active', count: stakeholders.filter(s => !NOT_STARTED_STATUSES.includes(s.verification_status)).length },
+    { key: 'all', label: 'All', count: stakeholders.length },
     { key: 'pending', label: 'Pending', count: summary.pending },
     { key: 'failed', label: 'Failed', count: summary.failed },
     { key: 'completed', label: 'Completed', count: summary.complete },
@@ -609,13 +719,45 @@ const LiveKycKybTab: React.FC = () => {
                         <span className="text-xs text-validated flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Complete</span>
                       )}
                       {s.verification_status === 'submitted' && (
-                        <span className="text-xs text-accent flex items-center gap-1"><FileSearch className="w-3 h-3" /> Review</span>
+                        <button
+                          type="button"
+                          onClick={() => setReviewTarget(s)}
+                          className="text-xs text-accent flex items-center gap-1 hover:underline disabled:opacity-50"
+                        >
+                          <FileSearch className="w-3 h-3" /> Review
+                        </button>
                       )}
-                      {PENDING_STATUSES.includes(s.verification_status) && s.verification_status !== 'submitted' && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" /> Awaiting</span>
+                      {(s.verification_status === 'not_sent' || s.verification_status === 'not_requested' || s.verification_status === 'pending') && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendKycRequest(s)}
+                          disabled={sendingId === s.id || !s.email}
+                          className="text-xs text-accent flex items-center gap-1 hover:underline disabled:opacity-50"
+                          title={!s.email ? 'No email on file' : undefined}
+                        >
+                          <Send className="w-3 h-3" /> {sendingId === s.id ? 'Sending…' : 'Send Request'}
+                        </button>
+                      )}
+                      {(s.verification_status === 'sent' || s.verification_status === 'in_progress') && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendKycRequest(s)}
+                          disabled={sendingId === s.id || !s.email}
+                          className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground disabled:opacity-50"
+                        >
+                          <RotateCw className="w-3 h-3" /> {sendingId === s.id ? 'Resending…' : 'Resend'}
+                        </button>
                       )}
                       {s.verification_status === 'failed' && (
-                        <span className="text-xs text-destructive flex items-center gap-1"><XCircle className="w-3 h-3" /> Failed</span>
+                        <button
+                          type="button"
+                          onClick={() => handleSendKycRequest(s)}
+                          disabled={sendingId === s.id || !s.email}
+                          className="text-xs text-destructive flex items-center gap-1 hover:underline disabled:opacity-50"
+                          title={s.verification_rejection_reason || 'Rejected — click to resend'}
+                        >
+                          <XCircle className="w-3 h-3" /> Resend
+                        </button>
                       )}
                     </div>
                   </div>
@@ -625,6 +767,284 @@ const LiveKycKybTab: React.FC = () => {
           </div>
         </>
       )}
+
+      <InviteLinkModal
+        open={!!inviteLink}
+        url={inviteLink?.url ?? ''}
+        email={inviteLink?.email ?? ''}
+        onClose={() => setInviteLink(null)}
+      />
+
+      <ReviewSubmissionDrawer
+        stakeholder={reviewTarget}
+        dealId={dealId || null}
+        onClose={() => setReviewTarget(null)}
+        onResolved={() => { setReviewTarget(null); fetchStakeholders(); }}
+      />
+    </div>
+  );
+};
+
+// ── Invite Link Modal ─────────────────────────────────────────────────
+const InviteLinkModal: React.FC<{ open: boolean; url: string; email: string; onClose: () => void }> = ({ open, url, email, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  if (!open) return null;
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      toast.error('Could not copy to clipboard. Select the link and copy manually.');
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg bg-background rounded-2xl border border-border shadow-2xl p-6 space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Mail className="w-4 h-4 text-accent" />
+              KYC request sent
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              Send the link below to <span className="font-medium text-foreground">{email}</span>. They'll sign in and complete KYC onboarding.
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <Input value={url} readOnly className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="px-3 py-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors"
+          >
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          Link expires in 14 days. The invitation is bound to {email} — only that address can complete it.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// ── Review Submission Drawer ──────────────────────────────────────────
+interface KycDocRow {
+  id: string;
+  document_type: string;
+  file_path: string;
+  review_status: string;
+  uploaded_at: string;
+}
+
+const ReviewSubmissionDrawer: React.FC<{
+  stakeholder: StakeholderRow | null;
+  dealId: string | null;
+  onClose: () => void;
+  onResolved: () => void;
+}> = ({ stakeholder, dealId, onClose, onResolved }) => {
+  const [docs, setDocs] = useState<KycDocRow[]>([]);
+  const [loadingDocs, setLoadingDocs] = useState(false);
+  const [rejectMode, setRejectMode] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!stakeholder || !dealId) return;
+    setLoadingDocs(true);
+    setRejectMode(false);
+    setRejectReason('');
+    (async () => {
+      // Find invitations for this stakeholder's email on this deal, then load docs.
+      const { data: invites } = await supabase
+        .from('counterparty_invitations')
+        .select('counterparty_profile_id')
+        .eq('deal_id', dealId)
+        .ilike('email', stakeholder.email || '');
+      const profileIds = [...new Set((invites || []).map((i: any) => i.counterparty_profile_id).filter(Boolean))];
+      if (profileIds.length === 0) {
+        setDocs([]);
+        setLoadingDocs(false);
+        return;
+      }
+      const { data: docRows } = await supabase
+        .from('counterparty_kyc_documents')
+        .select('id, document_type, file_path, review_status, uploaded_at')
+        .eq('deal_id', dealId)
+        .in('counterparty_profile_id', profileIds);
+      setDocs((docRows as KycDocRow[]) || []);
+      setLoadingDocs(false);
+    })();
+  }, [stakeholder, dealId]);
+
+  if (!stakeholder) return null;
+
+  const openDocument = async (path: string) => {
+    const { data, error } = await supabase.storage.from('counterparty-kyc').createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl) {
+      toast.error('Could not generate document link.');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+  };
+
+  const handleApprove = async () => {
+    setSubmitting(true);
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from('cap_table_entries')
+      .update({
+        verification_status: 'verified',
+        verification_completed_at: now,
+        verification_rejection_reason: null,
+      })
+      .eq('id', stakeholder.id);
+    if (error) {
+      toast.error(`Approve failed: ${error.message}`);
+      setSubmitting(false);
+      return;
+    }
+    if (docs.length > 0) {
+      await supabase
+        .from('counterparty_kyc_documents')
+        .update({ review_status: 'approved' })
+        .in('id', docs.map((d) => d.id));
+    }
+    toast.success(`${stakeholder.shareholder_name} verified.`);
+    setSubmitting(false);
+    onResolved();
+  };
+
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      toast.error('Provide a reason for rejection.');
+      return;
+    }
+    setSubmitting(true);
+    const { error } = await supabase
+      .from('cap_table_entries')
+      .update({
+        verification_status: 'failed',
+        verification_rejection_reason: rejectReason.trim(),
+      })
+      .eq('id', stakeholder.id);
+    if (error) {
+      toast.error(`Reject failed: ${error.message}`);
+      setSubmitting(false);
+      return;
+    }
+    if (docs.length > 0) {
+      await supabase
+        .from('counterparty_kyc_documents')
+        .update({ review_status: 'rejected' })
+        .in('id', docs.map((d) => d.id));
+    }
+    toast.success(`${stakeholder.shareholder_name} marked rejected.`);
+    setSubmitting(false);
+    onResolved();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex justify-end" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md h-full bg-background border-l border-border shadow-2xl flex flex-col">
+        <div className="p-5 border-b border-border flex items-start justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold flex items-center gap-2">
+              <FileSearch className="w-4 h-4 text-accent" />
+              Review submission
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">{stakeholder.shareholder_name}</p>
+            <p className="text-xs text-muted-foreground">{stakeholder.email}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-md hover:bg-muted">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5 space-y-3">
+          {loadingDocs ? (
+            <p className="text-sm text-muted-foreground">Loading documents…</p>
+          ) : docs.length === 0 ? (
+            <div className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground">
+              No KYC documents were submitted yet for this stakeholder. Confirm they completed the invitation flow.
+            </div>
+          ) : (
+            <>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Submitted documents ({docs.length})</p>
+              {docs.map((doc) => (
+                <div key={doc.id} className="rounded-md border border-border p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">{doc.document_type || 'Document'}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono truncate max-w-[220px]">{doc.file_path}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openDocument(doc.file_path)}
+                    className="text-xs text-accent hover:underline flex items-center gap-1"
+                  >
+                    <Eye className="w-3 h-3" /> Open
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
+          {rejectMode && (
+            <div className="space-y-2 pt-2">
+              <Label className="text-xs">Reason for rejection</Label>
+              <Input
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="e.g. Document expired; needs re-upload"
+              />
+            </div>
+          )}
+        </div>
+        <div className="p-4 border-t border-border flex gap-2">
+          {!rejectMode ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setRejectMode(true)}
+                disabled={submitting}
+                className="flex-1 py-2 rounded-md border border-border text-sm font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
+              >
+                Reject
+              </button>
+              <button
+                type="button"
+                onClick={handleApprove}
+                disabled={submitting}
+                className="flex-1 py-2 rounded-md bg-accent text-accent-foreground text-sm font-medium hover:bg-accent/90 transition-colors disabled:opacity-50"
+              >
+                {submitting ? 'Approving…' : 'Approve'}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => { setRejectMode(false); setRejectReason(''); }}
+                disabled={submitting}
+                className="flex-1 py-2 rounded-md border border-border text-sm font-medium hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleReject}
+                disabled={submitting || !rejectReason.trim()}
+                className="flex-1 py-2 rounded-md bg-destructive text-destructive-foreground text-sm font-medium hover:bg-destructive/90 transition-colors disabled:opacity-50"
+              >
+                {submitting ? 'Saving…' : 'Confirm Reject'}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
