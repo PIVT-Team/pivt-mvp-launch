@@ -3,6 +3,7 @@
  * All actions are executed via the newton-action edge function (service role)
  * so they work regardless of client auth state.
  */
+import { supabase } from '@/integrations/supabase/client';
 
 const EDGE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newton-action`;
 const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -258,11 +259,17 @@ export function detectIntent(message: string): NewtonIntent {
 
 async function callNewtonAction(action: string, params: Record<string, any>): Promise<NewtonActionResult> {
   try {
+    // Send the user's JWT so the edge function's requireJwt check passes.
+    // Falls back to the anon key for anonymous flows where the action doesn't
+    // need a verified user.
+    const { data: { session } } = await supabase.auth.getSession();
+    const bearer = session?.access_token || ANON_KEY;
     const resp = await fetch(EDGE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${ANON_KEY}`,
+        'Authorization': `Bearer ${bearer}`,
+        'apikey': ANON_KEY,
       },
       body: JSON.stringify({ action, params }),
     });

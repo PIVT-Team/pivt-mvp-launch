@@ -38,9 +38,11 @@ const ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 async function callNewtonAction(action: string, params: Record<string, any>): Promise<NewtonActionResult> {
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    const bearer = session?.access_token || ANON_KEY;
     const resp = await fetch(EDGE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${ANON_KEY}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${bearer}`, 'apikey': ANON_KEY },
       body: JSON.stringify({ action, params }),
     });
     const data = await resp.json();

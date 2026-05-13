@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { springConfig } from '@/lib/animations';
 import {
   Sparkles, Send, Loader2, X, Minus, CheckCircle2, AlertTriangle, Play,
@@ -49,11 +50,14 @@ async function streamChat(
   onDone: () => void,
   onError: (e: string) => void,
 ) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const bearer = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${bearer}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ messages }),
   });

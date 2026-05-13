@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
 import pivtLogo from '@/assets/pivt-logo.png';
+import { supabase } from '@/integrations/supabase/client';
 
 // ------- Types -------
 type Msg = { role: 'user' | 'assistant' | 'system'; content: string; timestamp: number; action?: any };
@@ -40,11 +41,14 @@ async function streamChat({
   onDone: () => void;
   onError: (err: string) => void;
 }) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const bearer = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   const resp = await fetch(CHAT_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      Authorization: `Bearer ${bearer}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
     },
     body: JSON.stringify({ messages }),
   });
