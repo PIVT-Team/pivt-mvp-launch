@@ -363,22 +363,19 @@ export const PIVTCompleteUnified: React.FC = () => {
           <DealContextBar />
         )}
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`cover-${activeSection}-${DEAL_AWARE_SECTIONS.has(activeSection) ? selectedDealId || 'none' : 'global'}`}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            className={
-              activeSection === 'intelligence-map'
-                ? 'p-4 w-full flex-1'
-                : 'px-8 py-6 lg:px-10 lg:py-8 max-w-6xl mx-auto w-full'
-            }
-          >
-            <ActiveCoverSection />
-          </motion.div>
-        </AnimatePresence>
+        <motion.div
+          key={`cover-${activeSection}-${DEAL_AWARE_SECTIONS.has(activeSection) ? selectedDealId || 'none' : 'global'}`}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          className={
+            activeSection === 'intelligence-map'
+              ? 'p-4 w-full flex-1'
+              : 'px-8 py-6 lg:px-10 lg:py-8 max-w-6xl mx-auto w-full'
+          }
+        >
+          <ActiveCoverSection />
+        </motion.div>
 
         {/* Footer */}
         <footer className="shrink-0 px-8 py-4 border-t border-border/30 text-[11px] text-muted-foreground/50">
