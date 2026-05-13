@@ -506,39 +506,6 @@ const WorkspaceEmptyState: React.FC<{
 function getWorkspaceEmptyState(stepId: StepId, metrics: DealMetrics | null, openNewton: () => void) {
   if (!metrics) return null;
 
-  if (stepId === 'verification' && metrics.totalWireInstructions === 0) {
-    return {
-      icon: ShieldCheck,
-      eyebrow: 'Verification',
-      title: 'Verification starts once payment details exist',
-      description: 'Wire confirmations, allocation checks, and discrepancy review appear here after deal inputs and payment instructions are added.',
-      ctaLabel: 'Generate payment setup with Newton',
-      onCta: openNewton,
-    };
-  }
-
-  if (stepId === 'execution' && metrics.totalSettlementRecords === 0 && metrics.totalWireInstructions === 0) {
-    return {
-      icon: Zap,
-      eyebrow: 'Execution',
-      title: 'Execution activates after verification is complete',
-      description: 'Wire packs, payment intents, escrow actions, and settlement records will show up here when the deal is ready to move funds.',
-      ctaLabel: 'Prepare execution plan with Newton',
-      onCta: openNewton,
-    };
-  }
-
-  if (stepId === 'audit' && metrics.totalConditions === 0 && metrics.totalApprovals === 0 && metrics.totalUploadedDocuments === 0) {
-    return {
-      icon: Scale,
-      eyebrow: 'Audit',
-      title: 'Audit evidence appears as soon as deal activity begins',
-      description: 'State changes, document access, AI actions, and approval history will surface here once the first live actions are recorded on the deal.',
-      ctaLabel: 'Launch guided setup in Newton',
-      onCta: openNewton,
-    };
-  }
-
   return null;
 }
 
