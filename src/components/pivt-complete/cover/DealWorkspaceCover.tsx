@@ -287,13 +287,16 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
   const nextAction = metrics?.nextRequiredAction
     ?? (status === 'draft' ? 'Activate this deal to unlock workflows' : 'Loading...');
 
+  const openEditDeal = () => window.dispatchEvent(new CustomEvent('pivt:open-edit-deal'));
+  const navigateTo = (step: string, sub?: string) => window.dispatchEvent(new CustomEvent('pivt:navigate-workspace', { detail: { step, sub } }));
+
   const prereqs = [
-    { label: 'Buyer specified', met: !!realDeal.buyer },
-    { label: 'Seller specified', met: !!realDeal.seller },
-    { label: 'Target company specified', met: !!realDeal.target_company },
-    { label: 'Deal type selected', met: !!realDeal.deal_type },
-    { label: 'At least 2 stakeholders', met: stakeholderCount >= 2 },
-    { label: 'Payment structure initialized', met: paymentCount >= 1 },
+    { label: 'Buyer specified', met: !!realDeal.buyer, onClick: openEditDeal },
+    { label: 'Seller specified', met: !!realDeal.seller, onClick: openEditDeal },
+    { label: 'Target company specified', met: !!realDeal.target_company, onClick: openEditDeal },
+    { label: 'Deal type selected', met: !!realDeal.deal_type, onClick: openEditDeal },
+    { label: 'At least 2 stakeholders', met: stakeholderCount >= 2, onClick: () => navigateTo('stakeholders', 'contacts') },
+    { label: 'Wire instructions added', met: paymentCount >= 1, onClick: () => navigateTo('deal-inputs', 'wires') },
   ];
   const allPrereqsMet = prereqs.every(p => p.met);
   const isDraft = status === 'draft';
@@ -329,10 +332,17 @@ const RealDealOverviewSection: React.FC<{ realDeal: RealDeal; dealId: string }> 
               </p>
               <div className="grid grid-cols-2 gap-2">
                 {prereqs.map(p => (
-                  <div key={p.label} className="flex items-center gap-2 text-sm">
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={p.onClick}
+                    disabled={p.met}
+                    className={`group flex items-center gap-2 text-sm text-left rounded-md px-1.5 py-1 -mx-1.5 transition-colors ${p.met ? 'cursor-default' : 'hover:bg-muted/60'}`}
+                  >
                     {p.met ? <CheckCircle2 className="w-4 h-4 text-validated shrink-0" /> : <div className="w-4 h-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />}
-                    <span className={p.met ? 'text-foreground' : 'text-muted-foreground'}>{p.label}</span>
-                  </div>
+                    <span className={p.met ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}>{p.label}</span>
+                    {!p.met && <ChevronRight className="w-3.5 h-3.5 ml-auto text-muted-foreground/40 group-hover:text-foreground transition-colors" />}
+                  </button>
                 ))}
               </div>
             </div>
@@ -911,6 +921,13 @@ export const DealWorkspaceCover: React.FC = () => {
     };
     window.addEventListener('pivt:navigate-workspace', handler);
     return () => window.removeEventListener('pivt:navigate-workspace', handler);
+  }, []);
+
+  // Activate-Deal prereqs dispatch this to surface the Edit Deal drawer.
+  useEffect(() => {
+    const openEditHandler = () => setEditDrawerOpen(true);
+    window.addEventListener('pivt:open-edit-deal', openEditHandler);
+    return () => window.removeEventListener('pivt:open-edit-deal', openEditHandler);
   }, []);
 
   const handleStepClick = (id: string) => {

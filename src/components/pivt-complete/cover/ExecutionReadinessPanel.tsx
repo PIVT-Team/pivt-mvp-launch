@@ -27,15 +27,21 @@ export const ExecutionReadinessPanel: React.FC = () => {
   }
 
   const m = metrics;
+  // Each check carries the workspace step/sub it's satisfied by, so a clicking
+  // the card jumps the user straight there instead of leaving them to hunt for it.
   const checks = [
-    { label: 'Stakeholders Configured', passed: readiness.stakeholdersConfigured, icon: Users, detail: m ? `${m.totalStakeholders} total · ${m.buyerSideStakeholders} buyer / ${m.sellerSideStakeholders} seller` : '' },
-    { label: 'Seller Verified', passed: readiness.sellerVerified, icon: Shield, detail: m ? `${m.sellerSideStakeholders} seller-side` : '' },
-    { label: 'Buyer Verified', passed: readiness.buyerVerified, icon: Shield, detail: m ? `${m.buyerSideStakeholders} buyer-side` : '' },
-    { label: 'SPA / Agreement Uploaded', passed: readiness.spaUploaded, icon: FileText, detail: m ? `${m.totalUploadedDocuments} docs uploaded` : '' },
-    { label: 'Wire Instructions Uploaded', passed: readiness.wireInstructionsUploaded, icon: FileText, detail: m ? `${m.totalWireInstructions} on file` : '' },
-    { label: 'Payments Approved', passed: readiness.paymentApproved, icon: CreditCard, detail: m ? `${m.verifiedWireInstructions}/${m.totalWireInstructions} verified` : '' },
-    { label: 'Approvals Complete', passed: readiness.approvalsComplete, icon: ClipboardCheck, detail: m ? `${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved` : '' },
+    { label: 'Stakeholders Configured', passed: readiness.stakeholdersConfigured, icon: Users, detail: m ? `${m.totalStakeholders} total · ${m.buyerSideStakeholders} buyer / ${m.sellerSideStakeholders} seller` : '', step: 'stakeholders', sub: 'contacts' },
+    { label: 'Seller Verified', passed: readiness.sellerVerified, icon: Shield, detail: m ? `${m.sellerSideStakeholders} seller-side` : '', step: 'stakeholders', sub: 'kyc' },
+    { label: 'Buyer Verified', passed: readiness.buyerVerified, icon: Shield, detail: m ? `${m.buyerSideStakeholders} buyer-side` : '', step: 'stakeholders', sub: 'kyc' },
+    { label: 'SPA / Agreement Uploaded', passed: readiness.spaUploaded, icon: FileText, detail: m ? `${m.totalUploadedDocuments} docs uploaded` : '', step: 'deal-inputs', sub: 'contracts' },
+    { label: 'Wire Instructions Uploaded', passed: readiness.wireInstructionsUploaded, icon: FileText, detail: m ? `${m.totalWireInstructions} on file` : '', step: 'deal-inputs', sub: 'wires' },
+    { label: 'Payments Approved', passed: readiness.paymentApproved, icon: CreditCard, detail: m ? `${m.verifiedWireInstructions}/${m.totalWireInstructions} verified` : '', step: 'verification', sub: undefined },
+    { label: 'Approvals Complete', passed: readiness.approvalsComplete, icon: ClipboardCheck, detail: m ? `${m.grantedRequiredApprovals}/${m.requiredApprovals} required approved` : '', step: 'approvals', sub: undefined },
   ];
+
+  const handleCheckClick = (step: string, sub?: string) => {
+    window.dispatchEvent(new CustomEvent('pivt:navigate-workspace', { detail: { step, sub } }));
+  };
 
   const passedCount = checks.filter(c => c.passed).length;
   const allPassed = passedCount === checks.length;
@@ -81,11 +87,14 @@ export const ExecutionReadinessPanel: React.FC = () => {
           {checks.map((check) => {
             const Icon = check.icon;
             return (
-              <div
+              <button
                 key={check.label}
-                className={`pivt-card p-4 flex flex-col items-center text-center gap-2 border ${
-                  check.passed ? 'border-validated/20' : 'border-border/30'
+                type="button"
+                onClick={() => handleCheckClick(check.step, check.sub)}
+                className={`pivt-card p-4 flex flex-col items-center text-center gap-2 border transition-colors ${
+                  check.passed ? 'border-validated/20' : 'border-border/30 hover:border-accent/40 hover:bg-muted/30'
                 }`}
+                aria-label={`${check.label} — ${check.passed ? 'Complete' : 'Pending — click to go to ' + check.step}`}
               >
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                   check.passed ? 'bg-validated/10' : 'bg-muted/40'
@@ -105,11 +114,11 @@ export const ExecutionReadinessPanel: React.FC = () => {
                   ) : (
                     <>
                       <Clock className="w-3 h-3 text-muted-foreground" />
-                      <span className="text-[11px] font-medium text-muted-foreground">Pending</span>
+                      <span className="text-[11px] font-medium text-muted-foreground">Pending — open</span>
                     </>
                   )}
                 </div>
-              </div>
+              </button>
             );
           })}
         </div>

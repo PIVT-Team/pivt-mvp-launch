@@ -18,6 +18,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 type PortfolioEvent = {
   id: string;
@@ -276,6 +277,7 @@ export const DealsCover: React.FC = () => {
   const { setSelectedDealId, setActiveSection } = usePIVTStore();
   const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries, duplicateDeal, softDeleteDeal } = useDealOperations();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [allDeals, setAllDeals] = useState<RealDeal[]>([]);
   const [summaries, setSummaries] = useState<Record<string, DealSummaryCounts>>({});
@@ -293,6 +295,15 @@ export const DealsCover: React.FC = () => {
   const [form, setForm] = useState({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
   const [selectedCurrencies, setSelectedCurrencies] = useState<string[]>(['USD']);
   const [signingDate, setSigningDate] = useState<Date | undefined>();
+  // Inline stakeholders + starter wire collected in the modal so a fresh deal
+  // can satisfy the Activate Deal prereqs at create time (S2.1/S2.9/S2.12).
+  type NewStakeholder = { name: string; side: 'buyer' | 'seller'; ownership: string };
+  const [newStakeholders, setNewStakeholders] = useState<NewStakeholder[]>([
+    { name: '', side: 'buyer', ownership: '' },
+    { name: '', side: 'seller', ownership: '' },
+  ]);
+  const [starterWire, setStarterWire] = useState({ payee: '', amount: '', bank: '', last4: '' });
+  const [formError, setFormError] = useState<string | null>(null);
 
   const toggleCurrency = (code: string) => {
     setSelectedCurrencies(prev =>
@@ -385,6 +396,22 @@ export const DealsCover: React.FC = () => {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError(null);
+
+    // Validate Deal Type (shadcn Select doesn't honor HTML required natively)
+    if (!form.deal_type) {
+      setFormError('Deal Type is required.');
+      return;
+    }
+
+    // Validate at least 2 fully-filled stakeholders so the Activate Deal gate
+    // is satisfiable right after creation.
+    const validStakeholders = newStakeholders.filter(s => s.name.trim() && s.ownership.trim());
+    if (validStakeholders.length < 2) {
+      setFormError('Add at least 2 stakeholders (name + ownership % each).');
+      return;
+    }
+
     setCreating(true);
     const deal = await createDeal({
       deal_name: form.deal_name,
@@ -400,11 +427,43 @@ export const DealsCover: React.FC = () => {
       jurisdiction: form.jurisdiction || null,
       signing_date: signingDate ? format(signingDate, 'yyyy-MM-dd') : null,
     });
+
     if (deal) {
+      // Insert stakeholders (cap_table_entries). Errors surface as a toast but
+      // don't block navigation — the user can fix them in the workspace.
+      const stakeholderRows = validStakeholders.map(s => ({
+        deal_id: deal.id,
+        shareholder_name: s.name.trim(),
+        ownership_pct: Number(s.ownership) || 0,
+        payout_amount: 0,
+      }));
+      const { error: shErr } = await supabase.from('cap_table_entries').insert(stakeholderRows as any);
+      if (shErr) {
+        toast({ title: 'Stakeholders not saved', description: shErr.message, variant: 'destructive' });
+      }
+
+      // Optional starter wire — insert only if payee + amount are present.
+      if (starterWire.payee.trim() && starterWire.amount.trim()) {
+        const { error: wErr } = await supabase.from('wire_instructions').insert({
+          deal_id: deal.id,
+          payee_entity: starterWire.payee.trim(),
+          bank_name: starterWire.bank.trim() || null,
+          account_number_last4: starterWire.last4.trim() || null,
+          amount: Number(starterWire.amount) || 0,
+          currency: selectedCurrencies[0] || 'USD',
+          verification_status: 'pending',
+        } as any);
+        if (wErr) {
+          toast({ title: 'Starter wire not saved', description: wErr.message, variant: 'destructive' });
+        }
+      }
+
       setShowCreate(false);
       setForm({ deal_name: '', deal_value: '', closing_date: '', escrow_amount: '', buyer: '', seller: '', target_company: '', sector: '', deal_type: '', currency: 'USD', jurisdiction: '', signing_date: '' });
       setSelectedCurrencies(['USD']);
       setSigningDate(undefined);
+      setNewStakeholders([{ name: '', side: 'buyer', ownership: '' }, { name: '', side: 'seller', ownership: '' }]);
+      setStarterWire({ payee: '', amount: '', bank: '', last4: '' });
       await loadDeals();
       setSelectedDealId(deal.id);
       setActiveSection('workspace');
@@ -724,13 +783,13 @@ export const DealsCover: React.FC = () => {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Transaction Overview</p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label>Deal Name</Label>
+                  <Label>Deal Name <span className="text-destructive">*</span></Label>
                   <Input value={form.deal_name} onChange={(e) => setForm({ ...form, deal_name: e.target.value })} placeholder="Project Nimbus Acquisition" required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label>Deal Type</Label>
-                    <Select value={form.deal_type} onValueChange={(v) => setForm({ ...form, deal_type: v })}>
+                    <Label>Deal Type <span className="text-destructive">*</span></Label>
+                    <Select value={form.deal_type} onValueChange={(v) => setForm({ ...form, deal_type: v })} required>
                       <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
                       <SelectContent>
                         {DEAL_TYPES.map(dt => (
@@ -768,16 +827,16 @@ export const DealsCover: React.FC = () => {
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Parties</p>
               <div className="space-y-3">
                 <div className="space-y-1.5">
-                  <Label>Buyer</Label>
-                  <Input value={form.buyer} onChange={(e) => setForm({ ...form, buyer: e.target.value })} placeholder="Orion Data Systems LLC" />
+                  <Label>Buyer <span className="text-destructive">*</span></Label>
+                  <Input value={form.buyer} onChange={(e) => setForm({ ...form, buyer: e.target.value })} placeholder="Orion Data Systems LLC" required />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Seller</Label>
-                  <Input value={form.seller} onChange={(e) => setForm({ ...form, seller: e.target.value })} placeholder="Aurora Ventures Fund I, LP" />
+                  <Label>Seller <span className="text-destructive">*</span></Label>
+                  <Input value={form.seller} onChange={(e) => setForm({ ...form, seller: e.target.value })} placeholder="Aurora Ventures Fund I, LP" required />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Target Company</Label>
-                  <Input value={form.target_company} onChange={(e) => setForm({ ...form, target_company: e.target.value })} placeholder="Nimbus Analytics Inc." />
+                  <Label>Target Company <span className="text-destructive">*</span></Label>
+                  <Input value={form.target_company} onChange={(e) => setForm({ ...form, target_company: e.target.value })} placeholder="Nimbus Analytics Inc." required />
                 </div>
               </div>
             </div>
@@ -857,6 +916,115 @@ export const DealsCover: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            <div className="border-t border-border" />
+
+            {/* Stakeholders (min. 2 to activate the deal) */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Stakeholders <span className="text-destructive">*</span></p>
+              <p className="text-xs text-muted-foreground mb-3">Add at least two participants (e.g. a buyer-side fund and a seller-side founder). You can refine roles, KYC status, and payouts inside the workspace.</p>
+              <div className="space-y-2">
+                {newStakeholders.map((s, idx) => (
+                  <div key={idx} className="grid grid-cols-[1fr_8rem_6rem_auto] gap-2">
+                    <Input
+                      placeholder="Stakeholder name"
+                      value={s.name}
+                      onChange={(e) => setNewStakeholders(prev => prev.map((row, i) => i === idx ? { ...row, name: e.target.value } : row))}
+                    />
+                    <Select
+                      value={s.side}
+                      onValueChange={(v) => setNewStakeholders(prev => prev.map((row, i) => i === idx ? { ...row, side: v as 'buyer' | 'seller' } : row))}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="buyer">Buyer-side</SelectItem>
+                        <SelectItem value="seller">Seller-side</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      placeholder="% own"
+                      min={0}
+                      max={100}
+                      value={s.ownership}
+                      onChange={(e) => setNewStakeholders(prev => prev.map((row, i) => i === idx ? { ...row, ownership: e.target.value } : row))}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 text-muted-foreground hover:text-destructive"
+                      onClick={() => setNewStakeholders(prev => prev.length > 2 ? prev.filter((_, i) => i !== idx) : prev)}
+                      disabled={newStakeholders.length <= 2}
+                      aria-label="Remove stakeholder"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-2 gap-1.5"
+                onClick={() => setNewStakeholders(prev => [...prev, { name: '', side: 'buyer', ownership: '' }])}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add stakeholder
+              </Button>
+            </div>
+
+            <div className="border-t border-border" />
+
+            {/* Starter wire (optional) — fills the "Payment structure" prereq */}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Starter Wire Instruction <span className="text-muted-foreground font-normal normal-case tracking-normal">(optional)</span></p>
+              <p className="text-xs text-muted-foreground mb-3">Adding one wire here satisfies the Payment structure prereq for activation. You can edit details, add bank verification, and add more wires inside the workspace.</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Payee</Label>
+                  <Input
+                    placeholder="Acme Acquisitions LLC"
+                    value={starterWire.payee}
+                    onChange={(e) => setStarterWire(prev => ({ ...prev, payee: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Amount</Label>
+                  <Input
+                    type="number"
+                    placeholder="2500000"
+                    min={0}
+                    value={starterWire.amount}
+                    onChange={(e) => setStarterWire(prev => ({ ...prev, amount: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Bank Name</Label>
+                  <Input
+                    placeholder="JPMorgan Chase"
+                    value={starterWire.bank}
+                    onChange={(e) => setStarterWire(prev => ({ ...prev, bank: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Account (last 4)</Label>
+                  <Input
+                    placeholder="1234"
+                    maxLength={4}
+                    value={starterWire.last4}
+                    onChange={(e) => setStarterWire(prev => ({ ...prev, last4: e.target.value.replace(/\D/g, '').slice(0, 4) }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {formError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+                {formError}
+              </div>
+            )}
 
             <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={creating}>
               {creating ? 'Creating...' : 'Create Deal'}
