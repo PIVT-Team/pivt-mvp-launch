@@ -517,17 +517,6 @@ function getWorkspaceEmptyState(stepId: StepId, metrics: DealMetrics | null, ope
     };
   }
 
-  if (stepId === 'approvals' && metrics.totalApprovals === 0) {
-    return {
-      icon: ClipboardCheck,
-      eyebrow: 'Approvals',
-      title: 'No approval workflow has been configured yet',
-      description: 'Newton can scaffold approvers, signing flows, and approval requests once the core deal documents and stakeholders are ready.',
-      ctaLabel: 'Ask Newton to stage approvals',
-      onCta: openNewton,
-    };
-  }
-
   if (stepId === 'execution' && metrics.totalSettlementRecords === 0 && metrics.totalWireInstructions === 0) {
     return {
       icon: Zap,
