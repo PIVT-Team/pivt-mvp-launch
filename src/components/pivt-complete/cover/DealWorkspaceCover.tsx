@@ -506,17 +506,6 @@ const WorkspaceEmptyState: React.FC<{
 function getWorkspaceEmptyState(stepId: StepId, metrics: DealMetrics | null, openNewton: () => void) {
   if (!metrics) return null;
 
-  if (stepId === 'stakeholders' && metrics.totalStakeholders === 0) {
-    return {
-      icon: Users,
-      eyebrow: 'Stakeholders',
-      title: 'Start with the deal parties and team',
-      description: 'Buyer, seller, target, and supporting contacts will appear here once Newton or your team adds the first participants.',
-      ctaLabel: 'Create deal structure with Newton',
-      onCta: openNewton,
-    };
-  }
-
   if (stepId === 'verification' && metrics.totalWireInstructions === 0) {
     return {
       icon: ShieldCheck,
@@ -793,19 +782,16 @@ const WorkspaceShell: React.FC<{
         {emptyState ? (
           <WorkspaceEmptyState {...emptyState} />
         ) : (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${activeStepId}-${activeSubNav}`}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            >
-              {activeStepId === 'overview'
-                ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
-                : <ContentComponent />}
-            </motion.div>
-          </AnimatePresence>
+          <motion.div
+            key={`${activeStepId}-${activeSubNav}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          >
+            {activeStepId === 'overview'
+              ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
+              : <ContentComponent />}
+          </motion.div>
         )}
       </div>
 
