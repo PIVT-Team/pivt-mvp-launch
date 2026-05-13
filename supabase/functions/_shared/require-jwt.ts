@@ -1,7 +1,22 @@
+// Shared JWT-verification helper for edge functions.
+//
+// Earlier versions manually verified HS256 using a `SUPABASE_JWT_SECRET`
+// env var that Supabase does NOT auto-inject. When that secret was missing,
+// every function using this helper returned a generic "Unauthorized" / 500
+// "Unknown error" — including document-ai, manual-verify, newton-execute, etc.
+//
+// This version uses Supabase's own auth service (auth.getUser) which validates
+// the user token using the auto-injected `SUPABASE_URL` + `SUPABASE_ANON_KEY`.
+// No manual secret config needed. Same return shape as before so existing
+// callers ({ authHeader, claims, userId } destructuring) keep working.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+
 export type JwtClaims = Record<string, unknown> & {
   sub?: string;
   exp?: number;
   iat?: number;
+  email?: string;
+  role?: string;
 };
 
 type CorsHeaders = Record<string, string>;
@@ -13,71 +28,45 @@ function jsonUnauthorized(corsHeaders: CorsHeaders) {
   });
 }
 
-function decodeBase64Url(input: string) {
-  const normalized = input.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-  const binary = atob(padded);
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
-}
-
-function decodeJson<T>(input: string): T {
-  const bytes = decodeBase64Url(input);
-  return JSON.parse(new TextDecoder().decode(bytes)) as T;
-}
-
-async function verifyHs256Jwt(token: string, secret: string) {
-  const [encodedHeader, encodedPayload, encodedSignature] = token.split(".");
-  if (!encodedHeader || !encodedPayload || !encodedSignature) {
-    return null;
-  }
-
-  const header = decodeJson<{ alg?: string }>(encodedHeader);
-  if (header.alg !== "HS256") {
-    return null;
-  }
-
-  const key = await crypto.subtle.importKey(
-    "raw",
-    new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-
-  const isValid = await crypto.subtle.verify(
-    "HMAC",
-    key,
-    decodeBase64Url(encodedSignature),
-    new TextEncoder().encode(`${encodedHeader}.${encodedPayload}`),
-  );
-
-  if (!isValid) {
-    return null;
-  }
-
-  return decodeJson<JwtClaims>(encodedPayload);
-}
-
 export async function requireJwt(req: Request, corsHeaders: CorsHeaders) {
   const authHeader = req.headers.get("Authorization") ?? req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     throw jsonUnauthorized(corsHeaders);
   }
 
-  const secret = Deno.env.get("SUPABASE_JWT_SECRET");
-  if (!secret) {
+  const token = authHeader.slice(7).trim();
+  if (!token) {
     throw jsonUnauthorized(corsHeaders);
   }
 
-  const token = authHeader.slice(7).trim();
-  const claims = await verifyHs256Jwt(token, secret);
-  if (!claims?.sub || (typeof claims.exp === "number" && claims.exp <= Math.floor(Date.now() / 1000))) {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!supabaseUrl || !anonKey) {
+    // Server misconfiguration — log and refuse rather than silently failing.
+    console.error("require-jwt: missing SUPABASE_URL or SUPABASE_ANON_KEY env vars");
     throw jsonUnauthorized(corsHeaders);
   }
+
+  const client = createClient(supabaseUrl, anonKey, {
+    global: { headers: { Authorization: authHeader } },
+  });
+
+  const { data, error } = await client.auth.getUser(token);
+  if (error || !data?.user) {
+    throw jsonUnauthorized(corsHeaders);
+  }
+
+  const user = data.user;
+  const claims: JwtClaims = {
+    sub: user.id,
+    email: user.email ?? undefined,
+    role: user.role ?? undefined,
+    iat: user.created_at ? Math.floor(new Date(user.created_at).getTime() / 1000) : undefined,
+  };
 
   return {
     authHeader,
     claims,
-    userId: claims.sub,
+    userId: user.id,
   };
 }
