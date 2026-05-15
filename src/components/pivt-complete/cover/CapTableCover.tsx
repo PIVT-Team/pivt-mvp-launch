@@ -257,8 +257,10 @@ export const CapTableCover: React.FC = () => {
         </div>
       </div>
 
-      {/* Empty State */}
-      {entries.length === 0 && capStatus !== 'extracting' && (
+      {/* Empty State — hidden once the user has opened the inline Add form,
+          otherwise the empty-state card stacks on top of the new add row
+          and looks like nothing happened when "Add Equity Holder" is clicked. */}
+      {entries.length === 0 && capStatus !== 'extracting' && !showAddRow && (
         <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto">
             <ShieldCheck className="w-7 h-7 text-muted-foreground" />
