@@ -269,12 +269,20 @@ export const ApprovalsWorkflowCover: React.FC = () => {
   };
 
   /* ─── Approval Actions ─── */
+  // The deal_approvals table has CHECK (approval_side IN ('buyer', 'seller')).
+  // The UI lets the user pick from richer roles like "Seller Counsel" or
+  // "Target Signatory" — map those down to the binary side the DB requires.
+  const sideFromRole = (role: string): 'buyer' | 'seller' => {
+    const r = role.toLowerCase();
+    if (r.includes('seller') || r.includes('target')) return 'seller';
+    return 'buyer';
+  };
   const handleAddApprover = async () => {
     if (!newApprover.name || !dealId || !user?.id) { toast.error('Name is required'); return; }
     const { error } = await supabase.from('deal_approvals').insert({
       deal_id: dealId,
       user_id: user.id,
-      approval_side: newApprover.role || 'approver',
+      approval_side: sideFromRole(newApprover.role),
       approver_name: newApprover.name,
       approver_email: newApprover.email,
       approver_role: newApprover.role,
@@ -283,7 +291,12 @@ export const ApprovalsWorkflowCover: React.FC = () => {
       required: newApprover.required,
       status: 'pending',
     });
-    if (error) { toast.error('Failed to add approver'); return; }
+    if (error) {
+      // Surface the real DB error so future failures are diagnosable instead
+      // of always showing the same opaque toast.
+      toast.error(`Failed to add approver: ${error.message}`);
+      return;
+    }
     await supabase.from('audit_log').insert({
       deal_id: dealId, user_id: user.id, action: 'approval_created',
       details: { approver_name: newApprover.name, role: newApprover.role, type: newApprover.type },
