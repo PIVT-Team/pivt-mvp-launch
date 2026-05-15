@@ -216,8 +216,17 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
   const hasExecutionBlocker = approvals.some((a) => BLOCKED_APPROVAL_STATUSES.has(nStatus(a.status)));
 
   const stageStatuses: DealMetrics["stageStatuses"] = {
+    // Stakeholders stage = "have we identified the people in this deal?",
+    // NOT "are they all KYC'd?" — verification is its own stage with its
+    // own dot below. Previously this conflated the two so the sidebar dot
+    // stayed yellow until every stakeholder was verified, which made
+    // Stakeholders unreachable-green even after the roster was complete.
     stakeholders:
-      stakeholders.length === 0 ? "not_started" : verifiedStakeholders === stakeholders.length ? "complete" : "in_progress",
+      stakeholders.length === 0
+        ? "not_started"
+        : stakeholdersConfigured
+        ? "complete"
+        : "in_progress",
     deal_inputs:
       totalDealInputs === 0 ? "not_started" : completedDealInputs >= requiredDealInputs ? "complete" : "in_progress",
     verification:
