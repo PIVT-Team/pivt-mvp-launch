@@ -65,6 +65,18 @@ export function useDealOperations() {
     jurisdiction?: string | null;
     signing_date?: string | null;
   }): Promise<RealDeal | null> => {
+    // Defense in depth — the deals RLS policy requires owner_id = auth.uid().
+    // Without a signed-in user we'd get "new row violates row-level security
+    // policy for table deals", which is unreadable. Fail fast with a humane
+    // toast instead.
+    if (!user?.id) {
+      toast({
+        title: "Sign in to create a deal",
+        description: "Your session has expired or you're not signed in. Sign in again and try again.",
+        variant: "destructive",
+      });
+      return null;
+    }
     const { data, error } = await supabase
       .from("deals")
       .insert({

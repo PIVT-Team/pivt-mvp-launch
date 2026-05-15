@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X, Sparkles, Upload, Wand2, AlertTriangle, CheckCircle2, Clock, Brain, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePIVTStore } from '@/stores/pivtStore';
@@ -557,10 +558,28 @@ export const DealsCover: React.FC = () => {
     },
   ].filter(Boolean) as Array<{ id: string; icon: typeof Brain; accent: string; text: string }>;
 
-  const openCreateInNewton = () => {
-    window.dispatchEvent(new CustomEvent('pivt:open-newton'));
-    window.dispatchEvent(new CustomEvent('pivt:newton-create-deal'));
+  const navigate = useNavigate();
+
+  // Gate any "create deal" entry point behind auth. Without a session, the
+  // RLS policy on `deals` (owner_id = auth.uid()) rejects the INSERT and the
+  // user sees a cryptic Postgres error. Better: send them to sign in first.
+  const requireAuthThen = (callback: () => void) => {
+    if (!user) {
+      const here = window.location.pathname + window.location.search;
+      navigate(`/login?next=${encodeURIComponent(here)}`);
+      return;
+    }
+    callback();
   };
+
+  const openCreateInNewton = () => {
+    requireAuthThen(() => {
+      window.dispatchEvent(new CustomEvent('pivt:open-newton'));
+      window.dispatchEvent(new CustomEvent('pivt:newton-create-deal'));
+    });
+  };
+
+  const openCreateModal = () => requireAuthThen(() => setShowCreate(true));
 
   return (
     <div className="space-y-6">
@@ -573,11 +592,12 @@ export const DealsCover: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowCreate(true)}
+          onClick={openCreateModal}
+          title={user ? undefined : 'Sign in to create a deal'}
           className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
         >
           <Plus className="w-4 h-4" />
-          New Deal
+          {user ? 'New Deal' : 'Sign in to create'}
         </button>
       </div>
 
