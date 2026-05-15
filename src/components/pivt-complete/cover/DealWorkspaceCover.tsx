@@ -674,6 +674,18 @@ const WorkspaceSidebar: React.FC<{
         if (n === 0) return `Audit — ${statusLabel} · no events recorded yet`;
         return `Audit — Trail live · ${n} event${n === 1 ? '' : 's'} recorded`;
       }
+      case 'overview': {
+        // Overview isn't a step you complete — it's the deal home view.
+        // The dot is green to signal "deal loaded" rather than implying
+        // there's something to do here.
+        return `Overview — Deal loaded`;
+      }
+      case 'comments': {
+        const total = metrics.commentCount;
+        const threads = metrics.commentThreadCount;
+        if (total === 0) return `Comments — ${statusLabel} · no discussion yet`;
+        return `Comments — ${threads} thread${threads === 1 ? '' : 's'} · ${total} comment${total === 1 ? '' : 's'} total`;
+      }
       default:
         return null;
     }

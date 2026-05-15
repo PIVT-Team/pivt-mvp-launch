@@ -39,6 +39,7 @@ export interface DealMetrics {
   readinessPercent: number;
   executionPercent: number;
   stageStatuses: {
+    overview: DealMetricStageStatus;
     stakeholders: DealMetricStageStatus;
     deal_inputs: DealMetricStageStatus;
     verification: DealMetricStageStatus;
@@ -47,8 +48,11 @@ export interface DealMetrics {
     settlement: DealMetricStageStatus;
     compliance: DealMetricStageStatus;
     audit: DealMetricStageStatus;
+    comments: DealMetricStageStatus;
   };
   auditEventCount: number;
+  commentCount: number;
+  commentThreadCount: number;
   gates: {
     stakeholdersConfigured: boolean;
     sellerVerified: boolean;
@@ -108,7 +112,7 @@ function hasRequiredDoc(records: Array<{ doc_type: string; status: string }>, re
 }
 
 export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
-  const [dealRes, stakeholdersRes, contractDocsRes, dealDocsRes, obligationsRes, wiresRes, approvalsRes, conditionsRes, waterfallRes, taxRes, paymentAllocRes, escrowTxRes, auditLogRes] = await Promise.all([
+  const [dealRes, stakeholdersRes, contractDocsRes, dealDocsRes, obligationsRes, wiresRes, approvalsRes, conditionsRes, waterfallRes, taxRes, paymentAllocRes, escrowTxRes, auditLogRes, commentsRes] = await Promise.all([
     supabase.from("deals").select("id, status, buyer, seller, target_company, deal_type").eq("id", dealId).maybeSingle(),
     supabase.from("cap_table_entries").select("id, role, verification_status").eq("deal_id", dealId),
     supabase.from("contract_documents").select("id, doc_type, status").eq("deal_id", dealId),
@@ -124,11 +128,17 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     // Just a presence probe — we only need to know "any audit activity?".
     // Limit 1 keeps the round-trip tiny.
     supabase.from("audit_log").select("id").eq("deal_id", dealId).limit(1),
+    // Lightweight comment census — limit 200 covers all realistic deals
+    // and we only use it for total + thread counts in the sidebar tooltip.
+    supabase.from("deal_comments").select("id, parent_id").eq("deal_id", dealId).limit(200),
   ]);
 
   const deal = dealRes.data as any;
   const stakeholders = (stakeholdersRes.data || []) as any[];
   const auditEventCount = ((auditLogRes.data || []) as any[]).length;
+  const commentRows = (commentsRes.data || []) as any[];
+  const commentCount = commentRows.length;
+  const commentThreadCount = commentRows.filter((c: any) => !c.parent_id).length;
   const contractDocs = (contractDocsRes.data || []) as any[];
   const dealDocs = (dealDocsRes.data || []) as any[];
   const obligations = (obligationsRes.data || []) as any[];
@@ -231,6 +241,10 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
   const hasExecutionBlocker = approvals.some((a) => BLOCKED_APPROVAL_STATUSES.has(nStatus(a.status)));
 
   const stageStatuses: DealMetrics["stageStatuses"] = {
+    // Overview is the deal's home view, not a step that has progress. If
+    // we got here, getDealMetrics found a deal — so the dot reads green
+    // ("deal loaded") rather than grey ("blank").
+    overview: deal ? "complete" : "not_started",
     // Stakeholders stage = "have we identified the people in this deal?",
     // NOT "are they all KYC'd?" — verification is its own stage with its
     // own dot below. Previously this conflated the two so the sidebar dot
@@ -282,6 +296,9 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     // Chain-integrity (the only real "blocked" condition for audit) is
     // surfaced separately by the Audit Log view itself.
     audit: auditEventCount === 0 ? "not_started" : "complete",
+    // Comments mirrors Audit — it's a discussion log that grows over
+    // time, not a checklist. Green once any thread exists.
+    comments: commentCount === 0 ? "not_started" : "complete",
   };
 
   let nextRequiredAction = "Review deal workspace";
@@ -346,6 +363,8 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     totalSettlementRecords,
     settledRecords,
     auditEventCount,
+    commentCount,
+    commentThreadCount,
     readinessPercent,
     executionPercent,
     stageStatuses,
