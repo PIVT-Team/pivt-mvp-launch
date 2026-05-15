@@ -15,6 +15,7 @@ function createChainMock(data: any) {
   const chain: any = {};
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
+  chain.limit = vi.fn().mockReturnValue(chain);
   chain.maybeSingle = vi.fn().mockResolvedValue({ data, error: null });
   chain.then = (resolve: any) => resolve({ data: Array.isArray(data) ? data : [], error: null });
   return chain;

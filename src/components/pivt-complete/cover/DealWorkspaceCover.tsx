@@ -667,6 +667,13 @@ const WorkspaceSidebar: React.FC<{
       case 'execution': {
         return `Execution — ${statusLabel} · ${metrics.executionPercent}% of gates passed`;
       }
+      case 'audit': {
+        // Audit is a growing trail, not a checklist — "complete" here means
+        // "the trail is live and being captured", not "audit is finished."
+        const n = metrics.auditEventCount;
+        if (n === 0) return `Audit — ${statusLabel} · no events recorded yet`;
+        return `Audit — Trail live · ${n} event${n === 1 ? '' : 's'} recorded`;
+      }
       default:
         return null;
     }

@@ -46,7 +46,9 @@ export interface DealMetrics {
     execution: DealMetricStageStatus;
     settlement: DealMetricStageStatus;
     compliance: DealMetricStageStatus;
+    audit: DealMetricStageStatus;
   };
+  auditEventCount: number;
   gates: {
     stakeholdersConfigured: boolean;
     sellerVerified: boolean;
@@ -106,7 +108,7 @@ function hasRequiredDoc(records: Array<{ doc_type: string; status: string }>, re
 }
 
 export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
-  const [dealRes, stakeholdersRes, contractDocsRes, dealDocsRes, obligationsRes, wiresRes, approvalsRes, conditionsRes, waterfallRes, taxRes, paymentAllocRes, escrowTxRes] = await Promise.all([
+  const [dealRes, stakeholdersRes, contractDocsRes, dealDocsRes, obligationsRes, wiresRes, approvalsRes, conditionsRes, waterfallRes, taxRes, paymentAllocRes, escrowTxRes, auditLogRes] = await Promise.all([
     supabase.from("deals").select("id, status, buyer, seller, target_company, deal_type").eq("id", dealId).maybeSingle(),
     supabase.from("cap_table_entries").select("id, role, verification_status").eq("deal_id", dealId),
     supabase.from("contract_documents").select("id, doc_type, status").eq("deal_id", dealId),
@@ -119,10 +121,14 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     supabase.from("tax_forms").select("id").eq("deal_id", dealId),
     supabase.from("payment_allocations").select("id, status").eq("deal_id", dealId),
     supabase.from("escrow_transactions").select("id, status").eq("deal_id", dealId),
+    // Just a presence probe — we only need to know "any audit activity?".
+    // Limit 1 keeps the round-trip tiny.
+    supabase.from("audit_log").select("id").eq("deal_id", dealId).limit(1),
   ]);
 
   const deal = dealRes.data as any;
   const stakeholders = (stakeholdersRes.data || []) as any[];
+  const auditEventCount = ((auditLogRes.data || []) as any[]).length;
   const contractDocs = (contractDocsRes.data || []) as any[];
   const dealDocs = (dealDocsRes.data || []) as any[];
   const obligations = (obligationsRes.data || []) as any[];
@@ -270,6 +276,12 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
         : conditionsSatisfied + grantedRequiredApprovals >= totalConditions + requiredApprovals
         ? "complete"
         : "in_progress",
+    // Audit is an always-growing trail rather than a checklist, so the
+    // healthy state is "any activity recorded." 0 events = nothing's
+    // happened yet (grey), ≥1 = the trail is live and being captured.
+    // Chain-integrity (the only real "blocked" condition for audit) is
+    // surfaced separately by the Audit Log view itself.
+    audit: auditEventCount === 0 ? "not_started" : "complete",
   };
 
   let nextRequiredAction = "Review deal workspace";
@@ -333,6 +345,7 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     conditionsSatisfied,
     totalSettlementRecords,
     settledRecords,
+    auditEventCount,
     readinessPercent,
     executionPercent,
     stageStatuses,
