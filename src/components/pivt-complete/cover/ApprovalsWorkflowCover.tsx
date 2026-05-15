@@ -415,6 +415,74 @@ export const ApprovalsWorkflowCover: React.FC = () => {
     await fetchAuditEntries();
   };
 
+  /* ─── Manual approve / decline ───
+     The deal owner often needs to record an approval that happened
+     out-of-band (verbal sign-off, email, paper signature, etc.) without
+     going through the DocuSign pipeline. These two handlers flip the row
+     directly. We write the two values the schema's CHECK constraint
+     guarantees are valid — 'approved' and 'rejected' — and let
+     mapDbStatus() translate them to the UI's 'completed' / 'declined'
+     badges. The completion trigger (sync_signature_packet_completion)
+     fires only on 'completed', so it stays a no-op here, which is the
+     right behavior for a manual record. */
+  const handleManualApprove = async (item: ApprovalItem) => {
+    if (!dealId || !user?.id) return;
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from('deal_approvals')
+      .update({ status: 'approved' as any, completed_at: now } as any)
+      .eq('id', item.id);
+    if (error) {
+      toast.error(`Failed to approve: ${error.message}`);
+      return;
+    }
+    await supabase.from('audit_log').insert({
+      deal_id: dealId, user_id: user.id, action: 'approval_manually_approved',
+      details: { approver_name: item.approver_name, role: item.approver_role },
+    });
+    toast.success(`${item.approver_name} marked approved`);
+    await fetchItems();
+    await fetchAuditEntries();
+  };
+
+  const [declineTarget, setDeclineTarget] = useState<ApprovalItem | null>(null);
+  const [declineReason, setDeclineReason] = useState('');
+
+  const openDecline = (item: ApprovalItem) => {
+    setDeclineTarget(item);
+    setDeclineReason('');
+  };
+
+  const confirmDecline = async () => {
+    if (!declineTarget || !dealId || !user?.id) return;
+    if (!declineReason.trim()) {
+      toast.error('Provide a reason for declining');
+      return;
+    }
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from('deal_approvals')
+      .update({
+        status: 'rejected' as any,
+        declined_at: now,
+        blocker_reason: declineReason.trim(),
+      } as any)
+      .eq('id', declineTarget.id);
+    if (error) {
+      toast.error(`Failed to decline: ${error.message}`);
+      return;
+    }
+    await supabase.from('audit_log').insert({
+      deal_id: dealId, user_id: user.id, action: 'approval_manually_declined',
+      details: { approver_name: declineTarget.approver_name, reason: declineReason.trim() },
+    });
+    toast.success(`${declineTarget.approver_name} marked declined`);
+    setDeclineTarget(null);
+    setDeclineReason('');
+    await fetchItems();
+    await fetchAuditEntries();
+  };
+
   const openDetail = (item: ApprovalItem) => {
     setSelectedItem(item);
     setDetailDrawerOpen(true);
@@ -600,6 +668,30 @@ export const ApprovalsWorkflowCover: React.FC = () => {
                       <td className="px-4 py-3 text-xs text-muted-foreground">{formatDate(item.completed_at)}</td>
                       <td className="px-4 py-3 text-right" onClick={e => e.stopPropagation()}>
                         <div className="inline-flex items-center gap-1">
+                          {/* Manual Approve / Decline — available on any row
+                              that isn't already completed/declined/not-required.
+                              Lets a deal owner record an out-of-band sign-off
+                              without forcing the DocuSign flow. */}
+                          {!['completed', 'declined', 'not_required'].includes(item.request_status) && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px] gap-1 border-emerald-500/30 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700"
+                                onClick={() => handleManualApprove(item)}
+                              >
+                                <CheckCircle2 className="w-3 h-3" /> Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-[11px] gap-1 border-destructive/30 text-destructive hover:bg-destructive/10"
+                                onClick={() => openDecline(item)}
+                              >
+                                <XCircle className="w-3 h-3" /> Decline
+                              </Button>
+                            </>
+                          )}
                           {canSend && (
                             <Button size="sm" className="h-7 text-[11px] gap-1" onClick={() => handleSendRequest(item)}>
                               <Send className="w-3 h-3" /> Send
@@ -1017,6 +1109,38 @@ export const ApprovalsWorkflowCover: React.FC = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancel</Button>
             <Button onClick={handleAddApprover}>Add Approver</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Decline reason dialog. Reason is required so audit trail captures
+          why this approver declined — gets surfaced on the row's blocker
+          tooltip and feeds the execution-blocker count. */}
+      <Dialog open={!!declineTarget} onOpenChange={(open) => { if (!open) { setDeclineTarget(null); setDeclineReason(''); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Decline approval — {declineTarget?.approver_name}</DialogTitle>
+            <DialogDescription>
+              Record this approver as having declined. Provide a reason so
+              the deal team knows why this approval was blocked.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={declineReason}
+            onChange={(e) => setDeclineReason(e.target.value)}
+            placeholder="e.g. Could not confirm fund flow; needs revised SPA section 4.2"
+            rows={4}
+            className="bg-muted/40"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setDeclineTarget(null); setDeclineReason(''); }}>Cancel</Button>
+            <Button
+              onClick={confirmDecline}
+              disabled={!declineReason.trim()}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirm Decline
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

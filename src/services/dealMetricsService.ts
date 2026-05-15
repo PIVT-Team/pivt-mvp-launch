@@ -42,6 +42,7 @@ export interface DealMetrics {
     stakeholders: DealMetricStageStatus;
     deal_inputs: DealMetricStageStatus;
     verification: DealMetricStageStatus;
+    approvals: DealMetricStageStatus;
     execution: DealMetricStageStatus;
     settlement: DealMetricStageStatus;
     compliance: DealMetricStageStatus;
@@ -239,6 +240,26 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
       totalDealInputs === 0 ? "not_started" : completedDealInputs >= requiredDealInputs ? "complete" : "in_progress",
     verification:
       requiredStakeholders === 0 ? "not_started" : requiredVerifiedStakeholders === requiredStakeholders ? "complete" : "in_progress",
+    // Approvals — drives the sidebar dot next to the Approvals tab. Was
+    // previously missing from this object entirely, so the dot fell through
+    // to the "default" grey/blank state regardless of progress.
+    //
+    // Green ("complete") needs to fire in any of these "all done" shapes:
+    //   - every approval is granted (regardless of required flag)
+    //   - there are required approvals and all of them are granted (optional
+    //     ones may still be pending, but the deal isn't blocked on them)
+    //   - there are zero required approvals and every present approval is
+    //     granted (all-optional case — used to fall through to yellow)
+    approvals:
+      totalApprovals === 0
+        ? "not_started"
+        : hasExecutionBlocker
+        ? "blocked"
+        : grantedApprovals >= totalApprovals
+        ? "complete"
+        : requiredApprovals > 0 && grantedRequiredApprovals >= requiredApprovals
+        ? "complete"
+        : "in_progress",
     execution:
       hasExecutionBlocker ? "blocked" : executionPercent === 0 ? "not_started" : executionPercent === 100 ? "complete" : "in_progress",
     settlement:
