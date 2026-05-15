@@ -23,7 +23,9 @@ import { Loader2, CheckCircle2, AlertCircle, Download, FileText } from 'lucide-r
 import { useReportStore, type ReportFormat, type ReportScope, type GeneratedReport } from '@/stores/reportStore';
 import { usePIVTStore, useSelectedDeal, type DemoDeal } from '@/stores/pivtStore';
 import { useAuditStore } from '@/stores/auditStore';
+import { useAuth } from '@/contexts/AuthContext';
 import { generateReport, downloadBlob, type ReportDataContext } from '@/lib/reportGenerator';
+import { uploadReport } from '@/services/reportPersistenceService';
 
 export interface ReportDef {
   id: string;
@@ -44,6 +46,7 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
   const { deals, stakeholders, payments, waterfallTiers } = usePIVTStore();
   const auditStore = useAuditStore();
   const reportStore = useReportStore();
+  const { user } = useAuth();
 
   // Report type selection
   const REPORT_TYPES: ReportDef[] = useMemo(() => [
@@ -144,6 +147,34 @@ export const GenerateReportModal: React.FC<Props> = ({ open, onOpenChange, repor
 
       const result = await generateReport(activeReport.id, format, ctx);
       reportStore.updateReport(id, { status: 'ready', fileBlob: result.blob, fileName: result.fileName });
+
+      // Persist the blob to Storage + record metadata in audit_log so the
+      // report survives page refresh and is visible to other deal
+      // participants. Local reportStore is kept as a fast in-memory cache
+      // for the current session but is no longer the source of truth.
+      try {
+        setProgressText('Saving to deal storage…');
+        await uploadReport({
+          reportId: id,
+          blob: result.blob,
+          fileName: result.fileName,
+          reportTypeId: activeReport.id,
+          reportName: activeReport.name,
+          format,
+          scope: effectiveScope,
+          scopeLabel,
+          dealId: effectiveScope === 'deal' && selectedDealForScope ? selectedDealForScope.id : null,
+          userId: user?.id ?? null,
+          dateRange: dateStart && dateEnd ? { start: dateStart, end: dateEnd } : undefined,
+        });
+      } catch (uploadErr: any) {
+        // Don't block the success UI — the blob still lives in memory for
+        // this session and the user can download it. But surface a quiet
+        // note so they know it won't survive refresh.
+        console.warn('Report saved locally only:', uploadErr?.message);
+        reportStore.updateReport(id, { error: `Saved to this session only: ${uploadErr?.message || 'storage error'}` });
+      }
+
       setGeneratedId(id);
       setPhase('success');
 
