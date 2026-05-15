@@ -2,9 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { fadeInUp } from '@/lib/animations';
-import { Users, Mail, CheckCircle2, Clock, XCircle, Shield, UserPlus, Plus } from 'lucide-react';
+import { Users, Mail, CheckCircle2, Clock, XCircle, Shield, UserPlus, Plus, BadgeCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { AddStakeholderModal } from './AddStakeholderModal';
 import { useEditGuard } from '@/hooks/useEditGuard';
 
@@ -33,6 +45,9 @@ export const ContactsDealTab: React.FC = () => {
   const [contacts, setContacts] = useState<ContactEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<ContactEntry | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
   const { guardEdit } = useEditGuard();
 
   const fetchContacts = async () => {
@@ -50,6 +65,65 @@ export const ContactsDealTab: React.FC = () => {
 
   const handleAddClick = () => {
     guardEdit('ADD_CONTACT', null, () => setModalOpen(true));
+  };
+
+  // Manual approve/reject — writes directly to cap_table_entries. Same shape
+  // the formal KYC drawer uses, so a contact marked "verified" here looks
+  // identical to one verified through the email flow.
+  const doApprove = async (contact: ContactEntry) => {
+    setBusyId(contact.id);
+    const now = new Date().toISOString();
+    const { error } = await supabase
+      .from('cap_table_entries')
+      .update({
+        verification_status: 'verified',
+        verification_completed_at: now,
+        verification_rejection_reason: null,
+      })
+      .eq('id', contact.id);
+    setBusyId(null);
+    if (error) {
+      toast.error(`Approve failed: ${error.message}`);
+      return;
+    }
+    toast.success(`${contact.shareholder_name} marked verified.`);
+    fetchContacts();
+  };
+
+  const handleApprove = (contact: ContactEntry) => {
+    guardEdit('VERIFY_CONTACT', null, () => doApprove(contact));
+  };
+
+  const openReject = (contact: ContactEntry) => {
+    guardEdit('REJECT_CONTACT', null, () => {
+      setRejectTarget(contact);
+      setRejectReason('');
+    });
+  };
+
+  const confirmReject = async () => {
+    if (!rejectTarget) return;
+    if (!rejectReason.trim()) {
+      toast.error('Provide a reason for rejection.');
+      return;
+    }
+    setBusyId(rejectTarget.id);
+    const { error } = await supabase
+      .from('cap_table_entries')
+      .update({
+        verification_status: 'failed',
+        verification_rejection_reason: rejectReason.trim(),
+      })
+      .eq('id', rejectTarget.id);
+    setBusyId(null);
+    if (error) {
+      toast.error(`Reject failed: ${error.message}`);
+      return;
+    }
+    toast.success(`${rejectTarget.shareholder_name} marked rejected.`);
+    setRejectTarget(null);
+    setRejectReason('');
+    fetchContacts();
   };
 
   const verifiedCount = contacts.filter(c => c.verification_status === 'verified').length;
@@ -124,18 +198,22 @@ export const ContactsDealTab: React.FC = () => {
       ) : (
         <motion.div {...fadeInUp} className="pivt-card overflow-hidden">
           <div className="p-4 border-b border-border bg-muted/30">
-            <div className="grid grid-cols-5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <div className="grid grid-cols-6 text-xs font-medium text-muted-foreground uppercase tracking-wide">
               <span className="col-span-2">Contact Name</span>
               <span>Role</span>
               <span>Email</span>
               <span className="text-center">Verification</span>
+              <span className="text-center">Actions</span>
             </div>
           </div>
           {contacts.map(c => {
             const chip = STATUS_CHIP[c.verification_status] || STATUS_CHIP.not_sent;
+            const isVerified = c.verification_status === 'verified';
+            const isFailed = c.verification_status === 'failed';
+            const isBusy = busyId === c.id;
             return (
               <div key={c.id} className="p-4 border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                <div className="grid grid-cols-5 items-center">
+                <div className="grid grid-cols-6 items-center">
                   <div className="col-span-2">
                     <p className="font-medium">{c.shareholder_name}</p>
                     <p className="text-xs text-muted-foreground capitalize">{c.stakeholder_type}</p>
@@ -147,12 +225,70 @@ export const ContactsDealTab: React.FC = () => {
                       {chip.label}
                     </Badge>
                   </div>
+                  {/* Manual approve / reject. Both buttons always render so a
+                      deal owner can flip the status either direction (e.g.
+                      reverse a stale verified, override a stale failed).
+                      The badge to the left makes the current state obvious. */}
+                  <div className="flex justify-center items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(c)}
+                      disabled={isBusy || isVerified}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-600 text-xs font-medium hover:bg-emerald-500/20 transition-colors disabled:opacity-40 disabled:hover:bg-emerald-500/10"
+                      title={isVerified ? 'Already verified' : 'Mark this contact as verified'}
+                    >
+                      <BadgeCheck className="w-3 h-3" />
+                      {isBusy ? '…' : 'Approve'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openReject(c)}
+                      disabled={isBusy || isFailed}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-destructive/10 text-destructive text-xs font-medium hover:bg-destructive/20 transition-colors disabled:opacity-40 disabled:hover:bg-destructive/10"
+                      title={isFailed ? 'Already rejected' : 'Reject this contact (requires a reason)'}
+                    >
+                      <XCircle className="w-3 h-3" />
+                      Reject
+                    </button>
+                  </div>
                 </div>
               </div>
             );
           })}
         </motion.div>
       )}
+
+      {/* Reject reason dialog. Reason is required so audit trail / KYC review
+          shows WHY the contact failed verification, not just a bare status. */}
+      <AlertDialog open={!!rejectTarget} onOpenChange={(open) => { if (!open) { setRejectTarget(null); setRejectReason(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reject {rejectTarget?.shareholder_name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Mark this contact as rejected for verification. Provide a reason
+              — it's stored on the record and shown in the KYC/KYB review
+              queue so the deal team knows why this contact wasn't approved.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            placeholder="e.g. ID expired; could not confirm beneficial ownership; documents not received"
+            rows={3}
+            className="bg-muted/40"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); confirmReject(); }}
+              disabled={!rejectReason.trim() || !!busyId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirm Reject
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AddStakeholderModal
         open={modalOpen}

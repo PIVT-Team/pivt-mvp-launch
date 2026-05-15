@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
-import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { applyEvent } from '@/services/dealStateMachineService';
@@ -43,7 +42,6 @@ const STATUS_CONFIG: Record<string, { label: string; chipClass: string; icon: Re
 
 export const VerificationReviewCover: React.FC = () => {
   const { dealId } = useDealWorkspace();
-  const { isAdmin } = useAuth();
   const [requests, setRequests] = useState<VerificationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -209,7 +207,7 @@ export const VerificationReviewCover: React.FC = () => {
                           Resend
                         </button>
                       )}
-                      {isAdmin && !['verified', 'expired'].includes(req.status) && (
+                      {!['verified', 'expired'].includes(req.status) && (
                         <button
                           onClick={() => handleManualVerify(req.id, true)}
                           disabled={isProcessing}
@@ -264,8 +262,8 @@ export const VerificationReviewCover: React.FC = () => {
                       </div>
                     )}
 
-                    {/* Admin Actions */}
-                    {isAdmin && !['verified', 'expired'].includes(req.status) && (
+                    {/* Manual review actions — deal owner / participant. Backend (manual-verify edge function) enforces auth via JWT; RLS ultimately gates the underlying write. */}
+                    {!['verified', 'expired'].includes(req.status) && (
                       <div className="border-t border-border pt-4 space-y-3">
                         <Textarea
                           value={reviewNotes}

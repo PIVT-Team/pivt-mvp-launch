@@ -652,12 +652,23 @@ const LiveKycKybTab: React.FC = () => {
                   const cfg = STATUS_CHIP[s.verification_status] || STATUS_CHIP.not_sent;
                   return (
                     <div key={s.id} className="p-4 border-b border-border last:border-0 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-sm">{s.shareholder_name}</p>
-                          <p className="text-xs text-muted-foreground">{s.email || 'No email'} · {s.stakeholder_type === 'entity' ? 'KYB' : 'KYC'}</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{s.shareholder_name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{s.email || 'No email'} · {s.stakeholder_type === 'entity' ? 'KYB' : 'KYC'}</p>
                         </div>
-                        <Badge className={`${cfg.className} text-[10px]`}>{cfg.label}</Badge>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge className={`${cfg.className} text-[10px]`}>{cfg.label}</Badge>
+                          {/* Review queue is the work-tray view — every row needs to be one click from approve/reject. */}
+                          <button
+                            type="button"
+                            onClick={() => setReviewTarget(s)}
+                            className="text-xs text-accent flex items-center gap-1 hover:underline"
+                            title="Approve or reject this stakeholder"
+                          >
+                            <FileSearch className="w-3 h-3" /> Review
+                          </button>
+                        </div>
                       </div>
                       {s.verification_status === 'failed' && s.verification_rejection_reason && (
                         <p className="text-xs text-destructive mt-1">Reason: {s.verification_rejection_reason}</p>
@@ -714,7 +725,7 @@ const LiveKycKybTab: React.FC = () => {
                     <span className="text-center text-xs text-muted-foreground font-mono">
                       {lastDate ? new Date(lastDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                     </span>
-                    <div className="flex justify-center">
+                    <div className="flex justify-center items-center gap-3">
                       {s.verification_status === 'verified' && (
                         <span className="text-xs text-validated flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Complete</span>
                       )}
@@ -757,6 +768,17 @@ const LiveKycKybTab: React.FC = () => {
                           title={s.verification_rejection_reason || 'Rejected — click to resend'}
                         >
                           <XCircle className="w-3 h-3" /> Resend
+                        </button>
+                      )}
+                      {/* Manual approve/reject — available for ANY non-verified row so the deal owner can mark a stakeholder verified out-of-band (e.g. KYC done over email, doc reviewed in person, override a stale failure). Opens the same review drawer used for `submitted`. */}
+                      {s.verification_status !== 'verified' && s.verification_status !== 'submitted' && (
+                        <button
+                          type="button"
+                          onClick={() => setReviewTarget(s)}
+                          className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground"
+                          title="Manually approve or reject this stakeholder"
+                        >
+                          <FileSearch className="w-3 h-3" /> Manual
                         </button>
                       )}
                     </div>
