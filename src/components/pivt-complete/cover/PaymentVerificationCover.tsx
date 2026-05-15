@@ -156,13 +156,42 @@ export const PaymentVerificationCover: React.FC = () => {
 
   const confirmReject = async () => {
     if (!selectedWire) return;
-    await supabase
+    // Require a reason — the whole point of capturing the dialog input is
+    // so the rejection is diagnosable later. Previously the textarea was
+    // collected and silently discarded, which left audit-trail gaps.
+    const reason = resolutionNote.trim();
+    if (!reason) {
+      toast.error('Provide a reason for rejecting this wire');
+      return;
+    }
+    const { error } = await supabase
       .from('wire_instructions')
       .update({ verification_status: 'rejected', confidence_status: 'human_verified', needs_review: false, last_updated_by_source: 'manual' } as any)
       .eq('id', selectedWire.id);
-    toast.success(`${selectedWire.payee_entity} flagged for review`);
+    if (error) {
+      toast.error(`Reject failed: ${error.message}`);
+      return;
+    }
+    // Persist the reason via audit_log since wire_instructions has no notes
+    // column (and adding one would require a migration). Same pattern the
+    // verify side uses for its event log entry.
+    if (dealId) {
+      await supabase.from('audit_log').insert({
+        deal_id: dealId,
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        action: 'wire_instruction_rejected',
+        details: {
+          wire_id: selectedWire.id,
+          payee: selectedWire.payee_entity,
+          amount: selectedWire.amount,
+          reason,
+        },
+      });
+    }
+    toast.success(`${selectedWire.payee_entity} rejected`);
     setWireInstructions(prev => prev.map(w => w.id === selectedWire.id ? { ...w, verification_status: 'rejected' as VerificationStatus } : w));
     setResolveDialogOpen(false);
+    setResolutionNote('');
   };
 
   const renderProvenance = (docId: string | null) => {
@@ -341,18 +370,19 @@ export const PaymentVerificationCover: React.FC = () => {
       <Dialog open={resolveDialogOpen} onOpenChange={setResolveDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Flag Wire Instruction</DialogTitle>
+            <DialogTitle>Reject Wire Instruction</DialogTitle>
             <DialogDescription>{selectedWire?.payee_entity} — {formatCurrency(selectedWire?.amount || 0)}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <label className="text-sm font-medium">Reason for flagging</label>
-              <Textarea value={resolutionNote} onChange={e => setResolutionNote(e.target.value)} placeholder="Describe the issue with this wire instruction..." className="mt-2" />
+              <label className="text-sm font-medium">Reason for rejection</label>
+              <Textarea value={resolutionNote} onChange={e => setResolutionNote(e.target.value)} placeholder="e.g. Routing number doesn't match the bank letter; account holder differs from SPA Schedule 2" className="mt-2" />
+              <p className="text-[11px] text-muted-foreground mt-1">Stored on the audit trail so the team knows why this wire was rejected.</p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setResolveDialogOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={confirmReject}>Flag for Review</Button>
+            <Button variant="destructive" onClick={confirmReject} disabled={!resolutionNote.trim()}>Confirm Reject</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
