@@ -578,10 +578,22 @@ export const AuditConsoleCover: React.FC = () => {
                 const isExpanded = expandedId === event.id;
                 return (
                   <div key={event.id} className={`overflow-hidden rounded-2xl border border-border bg-card border-l-4 ${categoryStyles[event.category]}`}>
-                    <button
-                      type="button"
-                      className="flex w-full items-start gap-4 px-5 py-4 text-left"
+                    {/* Row is a clickable div (not a button) because it contains a
+                        nested <button> for the record link — button-in-button is
+                        invalid HTML. role="button" + tabIndex + keyboard handler
+                        preserves a11y. */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      className="flex w-full cursor-pointer items-start gap-4 px-5 py-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       onClick={() => setExpandedId(isExpanded ? null : event.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setExpandedId(isExpanded ? null : event.id);
+                        }
+                      }}
+                      aria-expanded={isExpanded}
                     >
                       <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-muted/40 text-xs font-semibold text-foreground">
                         {initialsFor(event.actorName)}
@@ -604,7 +616,7 @@ export const AuditConsoleCover: React.FC = () => {
                         </div>
                       </div>
                       {isExpanded ? <ChevronDown className="mt-1 h-4 w-4 text-muted-foreground" /> : <ChevronRight className="mt-1 h-4 w-4 text-muted-foreground" />}
-                    </button>
+                    </div>
 
                     {isExpanded ? (
                       <div className="border-t border-border bg-muted/10 px-5 py-4">
