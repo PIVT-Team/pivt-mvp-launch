@@ -177,8 +177,16 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     obligations: totalObligations > 0,
   };
 
-  const requiredDealInputs = Object.keys(categoryChecks).length;
-  const completedDealInputs = Object.values(categoryChecks).filter(Boolean).length;
+  // "Required" inputs = the minimum bar to call Deal Inputs complete. The
+  // other categories (waterfall / wire_instructions / tax / governance /
+  // obligations) are tracked but they're execution-stage concerns and are
+  // already gated under the Execution dot. Without this split, even the
+  // test's explicitly-perfect "Clean Deal — Healthy Close" scenario fails
+  // — because no real M&A deal has tax forms + obligations + waterfall +
+  // governance docs uploaded up-front, the dot stays yellow forever.
+  const REQUIRED_DEAL_INPUT_CATEGORIES = ['cap_table', 'contracts'] as const;
+  const requiredDealInputs = REQUIRED_DEAL_INPUT_CATEGORIES.length;
+  const completedDealInputs = REQUIRED_DEAL_INPUT_CATEGORIES.filter((k) => categoryChecks[k]).length;
   const totalDealInputs = totalUploadedDocuments + stakeholders.length + waterfall.length + totalWireInstructions + taxForms.length + totalObligations;
 
   const stakeholdersConfigured = (buyerRows.length > 0 || !!deal?.buyer) && (sellerRows.length > 0 || !!deal?.seller);
