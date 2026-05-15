@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import type { RealDeal } from '@/hooks/useDealOperations';
 import { EditGuardProvider, useEditGuard, consumePendingAction } from '@/hooks/useEditGuard';
@@ -608,40 +609,112 @@ const WorkspaceSidebar: React.FC<{
   activeSubNav?: string;
   onSubChange: (id: string) => void;
   stageStatuses?: Record<string, string>;
-}> = ({ activeStepId, onStepClick, subNavItems, activeSubNav, onSubChange, stageStatuses }) => {
+  metrics?: DealMetrics | null;
+}> = ({ activeStepId, onStepClick, subNavItems, activeSubNav, onSubChange, stageStatuses, metrics }) => {
+
+  const stageKey = (id: StepId) => (id === 'deal-inputs' ? 'deal_inputs' : id);
 
   const getStepDot = (id: StepId) => {
-    const status = stageStatuses?.[id === 'deal-inputs' ? 'deal_inputs' : id];
+    const status = stageStatuses?.[stageKey(id)];
     if (status === 'complete') return 'bg-validated';
     if (status === 'in_progress') return 'bg-amber-400';
     if (status === 'blocked') return 'bg-blocking';
     return 'bg-muted-foreground/20';
   };
 
+  // Build a one-line tooltip per step so users can hover the dot to see
+  // exactly what's done / what's left. Returns null for steps that don't
+  // map to measurable progress (Overview, Audit, Comments).
+  const getStepTooltip = (id: StepId): string | null => {
+    if (!metrics) return null;
+    const status = stageStatuses?.[stageKey(id)];
+    const statusLabel =
+      status === 'complete' ? 'Complete' :
+      status === 'blocked' ? 'Blocked' :
+      status === 'in_progress' ? 'In progress' :
+      'Not started';
+    switch (id) {
+      case 'stakeholders': {
+        const buyer = metrics.buyerSideStakeholders;
+        const seller = metrics.sellerSideStakeholders;
+        const total = metrics.totalStakeholders;
+        if (total === 0) return `Stakeholders — ${statusLabel} · no parties added yet`;
+        return `Stakeholders — ${statusLabel} · ${buyer} buyer-side / ${seller} seller-side (${total} total)`;
+      }
+      case 'deal-inputs': {
+        // The "required" baseline used by the stage_status rule is just
+        // cap_table + contracts. Express progress as the broader N-of-8
+        // categories so the hover gives more granular feedback.
+        const done = metrics.completedDealInputs;
+        const total = metrics.requiredDealInputs;
+        return `Deal Inputs — ${statusLabel} · core inputs (${done >= total ? 'done' : `${done}/${total} required`})`;
+      }
+      case 'verification': {
+        const reqv = metrics.requiredVerifiedStakeholders;
+        const reqt = metrics.requiredStakeholders;
+        if (reqt === 0) return `Verification — ${statusLabel} · no parties to verify yet`;
+        return `Verification — ${statusLabel} · ${reqv} of ${reqt} required parties verified`;
+      }
+      case 'approvals': {
+        const granted = metrics.grantedApprovals;
+        const total = metrics.totalApprovals;
+        const req = metrics.requiredApprovals;
+        const reqGranted = metrics.grantedRequiredApprovals;
+        if (total === 0) return `Approvals — ${statusLabel} · no approvers added yet`;
+        if (req === 0) return `Approvals — ${statusLabel} · ${granted} of ${total} granted (all optional)`;
+        return `Approvals — ${statusLabel} · ${reqGranted} of ${req} required granted${total > req ? ` (${granted}/${total} total)` : ''}`;
+      }
+      case 'execution': {
+        return `Execution — ${statusLabel} · ${metrics.executionPercent}% of gates passed`;
+      }
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="w-full flex flex-col gap-1">
-      <nav className="space-y-0.5">
-        {SIDEBAR_NAV.map(item => {
-          const isActive = activeStepId === item.id;
-          const Icon = item.icon;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onStepClick(item.id)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 group ${
-                isActive
-                  ? 'bg-accent/8 text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
-              }`}
-              style={isActive ? { borderLeft: '2px solid hsl(var(--accent))' } : { borderLeft: '2px solid transparent' }}
-            >
+      <TooltipProvider delayDuration={150}>
+        <nav className="space-y-0.5">
+          {SIDEBAR_NAV.map(item => {
+            const isActive = activeStepId === item.id;
+            const Icon = item.icon;
+            const tip = getStepTooltip(item.id);
+            const dot = (
               <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStepDot(item.id)} transition-colors`} />
-              <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent' : 'text-muted-foreground/60 group-hover:text-muted-foreground'}`} />
-              <span className="truncate">{item.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+            );
+            return (
+              <button
+                key={item.id}
+                onClick={() => onStepClick(item.id)}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 group ${
+                  isActive
+                    ? 'bg-accent/8 text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
+                }`}
+                style={isActive ? { borderLeft: '2px solid hsl(var(--accent))' } : { borderLeft: '2px solid transparent' }}
+              >
+                {tip ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      {/* Wrapper span gives the tooltip a real hover target —
+                          a 6px dot alone is hard to land on. */}
+                      <span className="inline-flex items-center -my-1 -mx-1 px-1 py-1 cursor-help">
+                        {dot}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" className="text-xs max-w-[280px]">
+                      {tip}
+                    </TooltipContent>
+                  </Tooltip>
+                ) : dot}
+                <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-accent' : 'text-muted-foreground/60 group-hover:text-muted-foreground'}`} />
+                <span className="truncate">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </TooltipProvider>
 
       {subNavItems && subNavItems.length > 0 && (
         <div className="mt-3 border-t border-border/40 pt-3">
@@ -732,6 +805,7 @@ const WorkspaceShell: React.FC<{
             activeSubNav={activeSubNav}
             onSubChange={setActiveSubNav}
             stageStatuses={metrics?.stageStatuses}
+            metrics={metrics}
           />
         </div>
 
