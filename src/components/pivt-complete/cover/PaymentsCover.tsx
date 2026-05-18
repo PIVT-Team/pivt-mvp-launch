@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { fadeInUp } from '@/lib/animations';
 import {
   Send, CheckCircle2, Clock, XCircle, Filter, Shield, FileCheck,
   AlertTriangle, MessageSquare, RotateCw, FileText, DollarSign,
-  AlertCircle, Download, Zap, Bell
+  AlertCircle, Download, Zap, Bell, Loader2,
 } from 'lucide-react';
+import {
+  listDisbursementIntents, retryDisbursement, statusLabel,
+  type DisbursementIntent, type DisbursementStatus,
+} from '@/services/disbursementService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -93,9 +98,44 @@ const mockRecipientData = {
 };
 
 export const PaymentsCover: React.FC = () => {
-  const { isDemoDeal } = useDealWorkspace();
+  const { isDemoDeal, dealId } = useDealWorkspace();
+  const { user } = useAuth();
   const { stakeholders } = usePIVTStore();
   const pendingKyc = isDemoDeal ? stakeholders.filter(s => s.kycStatus !== 'verified').length : 0;
+
+  // Real disbursement intents for non-demo deals — populated by the
+  // disbursementService.executeDisbursement() flow from the Wire Pack tab.
+  const [intents, setIntents] = useState<DisbursementIntent[]>([]);
+  const [intentsLoading, setIntentsLoading] = useState(false);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
+
+  const refreshIntents = useCallback(async () => {
+    if (!dealId || isDemoDeal) return;
+    setIntentsLoading(true);
+    try {
+      const rows = await listDisbursementIntents(dealId);
+      setIntents(rows);
+    } catch (err) {
+      console.warn('Failed to load disbursement intents:', err);
+    } finally {
+      setIntentsLoading(false);
+    }
+  }, [dealId, isDemoDeal]);
+
+  useEffect(() => { refreshIntents(); }, [refreshIntents]);
+
+  const handleRetry = useCallback(async (intent: DisbursementIntent) => {
+    setRetryingId(intent.id);
+    try {
+      await retryDisbursement(intent, user?.id ?? null);
+      toast.success(`Retry succeeded for ${intent.bank_account_ref || 'recipient'}`);
+      await refreshIntents();
+    } catch (err: any) {
+      toast.error(err?.message || 'Retry failed');
+    } finally {
+      setRetryingId(null);
+    }
+  }, [user?.id, refreshIntents]);
 
   const [activeTab, setActiveTab] = useState('all-payments');
   const [selectedPayment, setSelectedPayment] = useState<typeof mockPayments[0] | null>(null);
@@ -122,25 +162,123 @@ export const PaymentsCover: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Non-demo empty state (after all hooks)
+  // Non-demo: show real disbursement_intents written by the Execute
+  // Disbursement flow on the Wire Pack tab. Each row shows the recipient,
+  // amount, current pipeline status, and provider reference.
   if (!isDemoDeal) {
+    const settledCount = intents.filter(i => i.status === 'settled' || i.status === 'reconciled').length;
+    const executedCount = intents.filter(i => i.status === 'executed').length;
+    const failedCount = intents.filter(i => i.status === 'failed').length;
+    const totalAmount = intents.reduce((s, i) => s + Number(i.amount_original || 0), 0);
+
+    const statusBadge = (s: DisbursementStatus) => {
+      const colors: Record<DisbursementStatus, string> = {
+        settled: 'bg-emerald-500/10 text-emerald-600',
+        reconciled: 'bg-emerald-500/10 text-emerald-600',
+        executed: 'bg-blue-500/10 text-blue-600',
+        executing: 'bg-amber-500/10 text-amber-600',
+        eligible: 'bg-muted text-muted-foreground',
+        pending_approvals: 'bg-amber-500/10 text-amber-600',
+        pending_conditions: 'bg-amber-500/10 text-amber-600',
+        draft: 'bg-muted text-muted-foreground',
+        failed: 'bg-destructive/10 text-destructive',
+      };
+      return (
+        <Badge className={`text-[10px] gap-1 ${colors[s]}`}>
+          {s === 'executing' && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+          {(s === 'settled' || s === 'reconciled' || s === 'executed') && <CheckCircle2 className="w-2.5 h-2.5" />}
+          {s === 'failed' && <XCircle className="w-2.5 h-2.5" />}
+          {statusLabel(s)}
+        </Badge>
+      );
+    };
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-semibold">Disbursement Intents</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">Payment execution and settlement operations.</p>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Payment execution and settlement operations. Use the Wire Pack tab to execute disbursements.
+            </p>
           </div>
+          <Button variant="outline" size="sm" onClick={refreshIntents} disabled={intentsLoading} className="gap-1.5">
+            {intentsLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCw className="w-3.5 h-3.5" />}
+            Refresh
+          </Button>
         </div>
-        <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
-          <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto">
-            <DollarSign className="w-6 h-6 text-muted-foreground" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold">No disbursement intents</h3>
-            <p className="text-sm text-muted-foreground mt-1">Disbursement intents will appear here once the deal's waterfall and payment structure are configured.</p>
-          </div>
-        </motion.div>
+
+        {intents.length === 0 ? (
+          <motion.div {...fadeInUp} className="pivt-card p-12 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+              <DollarSign className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <div>
+              <h3 className="text-base font-semibold">No disbursement intents</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Generate the Wire Pack on the Execution → Wire Pack tab and click <strong>Execute Disbursement</strong>. Intents will appear here.
+              </p>
+            </div>
+          </motion.div>
+        ) : (
+          <>
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Total Intents', value: intents.length, color: 'text-foreground' },
+                { label: 'Total Amount', value: `$${(totalAmount / 1000).toFixed(0)}K`, color: 'text-foreground' },
+                { label: 'Settled', value: settledCount, color: 'text-emerald-600' },
+                { label: failedCount > 0 ? 'Failed' : 'Executed', value: failedCount > 0 ? failedCount : executedCount, color: failedCount > 0 ? 'text-destructive' : 'text-blue-600' },
+              ].map(s => (
+                <Card key={s.label}>
+                  <CardContent className="pt-5 pb-4 px-4">
+                    <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">{s.label}</p>
+                    <p className={`text-xl font-semibold mt-1 font-mono ${s.color}`}>{s.value}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Intents table */}
+            <motion.div {...fadeInUp} className="pivt-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Recipient</TableHead>
+                    <TableHead>Rail</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Provider Ref</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {intents.map(i => (
+                    <TableRow key={i.id}>
+                      <TableCell className="font-medium">{i.bank_account_ref || 'Unknown recipient'}</TableCell>
+                      <TableCell><Badge variant="outline" className="text-[10px] uppercase">{i.rail}</Badge></TableCell>
+                      <TableCell className="text-right font-mono">
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: i.currency_original || 'USD', maximumFractionDigits: 0 }).format(Number(i.amount_original))}
+                      </TableCell>
+                      <TableCell>{statusBadge(i.status)}</TableCell>
+                      <TableCell className="font-mono text-[10px] text-muted-foreground">{i.provider_ref || '—'}</TableCell>
+                      <TableCell className="text-[10px] text-muted-foreground">{new Date(i.created_at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</TableCell>
+                      <TableCell className="text-right">
+                        {i.status === 'failed' && (
+                          <Button variant="outline" size="sm" onClick={() => handleRetry(i)} disabled={retryingId === i.id} className="h-7 text-[11px] gap-1">
+                            {retryingId === i.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCw className="w-3 h-3" />}
+                            Retry
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </motion.div>
+          </>
+        )}
       </div>
     );
   }

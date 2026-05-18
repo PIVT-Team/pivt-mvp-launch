@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -8,14 +9,23 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { fadeInUp } from '@/lib/animations';
 import { WirePackSuccessCard } from '@/components/wirepack/WirePackSuccessCard';
 import {
   ShieldCheck, AlertTriangle, FileText, Download, CheckCircle2,
   Clock, XCircle, Loader2, RefreshCw, FileJson, FileSpreadsheet,
+  Zap, Send,
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
+import {
+  executeDisbursement, listDisbursementIntents, statusLabel,
+  type DisbursementIntent, type DisbursementStatus,
+} from '@/services/disbursementService';
 
 interface WirePack {
   deal_id: string;
@@ -94,9 +104,28 @@ const fmtCurrency = (n: number, c = 'USD') =>
 
 export const WirePackCover: React.FC = () => {
   const { dealId } = useDealWorkspace();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [pack, setPack] = useState<WirePack | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Disbursement state — null until user clicks Execute. Once execution
+  // begins, we surface live progress per intent so the operator sees the
+  // pipeline rather than a spinner.
+  const [intents, setIntents] = useState<DisbursementIntent[]>([]);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [executing, setExecuting] = useState(false);
+  const [liveStatus, setLiveStatus] = useState<Record<string, DisbursementStatus>>({});
+
+  // Always show what's already been executed for this deal on mount. Lets
+  // users come back to the tab later and see prior closing artifacts.
+  useEffect(() => {
+    if (!dealId) return;
+    listDisbursementIntents(dealId).then(setIntents).catch(() => undefined);
+  }, [dealId]);
+
+  const allSettled = intents.length > 0 && intents.every(i => i.status === 'settled' || i.status === 'reconciled');
+  const anyExecuted = intents.some(i => i.status === 'executed' || i.status === 'settled' || i.status === 'reconciled' || i.status === 'executing');
 
   const generatePack = useCallback(async () => {
     if (!dealId) return;
@@ -116,6 +145,49 @@ export const WirePackCover: React.FC = () => {
       setLoading(false);
     }
   }, [dealId, toast]);
+
+  // The actual "close the deal" action. Creates disbursement_intents from
+  // the verified wires + runs the mock-provider simulator (executing →
+  // executed → settled) with live UI updates per intent. Audit log gets a
+  // row at each transition so the Audit tab tells the whole closing story.
+  const handleExecute = useCallback(async () => {
+    if (!dealId) return;
+    setExecuting(true);
+    setLiveStatus({});
+    setConfirmOpen(false);
+    try {
+      const result = await executeDisbursement({
+        dealId,
+        userId: user?.id ?? null,
+        onProgress: ({ intentId, status }) => {
+          setLiveStatus((prev) => ({ ...prev, [intentId]: status }));
+        },
+      });
+      setIntents(result.intents);
+      if (result.created === 0) {
+        toast({ title: 'Nothing to disburse', description: 'All verified wires already have disbursement intents.' });
+      } else {
+        toast({
+          title: 'Disbursement complete',
+          description: `${result.executed} of ${result.created} wires settled${result.failed > 0 ? `, ${result.failed} failed` : ''}.`,
+        });
+      }
+    } catch (e) {
+      toast({
+        title: 'Execution failed',
+        description: (e as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setExecuting(false);
+    }
+  }, [dealId, user?.id, toast]);
+
+  // Pull the latest status from the live map first (covers the few seconds
+  // between an audit-log update and the next refetch), then fall back to the
+  // stored row.
+  const visibleStatus = (intent: DisbursementIntent): DisbursementStatus =>
+    liveStatus[intent.id] || intent.status;
 
   const exportPDF = useCallback(() => {
     if (!pack) return;
@@ -205,12 +277,121 @@ export const WirePackCover: React.FC = () => {
             <StatusIcon className="w-3.5 h-3.5 mr-1.5" />
             {statusConfig.label}
           </Badge>
-          <Button onClick={generatePack} disabled={loading} className="gap-2">
+          <Button onClick={generatePack} disabled={loading || executing} variant="outline" className="gap-2">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             {pack ? 'Refresh Wire Pack' : 'Generate Wire Pack'}
           </Button>
+          {/* Execute Disbursement — the "actually close the deal" button.
+              Visibility is gated on having verified wires (the only hard
+              requirement — the service skips unverified ones). Soft gates
+              (approvals complete, discrepancies resolved) get surfaced in
+              the confirmation dialog so the user can override with a
+              warning rather than be silently blocked. */}
+          {pack && pack.summary.verified_count > 0 && !allSettled && (
+            <Button
+              onClick={() => setConfirmOpen(true)}
+              disabled={executing}
+              className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              {executing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              {executing ? 'Executing…' : anyExecuted ? 'Resume Disbursement' : 'Execute Disbursement'}
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Disbursement Progress — appears once execution starts OR once any
+          intent has been created for this deal. Shows each wire moving
+          through the eligible → executing → executed → settled pipeline. */}
+      {(executing || intents.length > 0) && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Send className="w-4 h-4 text-accent" />
+              Disbursement {allSettled ? 'Complete' : executing ? 'In Progress' : 'History'}
+            </CardTitle>
+            <CardDescription className="text-xs">
+              {allSettled
+                ? `${intents.length} wire${intents.length !== 1 ? 's' : ''} settled via mock provider. Full audit trail in the Audit tab.`
+                : executing
+                  ? 'Mock provider is processing wires. Each transition is recorded in the audit log.'
+                  : `${intents.length} disbursement intent${intents.length !== 1 ? 's' : ''} on record.`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Recipient</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Provider Ref</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {intents.map((i) => {
+                  const status = visibleStatus(i);
+                  const statusColor =
+                    status === 'settled' || status === 'reconciled' ? 'bg-emerald-500/10 text-emerald-600' :
+                    status === 'executed' ? 'bg-blue-500/10 text-blue-600' :
+                    status === 'executing' ? 'bg-amber-500/10 text-amber-600' :
+                    status === 'failed' ? 'bg-destructive/10 text-destructive' :
+                    'bg-muted text-muted-foreground';
+                  return (
+                    <TableRow key={i.id}>
+                      <TableCell className="font-medium">{i.bank_account_ref || 'Unknown recipient'}</TableCell>
+                      <TableCell className="text-right font-mono">{fmtCurrency(Number(i.amount_original), i.currency_original)}</TableCell>
+                      <TableCell>
+                        <Badge className={`text-[10px] ${statusColor} gap-1`}>
+                          {status === 'executing' && <Loader2 className="w-2.5 h-2.5 animate-spin" />}
+                          {(status === 'settled' || status === 'executed' || status === 'reconciled') && <CheckCircle2 className="w-2.5 h-2.5" />}
+                          {status === 'failed' && <XCircle className="w-2.5 h-2.5" />}
+                          {statusLabel(status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-mono text-[10px] text-muted-foreground">{i.provider_ref || '—'}</TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Confirmation — this writes mock-provider transactions, but the
+          intents and audit entries are real DB rows. Worth a pause. */}
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Execute disbursement?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This creates a disbursement intent for each verified wire on this deal and runs the mock partner-bank provider, transitioning each through eligible → executing → executed → settled. Audit-log entries are written at every step.
+              <br /><br />
+              {pack && (
+                <span>
+                  <strong>{pack.summary.verified_count}</strong> verified wire{pack.summary.verified_count !== 1 ? 's' : ''} totaling <strong>{fmtCurrency(pack.summary.total_amount, pack.currency)}</strong> will be disbursed.
+                </span>
+              )}
+              {pack && !pack.is_ready && (
+                <span className="block mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 p-3 text-amber-700 text-xs">
+                  <strong>Heads up:</strong> some readiness gates aren't passed yet
+                  {pack.readiness.pending_approval_count > 0 && ` (${pack.readiness.pending_approval_count} pending approval)`}
+                  {pack.readiness.unverified_wire_count > 0 && ` (${pack.readiness.unverified_wire_count} unverified wire — will be skipped)`}
+                  {pack.readiness.open_critical_count > 0 && ` (${pack.readiness.open_critical_count} open critical discrepancy)`}
+                  . You're choosing to proceed anyway — this is logged in the audit trail.
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleExecute} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+              Execute now
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {!pack && !loading && (
         <Card className="border-dashed">
