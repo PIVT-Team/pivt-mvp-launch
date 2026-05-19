@@ -30,6 +30,7 @@ const VerifyPageLazy = lazy(() => import("./pages/VerifyPage"));
 const CookiePolicyPageLazy = lazy(() => import("./pages/CookiePolicyPage"));
 const PrivacyPolicyPageLazy = lazy(() => import("./pages/PrivacyPolicyPage"));
 const TermsOfServicePageLazy = lazy(() => import("./pages/TermsOfServicePage"));
+const DPAPageLazy = lazy(() => import("./pages/DPAPage"));
 const ContactSupportPageLazy = lazy(() => import("./pages/ContactSupportPage"));
 const DataSecurityPageLazy = lazy(() => import("./pages/DataSecurityPage"));
 const AcceptableUsePageLazy = lazy(() => import("./pages/AcceptableUsePage"));
@@ -79,6 +80,7 @@ const App = () => (
               <Route path="/cookie-policy" element={<CookiePolicyPageLazy />} />
               <Route path="/privacy" element={<PrivacyPolicyPageLazy />} />
               <Route path="/terms" element={<TermsOfServicePageLazy />} />
+              <Route path="/dpa" element={<DPAPageLazy />} />
               <Route path="/contact" element={<ContactSupportPageLazy />} />
               <Route path="/security" element={<DataSecurityPageLazy />} />
               <Route path="/acceptable-use" element={<AcceptableUsePageLazy />} />

@@ -386,6 +386,8 @@ export const PIVTCompleteUnified: React.FC = () => {
               <span>·</span>
               <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
               <span>·</span>
+              <Link to="/dpa" className="hover:text-foreground transition-colors">DPA</Link>
+              <span>·</span>
               <Link to="/cookie-policy" className="hover:text-foreground transition-colors">Cookie Policy</Link>
               <span>·</span>
               <Link to="/security" className="hover:text-foreground transition-colors">Data Security</Link>

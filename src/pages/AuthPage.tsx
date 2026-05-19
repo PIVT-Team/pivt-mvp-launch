@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +13,26 @@ export default function AuthPage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
+  // Track agreement to the Terms / Privacy / DPA at signup time. Stored
+  // in the new user's auth metadata on signup so we have a record of what
+  // they agreed to and when, in case anyone asks later.
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Block signup until the user has explicitly agreed. Login skips this
+    // because returning users already agreed when they signed up.
+    if (!isLogin && !agreedToTerms) {
+      toast({
+        title: "Please accept the Terms",
+        description: "You must agree to the Terms of Service, Privacy Policy, and DPA to create an account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     if (isLogin) {
@@ -28,7 +45,14 @@ export default function AuthPage() {
         email,
         password,
         options: {
-          data: { full_name: fullName },
+          data: {
+            full_name: fullName,
+            // Audit trail: who agreed, to what, when. Lives on auth.users
+            // raw_user_meta_data so it's queryable in support cases.
+            terms_accepted: true,
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: "2026-05-18",
+          },
           emailRedirectTo: window.location.origin,
         },
       });
@@ -110,7 +134,31 @@ export default function AuthPage() {
                 minLength={6}
               />
             </div>
-            <Button type="submit" className="w-full bg-accent text-accent-foreground hover:bg-accent/90" disabled={loading}>
+            {/* Agreement checkbox — required to enable Create Account.
+                Links open in new tabs so the user doesn't lose their
+                signup form state. */}
+            {!isLogin && (
+              <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded border-border accent-accent shrink-0 cursor-pointer"
+                  required
+                />
+                <span>
+                  I agree to PIVT's{' '}
+                  <Link to="/terms" target="_blank" className="text-accent hover:underline">Terms of Service</Link>,{' '}
+                  <Link to="/privacy" target="_blank" className="text-accent hover:underline">Privacy Policy</Link>, and{' '}
+                  <Link to="/dpa" target="_blank" className="text-accent hover:underline">Data Processing Agreement</Link>.
+                </span>
+              </label>
+            )}
+            <Button
+              type="submit"
+              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+              disabled={loading || (!isLogin && !agreedToTerms)}
+            >
               {loading ? "Processing..." : isLogin ? "Sign In" : "Create Account"}
             </Button>
           </form>
@@ -118,6 +166,17 @@ export default function AuthPage() {
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           Secure. Auditable. Institutional-grade.
+        </p>
+        {/* Always-visible legal footer so even sign-in users can find the
+            documents without a separate marketing site. */}
+        <p className="text-center text-[11px] text-muted-foreground/70 mt-3">
+          <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+          <span className="mx-1.5">·</span>
+          <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+          <span className="mx-1.5">·</span>
+          <Link to="/dpa" className="hover:text-foreground transition-colors">DPA</Link>
+          <span className="mx-1.5">·</span>
+          <Link to="/cookie-policy" className="hover:text-foreground transition-colors">Cookies</Link>
         </p>
       </div>
     </div>

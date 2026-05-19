@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogIn, AlertCircle, UserPlus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,11 @@ import { toast } from 'sonner';
 import { trackAuthEvent } from '@/services/authTrackingService';
 import pivtLogo from '@/assets/pivt-logo.png';
 
+// Version-stamp every signup-time acceptance so we can prove which version
+// of the legal documents the user agreed to if it ever comes up. Bump this
+// when the Terms / Privacy / DPA materially change.
+const TERMS_VERSION = '2026-05-18';
+
 const LoginPage: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -21,6 +26,7 @@ const LoginPage: React.FC = () => {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   if (authLoading) {
     return (
@@ -37,6 +43,15 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Block signup until the user has explicitly agreed to the Terms /
+    // Privacy / DPA. Login skips this since returning users already
+    // accepted at the version current when they signed up.
+    if (!isLogin && !agreedToTerms) {
+      setError('You must agree to the Terms, Privacy Policy, and DPA to create an account.');
+      return;
+    }
+
     setLoading(true);
 
     if (isLogin) {
@@ -51,11 +66,19 @@ const LoginPage: React.FC = () => {
       }
     } else {
       if (!fullName.trim()) { setError('Full name is required.'); setLoading(false); return; }
+      const acceptedAt = new Date().toISOString();
       const { data, error: err } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: fullName },
+          data: {
+            full_name: fullName,
+            // Audit trail on auth.users.raw_user_meta_data so we can prove
+            // what version the user accepted and when. Queryable in support.
+            terms_accepted: true,
+            terms_accepted_at: acceptedAt,
+            terms_version: TERMS_VERSION,
+          },
           emailRedirectTo: window.location.origin,
         },
       });
@@ -64,7 +87,13 @@ const LoginPage: React.FC = () => {
         trackAuthEvent({ eventType: 'failed_login_attempt', email, metadata: { reason: err.message, action: 'signup' } });
       } else {
         toast.success('Account created — you are now signed in.');
-        trackAuthEvent({ eventType: 'account_created', userId: data.user?.id, email, loginMethod: 'password' });
+        trackAuthEvent({
+          eventType: 'account_created',
+          userId: data.user?.id,
+          email,
+          loginMethod: 'password',
+          metadata: { terms_version: TERMS_VERSION, terms_accepted_at: acceptedAt },
+        });
         trackAuthEvent({ eventType: 'user_login', userId: data.user?.id, email, loginMethod: 'password', metadata: { first_login: true } });
         navigate(nextPath, { replace: true });
       }
@@ -166,12 +195,50 @@ const LoginPage: React.FC = () => {
               />
             </div>
 
-          <Button type="submit" className="w-full h-10 pivt-btn-primary" disabled={loading}>
+            {/* Required agreement at signup. Links open in new tabs so the
+                user doesn't lose their entered email/password. */}
+            {!isLogin && (
+              <label className="flex items-start gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => { setAgreedToTerms(e.target.checked); setError(''); }}
+                  className="mt-0.5 w-4 h-4 rounded border-border accent-accent shrink-0 cursor-pointer"
+                  required
+                />
+                <span className="leading-relaxed">
+                  I agree to PIVT's{' '}
+                  <Link to="/terms" target="_blank" className="text-accent hover:underline">Terms of Service</Link>,{' '}
+                  <Link to="/privacy" target="_blank" className="text-accent hover:underline">Privacy Policy</Link>, and{' '}
+                  <Link to="/dpa" target="_blank" className="text-accent hover:underline">Data Processing Agreement</Link>.
+                </span>
+              </label>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full h-10 pivt-btn-primary"
+              disabled={loading || (!isLogin && !agreedToTerms)}
+            >
               {isLogin ? <LogIn className="w-4 h-4 mr-2" /> : <UserPlus className="w-4 h-4 mr-2" />}
               {loading ? 'Processing...' : isLogin ? 'Sign In' : 'Create Account'}
             </Button>
           </form>
         </div>
+
+        {/* Always-visible legal footer below the card. Customers' legal /
+            procurement teams ask for these before any demo. */}
+        <p className="text-center text-[11px] text-muted-foreground/70 mt-4">
+          <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+          <span className="mx-1.5">·</span>
+          <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+          <span className="mx-1.5">·</span>
+          <Link to="/dpa" className="hover:text-foreground transition-colors">DPA</Link>
+          <span className="mx-1.5">·</span>
+          <Link to="/security" className="hover:text-foreground transition-colors">Security</Link>
+          <span className="mx-1.5">·</span>
+          <Link to="/cookie-policy" className="hover:text-foreground transition-colors">Cookies</Link>
+        </p>
       </motion.div>
     </div>
   );
