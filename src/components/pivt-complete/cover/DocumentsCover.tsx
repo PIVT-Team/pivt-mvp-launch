@@ -177,6 +177,23 @@ export const DocumentsCover: React.FC = () => {
     loadDocuments();
   }, [selectedDealId]);
 
+  // Poll while any document is still processing so users see status flip
+  // automatically (was "Processing" → "Processed" without manual reload).
+  // Stops once nothing is in flight; ~3s cadence is enough for the AI
+  // classifier without hammering the API.
+  useEffect(() => {
+    if (!selectedDealId) return;
+    const anyInFlight = documents.some(
+      (d) => d.status === 'uploading' || d.status === 'processing' || (d as any).status === 'PROCESSING' || (d as any).status === 'UPLOADED',
+    );
+    if (!anyInFlight) return;
+    const id = setInterval(() => { loadDocuments(); }, 3000);
+    return () => clearInterval(id);
+    // We deliberately key on documents so the poll auto-stops the moment all
+    // rows reach a terminal state. eslint-disable to silence the dep warning.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [documents.map(d => `${d.id}:${d.status}`).join('|'), selectedDealId]);
+
   const loadDocuments = async () => {
     // Fetch user-uploaded documents
     const { data: dealDocs } = await supabase

@@ -144,23 +144,85 @@ export const CapTableCover: React.FC = () => {
       toast.error('Upload failed: ' + uploadErr.message);
       setUploading(false);
       setCapStatus('not_uploaded');
+      e.target.value = '';
       return;
     }
 
-    await supabase.from('contract_documents').insert({
-      deal_id: dealId,
-      filename: file.name,
-      doc_type: 'CAP_TABLE',
-      status: 'UPLOADED',
-      file_url: path,
-    });
-
-    setTimeout(async () => {
-      setCapStatus('parsed');
+    // Insert the contract_documents row and capture the id so we can pass it
+    // to the document-ai classifier (it needs the id to update extracted_fields
+    // + chain into the workflow orchestrator).
+    const { data: docRow, error: insertErr } = await supabase
+      .from('contract_documents')
+      .insert({
+        deal_id: dealId,
+        filename: file.name,
+        doc_type: 'CAP_TABLE',
+        status: 'UPLOADED',
+        file_url: path,
+      } as any)
+      .select('id')
+      .single();
+    if (insertErr || !docRow) {
+      toast.error('Failed to record upload: ' + (insertErr?.message ?? 'unknown'));
       setUploading(false);
-      toast.success('Cap table file uploaded. Add equity holders manually or wait for AI extraction.');
+      setCapStatus('not_uploaded');
+      e.target.value = '';
+      return;
+    }
+
+    // Read the file content so document-ai has actual text to parse. For
+    // CSV/XLSX we send up to ~1MB of text; PDFs go through with a header
+    // hint only (the edge function uses its own fetcher for binary docs).
+    let textContent = `[Document: ${file.name}, Type hint: CAP_TABLE]`;
+    try {
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        const raw = await file.text();
+        textContent = raw.slice(0, 1_000_000);
+      } else if (file.name.endsWith('.xlsx') || file.type.includes('spreadsheet')) {
+        // XLSX needs a binary read; we still pass a minimal hint and let the
+        // edge function pull from storage by document_id. Surfacing as
+        // SheetJS-parsed CSV would be heavier and isn't required for the
+        // first round of extraction.
+        textContent = `[XLSX: ${file.name}, Type hint: CAP_TABLE]`;
+      }
+    } catch {
+      // Best-effort — fall back to the hint if reading fails.
+    }
+
+    try {
+      // Mark PROCESSING so the status banner reflects what's happening.
+      await supabase.from('contract_documents').update({ status: 'PROCESSING' } as any).eq('id', docRow.id);
+
+      const { data, error } = await supabase.functions.invoke('document-ai', {
+        body: {
+          action: 'classify',
+          documentId: docRow.id,
+          fileName: file.name,
+          dealId,
+          textContent,
+        },
+      });
+      if (error) throw error;
+      if (data?.success === false) throw new Error(data.error || 'Parsing failed');
+
+      const extracted = data?.result?.extracted_fields || data?.result?.extractedFields;
+      const rowCount = Array.isArray(extracted?.shareholders) ? extracted.shareholders.length
+        : Array.isArray(extracted?.line_items) ? extracted.line_items.length
+        : 0;
+
+      setCapStatus('parsed');
+      toast.success('Cap table parsed', {
+        description: rowCount > 0 ? `${rowCount} equity holder${rowCount !== 1 ? 's' : ''} extracted` : 'Extraction complete — review extracted rows below',
+      });
+    } catch (err: any) {
+      console.error('Cap table parsing failed:', err);
+      await supabase.from('contract_documents').update({ status: 'PARSE_FAILED' } as any).eq('id', docRow.id);
+      toast.error(`Parsing failed: ${err?.message || 'Unknown error'}`);
+      setCapStatus('not_uploaded');
+    } finally {
+      setUploading(false);
       await fetchEntries();
-    }, 2000);
+    }
 
     e.target.value = '';
   }, [dealId, fetchEntries]);
