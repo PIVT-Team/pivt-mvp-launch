@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { OrgProvider } from "@/contexts/OrgContext";
 import { CookieBanner } from "@/components/CookieBanner";
 import Dashboard from "@/pages/Dashboard";
 import DealDetail from "@/pages/DealDetail";
@@ -72,6 +73,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <AuthProvider>
+        <OrgProvider>
         <BrowserRouter>
           <Suspense fallback={<PageLoader />}>
             <Routes>
@@ -119,6 +121,7 @@ const App = () => (
           </Suspense>
           <CookieBanner />
         </BrowserRouter>
+        </OrgProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

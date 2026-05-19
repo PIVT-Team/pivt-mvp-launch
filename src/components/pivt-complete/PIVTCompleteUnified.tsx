@@ -18,6 +18,7 @@ import { CommandPalette } from './CommandPalette';
 import { ImportDataModal } from './ImportDataModal';
 import { NotificationsDrawer } from './NotificationsDrawer';
 import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+import { OrgSwitcher } from './OrgSwitcher';
 import { useNotificationStore } from '@/stores/notificationStore';
 
 // Cover sections
@@ -303,6 +304,10 @@ export const PIVTCompleteUnified: React.FC = () => {
       <main className="flex-1 overflow-y-auto flex flex-col">
         {/* Top bar */}
         <div className="shrink-0 px-6 h-12 flex items-center gap-3 pivt-glass-nav">
+          {/* Org switcher — leftmost so it reads as the "context for everything
+              below" anchor. Falls back gracefully if the multi-tenancy schema
+              hasn't been deployed (shows a "setup needed" pill instead). */}
+          <OrgSwitcher />
           <div className="flex-1" />
 
           {/* Newton AI Deal Scan */}
