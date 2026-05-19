@@ -32,6 +32,7 @@ const CookiePolicyPageLazy = lazy(() => import("./pages/CookiePolicyPage"));
 const PrivacyPolicyPageLazy = lazy(() => import("./pages/PrivacyPolicyPage"));
 const TermsOfServicePageLazy = lazy(() => import("./pages/TermsOfServicePage"));
 const DPAPageLazy = lazy(() => import("./pages/DPAPage"));
+const AcceptInvitePageLazy = lazy(() => import("./pages/AcceptInvitePage"));
 const ContactSupportPageLazy = lazy(() => import("./pages/ContactSupportPage"));
 const DataSecurityPageLazy = lazy(() => import("./pages/DataSecurityPage"));
 const AcceptableUsePageLazy = lazy(() => import("./pages/AcceptableUsePage"));
@@ -83,6 +84,9 @@ const App = () => (
               <Route path="/privacy" element={<PrivacyPolicyPageLazy />} />
               <Route path="/terms" element={<TermsOfServicePageLazy />} />
               <Route path="/dpa" element={<DPAPageLazy />} />
+              {/* Accept-invite stays outside the AuthGuard so unauthenticated
+                  recipients can land here and be routed to /login?next=... */}
+              <Route path="/accept-invite" element={<AcceptInvitePageLazy />} />
               <Route path="/contact" element={<ContactSupportPageLazy />} />
               <Route path="/security" element={<DataSecurityPageLazy />} />
               <Route path="/acceptable-use" element={<AcceptableUsePageLazy />} />

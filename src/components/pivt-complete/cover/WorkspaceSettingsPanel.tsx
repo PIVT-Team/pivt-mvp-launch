@@ -12,6 +12,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Building2, Users, Edit3, LogOut, Loader2, Check, X, AlertTriangle, CheckCircle2,
+  Mail, Copy, Trash2, Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,12 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,17 +43,36 @@ interface MemberRow {
   full_name?: string | null;
 }
 
+interface InviteRow {
+  id: string;
+  email: string;
+  role: "owner" | "editor" | "viewer";
+  token: string;
+  expires_at: string;
+  created_at: string;
+}
+
 export const WorkspaceSettingsPanel: React.FC = () => {
   const { user } = useAuth();
   const { activeOrg, schemaReady, loading: orgLoading, refresh: refreshOrgs, setActiveOrgId, orgs } = useOrg();
 
   const [members, setMembers] = useState<MemberRow[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [invites, setInvites] = useState<InviteRow[]>([]);
+  const [invitesLoading, setInvitesLoading] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [renameValue, setRenameValue] = useState("");
   const [renaming, setRenaming] = useState(false);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  // Invite dialog state
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState<"editor" | "viewer">("editor");
+  const [inviting, setInviting] = useState(false);
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
 
   // ── Load members for the active workspace ──
   const loadMembers = useCallback(async () => {
@@ -84,10 +110,48 @@ export const WorkspaceSettingsPanel: React.FC = () => {
 
   useEffect(() => { loadMembers(); }, [loadMembers]);
 
+  // ── Load pending invites for the active workspace ──
+  const loadInvites = useCallback(async () => {
+    if (!activeOrg || !schemaReady) return;
+    setInvitesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("organization_invites")
+        .select("id, email, role, token, expires_at, created_at")
+        .eq("org_id", activeOrg.id)
+        .is("accepted_at", null)
+        .is("revoked_at", null)
+        .order("created_at", { ascending: false });
+      if (error) {
+        // Migration not deployed yet — soft-fail, don't render the section.
+        if (error.code === "PGRST205" || error.code === "42P01") {
+          setInvites([]);
+          return;
+        }
+        throw error;
+      }
+      setInvites((data || []) as InviteRow[]);
+    } catch (err: any) {
+      console.warn("[WorkspaceSettings] load invites failed:", err?.message);
+    } finally {
+      setInvitesLoading(false);
+    }
+  }, [activeOrg, schemaReady]);
+
+  useEffect(() => { loadInvites(); }, [loadInvites]);
+
   // Re-seed the rename input whenever the active org changes.
   useEffect(() => {
     setRenameValue(activeOrg?.name || "");
   }, [activeOrg?.name]);
+
+  // Clear the success-link banner whenever the dialog closes.
+  useEffect(() => {
+    if (!inviteOpen) {
+      setLastInviteLink(null);
+      setLinkCopied(false);
+    }
+  }, [inviteOpen]);
 
   if (!schemaReady) {
     return (
@@ -146,6 +210,92 @@ export const WorkspaceSettingsPanel: React.FC = () => {
       toast.error(`Rename failed: ${err?.message ?? "unknown"}`);
     } finally {
       setRenaming(false);
+    }
+  };
+
+  // ── Invite teammate ──
+  // Creates an organization_invites row + returns a shareable accept URL.
+  // The admin shares the link however they want (email, Slack, etc).
+  // A future iteration will hand off to an edge function that sends via
+  // Resend automatically — see Phase 4.
+  const handleInvite = async () => {
+    if (!activeOrg || !user?.id) return;
+    const email = inviteEmail.trim();
+    if (!email || !email.includes("@")) {
+      toast.error("Enter a valid email");
+      return;
+    }
+    setInviting(true);
+    try {
+      const { data, error } = await supabase
+        .from("organization_invites")
+        .insert({
+          org_id: activeOrg.id,
+          email: email.toLowerCase(),
+          role: inviteRole,
+          invited_by: user.id,
+        })
+        .select("token")
+        .single();
+      if (error) throw error;
+      const link = `${window.location.origin}/accept-invite?token=${data.token}`;
+      setLastInviteLink(link);
+      // Best-effort clipboard so the admin doesn't have to copy manually.
+      try {
+        await navigator.clipboard.writeText(link);
+        setLinkCopied(true);
+      } catch { /* no clipboard in this browser */ }
+      // Audit log — keeps the workspace's history complete.
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        action: "org_invite_created",
+        details: { org_id: activeOrg.id, email, role: inviteRole },
+      });
+      await loadInvites();
+    } catch (err: any) {
+      // Common case: duplicate invite (unique partial index on
+      // (org_id, lower(email)) where pending). Surface a useful message.
+      if (err?.code === "23505" || /duplicate key/.test(err?.message || "")) {
+        toast.error(`A pending invite to ${email} already exists. Revoke it first to re-invite.`);
+      } else {
+        toast.error(`Couldn't create invite: ${err?.message ?? "unknown"}`);
+      }
+    } finally {
+      setInviting(false);
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!lastInviteLink) return;
+    try {
+      await navigator.clipboard.writeText(lastInviteLink);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch {
+      toast.error("Could not copy automatically — select the link and copy manually.");
+    }
+  };
+
+  const handleRevoke = async (invite: InviteRow) => {
+    if (!user?.id) return;
+    setRevokingId(invite.id);
+    try {
+      const { error } = await supabase
+        .from("organization_invites")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("id", invite.id);
+      if (error) throw error;
+      await supabase.from("audit_log").insert({
+        user_id: user.id,
+        action: "org_invite_revoked",
+        details: { invite_id: invite.id, email: invite.email },
+      });
+      toast.success(`Revoked invite to ${invite.email}`);
+      await loadInvites();
+    } catch (err: any) {
+      toast.error(`Revoke failed: ${err?.message ?? "unknown"}`);
+    } finally {
+      setRevokingId(null);
     }
   };
 
@@ -239,8 +389,8 @@ export const WorkspaceSettingsPanel: React.FC = () => {
             <Badge variant="outline" className="text-[10px]">{members.length}</Badge>
           </div>
           {isAdmin && !isDemoWorkspace && (
-            <Button variant="outline" size="sm" disabled title="Invite flow ships in Phase 3" className="gap-1.5">
-              <Users className="w-3.5 h-3.5" /> Invite (soon)
+            <Button variant="outline" size="sm" onClick={() => { setInviteEmail(""); setInviteRole("editor"); setInviteOpen(true); }} className="gap-1.5">
+              <Mail className="w-3.5 h-3.5" /> Invite teammate
             </Button>
           )}
         </div>
@@ -268,9 +418,64 @@ export const WorkspaceSettingsPanel: React.FC = () => {
           </div>
         )}
         <p className="text-[11px] text-muted-foreground">
-          Invite flow (typing an email, sending a join link, accepting on signup) ships in Phase 3.
+          Invited teammates auto-create their account on first sign-in and join with the role you chose.
         </p>
       </section>
+
+      {/* ── Pending invites ── */}
+      {isAdmin && !isDemoWorkspace && (invitesLoading || invites.length > 0) && (
+        <section className="pivt-card p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-accent" />
+            <h3 className="font-semibold">Pending invites</h3>
+            <Badge variant="outline" className="text-[10px]">{invites.length}</Badge>
+          </div>
+          {invitesLoading ? (
+            <div className="py-4 text-center text-muted-foreground text-sm flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading invites…
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {invites.map((inv) => {
+                const expiresIn = Math.max(0, Math.round((new Date(inv.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+                const link = `${window.location.origin}/accept-invite?token=${inv.token}`;
+                return (
+                  <div key={inv.id} className="flex items-center justify-between py-3 gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{inv.email}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        Role: <span className="capitalize">{inv.role}</span> · Expires in {expiresIn} day{expiresIn === 1 ? '' : 's'}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={async () => {
+                        try { await navigator.clipboard.writeText(link); toast.success('Invite link copied'); }
+                        catch { toast.error('Copy failed — select the link manually'); }
+                      }}
+                      title="Copy invite link"
+                      className="gap-1.5 text-xs"
+                    >
+                      <Copy className="w-3.5 h-3.5" /> Copy link
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRevoke(inv)}
+                      disabled={revokingId === inv.id}
+                      className="gap-1.5 text-xs text-destructive hover:bg-destructive/5"
+                      title="Revoke invite"
+                    >
+                      {revokingId === inv.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
 
       {/* ── Leave ── */}
       {!isDemoWorkspace && myMembership && (
@@ -291,6 +496,90 @@ export const WorkspaceSettingsPanel: React.FC = () => {
           </p>
         </section>
       )}
+
+      {/* ── Invite dialog ── */}
+      <Dialog open={inviteOpen} onOpenChange={(o) => { if (!o) setInviteOpen(false); }}>
+        <DialogContent className="sm:max-w-[480px]">
+          <DialogHeader>
+            <DialogTitle>Invite a teammate to {activeOrg.name}</DialogTitle>
+            <DialogDescription>
+              They'll get a one-time-use link valid for 14 days. When they sign in (or sign up) using the link, they'll automatically join {activeOrg.name} with the role you choose.
+            </DialogDescription>
+          </DialogHeader>
+          {!lastInviteLink ? (
+            <>
+              <div className="space-y-4 py-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-email">Email</Label>
+                  <Input
+                    id="invite-email"
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="teammate@firm.com"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="invite-role">Role</Label>
+                  <Select value={inviteRole} onValueChange={(v: "editor" | "viewer") => setInviteRole(v)}>
+                    <SelectTrigger id="invite-role"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="editor">
+                        <div>
+                          <div className="font-medium">Editor</div>
+                          <div className="text-[11px] text-muted-foreground">Can create + manage deals, invite teammates</div>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="viewer">
+                        <div>
+                          <div className="font-medium">Viewer</div>
+                          <div className="text-[11px] text-muted-foreground">Read-only access to deals in this workspace</div>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setInviteOpen(false)} disabled={inviting}>Cancel</Button>
+                <Button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()}>
+                  {inviting && <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />}
+                  <Mail className="w-3.5 h-3.5 mr-1.5" /> Create invite link
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <>
+              <div className="space-y-3 py-2">
+                <div className="rounded-md border border-validated/30 bg-validated/5 p-3 text-sm text-foreground flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-validated mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium">Invite created{linkCopied ? ' and link copied to clipboard' : ''}.</p>
+                    <p className="text-xs text-muted-foreground mt-1">Send this link to {inviteEmail.trim()} — once they open it they'll join {activeOrg.name}.</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Invite link</Label>
+                  <div className="flex gap-2">
+                    <Input value={lastInviteLink} readOnly className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} />
+                    <Button onClick={handleCopyLink} variant="outline" className="gap-1.5 shrink-0">
+                      <Copy className="w-3.5 h-3.5" /> {linkCopied ? 'Copied!' : 'Copy'}
+                    </Button>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">Link expires in 14 days. Anyone with it can join {activeOrg.name} once.</p>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setInviteOpen(false)}>Done</Button>
+                <Button onClick={() => { setLastInviteLink(null); setInviteEmail(''); setLinkCopied(false); }}>
+                  <Mail className="w-3.5 h-3.5 mr-1.5" /> Invite another
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* ── Rename dialog ── */}
       <AlertDialog open={renameOpen} onOpenChange={(o) => { if (!o) setRenameOpen(false); }}>
