@@ -110,7 +110,11 @@ const App = () => (
                 <Route path="/deals/:id" element={<DealDetail />} />
                 <Route path="/deals/:id/command-center" element={<DealCommandCenter />} />
               </Route>
-              <Route path="*" element={<AuthGuard><NotFound /></AuthGuard>} />
+              {/* 404 sits outside the AuthGuard so a signed-out user who
+                  clicks a stale link in an email sees the helpful 404 page
+                  with recovery options, instead of being silently pushed
+                  to /login (which felt like the app was broken). */}
+              <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
           <CookieBanner />
