@@ -6,6 +6,11 @@ import { useAuditStore } from '@/stores/auditStore';
 import { fadeInUp } from '@/lib/animations';
 import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+// NOTE: see src/hooks/useDealDocuments.ts for the canonical unified
+// reader of both deal_documents + contract_documents. This file predates
+// the hook and has its own inline merge + optimistic-update flow; new
+// surfaces that need "all docs for a deal" should use the hook instead
+// of duplicating that merge.
 import {
   CheckCircle2, Clock, XCircle, FileText, Upload, Eye,
   AlertTriangle, Loader2, Zap, ChevronDown, ChevronRight,
