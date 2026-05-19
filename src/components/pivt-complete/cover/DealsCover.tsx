@@ -581,6 +581,17 @@ export const DealsCover: React.FC = () => {
 
   const openCreateModal = () => requireAuthThen(() => setShowCreate(true));
 
+  // Listen for the onboarding wizard's "start with a real deal" CTA so the
+  // wizard can hand off into this page's New Deal modal without re-implementing
+  // the form itself.
+  useEffect(() => {
+    const handler = () => requireAuthThen(() => setShowCreate(true));
+    window.addEventListener('pivt:open-create-deal-modal', handler as EventListener);
+    return () => window.removeEventListener('pivt:open-create-deal-modal', handler as EventListener);
+    // requireAuthThen is stable enough; the listener only reads it at fire time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">

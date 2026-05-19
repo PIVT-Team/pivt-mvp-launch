@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Shield, KeyRound, Download, Trash2, Send, Mail, CheckCircle2,
-  AlertTriangle, Loader2, ShieldCheck, Lock,
+  AlertTriangle, Loader2, ShieldCheck, Lock, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -290,6 +290,33 @@ export const AccountSettingsPanel: React.FC = () => {
         </div>
         <p className="text-xs text-muted-foreground">
           Adds a one-time-code step on every sign-in. Use any TOTP authenticator app — 1Password, Authy, Google Authenticator, etc.
+        </p>
+      </section>
+
+      {/* ── Restart onboarding ── */}
+      <section className="pivt-card p-6 space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-accent" />
+            <h3 className="font-semibold">Onboarding</h3>
+            {user?.user_metadata?.onboarding_complete && (
+              <Badge className="bg-emerald-500/10 text-emerald-600 text-[10px] gap-1">
+                <CheckCircle2 className="w-2.5 h-2.5" /> Completed
+              </Badge>
+            )}
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => window.dispatchEvent(new CustomEvent('pivt:open-onboarding'))}
+            className="gap-1.5"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            Restart tour
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Re-runs the welcome flow with role / firm capture + choice of starting on a real deal or a demo. Useful when sharing the app with a teammate.
         </p>
       </section>
 

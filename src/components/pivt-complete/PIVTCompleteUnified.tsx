@@ -17,6 +17,7 @@ import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
 import { ImportDataModal } from './ImportDataModal';
 import { NotificationsDrawer } from './NotificationsDrawer';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { useNotificationStore } from '@/stores/notificationStore';
 
 // Cover sections
@@ -89,6 +90,30 @@ export const PIVTCompleteUnified: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => { seedDemoNotifications(); }, [seedDemoNotifications]);
+
+  // ── Onboarding wizard: auto-open for first-run users + listen for a
+  //    manual "restart onboarding" event the Account tab dispatches. ──
+  const [onboardingOpen, setOnboardingOpen] = React.useState(false);
+  useEffect(() => {
+    // Auto-open on first sign-in for any user who hasn't completed onboarding.
+    // user.user_metadata is the source of truth — set when the wizard's
+    // completeOnboarding writes to auth.users.raw_user_meta_data.
+    if (!user) return;
+    const completed = (user.user_metadata as any)?.onboarding_complete === true;
+    if (!completed) {
+      // Small delay so the app has time to render the workspace shell first —
+      // the wizard then layers on top, less jarring than appearing instantly.
+      const t = setTimeout(() => setOnboardingOpen(true), 600);
+      return () => clearTimeout(t);
+    }
+  }, [user?.id, (user?.user_metadata as any)?.onboarding_complete]);
+
+  useEffect(() => {
+    // Manual re-open via Account → "Restart onboarding".
+    const handler = () => setOnboardingOpen(true);
+    window.addEventListener('pivt:open-onboarding', handler);
+    return () => window.removeEventListener('pivt:open-onboarding', handler);
+  }, []);
   const [glassMode, setGlassMode] = React.useState(() => {
     return sessionStorage.getItem('pivt-glass-mode') === 'true';
   });
@@ -408,6 +433,28 @@ export const PIVTCompleteUnified: React.FC = () => {
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />
       <NotificationsDrawer open={notifOpen} onOpenChange={setNotifOpen} />
+      <OnboardingWizard
+        open={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        onPickDemo={() => {
+          // Route into the first demo deal — works for both first-run users
+          // and re-runs since demo deals are always present in the workspace.
+          (async () => {
+            const { supabase } = await import('@/integrations/supabase/client');
+            const { data } = await supabase
+              .from('deals')
+              .select('id')
+              .eq('is_demo', true)
+              .limit(1)
+              .maybeSingle();
+            if (data?.id) {
+              navigate(`/?section=deals&dealId=${data.id}`);
+            } else {
+              navigate('/?section=deals');
+            }
+          })();
+        }}
+      />
     </div>
     </TooltipProvider>
   );
