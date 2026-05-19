@@ -5,9 +5,10 @@ import {
   Users, Plug, CheckCircle2,
   Plus, TrendingUp,
   RotateCw, Copy, Trash2, MoreHorizontal,
-  Zap, Clock, Rocket, Link2, Shield,
+  Zap, Clock, Rocket, Link2, Shield, Building2,
 } from 'lucide-react';
 import { AccountSettingsPanel } from './AccountSettingsPanel';
+import { WorkspaceSettingsPanel } from './WorkspaceSettingsPanel';
 import { Badge } from '@/components/ui/badge';
 import { useTeamStore, TeamRole, ROLE_PERMISSIONS } from '@/stores/teamStore';
 import { usePIVTStore } from '@/stores/pivtStore';
@@ -19,7 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { INTEGRATIONS, STATUS_CONFIG, type IntegrationStatus } from '@/config/integrations';
 
-type SettingsTab = 'account' | 'team' | 'integrations' | 'escrow-defaults';
+type SettingsTab = 'account' | 'workspace' | 'team' | 'integrations' | 'escrow-defaults';
 
 const roleColors: Record<TeamRole, string> = {
   'Admin': 'border-accent/50 text-accent',
@@ -147,6 +148,7 @@ export const SettingsCover: React.FC = () => {
       <div className="flex gap-1 bg-muted/50 rounded-lg p-1 w-fit">
         {([
           { id: 'account' as SettingsTab, label: 'Account', icon: Shield },
+          { id: 'workspace' as SettingsTab, label: 'Workspace', icon: Building2 },
           { id: 'team' as SettingsTab, label: 'Team & Roles', icon: Users },
           { id: 'integrations' as SettingsTab, label: 'Integrations', icon: Plug },
           { id: 'escrow-defaults' as SettingsTab, label: 'Escrow Defaults', icon: TrendingUp },
@@ -163,6 +165,13 @@ export const SettingsCover: React.FC = () => {
         {activeTab === 'account' && (
           <motion.div key="account" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <AccountSettingsPanel />
+          </motion.div>
+        )}
+
+        {/* Workspace — org-level settings (rename, members, leave). */}
+        {activeTab === 'workspace' && (
+          <motion.div key="workspace" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <WorkspaceSettingsPanel />
           </motion.div>
         )}
 

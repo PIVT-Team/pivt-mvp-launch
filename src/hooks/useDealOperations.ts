@@ -64,6 +64,9 @@ export function useDealOperations() {
     currency?: string | null;
     jurisdiction?: string | null;
     signing_date?: string | null;
+    /** When the caller knows the active workspace (multi-tenancy), inject it
+     *  so the deal lands in the right org. Optional for pre-deploy fallback. */
+    org_id?: string | null;
   }): Promise<RealDeal | null> => {
     // Defense in depth — the deals RLS policy requires owner_id = auth.uid().
     // Without a signed-in user we'd get "new row violates row-level security
@@ -99,6 +102,9 @@ export function useDealOperations() {
         currency: params.currency || 'USD',
         jurisdiction: params.jurisdiction || null,
         signing_date: params.signing_date || null,
+        // org_id is sent when multi-tenancy is live; ignored by the DB
+        // (column nullable) when the schema isn't deployed yet.
+        org_id: params.org_id || null,
       } as any)
       .select()
       .single();
@@ -165,13 +171,25 @@ export function useDealOperations() {
     return (data as DealTemplate[]) || [];
   };
 
-  const fetchDeals = async (options?: { includeDemo?: boolean }): Promise<RealDeal[]> => {
+  // Org-aware fetch:
+  // - If orgId is given, scope to deals in that org. Demo deals come through
+  //   when the active org IS the demo org (caller passes its id).
+  // - If no orgId (defensive fallback when multi-tenancy schema isn't
+  //   deployed or the user has no orgs yet), legacy behavior: filter by
+  //   is_demo flag the way the app used to.
+  const fetchDeals = async (options?: { includeDemo?: boolean; orgId?: string | null }): Promise<RealDeal[]> => {
     const includeDemo = options?.includeDemo ?? false;
     let query = (supabase.from("deals").select("*") as any)
       .neq("deal_kind", "template")
       .order("created_at", { ascending: false });
 
-    if (!includeDemo) {
+    if (options?.orgId) {
+      // Multi-tenancy path: only deals in this org. Phase-1 RLS already
+      // guarantees the user can only see their orgs' deals, so this is a
+      // UX scoping filter, not a security boundary.
+      query = query.eq("org_id", options.orgId);
+    } else if (!includeDemo) {
+      // Legacy fallback: hide demo deals from real-customer view.
       query = query.eq("is_demo", false);
     }
 

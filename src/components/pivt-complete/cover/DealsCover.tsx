@@ -7,6 +7,7 @@ import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
 import { useDealOperations, RealDeal, DealTemplate, DealSummaryCounts } from '@/hooks/useDealOperations';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrg } from '@/contexts/OrgContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -277,6 +278,7 @@ const DealCard: React.FC<{
 export const DealsCover: React.FC = () => {
   const { setSelectedDealId, setActiveSection } = usePIVTStore();
   const { createDeal, fetchDeals, fetchTemplates, fetchDealSummaries, duplicateDeal, softDeleteDeal } = useDealOperations();
+  const { activeOrg, activeOrgId, schemaReady } = useOrg();
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -317,19 +319,28 @@ export const DealsCover: React.FC = () => {
 
   const loadDeals = useCallback(async () => {
     setLoading(true);
-    const data = await fetchDeals({ includeDemo: true });
+    // Scope by the active workspace when multi-tenancy is live. Demo workspace
+    // shows demo deals; customer workspaces show only their own. Pre-deploy
+    // fallback keeps the legacy is_demo filter.
+    const data = schemaReady && activeOrgId
+      ? await fetchDeals({ orgId: activeOrgId })
+      : await fetchDeals({ includeDemo: true });
     setAllDeals(data);
     if (data.length > 0) {
       const sums = await fetchDealSummaries(data.map(d => d.id));
       setSummaries(sums);
     }
     setLoading(false);
-  }, []);
+    // fetchDeals is stable; identity changes don't matter. activeOrgId +
+    // schemaReady are the real triggers.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeOrgId, schemaReady]);
 
   useEffect(() => {
     loadDeals();
     fetchTemplates().then(setTemplates);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadDeals]);
 
   useEffect(() => {
     let cancelled = false;
@@ -414,6 +425,21 @@ export const DealsCover: React.FC = () => {
     }
 
     setCreating(true);
+    // Inject the active workspace id so the new deal lands in the right org.
+    // If the active org is the demo org, we DON'T attach org_id (creating a
+    // real deal inside the demo workspace would let the user pollute the
+    // demo dataset). In that case the deal still gets created — it just
+    // won't show in the demo workspace's list; user gets a toast to switch.
+    const isDemoActive = activeOrg?.org_type === 'demo';
+    if (isDemoActive) {
+      toast({
+        title: 'Switch to your workspace to create a deal',
+        description: 'Demo workspace is read-only. Pick your real workspace from the topbar switcher.',
+        variant: 'destructive',
+      });
+      setCreating(false);
+      return;
+    }
     const deal = await createDeal({
       deal_name: form.deal_name,
       deal_value: Number(form.deal_value),
@@ -427,6 +453,7 @@ export const DealsCover: React.FC = () => {
       currency: selectedCurrencies.join(',') || 'USD',
       jurisdiction: form.jurisdiction || null,
       signing_date: signingDate ? format(signingDate, 'yyyy-MM-dd') : null,
+      org_id: schemaReady ? activeOrgId : null,
     });
 
     if (deal) {

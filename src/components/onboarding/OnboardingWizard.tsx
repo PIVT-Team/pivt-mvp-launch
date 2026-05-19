@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrg } from '@/contexts/OrgContext';
 import { supabase } from '@/integrations/supabase/client';
 
 // Bump when the wizard adds steps so existing-completed users see the new bits.
@@ -47,6 +48,7 @@ interface Props {
 
 export const OnboardingWizard: React.FC<Props> = ({ open, onClose, onPickDemo }) => {
   const { user } = useAuth();
+  const { orgs, schemaReady, setActiveOrgId, refresh: refreshOrgs } = useOrg();
   const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>(0);
@@ -97,6 +99,50 @@ export const OnboardingWizard: React.FC<Props> = ({ open, onClose, onPickDemo })
         });
       }
 
+      // ── Multi-tenancy: ensure the user has a workspace ──
+      // The Phase-1 migration backfilled personal orgs for users who existed
+      // at deploy-time. New users signing up AFTER the migration don't get
+      // one for free, so the wizard handles it: if the user has no customer
+      // orgs yet (only the read-only demo org), spin up their personal org
+      // here using firm_name (or email-local-part as a fallback). The
+      // backend already enforces RLS — admin-only writes — so this only
+      // works because the user is creating their own row.
+      const customerOrgs = orgs.filter((o) => o.org_type === 'customer');
+      if (schemaReady && user?.id && customerOrgs.length === 0) {
+        const orgName =
+          (firmName.trim() ||
+            (user.user_metadata as any)?.full_name ||
+            (user.email ? user.email.split('@')[0] : 'My Workspace'));
+        const slugBase = orgName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'workspace';
+        const slug = `${slugBase}-${user.id.slice(0, 8)}`;
+        try {
+          const { data: orgRow, error: orgErr } = await supabase
+            .from('organizations')
+            .insert({
+              name: orgName,
+              slug,
+              org_type: 'customer',
+              billing_email: user.email || null,
+              created_by: user.id,
+            })
+            .select('id')
+            .single();
+          if (orgErr) throw orgErr;
+          if (orgRow) {
+            await supabase
+              .from('organization_memberships')
+              .insert({ org_id: orgRow.id, user_id: user.id, role: 'owner' });
+            await refreshOrgs();
+            setActiveOrgId(orgRow.id);
+          }
+        } catch (err: any) {
+          // Non-fatal — the rest of onboarding still completes. Surface the
+          // error so the user knows their workspace needs manual setup.
+          console.warn('Failed to auto-create workspace:', err?.message);
+          toast.error(`Couldn't create your workspace: ${err?.message ?? 'unknown'}. You can create one from the topbar later.`);
+        }
+      }
+
       onClose();
 
       if (chosenPath === 'real') {
@@ -116,7 +162,7 @@ export const OnboardingWizard: React.FC<Props> = ({ open, onClose, onPickDemo })
     } finally {
       setSaving(false);
     }
-  }, [firmName, role, user?.id, navigate, onClose, onPickDemo]);
+  }, [firmName, role, user?.id, navigate, onClose, onPickDemo, orgs, schemaReady, refreshOrgs, setActiveOrgId]);
 
   // ── Step content components — kept inline because each is small and
   //    sharing state via closure is simpler than prop-drilling. ──
