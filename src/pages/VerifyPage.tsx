@@ -64,6 +64,10 @@ const VerifyPage: React.FC = () => {
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const fnUrl = `https://${projectId}.supabase.co/functions/v1/verify-token`;
 
+  // Cache key for in-progress submissions. Per-token so multiple invitations
+  // on the same browser don't collide. Cleared on successful submit.
+  const draftKey = token ? `pivt-verify-draft:${token}` : null;
+
   useEffect(() => {
     if (!token) {
       setErrorMsg('No verification token provided');
@@ -79,17 +83,71 @@ const VerifyPage: React.FC = () => {
           return;
         }
         setInfo(data);
-        const parts = (data.recipient_name || '').split(' ');
-        setFirstName(parts[0] || '');
-        setLastName(parts.slice(1).join(' ') || '');
-        setEntityName(data.recipient_name || '');
+        // Try to restore an in-progress draft for this token. Storage blobs
+        // are already uploaded — only the form state + the docs metadata
+        // need restoring. If the cached token doesn't match this one, ignore.
+        let restored = false;
+        if (draftKey) {
+          try {
+            const raw = localStorage.getItem(draftKey);
+            if (raw) {
+              const d = JSON.parse(raw);
+              if (d.firstName) setFirstName(d.firstName);
+              if (d.lastName) setLastName(d.lastName);
+              if (d.dob) setDob(d.dob);
+              if (d.country) setCountry(d.country);
+              if (d.address1) setAddress1(d.address1);
+              if (d.city) setCity(d.city);
+              if (d.stateRegion) setStateRegion(d.stateRegion);
+              if (d.postalCode) setPostalCode(d.postalCode);
+              if (d.phone) setPhone(d.phone);
+              if (d.entityName) setEntityName(d.entityName);
+              if (d.jurisdiction) setJurisdiction(d.jurisdiction);
+              if (d.regNumber) setRegNumber(d.regNumber);
+              if (d.regAddress) setRegAddress(d.regAddress);
+              if (typeof d.consent === 'boolean') setConsent(d.consent);
+              if (typeof d.step === 'number') setStep(d.step);
+              if (Array.isArray(d.uploadedDocs)) setUploadedDocs(d.uploadedDocs);
+              restored = (Array.isArray(d.uploadedDocs) && d.uploadedDocs.length > 0) || !!d.firstName || !!d.entityName;
+            }
+          } catch {
+            // Corrupted JSON — ignore and start fresh.
+          }
+        }
+        if (!restored) {
+          // First load — seed names from the invitation.
+          const parts = (data.recipient_name || '').split(' ');
+          setFirstName(parts[0] || '');
+          setLastName(parts.slice(1).join(' ') || '');
+          setEntityName(data.recipient_name || '');
+        } else {
+          toast.success('Restored your in-progress submission.');
+        }
         setState('form');
       })
       .catch(() => {
         setErrorMsg('Unable to reach verification service');
         setState('error');
       });
+  // Token is the only meaningful dependency; draftKey is derived.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
+
+  // Persist every meaningful field change to localStorage so a reload /
+  // accidental tab close doesn't wipe progress. Only runs while the form is
+  // visible — no point caching when we're on loading/submitted/error states.
+  useEffect(() => {
+    if (state !== 'form' || !draftKey) return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({
+        firstName, lastName, dob, country, address1, city, stateRegion, postalCode, phone,
+        entityName, jurisdiction, regNumber, regAddress,
+        consent, step, uploadedDocs,
+      }));
+    } catch {
+      // Quota / private-mode — silent.
+    }
+  }, [state, draftKey, firstName, lastName, dob, country, address1, city, stateRegion, postalCode, phone, entityName, jurisdiction, regNumber, regAddress, consent, step, uploadedDocs]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, docType: string) => {
     const file = e.target.files?.[0];
@@ -178,6 +236,11 @@ const VerifyPage: React.FC = () => {
         toast.error(data.error || 'Submission failed');
         setSubmitting(false);
         return;
+      }
+      // Clear the in-progress draft now that the submission was persisted
+      // server-side — the draft was a recovery mechanism, not a record.
+      if (draftKey) {
+        try { localStorage.removeItem(draftKey); } catch { /* private-mode no-op */ }
       }
       setState('submitted');
     } catch {
