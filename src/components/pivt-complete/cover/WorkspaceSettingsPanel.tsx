@@ -32,6 +32,7 @@ import { toast } from "sonner";
 import { useOrg } from "@/contexts/OrgContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { PersonaTemplateSettings } from "@/components/persona/PersonaTemplateSettings";
 
 interface MemberRow {
   user_id: string;
@@ -475,6 +476,11 @@ export const WorkspaceSettingsPanel: React.FC = () => {
             </div>
           )}
         </section>
+      )}
+
+      {/* ── Persona identity verification (per-org templates) ── */}
+      {!isDemoWorkspace && (
+        <PersonaTemplateSettings orgId={activeOrg.id} canManage={isAdmin} />
       )}
 
       {/* ── Leave ── */}

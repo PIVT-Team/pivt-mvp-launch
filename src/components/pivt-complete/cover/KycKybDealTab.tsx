@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { PersonaVerifyButton } from '@/components/persona/PersonaVerifyButton';
 
 type KycFilter = 'all' | 'pending' | 'failed' | 'expiring' | 'completed';
 
@@ -739,15 +740,27 @@ const LiveKycKybTab: React.FC = () => {
                         </button>
                       )}
                       {(s.verification_status === 'not_sent' || s.verification_status === 'not_requested' || s.verification_status === 'pending') && (
-                        <button
-                          type="button"
-                          onClick={() => handleSendKycRequest(s)}
-                          disabled={sendingId === s.id || !s.email}
-                          className="text-xs text-accent flex items-center gap-1 hover:underline disabled:opacity-50"
-                          title={!s.email ? 'No email on file' : undefined}
-                        >
-                          <Send className="w-3 h-3" /> {sendingId === s.id ? 'Sending…' : 'Send Request'}
-                        </button>
+                        <>
+                          {dealId && (
+                            <PersonaVerifyButton
+                              dealId={dealId}
+                              stakeholderId={s.id}
+                              stakeholderEmail={s.email}
+                              kind={s.stakeholder_type === 'entity' ? 'kyb' : 'kyc'}
+                              variant="inline"
+                              onCompleted={() => fetchStakeholders()}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleSendKycRequest(s)}
+                            disabled={sendingId === s.id || !s.email}
+                            className="text-xs text-muted-foreground flex items-center gap-1 hover:text-foreground disabled:opacity-50"
+                            title={!s.email ? 'No email on file' : 'Send the legacy email-link flow instead of Persona'}
+                          >
+                            <Send className="w-3 h-3" /> {sendingId === s.id ? 'Sending…' : 'Email Link'}
+                          </button>
+                        </>
                       )}
                       {(s.verification_status === 'sent' || s.verification_status === 'in_progress') && (
                         <button
@@ -760,15 +773,27 @@ const LiveKycKybTab: React.FC = () => {
                         </button>
                       )}
                       {s.verification_status === 'failed' && (
-                        <button
-                          type="button"
-                          onClick={() => handleSendKycRequest(s)}
-                          disabled={sendingId === s.id || !s.email}
-                          className="text-xs text-destructive flex items-center gap-1 hover:underline disabled:opacity-50"
-                          title={s.verification_rejection_reason || 'Rejected — click to resend'}
-                        >
-                          <XCircle className="w-3 h-3" /> Resend
-                        </button>
+                        <>
+                          {dealId && (
+                            <PersonaVerifyButton
+                              dealId={dealId}
+                              stakeholderId={s.id}
+                              stakeholderEmail={s.email}
+                              kind={s.stakeholder_type === 'entity' ? 'kyb' : 'kyc'}
+                              variant="inline"
+                              onCompleted={() => fetchStakeholders()}
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleSendKycRequest(s)}
+                            disabled={sendingId === s.id || !s.email}
+                            className="text-xs text-destructive flex items-center gap-1 hover:underline disabled:opacity-50"
+                            title={s.verification_rejection_reason || 'Rejected — click to resend'}
+                          >
+                            <XCircle className="w-3 h-3" /> Resend
+                          </button>
+                        </>
                       )}
                       {/* Manual approve/reject — available for ANY non-verified row so the deal owner can mark a stakeholder verified out-of-band (e.g. KYC done over email, doc reviewed in person, override a stale failure). Opens the same review drawer used for `submitted`. */}
                       {s.verification_status !== 'verified' && s.verification_status !== 'submitted' && (
