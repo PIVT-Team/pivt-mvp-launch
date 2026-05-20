@@ -257,7 +257,7 @@ export function detectIntent(message: string): NewtonIntent {
 
 // ─── Edge Function Caller ───────────────────────────────────────
 
-async function callNewtonAction(action: string, params: Record<string, any>): Promise<NewtonActionResult> {
+export async function callNewtonAction(action: string, params: Record<string, any>): Promise<NewtonActionResult> {
   try {
     // Send the user's JWT so the edge function's requireJwt check passes.
     // Falls back to the anon key for anonymous flows where the action doesn't

@@ -23,6 +23,7 @@ import { useDealMetrics } from '@/hooks/useDealMetrics';
 import { useDealWorkflow } from '@/hooks/useDealWorkflow';
 import type { DealMetrics } from '@/services/dealMetricsService';
 import { NewtonRail } from '@/components/newton/NewtonRail';
+import { NewtonStepChips } from '@/components/newton/NewtonStepChips';
 
 // Import existing cover pages
 import { DealPartiesCover } from './DealPartiesCover';
@@ -837,6 +838,15 @@ const WorkspaceShell: React.FC<{
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           >
+            {/* Inline Newton chips for this step. Renders a bar of
+                step-aware "Newton can…" buttons above the page content,
+                each one firing a backend action and showing the result
+                in an expandable card. See NewtonStepChips for the map. */}
+            <NewtonStepChips
+              stepId={activeStepId}
+              subStepId={activeSubNav}
+              dealId={selectedDealId}
+            />
             {activeStepId === 'overview'
               ? <ContentComponent realDeal={realDeal} dealId={selectedDealId} isDemoDeal={isDemoDeal} seedKey={demoDealSeedKey} />
               : <ContentComponent />}
