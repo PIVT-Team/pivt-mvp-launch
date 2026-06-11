@@ -618,22 +618,53 @@ export const DealsCover: React.FC = () => {
       toast({ title: 'Sign in first', description: 'You need to be signed in to seed demo deals.' });
       return;
     }
+    if (activeOrg?.org_type === 'demo') {
+      toast({
+        title: 'Switch to a personal workspace first',
+        description: 'The PIVT Demo workspace is read-only. Use the workspace switcher in the topbar to pick or create your own workspace, then load samples there.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setSeedingDeals(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const { data, error } = await supabase.functions.invoke('qa-seed-deals', {
         headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
       });
+      // eslint-disable-next-line no-console
+      console.log('[seed] qa-seed-deals returned:', { data, error });
       if (error) {
         toast({ title: 'Could not seed deals', description: error.message, variant: 'destructive' });
         return;
       }
-      const created = data?.results ? Object.keys(data.results).length : 4;
-      toast({ title: 'Sample deals loaded', description: `${created} demo deals added with stakeholders, wires, contracts, and approvals.` });
+      // qa-seed-deals returns { success, deals: {...}, message }
+      const deals = (data && typeof data === 'object' && 'deals' in data ? (data as { deals?: Record<string, string> }).deals : undefined) || {};
+      const created = Object.keys(deals).length || 4;
+      // The edge function predates multi-tenancy and doesn't set org_id, so
+      // we patch the newly-created deals to belong to the active workspace
+      // here. Without this they'd be invisible to the user under Phase-2 RLS.
+      if (activeOrg && Object.keys(deals).length > 0) {
+        const dealIds = Object.values(deals).filter(Boolean);
+        if (dealIds.length > 0) {
+          // @ts-expect-error generated types may lag
+          const { error: patchErr } = await supabase
+            .from('deals')
+            .update({ org_id: activeOrg.id })
+            .in('id', dealIds);
+          if (patchErr) {
+            // eslint-disable-next-line no-console
+            console.warn('[seed] org_id patch failed:', patchErr.message);
+          }
+        }
+      }
+      toast({ title: 'Sample deals loaded', description: `${created} demo deals added to ${activeOrg?.name || 'your workspace'}.` });
       await fetchDeals();
       await fetchDealSummaries();
     } catch (e) {
-      toast({ title: 'Seed failed', description: (e as Error).message, variant: 'destructive' });
+      // eslint-disable-next-line no-console
+      console.error('[seed] unexpected error:', e);
+      toast({ title: 'Seed failed', description: (e as Error).message || 'Unknown error', variant: 'destructive' });
     } finally {
       setSeedingDeals(false);
     }

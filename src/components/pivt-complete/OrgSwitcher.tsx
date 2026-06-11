@@ -84,44 +84,28 @@ export const OrgSwitcher: React.FC = () => {
     if (!newName.trim() || !user) return;
     setCreating(true);
     try {
-      // Slug = lowercased name + short suffix to keep uniqueness without a
-      // separate "check if available" UX.
-      const slug =
-        newName
-          .trim()
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")
-          .slice(0, 40) + "-" + Math.random().toString(36).slice(2, 8);
-
-      const { data: orgRow, error: orgErr } = await supabase
-        .from("organizations")
-        .insert({
-          name: newName.trim(),
-          slug,
-          org_type: "customer",
-          billing_email: newBilling.trim() || user.email || null,
-          created_by: user.id,
-        })
-        .select("id")
-        .single();
-      if (orgErr || !orgRow) throw orgErr ?? new Error("No org row returned");
-
-      // Add the creator as the owner. RLS lets a user insert their own
-      // membership row, so this works without needing prior org perms.
-      // Table is `organization_memberships` (existing schema), role enum
-      // is `owner|editor|viewer`.
-      const { error: memberErr } = await supabase
-        .from("organization_memberships")
-        .insert({ org_id: orgRow.id, user_id: user.id, role: "owner" });
-      if (memberErr) throw memberErr;
+      // Use the create_workspace() SECURITY DEFINER RPC so org + owner
+      // membership are inserted atomically without hitting the RLS chicken-
+      // and-egg on organization_memberships. (The prior client-side two-step
+      // insert was blocked by the policy that requires you to already be a
+      // member to insert membership rows. The RPC bypasses RLS but only
+      // ever makes the caller the owner — never lets you grant access to
+      // someone else.)
+      const { data: newOrgId, error: rpcErr } = await (supabase as any).rpc(
+        "create_workspace",
+        {
+          workspace_name: newName.trim(),
+          billing_email_in: newBilling.trim() || null,
+        },
+      );
+      if (rpcErr || !newOrgId) throw rpcErr ?? new Error("No workspace id returned");
 
       toast.success(`${newName.trim()} created`);
       setNewName("");
       setNewBilling("");
       setCreateOpen(false);
       await refresh();
-      setActiveOrgId(orgRow.id);
+      setActiveOrgId(newOrgId as string);
     } catch (err: any) {
       toast.error(`Could not create workspace: ${err?.message || "unknown"}`);
     } finally {
