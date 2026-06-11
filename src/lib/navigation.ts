@@ -47,7 +47,7 @@ export const groupedNavigationByMode: Record<AppMode, NavigationGroup[]> = {
     {
       category: 'Settings',
       items: [
-        { label: 'Team & Roles', icon: Users, path: 'settings', iconColor: '#94A3B8' },
+        { label: 'Settings', icon: Settings, path: 'settings', iconColor: '#64748B' },
         { label: 'Integrations', icon: Plug, path: 'integrations', iconColor: '#F59E0B' },
       ],
     },

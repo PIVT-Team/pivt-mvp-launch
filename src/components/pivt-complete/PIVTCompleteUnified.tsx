@@ -10,9 +10,13 @@ import { useSearchParams } from 'react-router-dom';
 import { springConfig } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
 import { groupedNavigationByMode } from '@/lib/navigation';
-import { Search, ChevronLeft, ChevronRight, Bell, Upload, Brain, LogOut, Play } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, Bell, Upload, Brain, LogOut, Play, Settings as SettingsIcon, User as UserIcon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
 import pivtLogo from '@/assets/pivt-logo.png';
 import { CommandPalette } from './CommandPalette';
 import { ImportDataModal } from './ImportDataModal';
@@ -360,27 +364,43 @@ export const PIVTCompleteUnified: React.FC = () => {
             <TooltipContent>Notifications</TooltipContent>
           </Tooltip>
 
-          {/* Profile */}
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold cursor-pointer"
-            style={{
-              background: 'var(--pivt-gradient-primary)',
-              color: '#FFFFFF',
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {initials}
-          </div>
-
-          {/* Logout */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button onClick={signOut} className="p-2 rounded-lg hover:bg-muted/40 transition-colors text-muted-foreground">
-                <LogOut className="w-3.5 h-3.5" />
+          {/* Profile dropdown — Settings + Sign out */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Open account menu"
+                className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-semibold cursor-pointer hover:ring-2 hover:ring-accent/30 transition-shadow"
+                style={{
+                  background: 'var(--pivt-gradient-primary)',
+                  color: '#FFFFFF',
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                {initials}
               </button>
-            </TooltipTrigger>
-            <TooltipContent>Logout</TooltipContent>
-          </Tooltip>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex items-center gap-2">
+                  <UserIcon className="w-3.5 h-3.5 text-muted-foreground" />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-semibold leading-tight">Signed in as</span>
+                    <span className="text-[11px] text-muted-foreground truncate max-w-[180px]">{user?.email}</span>
+                  </div>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setActiveSection('settings' as ActiveSection)} className="gap-2 cursor-pointer">
+                <SettingsIcon className="w-3.5 h-3.5" />
+                Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
+                <LogOut className="w-3.5 h-3.5" />
+                Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         <RiskMonitorStrip />
