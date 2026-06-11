@@ -135,7 +135,7 @@ export const SAMPLE_DEALS: SampleDeal[] = [
     jurisdiction: 'Delaware',
     closing_date_offset_days: 28,
     status: 'active',
-    deal_state: 'in_diligence',
+    deal_state: 'verification_pending',
     stakeholders: [
       { shareholder_name: 'Dr. Amelia Hart (CEO)', ownership_pct: 42, payout_amount: 73710000, escrow_holdback: 3885000, role: 'Founder', verification_status: 'pending', email: 'amelia@quantumdx.com', stakeholder_type: 'individual' },
       { shareholder_name: 'Helios Growth Equity Partners', ownership_pct: 0, payout_amount: 0, escrow_holdback: 0, role: 'Buyer', verification_status: 'verified', email: 'deals@helios.com', stakeholder_type: 'entity' },
@@ -171,7 +171,7 @@ export const SAMPLE_DEALS: SampleDeal[] = [
     jurisdiction: 'Delaware',
     closing_date_offset_days: 14,
     status: 'active',
-    deal_state: 'awaiting_approvals',
+    deal_state: 'conditions_pending',
     stakeholders: [
       { shareholder_name: 'Orion Medical Holdings', ownership_pct: 65, payout_amount: 169812500, escrow_holdback: 8937500, role: 'Seller', verification_status: 'verified', email: 'finance@orion-medical.com', stakeholder_type: 'entity' },
       { shareholder_name: 'Titan Healthcare Holdings', ownership_pct: 0, payout_amount: 0, escrow_holdback: 0, role: 'Buyer', verification_status: 'verified', email: 'mergers@titan-health.com', stakeholder_type: 'entity' },
@@ -212,7 +212,7 @@ export const SAMPLE_DEALS: SampleDeal[] = [
     jurisdiction: 'Texas',
     closing_date_offset_days: -14,
     status: 'closed',
-    deal_state: 'closed',
+    deal_state: 'settled',
     stakeholders: [
       { shareholder_name: 'Ember Solutions Inc.', ownership_pct: 100, payout_amount: 42750000, escrow_holdback: 2250000, role: 'Seller', verification_status: 'verified', email: 'cfo@ember-solutions.com', stakeholder_type: 'entity' },
       { shareholder_name: 'Beacon Industrial Partners', ownership_pct: 0, payout_amount: 0, escrow_holdback: 0, role: 'Buyer', verification_status: 'verified', email: 'closings@beacon-ip.com', stakeholder_type: 'entity' },
@@ -250,7 +250,7 @@ export const SAMPLE_DEALS: SampleDeal[] = [
     jurisdiction: 'New York',
     closing_date_offset_days: 21,
     status: 'active',
-    deal_state: 'in_diligence',
+    deal_state: 'verification_pending',
     stakeholders: [
       { shareholder_name: 'Lighthouse Holdings LLC', ownership_pct: 55, payout_amount: 78375000, escrow_holdback: 4125000, role: 'Seller', verification_status: 'verified', email: 'ceo@lighthousecap.com', stakeholder_type: 'entity' },
       { shareholder_name: 'Northstar Strategic Capital', ownership_pct: 0, payout_amount: 0, escrow_holdback: 0, role: 'Buyer', verification_status: 'verified', email: 'deals@northstar-strategic.com', stakeholder_type: 'entity' },
@@ -285,7 +285,7 @@ export const SAMPLE_DEALS: SampleDeal[] = [
     jurisdiction: 'Delaware',
     closing_date_offset_days: 35,
     status: 'active',
-    deal_state: 'in_diligence',
+    deal_state: 'verification_pending',
     stakeholders: [
       { shareholder_name: 'Dr. Emma Watson (Co-Founder, CEO)', ownership_pct: 22, payout_amount: 64790000, escrow_holdback: 3410000, role: 'Co-Founder', verification_status: 'verified', email: 'emma@nimbus.ai', stakeholder_type: 'individual' },
       { shareholder_name: 'Dr. Raj Patel (Co-Founder, CTO)', ownership_pct: 20, payout_amount: 58900000, escrow_holdback: 3100000, role: 'Co-Founder', verification_status: 'verified', email: 'raj@nimbus.ai', stakeholder_type: 'individual' },
