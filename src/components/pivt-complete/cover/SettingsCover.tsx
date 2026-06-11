@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import {
@@ -116,8 +117,32 @@ const IntegrationsPanel: React.FC = () => {
   );
 };
 
+const VALID_TABS: SettingsTab[] = ['account', 'workspace', 'team', 'integrations', 'escrow-defaults'];
+
 export const SettingsCover: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('account');
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Hydrate activeTab from ?tab=... so the avatar dropdown / sidebar can
+  // deep-link straight to a specific tab, e.g. ?section=settings&tab=workspace
+  const tabFromUrl = searchParams.get('tab') as SettingsTab | null;
+  const [activeTab, setActiveTabState] = useState<SettingsTab>(
+    tabFromUrl && VALID_TABS.includes(tabFromUrl) ? tabFromUrl : 'account',
+  );
+  // Setter that ALSO updates the URL so the tab is shareable.
+  const setActiveTab = (tab: SettingsTab) => {
+    setActiveTabState(tab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  };
+  // If the URL tab changes externally (back button, etc.), keep state in sync
+  useEffect(() => {
+    if (tabFromUrl && VALID_TABS.includes(tabFromUrl) && tabFromUrl !== activeTab) {
+      setActiveTabState(tabFromUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tabFromUrl]);
   const [defaultRate, setDefaultRate] = useState('4.25');
   const [defaultPlatformSplit, setDefaultPlatformSplit] = useState('15');
   const [inviteOpen, setInviteOpen] = useState(false);
