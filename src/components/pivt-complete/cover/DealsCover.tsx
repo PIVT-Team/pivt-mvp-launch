@@ -774,11 +774,9 @@ export const DealsCover: React.FC = () => {
         });
       }
 
-      // 5. Refresh
-      const refreshed = await fetchDeals({ orgId: activeOrg.id });
-      if (refreshed && refreshed.length > 0) {
-        await fetchDealSummaries(refreshed.map((d) => d.id));
-      }
+      // 5. Refresh — use loadDeals so component state (allDeals + summaries)
+      //    actually updates and the new rows appear without manual reload.
+      await loadDeals();
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[seed] unexpected error:', e);
