@@ -613,6 +613,9 @@ export const DealsCover: React.FC = () => {
   // creates 4 fully-populated deals (Golden Path, Active KYC, Pre-Approval,
   // Post-Close) with stakeholders, wires, contracts, approvals, and audit
   // events so every workspace step has realistic data to render against.
+  // Idempotent sample-deal seeder. Each deal has a stable seed_key so re-
+  // running only creates missing deals. Direct client-side inserts (no edge
+  // function) so RLS is enforced — user can only seed into their own workspace.
   const handleSeedSampleDeals = async () => {
     if (!user) {
       toast({ title: 'Sign in first', description: 'You need to be signed in to seed demo deals.' });
@@ -626,41 +629,141 @@ export const DealsCover: React.FC = () => {
       });
       return;
     }
+    if (!activeOrg) {
+      toast({ title: 'No active workspace', description: 'Pick or create a workspace first.', variant: 'destructive' });
+      return;
+    }
     setSeedingDeals(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { data, error } = await supabase.functions.invoke('qa-seed-deals', {
-        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
-      });
-      // eslint-disable-next-line no-console
-      console.log('[seed] qa-seed-deals returned:', { data, error });
-      if (error) {
-        toast({ title: 'Could not seed deals', description: error.message, variant: 'destructive' });
+      const { SAMPLE_DEALS } = await import('@/lib/sampleDeals');
+      const allKeys = SAMPLE_DEALS.map((d) => d.seed_key);
+
+      // 1. Check which seed_keys already exist in this workspace
+      // @ts-expect-error generated types may lag
+      const { data: existingRows } = await supabase
+        .from('deals')
+        .select('seed_key')
+        .eq('org_id', activeOrg.id)
+        .in('seed_key', allKeys);
+      const existingKeys = new Set(
+        ((existingRows as Array<{ seed_key: string | null }>) || [])
+          .map((r) => r.seed_key)
+          .filter((k): k is string => Boolean(k)),
+      );
+
+      // 2. Determine what's missing
+      const toCreate = SAMPLE_DEALS.filter((d) => !existingKeys.has(d.seed_key));
+      if (toCreate.length === 0) {
+        toast({
+          title: 'All 7 sample deals already loaded',
+          description: 'Delete any deal to free up that slot, then click again to re-create it.',
+        });
         return;
       }
-      // qa-seed-deals returns { success, deals: {...}, message }
-      const deals = (data && typeof data === 'object' && 'deals' in data ? (data as { deals?: Record<string, string> }).deals : undefined) || {};
-      const created = Object.keys(deals).length || 4;
-      // The edge function predates multi-tenancy and doesn't set org_id, so
-      // we patch the newly-created deals to belong to the active workspace
-      // here. Without this they'd be invisible to the user under Phase-2 RLS.
-      if (activeOrg && Object.keys(deals).length > 0) {
-        const dealIds = Object.values(deals).filter(Boolean);
-        if (dealIds.length > 0) {
-          // @ts-expect-error generated types may lag
-          const { error: patchErr } = await supabase
-            .from('deals')
-            .update({ org_id: activeOrg.id })
-            .in('id', dealIds);
-          if (patchErr) {
-            // eslint-disable-next-line no-console
-            console.warn('[seed] org_id patch failed:', patchErr.message);
-          }
+
+      // 3. Insert missing deals + their related rows
+      let createdCount = 0;
+      const failures: string[] = [];
+      const today = new Date();
+      for (const sample of toCreate) {
+        const closingDate = new Date(today);
+        closingDate.setDate(today.getDate() + sample.closing_date_offset_days);
+
+        // Insert deal
+        // @ts-expect-error generated types may lag
+        const { data: newDeal, error: dealErr } = await supabase
+          .from('deals')
+          .insert({
+            org_id: activeOrg.id,
+            owner_id: user.id,
+            created_by: user.id,
+            seed_key: sample.seed_key,
+            deal_name: sample.deal_name,
+            deal_number: '',
+            deal_value: sample.deal_value,
+            currency: sample.currency,
+            escrow_amount: sample.escrow_amount,
+            buyer: sample.buyer,
+            seller: sample.seller,
+            target_company: sample.target_company,
+            deal_type: sample.deal_type,
+            sector: sample.sector,
+            jurisdiction: sample.jurisdiction ?? null,
+            closing_date: closingDate.toISOString().split('T')[0],
+            status: sample.status,
+            deal_state: sample.deal_state,
+            visibility: 'private',
+            deal_kind: 'live',
+          })
+          .select('id')
+          .single();
+
+        if (dealErr || !newDeal) {
+          failures.push(`${sample.deal_name}: ${dealErr?.message || 'no id'}`);
+          continue;
         }
+
+        // Related rows — best-effort, won't break other inserts on failure
+        const dealId = (newDeal as { id: string }).id;
+        if (sample.stakeholders.length) {
+          // @ts-expect-error generated types may lag
+          await supabase.from('cap_table_entries').insert(
+            sample.stakeholders.map((s) => ({ ...s, deal_id: dealId })),
+          );
+        }
+        if (sample.wires.length) {
+          // @ts-expect-error generated types may lag
+          await supabase.from('wire_instructions').insert(
+            sample.wires.map((w) => ({ ...w, deal_id: dealId })),
+          );
+        }
+        if (sample.documents.length) {
+          // @ts-expect-error generated types may lag
+          await supabase.from('contract_documents').insert(
+            sample.documents.map((d) => ({ ...d, deal_id: dealId })),
+          );
+        }
+        if (sample.approvals?.length) {
+          // @ts-expect-error generated types may lag
+          await supabase.from('deal_approvals').insert(
+            sample.approvals.map((a) => ({
+              ...a,
+              deal_id: dealId,
+              user_id: user.id,
+              completed_at: a.status === 'completed' || a.status === 'approved' ? new Date().toISOString() : null,
+            })),
+          );
+        }
+        createdCount++;
       }
-      toast({ title: 'Sample deals loaded', description: `${created} demo deals added to ${activeOrg?.name || 'your workspace'}.` });
-      await fetchDeals();
-      await fetchDealSummaries();
+
+      // 4. Summary toast
+      if (createdCount > 0 && failures.length === 0) {
+        toast({
+          title: `Added ${createdCount} sample deal${createdCount === 1 ? '' : 's'}`,
+          description: existingKeys.size > 0
+            ? `${existingKeys.size} already existed, ${createdCount} created.`
+            : `All deals come with stakeholders, wires, contracts${createdCount > 0 ? ', and approvals' : ''}.`,
+        });
+      } else if (createdCount > 0 && failures.length > 0) {
+        toast({
+          title: `Partial seed`,
+          description: `Created ${createdCount}, failed ${failures.length}. Errors: ${failures.slice(0, 2).join('; ')}`,
+          variant: 'destructive',
+        });
+      } else {
+        toast({
+          title: 'Could not seed any deals',
+          description: failures.slice(0, 3).join('; ') || 'Unknown failure',
+          variant: 'destructive',
+        });
+      }
+
+      // 5. Refresh
+      const refreshed = await fetchDeals({ orgId: activeOrg.id });
+      if (refreshed && refreshed.length > 0) {
+        await fetchDealSummaries(refreshed.map((d) => d.id));
+      }
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[seed] unexpected error:', e);
