@@ -638,18 +638,33 @@ export const DealsCover: React.FC = () => {
       const { SAMPLE_DEALS } = await import('@/lib/sampleDeals');
       const allKeys = SAMPLE_DEALS.map((d) => d.seed_key);
 
-      // 1. Check which seed_keys already exist in this workspace
+      // 1. Check which seed_keys already exist in this workspace.
+      //    Filter `deleted_at IS NULL` so soft-deleted rows don't block
+      //    re-creation — the user can delete a sample deal then click
+      //    'Load sample deals' to get it back.
       // @ts-expect-error generated types may lag
       const { data: existingRows } = await supabase
         .from('deals')
         .select('seed_key')
         .eq('org_id', activeOrg.id)
+        .is('deleted_at', null)
         .in('seed_key', allKeys);
       const existingKeys = new Set(
         ((existingRows as Array<{ seed_key: string | null }>) || [])
           .map((r) => r.seed_key)
           .filter((k): k is string => Boolean(k)),
       );
+
+      // 1b. Purge any soft-deleted rows with the seed_keys we're about to
+      //     insert. Keeps the deals table tidy — otherwise each delete +
+      //     reseed cycle would leave a tombstone row behind.
+      // @ts-expect-error generated types may lag
+      await supabase
+        .from('deals')
+        .delete()
+        .eq('org_id', activeOrg.id)
+        .not('deleted_at', 'is', null)
+        .in('seed_key', allKeys);
 
       // 2. Determine what's missing
       const toCreate = SAMPLE_DEALS.filter((d) => !existingKeys.has(d.seed_key));
