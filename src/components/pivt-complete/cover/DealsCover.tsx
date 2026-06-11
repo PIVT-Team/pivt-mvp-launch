@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X, Sparkles, Upload, Wand2, AlertTriangle, CheckCircle2, Clock, Brain, ArrowRight } from 'lucide-react';
+import { Plus, Calendar as CalendarIconLucide, Hash, Users, FileText, Table, ChevronRight, Eye, Briefcase, Copy, TrendingUp, Trash2, X, Sparkles, Upload, Wand2, AlertTriangle, CheckCircle2, Clock, Brain, ArrowRight, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { usePIVTStore } from '@/stores/pivtStore';
 import { fadeInUp } from '@/lib/animations';
@@ -287,6 +287,7 @@ export const DealsCover: React.FC = () => {
   const [_templates, setTemplates] = useState<DealTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [seedingDeals, setSeedingDeals] = useState(false);
   const [creating, setCreating] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RealDeal | null>(null);
@@ -608,6 +609,36 @@ export const DealsCover: React.FC = () => {
 
   const openCreateModal = () => requireAuthThen(() => setShowCreate(true));
 
+  // Demo seeder — calls the existing qa-seed-deals edge function which
+  // creates 4 fully-populated deals (Golden Path, Active KYC, Pre-Approval,
+  // Post-Close) with stakeholders, wires, contracts, approvals, and audit
+  // events so every workspace step has realistic data to render against.
+  const handleSeedSampleDeals = async () => {
+    if (!user) {
+      toast({ title: 'Sign in first', description: 'You need to be signed in to seed demo deals.' });
+      return;
+    }
+    setSeedingDeals(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const { data, error } = await supabase.functions.invoke('qa-seed-deals', {
+        headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+      });
+      if (error) {
+        toast({ title: 'Could not seed deals', description: error.message, variant: 'destructive' });
+        return;
+      }
+      const created = data?.results ? Object.keys(data.results).length : 4;
+      toast({ title: 'Sample deals loaded', description: `${created} demo deals added with stakeholders, wires, contracts, and approvals.` });
+      await fetchDeals();
+      await fetchDealSummaries();
+    } catch (e) {
+      toast({ title: 'Seed failed', description: (e as Error).message, variant: 'destructive' });
+    } finally {
+      setSeedingDeals(false);
+    }
+  };
+
   // Listen for the onboarding wizard's "start with a real deal" CTA so the
   // wizard can hand off into this page's New Deal modal without re-implementing
   // the form itself.
@@ -629,14 +660,27 @@ export const DealsCover: React.FC = () => {
             {sortedDemo.length > 0 ? ` · ${sortedPrivate.length} mine · ${sortedDemo.length} demo` : ''}
           </p>
         </div>
-        <button
-          onClick={openCreateModal}
-          title={user ? undefined : 'Sign in to create a deal'}
-          className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
-        >
-          <Plus className="w-4 h-4" />
-          {user ? 'New Deal' : 'Sign in to create'}
-        </button>
+        <div className="flex items-center gap-2">
+          {user && (
+            <button
+              onClick={handleSeedSampleDeals}
+              disabled={seedingDeals}
+              title="Load 4 fully-populated demo deals so every workspace step has realistic data to render against"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-accent hover:bg-accent/5 transition-colors disabled:opacity-50"
+            >
+              {seedingDeals ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              {seedingDeals ? 'Loading samples…' : 'Load sample deals'}
+            </button>
+          )}
+          <button
+            onClick={openCreateModal}
+            title={user ? undefined : 'Sign in to create a deal'}
+            className="pivt-btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white"
+          >
+            <Plus className="w-4 h-4" />
+            {user ? 'New Deal' : 'Sign in to create'}
+          </button>
+        </div>
       </div>
 
       {loading ? (
