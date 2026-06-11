@@ -637,7 +637,13 @@ export const DealsCover: React.FC = () => {
     setSeedingDeals(true);
     try {
       const { SAMPLE_DEALS } = await import('@/lib/sampleDeals');
-      const allKeys = SAMPLE_DEALS.map((d) => d.seed_key);
+      // seed_key has a UNIQUE constraint on the deals table, so the same key
+      // can't exist twice anywhere. Namespace each key with the org_id so
+      // multiple workspaces can each have their own copy of the sample deals
+      // without colliding.
+      const orgScope = activeOrg.id.replace(/-/g, '').slice(0, 12);
+      const scopedKey = (base: string) => `${base}-${orgScope}`;
+      const allKeys = SAMPLE_DEALS.map((d) => scopedKey(d.seed_key));
 
       // 1. Check which seed_keys already exist in this workspace.
       //    Filter `deleted_at IS NULL` so soft-deleted rows don't block
@@ -668,7 +674,7 @@ export const DealsCover: React.FC = () => {
         .in('seed_key', allKeys);
 
       // 2. Determine what's missing
-      const toCreate = SAMPLE_DEALS.filter((d) => !existingKeys.has(d.seed_key));
+      const toCreate = SAMPLE_DEALS.filter((d) => !existingKeys.has(scopedKey(d.seed_key)));
       if (toCreate.length === 0) {
         toast({
           title: 'All 7 sample deals already loaded',
@@ -693,7 +699,7 @@ export const DealsCover: React.FC = () => {
             org_id: activeOrg.id,
             owner_id: user.id,
             created_by: user.id,
-            seed_key: sample.seed_key,
+            seed_key: scopedKey(sample.seed_key),
             deal_name: sample.deal_name,
             deal_number: '',
             deal_value: sample.deal_value,
