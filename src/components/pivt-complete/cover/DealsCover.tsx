@@ -288,6 +288,7 @@ export const DealsCover: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [seedingDeals, setSeedingDeals] = useState(false);
+  const [clearingSamples, setClearingSamples] = useState(false);
   const [creating, setCreating] = useState(false);
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<RealDeal | null>(null);
@@ -786,6 +787,48 @@ export const DealsCover: React.FC = () => {
     }
   };
 
+  // Delete all seeded sample deals (seed_key starts with 'sample-') in the
+  // active workspace. Hard delete — keeps the table tidy. Your own real
+  // deals (no seed_key, or seed_keys not in the sample set) are NOT touched.
+  const handleClearAllSamples = async () => {
+    if (!user || !activeOrg) return;
+    const sampleCount = allDeals.filter((d) => {
+      const sk = (d as RealDeal & { seed_key?: string | null }).seed_key;
+      return sk && sk.startsWith('sample-');
+    }).length;
+    if (sampleCount === 0) {
+      toast({ title: 'No sample deals to delete', description: 'Your workspace has no seeded sample deals right now.' });
+      return;
+    }
+    if (!confirm(`Delete all ${sampleCount} sample deal${sampleCount === 1 ? '' : 's'}? This cannot be undone. Your own deals will NOT be affected.`)) {
+      return;
+    }
+    setClearingSamples(true);
+    try {
+      // @ts-expect-error generated types may lag
+      const { error: delErr, count } = await supabase
+        .from('deals')
+        .delete({ count: 'exact' })
+        .eq('org_id', activeOrg.id)
+        .like('seed_key', 'sample-%');
+      if (delErr) {
+        toast({ title: 'Could not delete samples', description: delErr.message, variant: 'destructive' });
+        return;
+      }
+      toast({
+        title: `Cleared ${count ?? sampleCount} sample deal${(count ?? sampleCount) === 1 ? '' : 's'}`,
+        description: 'Click "Load sample deals" to recreate them.',
+      });
+      await loadDeals();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[clear-samples] unexpected error:', e);
+      toast({ title: 'Clear failed', description: (e as Error).message || 'Unknown error', variant: 'destructive' });
+    } finally {
+      setClearingSamples(false);
+    }
+  };
+
   // Listen for the onboarding wizard's "start with a real deal" CTA so the
   // wizard can hand off into this page's New Deal modal without re-implementing
   // the form itself.
@@ -809,15 +852,31 @@ export const DealsCover: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           {user && (
-            <button
-              onClick={handleSeedSampleDeals}
-              disabled={seedingDeals}
-              title="Load 4 fully-populated demo deals so every workspace step has realistic data to render against"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-accent hover:bg-accent/5 transition-colors disabled:opacity-50"
-            >
-              {seedingDeals ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-              {seedingDeals ? 'Loading samples…' : 'Load sample deals'}
-            </button>
+            <>
+              <button
+                onClick={handleSeedSampleDeals}
+                disabled={seedingDeals || clearingSamples}
+                title="Load 7 fully-populated sample deals so every workspace step has realistic data to render against. Idempotent — only creates missing deals."
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-accent hover:bg-accent/5 transition-colors disabled:opacity-50"
+              >
+                {seedingDeals ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                {seedingDeals ? 'Loading samples…' : 'Load sample deals'}
+              </button>
+              {allDeals.some((d) => {
+                const sk = (d as RealDeal & { seed_key?: string | null }).seed_key;
+                return sk && sk.startsWith('sample-');
+              }) && (
+                <button
+                  onClick={handleClearAllSamples}
+                  disabled={clearingSamples || seedingDeals}
+                  title="Delete all sample deals from this workspace. Your own deals are NOT touched."
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
+                >
+                  {clearingSamples ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                  {clearingSamples ? 'Deleting…' : 'Delete all samples'}
+                </button>
+              )}
+            </>
           )}
           <button
             onClick={openCreateModal}
