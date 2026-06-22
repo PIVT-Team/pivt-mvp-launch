@@ -1697,6 +1697,7 @@ export type Database = {
           id: string
           is_demo: boolean
           jurisdiction: string | null
+          org_id: string | null
           owner_id: string | null
           sector: string | null
           seed_key: string | null
@@ -1730,6 +1731,7 @@ export type Database = {
           id?: string
           is_demo?: boolean
           jurisdiction?: string | null
+          org_id?: string | null
           owner_id?: string | null
           sector?: string | null
           seed_key?: string | null
@@ -1763,6 +1765,7 @@ export type Database = {
           id?: string
           is_demo?: boolean
           jurisdiction?: string | null
+          org_id?: string | null
           owner_id?: string | null
           sector?: string | null
           seed_key?: string | null
@@ -1778,6 +1781,13 @@ export type Database = {
           visibility?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "deals_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deals_template_id_fkey"
             columns: ["template_id"]
@@ -3256,6 +3266,56 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          org_id: string
+          revoked_at: string | null
+          role: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          org_id: string
+          revoked_at?: string | null
+          role?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          org_id?: string
+          revoked_at?: string | null
+          role?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_invites_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_memberships: {
         Row: {
           created_at: string
@@ -3290,19 +3350,40 @@ export type Database = {
       }
       organizations: {
         Row: {
+          billing_email: string | null
           created_at: string
+          created_by: string | null
           id: string
+          legal_entity_name: string | null
           name: string
+          org_type: string
+          product_kind: string
+          slug: string | null
+          updated_at: string
         }
         Insert: {
+          billing_email?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
+          legal_entity_name?: string | null
           name: string
+          org_type?: string
+          product_kind?: string
+          slug?: string | null
+          updated_at?: string
         }
         Update: {
+          billing_email?: string | null
           created_at?: string
+          created_by?: string | null
           id?: string
+          legal_entity_name?: string | null
           name?: string
+          org_type?: string
+          product_kind?: string
+          slug?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3458,6 +3539,315 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      re_beneficial_owners: {
+        Row: {
+          created_at: string
+          has_substantial_control: boolean
+          id: string
+          id_doc_expiration: string | null
+          id_doc_issuing_jurisdiction: string | null
+          id_doc_number_last4: string | null
+          id_doc_type: string | null
+          individual_address_city: string | null
+          individual_address_country: string
+          individual_address_line1: string | null
+          individual_address_state: string | null
+          individual_address_zip: string | null
+          individual_dob: string | null
+          individual_full_name: string
+          ownership_pct: number | null
+          party_id: string
+          persona_account_id: string | null
+          persona_last_inquiry_id: string | null
+          persona_last_verified_at: string | null
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          has_substantial_control?: boolean
+          id?: string
+          id_doc_expiration?: string | null
+          id_doc_issuing_jurisdiction?: string | null
+          id_doc_number_last4?: string | null
+          id_doc_type?: string | null
+          individual_address_city?: string | null
+          individual_address_country?: string
+          individual_address_line1?: string | null
+          individual_address_state?: string | null
+          individual_address_zip?: string | null
+          individual_dob?: string | null
+          individual_full_name: string
+          ownership_pct?: number | null
+          party_id: string
+          persona_account_id?: string | null
+          persona_last_inquiry_id?: string | null
+          persona_last_verified_at?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          has_substantial_control?: boolean
+          id?: string
+          id_doc_expiration?: string | null
+          id_doc_issuing_jurisdiction?: string | null
+          id_doc_number_last4?: string | null
+          id_doc_type?: string | null
+          individual_address_city?: string | null
+          individual_address_country?: string
+          individual_address_line1?: string | null
+          individual_address_state?: string | null
+          individual_address_zip?: string | null
+          individual_dob?: string | null
+          individual_full_name?: string
+          ownership_pct?: number | null
+          party_id?: string
+          persona_account_id?: string | null
+          persona_last_inquiry_id?: string | null
+          persona_last_verified_at?: string | null
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_beneficial_owners_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "re_parties"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_parties: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string | null
+          entity_ein: string | null
+          entity_legal_name: string | null
+          entity_state_of_formation: string | null
+          entity_type: string | null
+          id: string
+          individual_dob: string | null
+          individual_name_first: string | null
+          individual_name_last: string | null
+          individual_ssn_last4: string | null
+          is_entity: boolean
+          persona_account_id: string | null
+          persona_last_inquiry_id: string | null
+          persona_last_verified_at: string | null
+          phone: string | null
+          role: string
+          transaction_id: string
+          updated_at: string
+          verification_status: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email?: string | null
+          entity_ein?: string | null
+          entity_legal_name?: string | null
+          entity_state_of_formation?: string | null
+          entity_type?: string | null
+          id?: string
+          individual_dob?: string | null
+          individual_name_first?: string | null
+          individual_name_last?: string | null
+          individual_ssn_last4?: string | null
+          is_entity?: boolean
+          persona_account_id?: string | null
+          persona_last_inquiry_id?: string | null
+          persona_last_verified_at?: string | null
+          phone?: string | null
+          role: string
+          transaction_id: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          entity_ein?: string | null
+          entity_legal_name?: string | null
+          entity_state_of_formation?: string | null
+          entity_type?: string | null
+          id?: string
+          individual_dob?: string | null
+          individual_name_first?: string | null
+          individual_name_last?: string | null
+          individual_ssn_last4?: string | null
+          is_entity?: boolean
+          persona_account_id?: string | null
+          persona_last_inquiry_id?: string | null
+          persona_last_verified_at?: string | null
+          phone?: string | null
+          role?: string
+          transaction_id?: string
+          updated_at?: string
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_parties_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_settlement_lines: {
+        Row: {
+          category: string
+          cd_line_number: string | null
+          created_at: string
+          credit_amount: number
+          currency: string
+          debit_amount: number
+          description: string | null
+          id: string
+          is_buyer_side: boolean
+          is_seller_side: boolean
+          party_id: string | null
+          sort_order: number
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          cd_line_number?: string | null
+          created_at?: string
+          credit_amount?: number
+          currency?: string
+          debit_amount?: number
+          description?: string | null
+          id?: string
+          is_buyer_side?: boolean
+          is_seller_side?: boolean
+          party_id?: string | null
+          sort_order?: number
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          cd_line_number?: string | null
+          created_at?: string
+          credit_amount?: number
+          currency?: string
+          debit_amount?: number
+          description?: string | null
+          id?: string
+          is_buyer_side?: boolean
+          is_seller_side?: boolean
+          party_id?: string | null
+          sort_order?: number
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_settlement_lines_party_id_fkey"
+            columns: ["party_id"]
+            isOneToOne: false
+            referencedRelation: "re_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_settlement_lines_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_transactions: {
+        Row: {
+          apn: string | null
+          closing_date_actual: string | null
+          closing_date_target: string | null
+          contract_price: number | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          earnest_money: number | null
+          fincen_reportable: boolean | null
+          id: string
+          is_entity_buyer: boolean
+          is_non_financed: boolean
+          org_id: string
+          property_address_line1: string | null
+          property_address_line2: string | null
+          property_city: string | null
+          property_county: string | null
+          property_state: string | null
+          property_zip: string | null
+          status: string
+          transaction_type: string
+          updated_at: string
+        }
+        Insert: {
+          apn?: string | null
+          closing_date_actual?: string | null
+          closing_date_target?: string | null
+          contract_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          earnest_money?: number | null
+          fincen_reportable?: boolean | null
+          id?: string
+          is_entity_buyer?: boolean
+          is_non_financed?: boolean
+          org_id: string
+          property_address_line1?: string | null
+          property_address_line2?: string | null
+          property_city?: string | null
+          property_county?: string | null
+          property_state?: string | null
+          property_zip?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Update: {
+          apn?: string | null
+          closing_date_actual?: string | null
+          closing_date_target?: string | null
+          contract_price?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          earnest_money?: number | null
+          fincen_reportable?: boolean | null
+          id?: string
+          is_entity_buyer?: boolean
+          is_non_financed?: boolean
+          org_id?: string
+          property_address_line1?: string | null
+          property_address_line2?: string | null
+          property_city?: string | null
+          property_county?: string | null
+          property_state?: string | null
+          property_zip?: string | null
+          status?: string
+          transaction_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_transactions_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       regulatory_conditions: {
         Row: {
@@ -4484,6 +4874,7 @@ export type Database = {
       }
     }
     Functions: {
+      accept_organization_invite: { Args: { _token: string }; Returns: Json }
       ack_job_message: {
         Args: { p_msg_id: number; p_queue_name: string }
         Returns: boolean
@@ -4550,10 +4941,15 @@ export type Database = {
         Args: { _template_id: string }
         Returns: string
       }
+      create_workspace: {
+        Args: { billing_email_in?: string; workspace_name: string }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      demo_org_id: { Args: never; Returns: string }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -4681,6 +5077,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_org_role: {
+        Args: { _org_id: string; _required_role: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -4707,6 +5107,7 @@ export type Database = {
         }
         Returns: number
       }
+      re_create_workspace: { Args: { workspace_name: string }; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -4789,6 +5190,7 @@ export type Database = {
         Args: { _deal_type: string; _deal_value: number; _rules: Json }
         Returns: boolean
       }
+      user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
       allocation_logic_type: "fixed" | "percentage" | "pro_rata" | "threshold"
