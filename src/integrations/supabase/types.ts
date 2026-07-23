@@ -3620,21 +3620,126 @@ export type Database = {
           },
         ]
       }
+      re_deal_terms: {
+        Row: {
+          additional_deposits: number | null
+          cam_reconciliation_required: boolean
+          closing_date: string | null
+          contingency_notes: string | null
+          created_at: string
+          due_diligence_deadline: string | null
+          earnest_money: number | null
+          environmental_contingency: boolean
+          estoppel_required: boolean
+          financing_contingency: boolean
+          financing_contingency_end: string | null
+          id: string
+          inspection_contingency: boolean
+          lender_approval_required: boolean
+          purchase_price: number | null
+          rent_proration_required: boolean
+          security_deposits_credited: boolean
+          signing_date: string | null
+          source: string
+          source_ref: Json | null
+          tax_proration_method: string | null
+          transaction_id: string
+          updated_at: string
+          utility_adjustment_method: string | null
+          workspace_id: string
+        }
+        Insert: {
+          additional_deposits?: number | null
+          cam_reconciliation_required?: boolean
+          closing_date?: string | null
+          contingency_notes?: string | null
+          created_at?: string
+          due_diligence_deadline?: string | null
+          earnest_money?: number | null
+          environmental_contingency?: boolean
+          estoppel_required?: boolean
+          financing_contingency?: boolean
+          financing_contingency_end?: string | null
+          id?: string
+          inspection_contingency?: boolean
+          lender_approval_required?: boolean
+          purchase_price?: number | null
+          rent_proration_required?: boolean
+          security_deposits_credited?: boolean
+          signing_date?: string | null
+          source?: string
+          source_ref?: Json | null
+          tax_proration_method?: string | null
+          transaction_id: string
+          updated_at?: string
+          utility_adjustment_method?: string | null
+          workspace_id: string
+        }
+        Update: {
+          additional_deposits?: number | null
+          cam_reconciliation_required?: boolean
+          closing_date?: string | null
+          contingency_notes?: string | null
+          created_at?: string
+          due_diligence_deadline?: string | null
+          earnest_money?: number | null
+          environmental_contingency?: boolean
+          estoppel_required?: boolean
+          financing_contingency?: boolean
+          financing_contingency_end?: string | null
+          id?: string
+          inspection_contingency?: boolean
+          lender_approval_required?: boolean
+          purchase_price?: number | null
+          rent_proration_required?: boolean
+          security_deposits_credited?: boolean
+          signing_date?: string | null
+          source?: string
+          source_ref?: Json | null
+          tax_proration_method?: string | null
+          transaction_id?: string
+          updated_at?: string
+          utility_adjustment_method?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_deal_terms_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_deal_terms_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       re_parties: {
         Row: {
+          authority_doc_id: string | null
+          authority_verified: boolean
+          authority_verified_by: string | null
           created_at: string
+          deleted_at: string | null
           display_name: string
           email: string | null
           entity_ein: string | null
           entity_legal_name: string | null
           entity_state_of_formation: string | null
           entity_type: string | null
+          entity_type_enum: string | null
           id: string
           individual_dob: string | null
           individual_name_first: string | null
           individual_name_last: string | null
           individual_ssn_last4: string | null
           is_entity: boolean
+          ownership_pct: number | null
           persona_account_id: string | null
           persona_last_inquiry_id: string | null
           persona_last_verified_at: string | null
@@ -3645,19 +3750,25 @@ export type Database = {
           verification_status: string
         }
         Insert: {
+          authority_doc_id?: string | null
+          authority_verified?: boolean
+          authority_verified_by?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name: string
           email?: string | null
           entity_ein?: string | null
           entity_legal_name?: string | null
           entity_state_of_formation?: string | null
           entity_type?: string | null
+          entity_type_enum?: string | null
           id?: string
           individual_dob?: string | null
           individual_name_first?: string | null
           individual_name_last?: string | null
           individual_ssn_last4?: string | null
           is_entity?: boolean
+          ownership_pct?: number | null
           persona_account_id?: string | null
           persona_last_inquiry_id?: string | null
           persona_last_verified_at?: string | null
@@ -3668,19 +3779,25 @@ export type Database = {
           verification_status?: string
         }
         Update: {
+          authority_doc_id?: string | null
+          authority_verified?: boolean
+          authority_verified_by?: string | null
           created_at?: string
+          deleted_at?: string | null
           display_name?: string
           email?: string | null
           entity_ein?: string | null
           entity_legal_name?: string | null
           entity_state_of_formation?: string | null
           entity_type?: string | null
+          entity_type_enum?: string | null
           id?: string
           individual_dob?: string | null
           individual_name_first?: string | null
           individual_name_last?: string | null
           individual_ssn_last4?: string | null
           is_entity?: boolean
+          ownership_pct?: number | null
           persona_account_id?: string | null
           persona_last_inquiry_id?: string | null
           persona_last_verified_at?: string | null
@@ -3692,10 +3809,86 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "re_parties_authority_doc_id_fkey"
+            columns: ["authority_doc_id"]
+            isOneToOne: false
+            referencedRelation: "tx_documents"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "re_parties_transaction_id_fkey"
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      re_property_profile: {
+        Row: {
+          created_at: string
+          current_owner_name: string | null
+          id: string
+          legal_description: string | null
+          lot_size_sqft: number | null
+          ownership_structure: string | null
+          property_type: string | null
+          source: string
+          source_ref: Json | null
+          square_footage: number | null
+          transaction_id: string
+          updated_at: string
+          workspace_id: string
+          year_built: number | null
+          zoning: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_owner_name?: string | null
+          id?: string
+          legal_description?: string | null
+          lot_size_sqft?: number | null
+          ownership_structure?: string | null
+          property_type?: string | null
+          source?: string
+          source_ref?: Json | null
+          square_footage?: number | null
+          transaction_id: string
+          updated_at?: string
+          workspace_id: string
+          year_built?: number | null
+          zoning?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_owner_name?: string | null
+          id?: string
+          legal_description?: string | null
+          lot_size_sqft?: number | null
+          ownership_structure?: string | null
+          property_type?: string | null
+          source?: string
+          source_ref?: Json | null
+          square_footage?: number | null
+          transaction_id?: string
+          updated_at?: string
+          workspace_id?: string
+          year_built?: number | null
+          zoning?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "re_property_profile_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: true
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "re_property_profile_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -3775,6 +3968,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           currency: string
+          deleted_at: string | null
           earnest_money: number | null
           fincen_reportable: boolean | null
           id: string
@@ -3799,6 +3993,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          deleted_at?: string | null
           earnest_money?: number | null
           fincen_reportable?: boolean | null
           id?: string
@@ -3823,6 +4018,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          deleted_at?: string | null
           earnest_money?: number | null
           fincen_reportable?: boolean | null
           id?: string
@@ -4251,6 +4447,505 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tx_approvals: {
+        Row: {
+          approvals: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          required_count: number
+          resolved_at: string | null
+          status: string
+          subject_kind: string
+          subject_ref: string | null
+          transaction_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approvals?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          required_count?: number
+          resolved_at?: string | null
+          status?: string
+          subject_kind: string
+          subject_ref?: string | null
+          transaction_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approvals?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          required_count?: number
+          resolved_at?: string | null
+          status?: string
+          subject_kind?: string
+          subject_ref?: string | null
+          transaction_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tx_approvals_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_approvals_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tx_audit_log: {
+        Row: {
+          actor_email: string | null
+          actor_source: string
+          actor_user_id: string | null
+          created_at: string
+          diff: Json | null
+          id: number
+          operation: string
+          row_id: string | null
+          table_name: string
+          transaction_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_source?: string
+          actor_user_id?: string | null
+          created_at?: string
+          diff?: Json | null
+          id?: number
+          operation: string
+          row_id?: string | null
+          table_name: string
+          transaction_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actor_email?: string | null
+          actor_source?: string
+          actor_user_id?: string | null
+          created_at?: string
+          diff?: Json | null
+          id?: number
+          operation?: string
+          row_id?: string | null
+          table_name?: string
+          transaction_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tx_audit_log_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_audit_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tx_conditions_precedent: {
+        Row: {
+          category: string
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          evidence_doc_id: string | null
+          id: string
+          satisfied_at: string | null
+          satisfied_by: string | null
+          sort_order: number
+          source: string
+          source_ref: Json | null
+          status: string
+          title: string
+          transaction_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          evidence_doc_id?: string | null
+          id?: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          sort_order?: number
+          source?: string
+          source_ref?: Json | null
+          status?: string
+          title: string
+          transaction_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          evidence_doc_id?: string | null
+          id?: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          sort_order?: number
+          source?: string
+          source_ref?: Json | null
+          status?: string
+          title?: string
+          transaction_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tx_conditions_precedent_evidence_doc_id_fkey"
+            columns: ["evidence_doc_id"]
+            isOneToOne: false
+            referencedRelation: "tx_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_conditions_precedent_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_conditions_precedent_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tx_documents: {
+        Row: {
+          category: string
+          created_at: string
+          deleted_at: string | null
+          filename: string
+          id: string
+          mime_type: string | null
+          parent_doc_id: string | null
+          size_bytes: number | null
+          status: string
+          storage_path: string
+          transaction_id: string
+          updated_at: string
+          uploaded_by: string | null
+          version: number
+          workspace_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          deleted_at?: string | null
+          filename: string
+          id?: string
+          mime_type?: string | null
+          parent_doc_id?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path: string
+          transaction_id: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          deleted_at?: string | null
+          filename?: string
+          id?: string
+          mime_type?: string | null
+          parent_doc_id?: string | null
+          size_bytes?: number | null
+          status?: string
+          storage_path?: string
+          transaction_id?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          version?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tx_documents_parent_doc_id_fkey"
+            columns: ["parent_doc_id"]
+            isOneToOne: false
+            referencedRelation: "tx_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_documents_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_documents_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tx_funds_flow_lines: {
+        Row: {
+          account_last4: string | null
+          amount: number
+          bank_name: string | null
+          category: string
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string | null
+          direction: string
+          id: string
+          payee_party: string | null
+          routing_last4: string | null
+          sort_order: number
+          source: string
+          source_ref: Json | null
+          transaction_id: string
+          updated_at: string
+          wire_confirmed_at: string | null
+          wire_sent_at: string | null
+          wire_status: string
+          workspace_id: string
+        }
+        Insert: {
+          account_last4?: string | null
+          amount: number
+          bank_name?: string | null
+          category: string
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          direction: string
+          id?: string
+          payee_party?: string | null
+          routing_last4?: string | null
+          sort_order?: number
+          source?: string
+          source_ref?: Json | null
+          transaction_id: string
+          updated_at?: string
+          wire_confirmed_at?: string | null
+          wire_sent_at?: string | null
+          wire_status?: string
+          workspace_id: string
+        }
+        Update: {
+          account_last4?: string | null
+          amount?: number
+          bank_name?: string | null
+          category?: string
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          direction?: string
+          id?: string
+          payee_party?: string | null
+          routing_last4?: string | null
+          sort_order?: number
+          source?: string
+          source_ref?: Json | null
+          transaction_id?: string
+          updated_at?: string
+          wire_confirmed_at?: string | null
+          wire_sent_at?: string | null
+          wire_status?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tx_funds_flow_lines_payee_party_fkey"
+            columns: ["payee_party"]
+            isOneToOne: false
+            referencedRelation: "re_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_funds_flow_lines_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_funds_flow_lines_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tx_obligations: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          due_date: string | null
+          id: string
+          owed_by_party: string | null
+          owed_by_side: string
+          satisfied_at: string | null
+          satisfied_by: string | null
+          sort_order: number
+          source: string
+          source_ref: Json | null
+          status: string
+          title: string
+          transaction_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          owed_by_party?: string | null
+          owed_by_side: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          sort_order?: number
+          source?: string
+          source_ref?: Json | null
+          status?: string
+          title: string
+          transaction_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          owed_by_party?: string | null
+          owed_by_side?: string
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          sort_order?: number
+          source?: string
+          source_ref?: Json | null
+          status?: string
+          title?: string
+          transaction_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tx_obligations_owed_by_party_fkey"
+            columns: ["owed_by_party"]
+            isOneToOne: false
+            referencedRelation: "re_parties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_obligations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_obligations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tx_readiness_dimensions: {
+        Row: {
+          created_at: string
+          dimension: string
+          id: string
+          notes: string | null
+          score_pct: number
+          source: string
+          transaction_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          dimension: string
+          id?: string
+          notes?: string | null
+          score_pct?: number
+          source?: string
+          transaction_id: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          dimension?: string
+          id?: string
+          notes?: string | null
+          score_pct?: number
+          source?: string
+          transaction_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tx_readiness_dimensions_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "re_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tx_readiness_dimensions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -4950,6 +5645,7 @@ export type Database = {
         Returns: boolean
       }
       demo_org_id: { Args: never; Returns: string }
+      email_queue_dispatch: { Args: never; Returns: undefined }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -5108,6 +5804,7 @@ export type Database = {
         Returns: number
       }
       re_create_workspace: { Args: { workspace_name: string }; Returns: string }
+      re_user_in_org: { Args: { target_org: string }; Returns: boolean }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
