@@ -1006,6 +1006,9 @@ export type Database = {
           extracted_fields: Json | null
           extraction_confidence: number | null
           file_url: string | null
+          is_current: boolean
+          supersedes_id: string | null
+          version: number
           filename: string
           id: string
           is_required: boolean | null
@@ -1024,6 +1027,9 @@ export type Database = {
           extracted_fields?: Json | null
           extraction_confidence?: number | null
           file_url?: string | null
+          is_current?: boolean
+          supersedes_id?: string | null
+          version?: number
           filename: string
           id?: string
           is_required?: boolean | null
@@ -1042,6 +1048,9 @@ export type Database = {
           extracted_fields?: Json | null
           extraction_confidence?: number | null
           file_url?: string | null
+          is_current?: boolean
+          supersedes_id?: string | null
+          version?: number
           filename?: string
           id?: string
           is_required?: boolean | null
@@ -1216,6 +1225,11 @@ export type Database = {
           approval_side: string
           approval_type: string | null
           approver_email: string | null
+          approved_doc_version: number | null
+          approved_snapshot_hash: string | null
+          invalidated_at: string | null
+          invalidated_by_document_id: string | null
+          invalidated_reason: string | null
           approver_name: string | null
           approver_role: string | null
           blocker_reason: string | null
@@ -1251,6 +1265,11 @@ export type Database = {
           approval_side: string
           approval_type?: string | null
           approver_email?: string | null
+          approved_doc_version?: number | null
+          approved_snapshot_hash?: string | null
+          invalidated_at?: string | null
+          invalidated_by_document_id?: string | null
+          invalidated_reason?: string | null
           approver_name?: string | null
           approver_role?: string | null
           blocker_reason?: string | null
@@ -1286,6 +1305,11 @@ export type Database = {
           approval_side?: string
           approval_type?: string | null
           approver_email?: string | null
+          approved_doc_version?: number | null
+          approved_snapshot_hash?: string | null
+          invalidated_at?: string | null
+          invalidated_by_document_id?: string | null
+          invalidated_reason?: string | null
           approver_name?: string | null
           approver_role?: string | null
           blocker_reason?: string | null
@@ -1345,6 +1369,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      deal_change_events: {
+        Row: {
+          blocks_closing: boolean
+          change_type: string
+          created_at: string
+          deal_id: string
+          details: Json
+          from_version: number | null
+          id: string
+          object_id: string | null
+          object_type: string | null
+          recommended_action: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          source_document_id: string | null
+          source_label: string | null
+          status: string
+          title: string
+          to_version: number | null
+          what_changed: string
+          why_it_matters: string | null
+        }
+        Insert: {
+          blocks_closing?: boolean
+          change_type: string
+          created_at?: string
+          deal_id: string
+          details?: Json
+          from_version?: number | null
+          id?: string
+          object_id?: string | null
+          object_type?: string | null
+          recommended_action?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source_document_id?: string | null
+          source_label?: string | null
+          status?: string
+          title: string
+          to_version?: number | null
+          what_changed: string
+          why_it_matters?: string | null
+        }
+        Update: {
+          blocks_closing?: boolean
+          change_type?: string
+          created_at?: string
+          deal_id?: string
+          details?: Json
+          from_version?: number | null
+          id?: string
+          object_id?: string | null
+          object_type?: string | null
+          recommended_action?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source_document_id?: string | null
+          source_label?: string | null
+          status?: string
+          title?: string
+          to_version?: number | null
+          what_changed?: string
+          why_it_matters?: string | null
+        }
+        Relationships: []
+      }
+      wire_instruction_history: {
+        Row: {
+          banking_changed: boolean
+          changed_by: string | null
+          changed_by_source: string
+          changed_fields: string[]
+          created_at: string
+          deal_id: string
+          id: string
+          new_values: Json
+          previous_values: Json
+          previous_verification_status: string | null
+          source_document_id: string | null
+          wire_instruction_id: string
+        }
+        Insert: {
+          banking_changed?: boolean
+          changed_by?: string | null
+          changed_by_source?: string
+          changed_fields?: string[]
+          created_at?: string
+          deal_id: string
+          id?: string
+          new_values?: Json
+          previous_values?: Json
+          previous_verification_status?: string | null
+          source_document_id?: string | null
+          wire_instruction_id: string
+        }
+        Update: {
+          banking_changed?: boolean
+          changed_by?: string | null
+          changed_by_source?: string
+          changed_fields?: string[]
+          created_at?: string
+          deal_id?: string
+          id?: string
+          new_values?: Json
+          previous_values?: Json
+          previous_verification_status?: string | null
+          source_document_id?: string | null
+          wire_instruction_id?: string
+        }
+        Relationships: []
       }
       deal_comments: {
         Row: {
