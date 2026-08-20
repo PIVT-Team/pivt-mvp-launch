@@ -59,7 +59,7 @@ serve(async (req) => {
     const shouldSearch = (cat: string) => !filter || filter === "all" || filter === cat;
 
     // Parallel DB queries
-    const queries: Promise<void>[] = [];
+    const queries: PromiseLike<void>[] = [];
 
     // 1. Deals
     if (shouldSearch("deals")) {
