@@ -30,21 +30,31 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 
 -- ── 1. Store the service_role key in Vault ────────────────────────────────
+--
+-- If the secret already exists (a previous setup attempt may have created it),
+-- this leaves it alone and you do NOT need to supply a key — just run the file
+-- as-is. The placeholder only has to be replaced when no secret is present yet.
 DO $$
 DECLARE
-  v_key text := 'PASTE_YOUR_SERVICE_ROLE_KEY_HERE';
-  v_id  uuid;
+  v_key      text := 'PASTE_YOUR_SERVICE_ROLE_KEY_HERE';
+  v_id       uuid;
+  v_supplied boolean;
 BEGIN
-  IF v_key = 'PASTE_YOUR_' || 'SERVICE_ROLE_KEY_HERE' THEN
-    RAISE EXCEPTION 'Replace PASTE_YOUR_SERVICE_ROLE_KEY_HERE with your actual service_role key before running this migration.';
-  END IF;
-
+  v_supplied := v_key <> 'PASTE_YOUR_' || 'SERVICE_ROLE_KEY_HERE';
   SELECT id INTO v_id FROM vault.secrets WHERE name = 'email_queue_service_role_key';
-  IF v_id IS NULL THEN
+
+  IF v_id IS NOT NULL AND NOT v_supplied THEN
+    RAISE NOTICE 'Vault secret email_queue_service_role_key already exists — keeping it. No key needed.';
+  ELSIF v_supplied AND v_id IS NULL THEN
     PERFORM vault.create_secret(v_key, 'email_queue_service_role_key',
                                 'service_role key used by the process-email-queue cron job');
-  ELSE
+    RAISE NOTICE 'Vault secret created.';
+  ELSIF v_supplied AND v_id IS NOT NULL THEN
     PERFORM vault.update_secret(v_id, v_key);
+    RAISE NOTICE 'Vault secret updated.';
+  ELSE
+    RAISE EXCEPTION
+      'No vault secret named email_queue_service_role_key exists, and no key was supplied. Replace PASTE_YOUR_SERVICE_ROLE_KEY_HERE with your service_role key, then re-run.';
   END IF;
 END $$;
 
