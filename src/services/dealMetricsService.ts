@@ -32,7 +32,7 @@ export interface BlockingIssue {
   reason: string;
   source: string;
   action: string;
-  origin: "discrepancy" | "change_event" | "gate";
+  origin: "discrepancy" | "change_event" | "gate" | "requirement";
   targetSection: string;
   targetId?: string;
   createdAt?: string;
@@ -105,6 +105,11 @@ export interface DealMetrics {
   openBlockerDiscrepancies: number;
   openBlockingChangeEvents: number;
   invalidatedApprovals: number;
+  /** Requirements (signatures, consents, external docs) still outstanding. */
+  openRequirements: number;
+  blockingRequirements: number;
+  /** AI-extracted requirements a human has not yet approved or rejected. */
+  requirementsAwaitingReview: number;
 }
 
 const REQUIRED_STAKEHOLDER_ROLES = new Set(["BUYER", "SELLER", "TARGET", "MERGER_SUB"]);
@@ -182,6 +187,17 @@ function discrepancyCategory(ruleKey: string): ReadinessCategory {
   return "closing_requirements";
 }
 
+/** Which readiness category a requirement belongs under. */
+function requirementCategory(kind: string): ReadinessCategory {
+  switch (kind) {
+    case "signature": return "approvals";
+    case "external_document": return "documents";
+    case "consent":
+    case "notice":
+    default: return "closing_requirements";
+  }
+}
+
 /** Deep-link target so every blocker is clickable through to its subject. */
 function sectionForObject(objectType: string | null | undefined, hint = ""): string {
   switch (String(objectType || "")) {
@@ -215,7 +231,7 @@ function categoryRoll(
 }
 
 export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
-  const [dealRes, stakeholdersRes, contractDocsRes, dealDocsRes, obligationsRes, wiresRes, approvalsRes, conditionsRes, waterfallRes, taxRes, paymentAllocRes, escrowTxRes, auditLogRes, commentsRes, discrepanciesRes, changeEventsRes] = await Promise.all([
+  const [dealRes, stakeholdersRes, contractDocsRes, dealDocsRes, obligationsRes, wiresRes, approvalsRes, conditionsRes, waterfallRes, taxRes, paymentAllocRes, escrowTxRes, auditLogRes, commentsRes, discrepanciesRes, changeEventsRes, requirementsRes] = await Promise.all([
     supabase.from("deals").select("id, status, buyer, seller, target_company, deal_type").eq("id", dealId).maybeSingle(),
     supabase.from("cap_table_entries").select("id, role, verification_status").eq("deal_id", dealId),
     // `is_current` / `version` are read so document checks reflect the version
@@ -253,6 +269,14 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
       .select("id, change_type, severity, blocks_closing, status, title, what_changed, why_it_matters, recommended_action, source_label, object_type, object_id, created_at")
       .eq("deal_id", dealId)
       .eq("status", "open"),
+    // Requirements Engine — signatures, consents, notices and external
+    // deliverables all live here. Outstanding ones feed readiness rather than
+    // becoming a fourth silo with its own progress number.
+    supabase
+      .from("deal_requirements")
+      .select("id, requirement_kind, title, description, status, review_status, blocks_closing, due_date, counterparty_name, counterparty_email, signatory_name, signing_party, source, source_ref, created_at")
+      .eq("deal_id", dealId)
+      .is("deleted_at", null),
   ]);
 
   const deal = dealRes.data as any;
@@ -276,6 +300,7 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
   // than letting readiness fail to load entirely.
   const discrepancies = (discrepanciesRes?.data || []) as any[];
   const changeEvents = (changeEventsRes?.data || []) as any[];
+  const requirements = (requirementsRes?.data || []) as any[];
 
   const stakeholderRoles = stakeholders.map((s) => nRole(s.role));
   const verifiedStakeholders = stakeholders.filter((s) => VERIFIED_STAKEHOLDER_STATUSES.has(nStatus(s.verification_status))).length;
@@ -384,6 +409,54 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     })),
   ];
 
+  // Outstanding requirements — signatures, consents, notices, external
+  // deliverables. A requirement blocks only if someone marked it as blocking
+  // AND it has cleared human review; an unreviewed AI extraction is never
+  // allowed to gate a closing on its own.
+  const OPEN_REQ_STATUSES = new Set(["not_started", "draft_ready", "sent", "viewed", "responded", "under_review", "issue"]);
+  const openRequirements = requirements.filter(
+    (r) => OPEN_REQ_STATUSES.has(String(r.status)) && r.review_status !== "rejected"
+  );
+  const blockingRequirements = openRequirements.filter(
+    (r) => r.blocks_closing === true && r.review_status === "approved"
+  );
+  const requirementsAwaitingReview = requirements.filter((r) => r.review_status === "pending_review");
+
+  blockingIssues.push(
+    ...blockingRequirements.map((r) => {
+      const kindLabel = String(r.requirement_kind || "").replace(/_/g, " ");
+      // Entity names routinely end in a period ("Acme Inc."), so appending
+      // another one produces "Acme Inc..". Trim it before interpolating.
+      const rawWho = r.signatory_name || r.counterparty_name || r.counterparty_email || "the counterparty";
+      const who = String(rawWho).replace(/\.+$/, "");
+      const overdue = r.due_date && new Date(r.due_date) < new Date();
+      return {
+        id: `req:${r.id}`,
+        category: requirementCategory(r.requirement_kind),
+        title: r.title,
+        reason: [
+          r.description,
+          r.status === "issue" ? "The response received did not satisfy the request." :
+          r.status === "under_review" ? "A response arrived but needs human review." :
+          r.status === "not_started" ? `No ${kindLabel} request has been sent yet.` :
+          `Awaiting a response from ${who}.`,
+          overdue ? `Overdue since ${r.due_date}.` : "",
+        ].filter(Boolean).join(" "),
+        source: (r.source_ref as any)?.filename
+          ? `${(r.source_ref as any).filename}${(r.source_ref as any).clause_ref ? ` — ${(r.source_ref as any).clause_ref}` : ""}`
+          : r.source === "ai" ? "AI extraction (reviewed)" : "Manually added",
+        action: r.status === "under_review" ? `Review the document submitted by ${who}.`
+              : r.status === "issue" ? `Resolve the issue with ${who} and request a replacement.`
+              : r.status === "not_started" ? `Send the ${kindLabel} request to ${who}.`
+              : `Follow up with ${who}.`,
+        origin: "requirement" as const,
+        targetSection: requirementCategory(r.requirement_kind) === "approvals" ? "approvals" : "requirements",
+        targetId: r.id,
+        createdAt: r.created_at,
+      };
+    })
+  );
+
   // Unmet hard gates are blockers too — surfaced in the same list so the view
   // has one place to read rather than three.
   const gateBlockers: Array<[boolean, string, ReadinessCategory, string, string, string]> = [
@@ -414,7 +487,8 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     wireInstructionsUploaded && paymentsApproved && approvalsComplete &&
     blockerDiscrepancies.length === 0 &&
     blockingChangeEvents.length === 0 &&
-    invalidatedApprovals === 0;
+    invalidatedApprovals === 0 &&
+    blockingRequirements.length === 0;
 
   const categoryStatus: Record<ReadinessCategory, ReadinessCategoryStatus> = {
     documents: categoryRoll(blockingIssues, "documents", totalUploadedDocuments > 0),
@@ -595,5 +669,8 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     openBlockerDiscrepancies: blockerDiscrepancies.length,
     openBlockingChangeEvents: blockingChangeEvents.length,
     invalidatedApprovals,
+    openRequirements: openRequirements.length,
+    blockingRequirements: blockingRequirements.length,
+    requirementsAwaitingReview: requirementsAwaitingReview.length,
   };
 }

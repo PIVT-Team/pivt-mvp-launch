@@ -1745,6 +1745,282 @@ export type Database = {
           },
         ]
       }
+      deal_requirements: {
+        Row: {
+          ai_ambiguity: string | null
+          ai_confidence: number | null
+          blocks_closing: boolean
+          category: string
+          counterparty_email: string | null
+          counterparty_name: string | null
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          deleted_at: string | null
+          description: string | null
+          due_date: string | null
+          entity_id: string | null
+          evidence_doc_id: string | null
+          id: string
+          internal_owner_id: string | null
+          priority: string
+          requirement_kind: string
+          requirement_type: string | null
+          review_notes: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          satisfied_at: string | null
+          satisfied_by: string | null
+          signatory_capacity: string | null
+          signatory_name: string | null
+          signature_pages: Json
+          signing_party: string | null
+          sort_order: number
+          source: string
+          source_ref: Json
+          status: string
+          title: string
+          trigger_event: string | null
+          updated_at: string
+        }
+        Insert: {
+          ai_ambiguity?: string | null
+          ai_confidence?: number | null
+          blocks_closing?: boolean
+          category?: string
+          counterparty_email?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          entity_id?: string | null
+          evidence_doc_id?: string | null
+          id?: string
+          internal_owner_id?: string | null
+          priority?: string
+          requirement_kind?: string
+          requirement_type?: string | null
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          signatory_capacity?: string | null
+          signatory_name?: string | null
+          signature_pages?: Json
+          signing_party?: string | null
+          sort_order?: number
+          source?: string
+          source_ref?: Json
+          status?: string
+          title?: string
+          trigger_event?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ai_ambiguity?: string | null
+          ai_confidence?: number | null
+          blocks_closing?: boolean
+          category?: string
+          counterparty_email?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          deleted_at?: string | null
+          description?: string | null
+          due_date?: string | null
+          entity_id?: string | null
+          evidence_doc_id?: string | null
+          id?: string
+          internal_owner_id?: string | null
+          priority?: string
+          requirement_kind?: string
+          requirement_type?: string | null
+          review_notes?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          satisfied_at?: string | null
+          satisfied_by?: string | null
+          signatory_capacity?: string | null
+          signatory_name?: string | null
+          signature_pages?: Json
+          signing_party?: string | null
+          sort_order?: number
+          source?: string
+          source_ref?: Json
+          status?: string
+          title?: string
+          trigger_event?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      requirement_evidence: {
+        Row: {
+          created_at: string
+          deal_id: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          document_id: string | null
+          filename: string | null
+          human_decision: string | null
+          id: string
+          request_id: string | null
+          requirement_id: string
+          storage_path: string | null
+          submitted_at: string
+          submitted_by_email: string | null
+          verification_confidence: number | null
+          verification_details: Json
+          verification_issues: Json
+          verification_verdict: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          document_id?: string | null
+          filename?: string | null
+          human_decision?: string | null
+          id?: string
+          request_id?: string | null
+          requirement_id?: string
+          storage_path?: string | null
+          submitted_at?: string
+          submitted_by_email?: string | null
+          verification_confidence?: number | null
+          verification_details?: Json
+          verification_issues?: Json
+          verification_verdict?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          document_id?: string | null
+          filename?: string | null
+          human_decision?: string | null
+          id?: string
+          request_id?: string | null
+          requirement_id?: string
+          storage_path?: string | null
+          submitted_at?: string
+          submitted_by_email?: string | null
+          verification_confidence?: number | null
+          verification_details?: Json
+          verification_issues?: Json
+          verification_verdict?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      requirement_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approved_to_send: boolean
+          auto_remind: boolean
+          cancelled_at: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          escalate_to: string | null
+          escalated_at: string | null
+          expires_at: string | null
+          external_ref: string | null
+          id: string
+          last_error: string | null
+          last_reminder_at: string | null
+          next_reminder_at: string | null
+          opened_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          reminder_cadence_days: number[]
+          reminder_count: number
+          requirement_id: string
+          responded_at: string | null
+          sent_at: string | null
+          status: string
+          token_hash: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_to_send?: boolean
+          auto_remind?: boolean
+          cancelled_at?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          escalate_to?: string | null
+          escalated_at?: string | null
+          expires_at?: string | null
+          external_ref?: string | null
+          id?: string
+          last_error?: string | null
+          last_reminder_at?: string | null
+          next_reminder_at?: string | null
+          opened_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          reminder_cadence_days?: number[]
+          reminder_count?: number
+          requirement_id?: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          token_hash?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_to_send?: boolean
+          auto_remind?: boolean
+          cancelled_at?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          escalate_to?: string | null
+          escalated_at?: string | null
+          expires_at?: string | null
+          external_ref?: string | null
+          id?: string
+          last_error?: string | null
+          last_reminder_at?: string | null
+          next_reminder_at?: string | null
+          opened_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          reminder_cadence_days?: number[]
+          reminder_count?: number
+          requirement_id?: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          token_hash?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       deal_settings: {
         Row: {
           created_at: string
