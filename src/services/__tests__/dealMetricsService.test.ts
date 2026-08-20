@@ -15,6 +15,11 @@ function createChainMock(data: any) {
   const chain: any = {};
   chain.select = vi.fn().mockReturnValue(chain);
   chain.eq = vi.fn().mockReturnValue(chain);
+  // `.in()` is used by the discrepancy / change-event reads that feed closing
+  // readiness; without it those queries throw instead of returning rows.
+  chain.in = vi.fn().mockReturnValue(chain);
+  // `.is()` is used by the requirements read (`.is("deleted_at", null)`).
+  chain.is = vi.fn().mockReturnValue(chain);
   chain.limit = vi.fn().mockReturnValue(chain);
   chain.maybeSingle = vi.fn().mockResolvedValue({ data, error: null });
   chain.then = (resolve: any) => resolve({ data: Array.isArray(data) ? data : [], error: null });
@@ -34,6 +39,9 @@ interface ScenarioData {
   taxForms?: any[];
   paymentAllocations?: any[];
   escrowTransactions?: any[];
+  discrepancies?: any[];
+  changeEvents?: any[];
+  requirements?: any[];
 }
 
 function setupScenario(s: ScenarioData) {
@@ -50,6 +58,9 @@ function setupScenario(s: ScenarioData) {
     tax_forms: s.taxForms || [],
     payment_allocations: s.paymentAllocations || [],
     escrow_transactions: s.escrowTransactions || [],
+    discrepancies: s.discrepancies || [],
+    deal_change_events: s.changeEvents || [],
+    deal_requirements: s.requirements || [],
   };
 
   mockFrom.mockImplementation((table: string) => {

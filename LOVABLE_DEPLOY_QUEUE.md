@@ -13,6 +13,18 @@ The fixes are stable on `dev`. Pasting any of them is safe — each is a self-co
 
 ## Still queued — paste when ready
 
+### ⭐ Test 2 — edge functions (4 files, order-dependent)
+
+See **[LOVABLE_PASTE_TEST2.md](LOVABLE_PASTE_TEST2.md)** for the full guide. Summary:
+paste `_shared/entity-match.ts` and `_shared/funds-flow-diff.ts` (both new) *before*
+`deal-workflow-orchestrator/index.ts`, which imports them.
+`discrepancy-engine/index.ts` is standalone and can go any time.
+
+Both migrations are already applied. Without these four files the DB has the
+versioning columns and triggers but nothing writes `deal_change_events`, so the
+"what changed between funds flow versions" pipeline stays dark.
+
+
 ### Auth-bearer pattern (5 files)
 
 Same root pattern as `newtonActionService.ts`. Five client files were sending the anon key as the Bearer token; the rewrite makes them send the user's session JWT (with anon as fallback). Each is one file, ~5-10 line change, self-contained.

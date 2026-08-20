@@ -34,13 +34,55 @@ type RuleContext = {
 };
 
 // ── Helper: get extracted field from contract docs ──
+//
+// Version-aware (gap G3). Documents are versioned per (deal_id, doc_type) with
+// exactly one `is_current` row. Before versioning existed this was a plain
+// `docs.find(...)` — first row wins — which made the engine read funds flow v10
+// as authoritative while v12 was on file, and raise a blocker off a superseded
+// SPA. Rows predating the migration have `is_current === undefined`, which we
+// treat as current so this degrades safely rather than reading nothing.
+function isCurrentDoc(d: any): boolean {
+  return d?.is_current !== false;
+}
+
+function pickCurrent(docs: any[], docType: string): any | null {
+  const matches = docs.filter(
+    (d) => String(d.doc_type || "").toUpperCase() === docType.toUpperCase()
+  );
+  if (matches.length === 0) return null;
+  const current = matches.filter(isCurrentDoc);
+  const pool = current.length > 0 ? current : matches;
+  // highest version wins; unversioned rows sort as v1
+  return pool.reduce((best, d) =>
+    Number(d.version || 1) > Number(best.version || 1) ? d : best
+  , pool[0]);
+}
+
 function getExtractedField(docs: any[], docType: string, fieldName: string): any {
-  const doc = docs.find((d) => d.doc_type === docType && d.extracted_fields);
+  const doc = pickCurrent(docs, docType);
   return doc?.extracted_fields?.[fieldName] ?? null;
 }
 
 function getExtractedDoc(docs: any[], docType: string): any | null {
-  return docs.find((d) => d.doc_type === docType) || null;
+  return pickCurrent(docs, docType);
+}
+
+// Human-readable provenance for a finding (gap G11). Every message that quotes
+// an extracted number should say which document it came from.
+//
+// The filename leads because PIVT's internal version counter and the customer's
+// own file naming rarely agree — the third funds flow uploaded to a deal is
+// internally v3 but may well be called "Funds_Flow_v12_FINAL.xlsx". Leading with
+// the internal number reads as a contradiction to anyone looking at the file.
+function sourceLabel(docs: any[], docType: string, fallback = "deal record"): string {
+  const doc = pickCurrent(docs, docType);
+  if (!doc) return fallback;
+  const pretty = docType.replace(/_/g, " ").toLowerCase()
+    .replace(/\b\w/g, (c: string) => c.toUpperCase());
+  if (!doc.filename) return doc.version ? `${pretty} (revision ${doc.version})` : pretty;
+  return doc.version && doc.version > 1
+    ? `${doc.filename} (${pretty}, revision ${doc.version})`
+    : `${doc.filename} (${pretty})`;
 }
 
 function hasDocType(docs: any[], docType: string): boolean {
@@ -104,11 +146,20 @@ function evalPurchasePriceConsistency(rule: any, ctx: RuleContext): Discrepancy[
     const spaPrice = Number(spaPurchasePrice);
     const tolerance = ((rule.config as any)?.tolerance_pct || 0.5) / 100;
     if (Math.abs(spaPrice - dealValue) / dealValue > tolerance) {
+      const src = sourceLabel(allDocs, "SPA");
       results.push({
         deal_id: ctx.dealId, object_type: "deal", object_id: ctx.dealId,
         rule_key: rule.rule_key, severity: "blocker",
-        message: `Purchase price mismatch: SPA states $${spaPrice.toLocaleString()} but deal value is $${dealValue.toLocaleString()}.`,
-        details: { spa_price: spaPrice, deal_value: dealValue, variance_pct: ((spaPrice - dealValue) / dealValue * 100).toFixed(2) },
+        message: `Purchase price mismatch: ${src} states $${spaPrice.toLocaleString()} but the deal record says $${dealValue.toLocaleString()}.`,
+        details: {
+          spa_price: spaPrice,
+          deal_value: dealValue,
+          variance_pct: ((spaPrice - dealValue) / dealValue * 100).toFixed(2),
+          source: src,
+          why_it_matters: "The purchase price drives every downstream allocation. Closing on a disputed figure risks a post-closing adjustment claim.",
+          recommended_action: `Confirm which figure is operative and correct the other. If ${src} is the executed version, update the deal value to $${spaPrice.toLocaleString()}.`,
+          blocks_closing: true,
+        },
       });
     }
   }
@@ -120,11 +171,23 @@ function evalPurchasePriceConsistency(rule: any, ctx: RuleContext): Discrepancy[
     const totalUses = Number(ffTotalUses);
     const tolerance = ((rule.config as any)?.tolerance_pct || 0.5) / 100;
     if (Math.abs(totalUses - dealValue) / dealValue > tolerance) {
+      const src = sourceLabel(allDocs, "FUNDS_FLOW");
+      const delta = totalUses - dealValue;
       results.push({
         deal_id: ctx.dealId, object_type: "deal", object_id: ctx.dealId,
         rule_key: rule.rule_key, severity: "blocker",
-        message: `Funds flow total uses ($${totalUses.toLocaleString()}) doesn't match deal value ($${dealValue.toLocaleString()}).`,
-        details: { ff_total_uses: totalUses, deal_value: dealValue },
+        message: `${src} disburses $${totalUses.toLocaleString()} against a deal value of $${dealValue.toLocaleString()} — ${delta > 0 ? "an overage" : "a shortfall"} of $${Math.abs(delta).toLocaleString()}.`,
+        details: {
+          ff_total_uses: totalUses,
+          deal_value: dealValue,
+          variance: delta,
+          source: src,
+          why_it_matters: delta > 0
+            ? "The funds flow moves more money than the deal authorises. Executing it overpays."
+            : "The funds flow moves less than the deal value, so a recipient or line item is likely missing.",
+          recommended_action: `Reconcile ${src} against the purchase price before funding.`,
+          blocks_closing: true,
+        },
       });
     }
   }
@@ -166,6 +229,31 @@ function evalEscrowAmountConsistency(rule: any, ctx: RuleContext): Discrepancy[]
         rule_key: rule.rule_key, severity: "blocker",
         message: `Escrow mismatch: Funds flow escrow line ($${ffAmount.toLocaleString()}) vs deal escrow ($${dealEscrow.toLocaleString()}).`,
         details: { ff_escrow: ffAmount, deal_escrow: dealEscrow },
+      });
+    }
+  }
+
+  // Check the SPA's escrow figure.
+  //
+  // This comparison did not exist: escrow was only ever cross-checked against
+  // the escrow agreement and the funds flow, so an SPA that had been extracted
+  // with the wrong escrow amount passed silently (gap G17 / seeded problem P9).
+  const spaEscrow = getExtractedField(allDocs, "SPA", "escrow_amount") ??
+                    getExtractedField(allDocs, "spa", "escrow_amount");
+  if (spaEscrow != null) {
+    const spaAmount = Number(spaEscrow);
+    if (Math.abs(spaAmount - dealEscrow) / dealEscrow > tolerance) {
+      const src = sourceLabel(allDocs, "SPA");
+      results.push({
+        deal_id: ctx.dealId, object_type: "deal", object_id: ctx.dealId,
+        rule_key: rule.rule_key, severity: "blocker",
+        message: `Escrow amount mismatch: ${src} states $${spaAmount.toLocaleString()} but the deal record holds back $${dealEscrow.toLocaleString()}.`,
+        details: {
+          spa_escrow: spaAmount, deal_escrow: dealEscrow, source: src,
+          why_it_matters: "The escrow holdback is the seller's indemnity cap in practice. Funding the wrong amount either over-restricts seller proceeds or leaves the buyer under-secured.",
+          recommended_action: `Confirm the operative escrow figure against ${src} and correct whichever record is wrong.`,
+          blocks_closing: true,
+        },
       });
     }
   }
@@ -216,6 +304,47 @@ function evalFundsFlowArithmetic(rule: any, ctx: RuleContext): Discrepancy[] {
         details: { line_items_sum: sumItems, total_uses: totalUses, line_count: lineItems.length },
       });
     }
+  }
+
+  return results;
+}
+
+/**
+ * Low-confidence extraction (gap G16 / seeded problem P9).
+ *
+ * Every downstream number — purchase price, escrow, the whole payment set —
+ * comes from an AI extraction pass that records how sure it was. Nothing read
+ * that score: a funds flow classified at 42% confidence had its values written
+ * straight into wire instructions with no flag. Confidence is surfaced here so
+ * a human reviews the extraction before its numbers gate a closing.
+ */
+function evalLowExtractionConfidence(rule: any, ctx: RuleContext): Discrepancy[] {
+  const threshold = Number((rule.config as any)?.min_confidence ?? 0.7);
+  const results: Discrepancy[] = [];
+
+  // Only the version in force matters; superseded versions are history.
+  const current = ctx.contractDocs.filter(isCurrentDoc);
+
+  for (const doc of current) {
+    const confidence = doc.extraction_confidence ?? doc.doc_type_confidence;
+    if (confidence == null) continue;
+    const score = Number(confidence);
+    if (score >= threshold) continue;
+
+    const ver = doc.version ? ` v${doc.version}` : "";
+    const label = String(doc.doc_type || "document").replace(/_/g, " ").toLowerCase();
+    results.push({
+      deal_id: ctx.dealId, object_type: "document", object_id: doc.id,
+      rule_key: rule.rule_key, severity: rule.severity || "warn",
+      message: `Low extraction confidence (${Math.round(score * 100)}%) on ${doc.filename || label}${ver}. Its extracted values are being used without review.`,
+      details: {
+        document_id: doc.id, filename: doc.filename, confidence: score, threshold,
+        source: `${doc.filename || label}${ver}`,
+        why_it_matters: "Values below the confidence threshold routinely contain OCR and column-mapping errors. These figures currently feed the purchase price, escrow, and payment checks as if they were verified.",
+        recommended_action: `Open ${doc.filename || label}${ver} and confirm the extracted fields against the source document before relying on them.`,
+        blocks_closing: false,
+      },
+    });
   }
 
   return results;
@@ -464,14 +593,45 @@ function evalCapTableTotalValidation(rule: any, ctx: RuleContext): Discrepancy[]
       details: { total_pct: totalPct },
     });
   }
-  const totalPayout = ctx.capTable.reduce((s, e) => s + Number(e.payout_amount), 0);
+  // Cap-table payouts vs the EQUITY consideration, not the headline deal value.
+  //
+  // This used to compare the sum of shareholder payouts directly against
+  // deal_value, which permanently false-positives on any deal with a debt
+  // payoff, advisory fees, or an escrow funding line — the money that leaves
+  // the buyer but never reaches a shareholder. On the stress-test deal it fired
+  // on a $10.5M gap that was entirely legitimate uses (gap G18).
+  const totalPayout = ctx.capTable.reduce((s, e) => s + Number(e.payout_amount || 0), 0);
   const dealValue = Number(ctx.deal.deal_value);
-  if (dealValue > 0 && Math.abs(totalPayout - dealValue) / dealValue > 0.005) {
+
+  const nonEquityUses = ctx.intents
+    .filter((i: any) => /debt|payoff|fee|advisory|escrow|expense|tax/i.test(String(i.payment_type || "")))
+    .reduce((s: number, i: any) => s + Number(i.amount_original || 0), 0);
+
+  const escrowHoldback = ctx.capTable.reduce((s, e) => s + Number(e.escrow_holdback || 0), 0);
+  const dealEscrow = Number(ctx.deal.escrow_amount || 0);
+
+  // What should actually reach shareholders.
+  const expectedEquity = dealValue - nonEquityUses - Math.max(dealEscrow, escrowHoldback);
+
+  if (dealValue > 0 && expectedEquity > 0 &&
+      Math.abs(totalPayout - expectedEquity) / expectedEquity > 0.005) {
+    const delta = totalPayout - expectedEquity;
     results.push({
       deal_id: ctx.dealId, object_type: "deal", object_id: ctx.dealId,
       rule_key: rule.rule_key, severity: rule.severity,
-      message: `Cap table payouts ($${totalPayout.toLocaleString()}) don't match deal value ($${dealValue.toLocaleString()}).`,
-      details: { total_payout: totalPayout, deal_value: dealValue },
+      message: `Cap table payouts ($${totalPayout.toLocaleString()}) don't reconcile to the equity consideration ($${expectedEquity.toLocaleString()}) — a ${delta > 0 ? "surplus" : "shortfall"} of $${Math.abs(delta).toLocaleString()}.`,
+      details: {
+        total_payout: totalPayout,
+        deal_value: dealValue,
+        expected_equity: expectedEquity,
+        non_equity_uses: nonEquityUses,
+        escrow_withheld: Math.max(dealEscrow, escrowHoldback),
+        variance: delta,
+        source: "Cap table vs deal record",
+        why_it_matters: "After debt payoff, fees, and escrow are set aside, what remains is what shareholders are owed. A gap here means someone is being paid the wrong amount.",
+        recommended_action: "Reconcile the cap table against the equity consideration, net of debt payoff, fees, and escrow.",
+        blocks_closing: true,
+      },
     });
   }
   return results;
@@ -508,12 +668,19 @@ const RULE_EVALUATORS: Record<string, (rule: any, ctx: RuleContext) => Discrepan
   escrow_amount_consistency: evalEscrowAmountConsistency,
   funds_flow_arithmetic: evalFundsFlowArithmetic,
   party_name_alignment: evalPartyNameAlignment,
+  low_extraction_confidence: evalLowExtractionConfidence,
   missing_officer_secretary_cert: evalDocTypeWarning("OFFICER_CERTIFICATE", "Officer Certificate", "missing_officer_secretary_cert"),
   // Payment execution
   intent_funds_flow_mismatch: evalIntentFundsFlowMismatch,
   wire_instructions_missing: evalPayeeAccountMissing,
   dual_counsel_approval: evalDualCounselMissing,
-  dual_counsel_missing: evalDualCounselMissing,
+  // NOTE: `dual_counsel_missing`, `payee_account_missing_or_mismatch`, and
+  // `waterfall_intent_total_mismatch` used to be registered here as aliases of
+  // the three evaluators above. Because the engine loops over rules and calls
+  // whatever evaluator matches, each alias raised a second, identical
+  // discrepancy — 3 of the 22 findings on the stress-test deal were literal
+  // duplicates of another row (gap G12). The aliases are disabled in the
+  // discrepancy_rules table and deliberately absent from this map.
   // Compliance
   kyc_passed: noOp, // evaluated via conditions
   kyb_passed: noOp,
@@ -531,9 +698,7 @@ const RULE_EVALUATORS: Record<string, (rule: any, ctx: RuleContext) => Discrepan
   waterfall_reconciliation: evalWaterfallIntentMismatch,
   // Operational
   docs_not_executed: evalDocsNotExecuted,
-  payee_account_missing_or_mismatch: evalPayeeAccountMissing,
   fx_rate_outside_tolerance: evalFxRateOutsideTolerance,
-  waterfall_intent_total_mismatch: evalWaterfallIntentMismatch,
   large_payment_extra_approval: evalLargePaymentApproval,
   stale_deal_data: evalStaleDealData,
   party_presence: evalPartyPresence,
