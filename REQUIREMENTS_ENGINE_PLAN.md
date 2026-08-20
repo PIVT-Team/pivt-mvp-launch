@@ -183,12 +183,9 @@ riskiest part of all three features.
    exist, but `send-verification` still has an `EMAIL_MODE=MOCK` path. Automated
    external chasing means real mail to real counterparties — confirm the
    provider and the from-domain before Phase A ships.
-2. **`tx_*` schema on `main`.** `main` carries `tx_obligations`,
-   `tx_conditions_precedent`, `tx_documents`, `tx_approvals`,
-   `tx_readiness_dimensions` — a parallel kernel that dev has never seen. If
-   that is the intended direction, `deal_requirements` should be built there
-   instead and this plan needs re-basing. **This is the single biggest open
-   question and it blocks Phase A.**
+2. ~~**`tx_*` schema on `main`.**~~ **RESOLVED — see §6. Not a blocker. Build on
+   the M&A side, borrowing the `tx_*` column vocabulary.**
+
 3. **Signature page extraction fidelity.** Grouping signature pages by signatory
    requires page-level PDF positions. Confirm whether v1 assembles real extracted
    pages or generates fresh signature pages from a template — materially
@@ -196,3 +193,104 @@ riskiest part of all three features.
 4. **Scope of "external stakeholder".** `counterparty_invitations` +
    `counterparty_profiles` create real accounts. Feature 3 explicitly wants *no
    account*. Confirm these stay separate paths.
+
+---
+
+## 6. Resolved: what `tx_*` and `re_*` actually are
+
+Investigated 2026-08-20. **This does not block Phase A.**
+
+### The finding
+
+`tx_*` / `re_*` is a **second product** — real-estate closings — deliberately
+sharing the PIVT M&A Supabase project.
+
+`re_transactions` is unambiguously property: `apn` (assessor's parcel number),
+`property_address_line1/city/county/state/zip`, `earnest_money`, `contract_price`,
+`is_non_financed`, `is_entity_buyer`, `fincen_reportable`. That last set is the
+FinCEN all-cash-entity-purchase reporting rule, not M&A.
+
+From the kernel migration's own header:
+
+> tables here are intentionally generic — they're prefixed `tx_*` so the same
+> schema can serve PIVT M&A in a later shared-engine extraction. Property-specific
+> extensions stay `re_*`.
+
+So convergence is the stated intent — **later**, via an explicit extraction.
+
+### Why sharing the database was deliberate
+
+`research/real-property/BUILD_PLAN.md` on the `research/real-property-pivot`
+branch, strategy update dated 2026-06-08:
+
+> User chose to share PIVT M&A's Supabase project rather than provision a new one,
+> accelerating Phase 0 by ~30 min. Real-estate tables are namespaced `re_*` and
+> workspaces are tagged via a new `organizations.product_kind` column so the two
+> products don't accidentally surface each other's data.
+
+`organizations.product_kind` **exists on `main`**, so that tenancy separation is
+real and implemented, not aspirational.
+
+⚠️ **The "Locked decisions" table in that same file still says "new Supabase
+project" (D2/D3).** The strategy update above it supersedes that row. Worth
+correcting the table — anyone reading it cold gets the wrong answer.
+
+### Why we cannot build on `tx_*`
+
+Every single `tx_*` table is anchored to property:
+
+```
+tx_documents            transaction_id UUID NOT NULL REFERENCES re_transactions(id)
+tx_obligations          transaction_id UUID NOT NULL REFERENCES re_transactions(id)
+tx_funds_flow_lines     transaction_id UUID NOT NULL REFERENCES re_transactions(id)
+tx_conditions_precedent transaction_id UUID NOT NULL REFERENCES re_transactions(id)
+tx_readiness_dimensions transaction_id UUID NOT NULL REFERENCES re_transactions(id)
+tx_approvals            transaction_id UUID NOT NULL REFERENCES re_transactions(id)
+```
+
+An M&A deal is a `deals` row. Storing an M&A signature requirement in
+`tx_approvals` would mean fabricating an `re_transactions` row — inventing a
+property address and parcel number for a corporate acquisition.
+
+Also: **no PIVT M&A code references `tx_*` or `re_*` at all.** The only file on
+`main` that mentions them is the generated `src/integrations/supabase/types.ts`.
+The real-estate product code lives in a sibling repo (Phase 0 complete). In this
+repo the kernel is schema-only scaffolding.
+
+### How we move forward
+
+**Build `deal_requirements` on the M&A side — and adopt the `tx_*` column
+vocabulary wherever it fits**, so the eventual shared-engine extraction is a
+mechanical merge rather than a rewrite.
+
+`tx_conditions_precedent` is already close to a generic requirement:
+
+| `tx_conditions_precedent` | Adopt for `deal_requirements`? |
+|---|---|
+| `title`, `description`, `category` | ✅ same names |
+| `status` = outstanding / satisfied / waived | ✅ same verbs |
+| `satisfied_at`, `satisfied_by` | ✅ same |
+| `evidence_doc_id` | ✅ same concept, points at our documents |
+| `source` = manual / newton / derived | ✅ same |
+| `source_ref JSONB` | ✅ — this is where clause traceability lives |
+| `sort_order`, `deleted_at` | ✅ same |
+
+What we add on top, which `tx_*` has no equivalent for: `requirement_kind`
+(signature / consent / notice / external_document), external-stakeholder and
+request/reminder state, and the AI verification verdict. All additive — so a
+future merge means `tx_*` **gains** our columns rather than us rewriting.
+
+This is not speculative reuse. Property closings are full of exactly these three
+problems: title and lien releases, estoppel certificates, payoff letters,
+insurance certificates, landlord consents. The Requirements Engine is very likely
+the first thing worth extracting into the shared engine.
+
+### Operational risk worth naming
+
+Two repos now write migrations into one Supabase project with **no shared
+migration history and no coordination mechanism**. Our `20260521010000` and their
+`20260622000000` happen not to collide, but nothing prevents the next pair from
+doing so, and neither repo's migration folder is a true record of the database.
+
+Cheapest mitigation: agree a prefix convention (`re_*`/`tx_*` theirs, everything
+else ours) and keep one canonical migration log. Worth 10 minutes now.
