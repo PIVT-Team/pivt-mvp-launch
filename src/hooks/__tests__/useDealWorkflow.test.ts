@@ -59,7 +59,7 @@ function makeMetrics(overrides: Partial<DealMetrics> = {}): DealMetrics {
     nextRequiredAction: 'Add stakeholders',
     reconciliationIssues: [],
     ...overrides,
-  };
+  } as DealMetrics;
 }
 
 describe('computeWorkflowState — deterministic pipeline', () => {
