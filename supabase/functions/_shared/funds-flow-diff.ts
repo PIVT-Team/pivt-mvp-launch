@@ -17,6 +17,7 @@ import { normalizePayee, accountFingerprint, toCents } from "./entity-match.ts";
 
 export interface PaymentRow {
   id?: string;
+  payer_entity?: string | null;
   payee_entity: string;
   amount: number | string;
   currency?: string | null;
