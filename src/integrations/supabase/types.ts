@@ -1006,18 +1006,18 @@ export type Database = {
           extracted_fields: Json | null
           extraction_confidence: number | null
           file_url: string | null
-          is_current: boolean
-          supersedes_id: string | null
-          version: number
           filename: string
           id: string
+          is_current: boolean
           is_required: boolean | null
           requirement_group: string | null
           status: Database["public"]["Enums"]["contract_doc_status"]
+          supersedes_id: string | null
           text_content: string | null
           updated_at: string
           uploaded_at: string
           uploaded_by: string | null
+          version: number
         }
         Insert: {
           created_at?: string
@@ -1027,18 +1027,18 @@ export type Database = {
           extracted_fields?: Json | null
           extraction_confidence?: number | null
           file_url?: string | null
-          is_current?: boolean
-          supersedes_id?: string | null
-          version?: number
           filename: string
           id?: string
+          is_current?: boolean
           is_required?: boolean | null
           requirement_group?: string | null
           status?: Database["public"]["Enums"]["contract_doc_status"]
+          supersedes_id?: string | null
           text_content?: string | null
           updated_at?: string
           uploaded_at?: string
           uploaded_by?: string | null
+          version?: number
         }
         Update: {
           created_at?: string
@@ -1048,18 +1048,18 @@ export type Database = {
           extracted_fields?: Json | null
           extraction_confidence?: number | null
           file_url?: string | null
-          is_current?: boolean
-          supersedes_id?: string | null
-          version?: number
           filename?: string
           id?: string
+          is_current?: boolean
           is_required?: boolean | null
           requirement_group?: string | null
           status?: Database["public"]["Enums"]["contract_doc_status"]
+          supersedes_id?: string | null
           text_content?: string | null
           updated_at?: string
           uploaded_at?: string
           uploaded_by?: string | null
+          version?: number
         }
         Relationships: [
           {
@@ -1067,6 +1067,13 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contract_documents_supersedes_id_fkey"
+            columns: ["supersedes_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
             referencedColumns: ["id"]
           },
         ]
@@ -1224,12 +1231,9 @@ export type Database = {
           ai_generated: boolean
           approval_side: string
           approval_type: string | null
-          approver_email: string | null
           approved_doc_version: number | null
           approved_snapshot_hash: string | null
-          invalidated_at: string | null
-          invalidated_by_document_id: string | null
-          invalidated_reason: string | null
+          approver_email: string | null
           approver_name: string | null
           approver_role: string | null
           blocker_reason: string | null
@@ -1242,6 +1246,9 @@ export type Database = {
           envelope_id: string | null
           expired_at: string | null
           id: string
+          invalidated_at: string | null
+          invalidated_by_document_id: string | null
+          invalidated_reason: string | null
           last_reminder_at: string | null
           linked_checklist_item_id: string | null
           linked_condition_id: string | null
@@ -1264,12 +1271,9 @@ export type Database = {
           ai_generated?: boolean
           approval_side: string
           approval_type?: string | null
-          approver_email?: string | null
           approved_doc_version?: number | null
           approved_snapshot_hash?: string | null
-          invalidated_at?: string | null
-          invalidated_by_document_id?: string | null
-          invalidated_reason?: string | null
+          approver_email?: string | null
           approver_name?: string | null
           approver_role?: string | null
           blocker_reason?: string | null
@@ -1282,6 +1286,9 @@ export type Database = {
           envelope_id?: string | null
           expired_at?: string | null
           id?: string
+          invalidated_at?: string | null
+          invalidated_by_document_id?: string | null
+          invalidated_reason?: string | null
           last_reminder_at?: string | null
           linked_checklist_item_id?: string | null
           linked_condition_id?: string | null
@@ -1304,12 +1311,9 @@ export type Database = {
           ai_generated?: boolean
           approval_side?: string
           approval_type?: string | null
-          approver_email?: string | null
           approved_doc_version?: number | null
           approved_snapshot_hash?: string | null
-          invalidated_at?: string | null
-          invalidated_by_document_id?: string | null
-          invalidated_reason?: string | null
+          approver_email?: string | null
           approver_name?: string | null
           approver_role?: string | null
           blocker_reason?: string | null
@@ -1322,6 +1326,9 @@ export type Database = {
           envelope_id?: string | null
           expired_at?: string | null
           id?: string
+          invalidated_at?: string | null
+          invalidated_by_document_id?: string | null
+          invalidated_reason?: string | null
           last_reminder_at?: string | null
           linked_checklist_item_id?: string | null
           linked_condition_id?: string | null
@@ -1345,6 +1352,13 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_approvals_invalidated_by_document_id_fkey"
+            columns: ["invalidated_by_document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
             referencedColumns: ["id"]
           },
           {
@@ -1437,52 +1451,22 @@ export type Database = {
           what_changed?: string
           why_it_matters?: string | null
         }
-        Relationships: []
-      }
-      wire_instruction_history: {
-        Row: {
-          banking_changed: boolean
-          changed_by: string | null
-          changed_by_source: string
-          changed_fields: string[]
-          created_at: string
-          deal_id: string
-          id: string
-          new_values: Json
-          previous_values: Json
-          previous_verification_status: string | null
-          source_document_id: string | null
-          wire_instruction_id: string
-        }
-        Insert: {
-          banking_changed?: boolean
-          changed_by?: string | null
-          changed_by_source?: string
-          changed_fields?: string[]
-          created_at?: string
-          deal_id: string
-          id?: string
-          new_values?: Json
-          previous_values?: Json
-          previous_verification_status?: string | null
-          source_document_id?: string | null
-          wire_instruction_id: string
-        }
-        Update: {
-          banking_changed?: boolean
-          changed_by?: string | null
-          changed_by_source?: string
-          changed_fields?: string[]
-          created_at?: string
-          deal_id?: string
-          id?: string
-          new_values?: Json
-          previous_values?: Json
-          previous_verification_status?: string | null
-          source_document_id?: string | null
-          wire_instruction_id?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "deal_change_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_change_events_source_document_id_fkey"
+            columns: ["source_document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deal_comments: {
         Row: {
@@ -1793,7 +1777,7 @@ export type Database = {
           counterparty_name?: string | null
           created_at?: string
           created_by?: string | null
-          deal_id?: string
+          deal_id: string
           deleted_at?: string | null
           description?: string | null
           due_date?: string | null
@@ -1802,7 +1786,7 @@ export type Database = {
           id?: string
           internal_owner_id?: string | null
           priority?: string
-          requirement_kind?: string
+          requirement_kind: string
           requirement_type?: string | null
           review_notes?: string | null
           review_status?: string
@@ -1818,7 +1802,7 @@ export type Database = {
           source?: string
           source_ref?: Json
           status?: string
-          title?: string
+          title: string
           trigger_event?: string | null
           updated_at?: string
         }
@@ -1860,166 +1844,43 @@ export type Database = {
           trigger_event?: string | null
           updated_at?: string
         }
-        Relationships: []
-      }
-      requirement_evidence: {
-        Row: {
-          created_at: string
-          deal_id: string
-          decided_at: string | null
-          decided_by: string | null
-          decision_notes: string | null
-          document_id: string | null
-          filename: string | null
-          human_decision: string | null
-          id: string
-          request_id: string | null
-          requirement_id: string
-          storage_path: string | null
-          submitted_at: string
-          submitted_by_email: string | null
-          verification_confidence: number | null
-          verification_details: Json
-          verification_issues: Json
-          verification_verdict: string
-          verified_at: string | null
-        }
-        Insert: {
-          created_at?: string
-          deal_id?: string
-          decided_at?: string | null
-          decided_by?: string | null
-          decision_notes?: string | null
-          document_id?: string | null
-          filename?: string | null
-          human_decision?: string | null
-          id?: string
-          request_id?: string | null
-          requirement_id?: string
-          storage_path?: string | null
-          submitted_at?: string
-          submitted_by_email?: string | null
-          verification_confidence?: number | null
-          verification_details?: Json
-          verification_issues?: Json
-          verification_verdict?: string
-          verified_at?: string | null
-        }
-        Update: {
-          created_at?: string
-          deal_id?: string
-          decided_at?: string | null
-          decided_by?: string | null
-          decision_notes?: string | null
-          document_id?: string | null
-          filename?: string | null
-          human_decision?: string | null
-          id?: string
-          request_id?: string | null
-          requirement_id?: string
-          storage_path?: string | null
-          submitted_at?: string
-          submitted_by_email?: string | null
-          verification_confidence?: number | null
-          verification_details?: Json
-          verification_issues?: Json
-          verification_verdict?: string
-          verified_at?: string | null
-        }
-        Relationships: []
-      }
-      requirement_requests: {
-        Row: {
-          approved_at: string | null
-          approved_by: string | null
-          approved_to_send: boolean
-          auto_remind: boolean
-          cancelled_at: string | null
-          channel: string
-          created_at: string
-          created_by: string | null
-          deal_id: string
-          escalate_to: string | null
-          escalated_at: string | null
-          expires_at: string | null
-          external_ref: string | null
-          id: string
-          last_error: string | null
-          last_reminder_at: string | null
-          next_reminder_at: string | null
-          opened_at: string | null
-          recipient_email: string
-          recipient_name: string | null
-          reminder_cadence_days: number[]
-          reminder_count: number
-          requirement_id: string
-          responded_at: string | null
-          sent_at: string | null
-          status: string
-          token_hash: string | null
-          updated_at: string
-        }
-        Insert: {
-          approved_at?: string | null
-          approved_by?: string | null
-          approved_to_send?: boolean
-          auto_remind?: boolean
-          cancelled_at?: string | null
-          channel?: string
-          created_at?: string
-          created_by?: string | null
-          deal_id?: string
-          escalate_to?: string | null
-          escalated_at?: string | null
-          expires_at?: string | null
-          external_ref?: string | null
-          id?: string
-          last_error?: string | null
-          last_reminder_at?: string | null
-          next_reminder_at?: string | null
-          opened_at?: string | null
-          recipient_email?: string
-          recipient_name?: string | null
-          reminder_cadence_days?: number[]
-          reminder_count?: number
-          requirement_id?: string
-          responded_at?: string | null
-          sent_at?: string | null
-          status?: string
-          token_hash?: string | null
-          updated_at?: string
-        }
-        Update: {
-          approved_at?: string | null
-          approved_by?: string | null
-          approved_to_send?: boolean
-          auto_remind?: boolean
-          cancelled_at?: string | null
-          channel?: string
-          created_at?: string
-          created_by?: string | null
-          deal_id?: string
-          escalate_to?: string | null
-          escalated_at?: string | null
-          expires_at?: string | null
-          external_ref?: string | null
-          id?: string
-          last_error?: string | null
-          last_reminder_at?: string | null
-          next_reminder_at?: string | null
-          opened_at?: string | null
-          recipient_email?: string
-          recipient_name?: string | null
-          reminder_cadence_days?: number[]
-          reminder_count?: number
-          requirement_id?: string
-          responded_at?: string | null
-          sent_at?: string | null
-          status?: string
-          token_hash?: string | null
-          updated_at?: string
-        }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "deal_requirements_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_requirements_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_from_id"]
+          },
+          {
+            foreignKeyName: "deal_requirements_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "deal_entity_graph"
+            referencedColumns: ["entity_to_id"]
+          },
+          {
+            foreignKeyName: "deal_requirements_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_requirements_evidence_doc_id_fkey"
+            columns: ["evidence_doc_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deal_settings: {
         Row: {
@@ -4642,6 +4503,209 @@ export type Database = {
         }
         Relationships: []
       }
+      requirement_evidence: {
+        Row: {
+          created_at: string
+          deal_id: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          document_id: string | null
+          filename: string | null
+          human_decision: string | null
+          id: string
+          request_id: string | null
+          requirement_id: string
+          storage_path: string | null
+          submitted_at: string
+          submitted_by_email: string | null
+          verification_confidence: number | null
+          verification_details: Json
+          verification_issues: Json
+          verification_verdict: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          document_id?: string | null
+          filename?: string | null
+          human_decision?: string | null
+          id?: string
+          request_id?: string | null
+          requirement_id: string
+          storage_path?: string | null
+          submitted_at?: string
+          submitted_by_email?: string | null
+          verification_confidence?: number | null
+          verification_details?: Json
+          verification_issues?: Json
+          verification_verdict?: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          document_id?: string | null
+          filename?: string | null
+          human_decision?: string | null
+          id?: string
+          request_id?: string | null
+          requirement_id?: string
+          storage_path?: string | null
+          submitted_at?: string
+          submitted_by_email?: string | null
+          verification_confidence?: number | null
+          verification_details?: Json
+          verification_issues?: Json
+          verification_verdict?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requirement_evidence_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requirement_evidence_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "contract_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requirement_evidence_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requirement_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requirement_evidence_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "deal_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      requirement_requests: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          approved_to_send: boolean
+          auto_remind: boolean
+          cancelled_at: string | null
+          channel: string
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          escalate_to: string | null
+          escalated_at: string | null
+          expires_at: string | null
+          external_ref: string | null
+          id: string
+          last_error: string | null
+          last_reminder_at: string | null
+          next_reminder_at: string | null
+          opened_at: string | null
+          recipient_email: string
+          recipient_name: string | null
+          reminder_cadence_days: number[]
+          reminder_count: number
+          requirement_id: string
+          responded_at: string | null
+          sent_at: string | null
+          status: string
+          token_hash: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_to_send?: boolean
+          auto_remind?: boolean
+          cancelled_at?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          escalate_to?: string | null
+          escalated_at?: string | null
+          expires_at?: string | null
+          external_ref?: string | null
+          id?: string
+          last_error?: string | null
+          last_reminder_at?: string | null
+          next_reminder_at?: string | null
+          opened_at?: string | null
+          recipient_email: string
+          recipient_name?: string | null
+          reminder_cadence_days?: number[]
+          reminder_count?: number
+          requirement_id: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          token_hash?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_to_send?: boolean
+          auto_remind?: boolean
+          cancelled_at?: string | null
+          channel?: string
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          escalate_to?: string | null
+          escalated_at?: string | null
+          expires_at?: string | null
+          external_ref?: string | null
+          id?: string
+          last_error?: string | null
+          last_reminder_at?: string | null
+          next_reminder_at?: string | null
+          opened_at?: string | null
+          recipient_email?: string
+          recipient_name?: string | null
+          reminder_cadence_days?: number[]
+          reminder_count?: number
+          requirement_id?: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          token_hash?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requirement_requests_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requirement_requests_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "deal_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       saved_bank_instructions: {
         Row: {
           account_number_encrypted: string
@@ -5840,6 +5904,66 @@ export type Database = {
           },
         ]
       }
+      wire_instruction_history: {
+        Row: {
+          banking_changed: boolean
+          changed_by: string | null
+          changed_by_source: string
+          changed_fields: string[]
+          created_at: string
+          deal_id: string
+          id: string
+          new_values: Json
+          previous_values: Json
+          previous_verification_status: string | null
+          source_document_id: string | null
+          wire_instruction_id: string
+        }
+        Insert: {
+          banking_changed?: boolean
+          changed_by?: string | null
+          changed_by_source?: string
+          changed_fields?: string[]
+          created_at?: string
+          deal_id: string
+          id?: string
+          new_values?: Json
+          previous_values?: Json
+          previous_verification_status?: string | null
+          source_document_id?: string | null
+          wire_instruction_id: string
+        }
+        Update: {
+          banking_changed?: boolean
+          changed_by?: string | null
+          changed_by_source?: string
+          changed_fields?: string[]
+          created_at?: string
+          deal_id?: string
+          id?: string
+          new_values?: Json
+          previous_values?: Json
+          previous_verification_status?: string | null
+          source_document_id?: string | null
+          wire_instruction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wire_instruction_history_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wire_instruction_history_wire_instruction_id_fkey"
+            columns: ["wire_instruction_id"]
+            isOneToOne: false
+            referencedRelation: "wire_instructions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wire_instructions: {
         Row: {
           account_holder: string | null
@@ -6256,6 +6380,26 @@ export type Database = {
       regulatory_condition_checklist_status: {
         Args: { _filed_at: string; _status: string }
         Returns: string
+      }
+      requirement_reminder_sent: {
+        Args: { _request_id: string }
+        Returns: undefined
+      }
+      requirement_reminders_due: {
+        Args: { _limit?: number }
+        Returns: {
+          deal_id: string
+          due_date: string
+          escalate_to: string
+          internal_owner_id: string
+          is_escalation: boolean
+          recipient_email: string
+          recipient_name: string
+          reminder_number: number
+          request_id: string
+          requirement_id: string
+          requirement_title: string
+        }[]
       }
       search_entities: {
         Args: { entity_type?: string; search_term: string }
