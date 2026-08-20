@@ -896,10 +896,10 @@ const ReviewSubmissionDrawer: React.FC<{
       }
       const { data: docRows } = await supabase
         .from('counterparty_kyc_documents')
-        .select('id, document_type, file_path, review_status, uploaded_at')
+        .select('id, document_type, file_path, review_status, created_at')
         .eq('deal_id', dealId)
         .in('counterparty_profile_id', profileIds);
-      setDocs((docRows as KycDocRow[]) || []);
+      setDocs(((docRows || []) as Array<{ id: string; document_type: string; file_path: string; review_status: string; created_at: string }>).map((d) => ({ ...d, uploaded_at: d.created_at })) as KycDocRow[]);
       setLoadingDocs(false);
     })();
   }, [stakeholder, dealId]);

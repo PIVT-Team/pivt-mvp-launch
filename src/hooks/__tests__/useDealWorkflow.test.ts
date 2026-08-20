@@ -34,6 +34,10 @@ function makeMetrics(overrides: Partial<DealMetrics> = {}): DealMetrics {
     readinessPercent: 0,
     executionPercent: 0,
     stageStatuses: {
+      overview: 'not_started',
+      approvals: 'not_started',
+      audit: 'not_started',
+      comments: 'not_started',
       stakeholders: 'not_started',
       deal_inputs: 'not_started',
       verification: 'not_started',
