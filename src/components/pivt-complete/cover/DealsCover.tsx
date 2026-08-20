@@ -649,7 +649,6 @@ export const DealsCover: React.FC = () => {
       //    Filter `deleted_at IS NULL` so soft-deleted rows don't block
       //    re-creation — the user can delete a sample deal then click
       //    'Load sample deals' to get it back.
-      // @ts-expect-error generated types may lag
       const { data: existingRows } = await supabase
         .from('deals')
         .select('seed_key')
@@ -665,7 +664,6 @@ export const DealsCover: React.FC = () => {
       // 1b. Purge any soft-deleted rows with the seed_keys we're about to
       //     insert. Keeps the deals table tidy — otherwise each delete +
       //     reseed cycle would leave a tombstone row behind.
-      // @ts-expect-error generated types may lag
       await supabase
         .from('deals')
         .delete()
@@ -692,7 +690,6 @@ export const DealsCover: React.FC = () => {
         closingDate.setDate(today.getDate() + sample.closing_date_offset_days);
 
         // Insert deal
-        // @ts-expect-error generated types may lag
         const { data: newDeal, error: dealErr } = await supabase
           .from('deals')
           .insert({
@@ -716,7 +713,7 @@ export const DealsCover: React.FC = () => {
             deal_state: sample.deal_state,
             visibility: 'private',
             deal_kind: 'live',
-          })
+          } as never)
           .select('id')
           .single();
 
@@ -728,32 +725,28 @@ export const DealsCover: React.FC = () => {
         // Related rows — best-effort, won't break other inserts on failure
         const dealId = (newDeal as { id: string }).id;
         if (sample.stakeholders.length) {
-          // @ts-expect-error generated types may lag
           await supabase.from('cap_table_entries').insert(
-            sample.stakeholders.map((s) => ({ ...s, deal_id: dealId })),
+            sample.stakeholders.map((s) => ({ ...s, deal_id: dealId })) as never,
           );
         }
         if (sample.wires.length) {
-          // @ts-expect-error generated types may lag
           await supabase.from('wire_instructions').insert(
-            sample.wires.map((w) => ({ ...w, deal_id: dealId })),
+            sample.wires.map((w) => ({ ...w, deal_id: dealId })) as never,
           );
         }
         if (sample.documents.length) {
-          // @ts-expect-error generated types may lag
           await supabase.from('contract_documents').insert(
-            sample.documents.map((d) => ({ ...d, deal_id: dealId })),
+            sample.documents.map((d) => ({ ...d, deal_id: dealId })) as never,
           );
         }
         if (sample.approvals?.length) {
-          // @ts-expect-error generated types may lag
           await supabase.from('deal_approvals').insert(
             sample.approvals.map((a) => ({
               ...a,
               deal_id: dealId,
               user_id: user.id,
               completed_at: a.status === 'completed' || a.status === 'approved' ? new Date().toISOString() : null,
-            })),
+            })) as never,
           );
         }
         createdCount++;
@@ -811,7 +804,6 @@ export const DealsCover: React.FC = () => {
     }
     setClearingSamples(true);
     try {
-      // @ts-expect-error generated types may lag
       const { error: delErr, count } = await supabase
         .from('deals')
         .delete({ count: 'exact' })
