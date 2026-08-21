@@ -77,7 +77,7 @@ const App = () => (
       <Sonner />
       <AuthProvider>
         <OrgProvider>
-        <BrowserRouter>
+        <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
           <Suspense fallback={<PageLoader />}>
             <Routes>
               <Route path="/login" element={<LoginPageLazy />} />
