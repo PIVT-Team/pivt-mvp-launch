@@ -6445,6 +6445,8 @@ export type Database = {
         Args: { _deal_type: string; _deal_value: number; _rules: Json }
         Returns: boolean
       }
+      tick_email_queue: { Args: never; Returns: undefined }
+      tick_requirement_reminders: { Args: never; Returns: number }
       user_org_ids: { Args: { _user_id: string }; Returns: string[] }
     }
     Enums: {
