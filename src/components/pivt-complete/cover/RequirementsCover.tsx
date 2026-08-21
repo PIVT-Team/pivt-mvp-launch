@@ -10,6 +10,7 @@ import {
   listRequirements, reviewRequirement,
   type DealRequirement, type RequirementKind,
 } from '@/services/requirementsService';
+import { buildAllPackets, groupBySignatory } from '@/services/signaturePacketService';
 
 /**
  * One view over signatures, consents and external deliverables.
@@ -113,6 +114,37 @@ export const RequirementsCover: React.FC = () => {
     }
   };
 
+  const generatePackets = async () => {
+    setBusy(true);
+    try {
+      const { blob, packets, skipped } = await buildAllPackets(rows, 'Deal');
+      if (packets.length === 0) {
+        toast({
+          title: 'Nothing to generate',
+          description: 'Every signature requirement is still awaiting review. Approve them first.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'signature-packets.zip'; a.click();
+      URL.revokeObjectURL(url);
+      toast({
+        title: `${packets.length} packet${packets.length > 1 ? 's' : ''} generated`,
+        description: skipped.length
+          ? `${skipped.length} signatory group skipped — still awaiting review.`
+          : 'One PDF per signatory, grouped by person.',
+      });
+    } catch (e) {
+      toast({ title: 'Could not generate packets', description: String((e as Error).message), variant: 'destructive' });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const signatoryCount = useMemo(() => groupBySignatory(rows).length, [rows]);
+
   if (loading) {
     return (
       <div className="pivt-card p-12 flex items-center justify-center">
@@ -178,6 +210,12 @@ export const RequirementsCover: React.FC = () => {
             className="text-xs px-3 py-1.5 rounded-lg border border-border/60 hover:bg-muted/50 disabled:opacity-50">
             {busy ? <Loader2 className="w-3 h-3 animate-spin inline" /> : 'Find consents'}
           </button>
+          {signatoryCount > 0 && (
+            <button disabled={busy} onClick={generatePackets}
+              className="text-xs px-3 py-1.5 rounded-lg border border-accent/30 bg-accent/10 text-accent hover:bg-accent/20 disabled:opacity-50">
+              Generate packets ({signatoryCount})
+            </button>
+          )}
         </div>
       </div>
 
