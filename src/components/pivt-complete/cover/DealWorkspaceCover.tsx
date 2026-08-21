@@ -58,6 +58,7 @@ import { ApprovalsWorkflowCover } from './ApprovalsWorkflowCover';
 import { DealStateInspector } from './DealStateInspector';
 import { WirePackCover } from './WirePackCover';
 import { ExecutionPrepCover } from './ExecutionPrepCover';
+import { RequirementsCover } from './RequirementsCover';
 import { AuditConsoleCover } from './AuditConsoleCover';
 
 // ── Step definitions ──
@@ -539,6 +540,11 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'intents') return PaymentsCover;
       if (subNavId === 'payments') return PaymentsCover;
       if (subNavId === 'discrepancies') return DiscrepancyPanelCover;
+      // Signatures, consents and external deliverables — one Requirements Engine view.
+      if (subNavId === 'requirements') return RequirementsCover;
+      if (subNavId === 'signatures') return RequirementsCover;
+      if (subNavId === 'consents') return RequirementsCover;
+      if (subNavId === 'deliverables') return RequirementsCover;
       if (subNavId === 'escrow') return EscrowCover;
       if (subNavId === 'authority') return ExecutionAuthorityPanel;
       return ExecutionPrepCover;
