@@ -1,0 +1,67 @@
+# Deploy to Vercel on every push to main.
+#
+# Why a workflow rather than Vercel's own Git integration: the integration
+# broke silently for weeks on the previous repo — pushes sat for 20+ hours with
+# no build and no error anywhere visible. A workflow fails loudly in the Actions
+# tab, and the deploy is driven from the repo rather than a dashboard setting
+# nobody can see.
+#
+# SETUP — three repository secrets (Settings -> Secrets and variables -> Actions):
+#   VERCEL_TOKEN        vercel.com -> Account Settings -> Tokens
+#   VERCEL_ORG_ID       Vercel project -> Settings -> General ("Team ID")
+#   VERCEL_PROJECT_ID   Vercel project -> Settings -> General ("Project ID")
+#
+# And three build-time variables, which are public (they ship in the browser
+# bundle; row-level security is what protects the data):
+#   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID
+#
+# Until VERCEL_TOKEN exists the deploy step is skipped, so this file is safe to
+# merge now — the build and tests still run on every push.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: npx vite build
+
+      # Skipped rather than failed when the token is absent, so the workflow is
+      # useful as a CI check before deployment is wired up.
+      - name: Deploy to Vercel
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel@latest pull --yes --environment=production --token="${{ secrets.VERCEL_TOKEN }}"
+          npx --yes vercel@latest build --prod --token="${{ secrets.VERCEL_TOKEN }}"
+          npx --yes vercel@latest deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Note when deployment is not configured
+        if: ${{ secrets.VERCEL_TOKEN == '' }}
+        run: |
+          echo "::notice::Build and tests passed. Deploy skipped — VERCEL_TOKEN is not set."

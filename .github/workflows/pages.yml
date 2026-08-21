@@ -1,0 +1,70 @@
+# Host the app on GitHub Pages.
+#
+# No third-party account needed: the repo builds and serves itself. The backend
+# is Supabase, called directly from the browser, so a static host is sufficient.
+#
+# SETUP:
+#   1. Settings -> Pages -> Source: "GitHub Actions"
+#   2. Settings -> Secrets and variables -> Actions -> add the three VITE_ vars
+#      (public — they already ship inside the browser bundle)
+#
+# The site lands at https://pivt-team.github.io/pivt-mvp-launch/
+
+name: GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci --no-audit --no-fund
+      - run: npx vitest run
+
+      - name: Build
+        env:
+          # Trailing slash matters — Vite emits asset URLs relative to it.
+          VITE_BASE_PATH: /pivt-mvp-launch/
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: npx vite build
+
+      # Pages has no rewrite rules, so a deep link like /submit?t=... would 404
+      # on refresh. Serving index.html as the 404 page makes the SPA router
+      # handle it instead — the standard SPA-on-Pages workaround.
+      - name: SPA fallback
+        run: cp dist/index.html dist/404.html
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
