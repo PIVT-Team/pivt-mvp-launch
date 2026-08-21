@@ -11,5 +11,7 @@ jobs:
         run: npx --yes vercel@latest whoami --token="${{ secrets.VERCEL_TOKEN }}" || true
       - name: Teams it can reach
         run: npx --yes vercel@latest teams ls --token="${{ secrets.VERCEL_TOKEN }}" || true
-      - name: Projects it can reach
-        run: npx --yes vercel@latest project ls --token="${{ secrets.VERCEL_TOKEN }}" || true
+      - name: Projects in the pivt-team scope
+        run: npx --yes vercel@latest project ls --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}" || true
+      - name: Domains in the pivt-team scope
+        run: npx --yes vercel@latest domains ls --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}" || true
