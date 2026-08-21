@@ -55,27 +55,37 @@ jobs:
 
       # Skipped rather than failed when the token is absent, so the workflow is
       # useful as a CI check before deployment is wired up.
-      # Link by project NAME rather than by VERCEL_ORG_ID / VERCEL_PROJECT_ID.
-      # Those two are hand-copied out of the dashboard and a single wrong
-      # character produces "Could not retrieve Project Settings", which gives no
-      # hint about which of the two is wrong. The name and team slug are visible
-      # in the URL and can be checked by eye.
+      # Deploy the output we already built, using Vercel's Build Output API,
+      # rather than asking Vercel to build. That avoids `vercel pull` and
+      # `vercel build` entirely — both need Production environment variables
+      # configured on the project, which needs permissions we don't have.
+      #
+      # Everything Vercel needs is in .vercel/output: static files plus a
+      # config with an SPA fallback so deep links like /submit?t=... resolve.
+      - name: Prepare Vercel build output
+        if: env.HAS_VERCEL_TOKEN == 'true'
+        run: |
+          set -e
+          mkdir -p .vercel/output/static
+          cp -R dist/* .vercel/output/static/
+          cat > .vercel/output/config.json <<'JSON'
+          {
+            "version": 3,
+            "routes": [
+              { "handle": "filesystem" },
+              { "src": "/.*", "dest": "/index.html" }
+            ]
+          }
+          JSON
+          echo "static files: $(find .vercel/output/static -type f | wc -l)"
+
       - name: Deploy to Vercel
         if: env.HAS_VERCEL_TOKEN == 'true'
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
         run: |
           set -e
           npx --yes vercel@latest link --yes \
             --project pivt-mvp-launch-abcef2ed \
             --scope pivt-team \
-            --token="${{ secrets.VERCEL_TOKEN }}"
-          # No `vercel pull`: it fails when the project has no Production
-          # environment variables configured in Vercel, and we don't need them —
-          # the build gets its config from the GitHub secrets below.
-          npx --yes vercel@latest build --prod \
             --token="${{ secrets.VERCEL_TOKEN }}"
           npx --yes vercel@latest deploy --prebuilt --prod \
             --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}"
