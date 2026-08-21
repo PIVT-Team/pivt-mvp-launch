@@ -1,0 +1,15 @@
+# Temporary diagnostic — prints what the Vercel token can see so we can
+# identify the correct team and project IDs. Delete once deployment works.
+# Prints names/slugs only, never the token.
+name: Vercel diagnostic
+on: workflow_dispatch
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Who is this token?
+        run: npx --yes vercel@latest whoami --token="${{ secrets.VERCEL_TOKEN }}" || true
+      - name: Teams it can reach
+        run: npx --yes vercel@latest teams ls --token="${{ secrets.VERCEL_TOKEN }}" || true
+      - name: Projects it can reach
+        run: npx --yes vercel@latest project ls --token="${{ secrets.VERCEL_TOKEN }}" || true
