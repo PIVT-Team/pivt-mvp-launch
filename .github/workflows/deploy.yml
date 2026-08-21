@@ -55,15 +55,25 @@ jobs:
 
       # Skipped rather than failed when the token is absent, so the workflow is
       # useful as a CI check before deployment is wired up.
+      # Link by project NAME rather than by VERCEL_ORG_ID / VERCEL_PROJECT_ID.
+      # Those two are hand-copied out of the dashboard and a single wrong
+      # character produces "Could not retrieve Project Settings", which gives no
+      # hint about which of the two is wrong. The name and team slug are visible
+      # in the URL and can be checked by eye.
       - name: Deploy to Vercel
         if: env.HAS_VERCEL_TOKEN == 'true'
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
-          npx --yes vercel@latest pull --yes --environment=production --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}"
-          npx --yes vercel@latest build --prod --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}"
-          npx --yes vercel@latest deploy --prebuilt --prod --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}"
+          set -e
+          npx --yes vercel@latest link --yes \
+            --project pivt-mvp-launch-abcef2ed \
+            --scope pivt-team \
+            --token="${{ secrets.VERCEL_TOKEN }}"
+          npx --yes vercel@latest pull --yes --environment=production \
+            --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}"
+          npx --yes vercel@latest build --prod \
+            --token="${{ secrets.VERCEL_TOKEN }}"
+          npx --yes vercel@latest deploy --prebuilt --prod \
+            --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Note when deployment is not configured
         if: env.HAS_VERCEL_TOKEN != 'true'
