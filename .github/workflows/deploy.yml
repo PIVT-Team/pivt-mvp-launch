@@ -28,6 +28,10 @@ on:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # The `secrets` context cannot be used in a step-level `if`, so surface the
+    # presence of the token as an env var and branch on that instead.
+    env:
+      HAS_VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -52,7 +56,7 @@ jobs:
       # Skipped rather than failed when the token is absent, so the workflow is
       # useful as a CI check before deployment is wired up.
       - name: Deploy to Vercel
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        if: env.HAS_VERCEL_TOKEN == 'true'
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -62,6 +66,6 @@ jobs:
           npx --yes vercel@latest deploy --prebuilt --prod --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Note when deployment is not configured
-        if: ${{ secrets.VERCEL_TOKEN == '' }}
+        if: env.HAS_VERCEL_TOKEN != 'true'
         run: |
           echo "::notice::Build and tests passed. Deploy skipped — VERCEL_TOKEN is not set."
