@@ -28,6 +28,8 @@ const LoginPageLazy = lazy(() =>
   })
 );
 const VerifyPageLazy = lazy(() => import("./pages/VerifyPage"));
+// External counterparty document portal — token in the query string, no account.
+const RequirementPortalLazy = lazy(() => import("./pages/RequirementPortalPage"));
 const CookiePolicyPageLazy = lazy(() => import("./pages/CookiePolicyPage"));
 const PrivacyPolicyPageLazy = lazy(() => import("./pages/PrivacyPolicyPage"));
 const TermsOfServicePageLazy = lazy(() => import("./pages/TermsOfServicePage"));
@@ -80,6 +82,7 @@ const App = () => (
             <Routes>
               <Route path="/login" element={<LoginPageLazy />} />
               <Route path="/verify" element={<VerifyPageLazy />} />
+              <Route path="/submit" element={<RequirementPortalLazy />} />
               <Route path="/cookie-policy" element={<CookiePolicyPageLazy />} />
               <Route path="/privacy" element={<PrivacyPolicyPageLazy />} />
               <Route path="/terms" element={<TermsOfServicePageLazy />} />
