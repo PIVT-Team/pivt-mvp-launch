@@ -89,7 +89,12 @@ const STEP_SUB_NAV: Partial<Record<StepId, SubNav[]>> = {
     { id: 'allocations', label: 'Payment Allocations' },
     { id: 'discrepancies', label: 'Discrepancies' },
   ],
-  approvals: [],
+  approvals: [
+    { id: 'sign-offs', label: 'Sign-offs' },
+    { id: 'signatures', label: 'Signatures' },
+    { id: 'consents', label: 'Consents' },
+    { id: 'deliverables', label: 'Deliverables' },
+  ],
   execution: [
     { id: 'prep', label: 'Execution Prep' },
     { id: 'closing', label: 'Wire Readiness' },
@@ -532,7 +537,14 @@ function getContentComponent(stepId: StepId, subNavId?: string): React.FC<any> {
       if (subNavId === 'readiness') return ReadinessPanel;
       return FinancialInputs;
     case 'verification': return PaymentVerificationCover;
-    case 'approvals': return ApprovalsWorkflowCover;
+    case 'approvals':
+      // Signatures, consents and external deliverables are one Requirements
+      // Engine view filtered by kind, not three separate screens.
+      if (subNavId === 'signatures') return RequirementsCover;
+      if (subNavId === 'consents') return RequirementsCover;
+      if (subNavId === 'deliverables') return RequirementsCover;
+      if (subNavId === 'requirements') return RequirementsCover;
+      return ApprovalsWorkflowCover;
     case 'execution':
       if (subNavId === 'prep') return ExecutionPrepCover;
       if (subNavId === 'closing') return ExecutionPrepCover;
