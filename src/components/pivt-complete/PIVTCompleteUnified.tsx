@@ -40,6 +40,7 @@ import { CommunicationsHub } from './cover/CommunicationsHub';
 import { IntelligenceDashboardCover } from './cover/IntelligenceDashboardCover';
 import { DealWizard } from '../deal-wizard/DealWizard';
 import { NewtonDealIntelligence } from '../newton/NewtonDealIntelligence';
+import { NewtonGlobalChat } from '@/components/newton/NewtonGlobalChat';
 import { SupportPanel } from '../support/SupportPanel';
 import { OntologyCover } from './cover/OntologyCover';
 import { PortfolioPaymentsCover } from './cover/PortfolioPaymentsCover';
@@ -454,6 +455,12 @@ export const PIVTCompleteUnified: React.FC = () => {
 
       <DealWizard />
       <NewtonDealIntelligence />
+      {/* Global Newton chat. The component existed and was never rendered —
+          it is self-contained (own floating trigger and open/minimised state),
+          so mounting it here alongside the other global overlays is all it
+          needed. Its auth fix has been sitting in the Lovable paste queue as
+          "high priority" for a component nothing displayed. */}
+      <NewtonGlobalChat />
       <SupportPanel />
       <CommandPalette open={commandOpen} onOpenChange={setCommandOpen} />
       <ImportDataModal open={importOpen} onClose={() => setImportOpen(false)} />

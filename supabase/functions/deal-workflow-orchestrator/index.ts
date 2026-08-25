@@ -100,6 +100,33 @@ Deno.serve(async (req) => {
         await processSPA(admin, deal_id, document_id, fields, results, auditEvents);
       }
 
+      // ── Step 2b: Extract payment obligations ──
+      //
+      // Nothing invoked obligation-extractor anywhere in the codebase, so
+      // `obligations` was always empty. evalObligationRules returns early on an
+      // empty set, which meant four blocker rules — amount mismatch, currency
+      // mismatch, unconfirmed payment instructions, and no-matching-obligation —
+      // had never fired on any deal. They gate execution, so this ran the
+      // discrepancy engine with a quarter of its execution checks inert.
+      //
+      // Runs BEFORE the discrepancy engine so the obligations it writes are
+      // visible to the rules in the same pass.
+      if (document_id && ["SPA", "FUNDS_FLOW", "ESCROW_AGREEMENT", "PAYOFF_LETTER", "FEE_LETTER"].includes(docType)) {
+        try {
+          await admin.functions.invoke("obligation-extractor", {
+            body: { document_id },
+            headers: { Authorization: authHeader },
+          });
+          results.obligations_extracted = true;
+          auditEvents.push({ action: "obligations_extracted", details: { document_id, doc_type: docType } });
+        } catch (e) {
+          // Non-fatal: a missing obligation set degrades the rules but must not
+          // fail the whole ingestion pass.
+          console.error("Obligation extraction failed:", e);
+          results.obligations_extracted = false;
+        }
+      }
+
       // ── Step 3: Run Discrepancy Engine ──
       try {
         await admin.functions.invoke("discrepancy-engine", {

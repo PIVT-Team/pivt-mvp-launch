@@ -432,8 +432,14 @@ const ReconciliationSection: React.FC = () => {
       .then(({ data }) => {
         setDiscrepancies((data || []).map((d: any) => ({
           id: d.id, field: d.rule_key, desc: d.message,
-          severity: d.severity === 'critical' ? 'critical' : 'warning',
-          resolved: d.status === 'resolved' || d.status === 'acknowledged',
+          // The discrepancy_severity enum is blocker | warn | info — 'critical'
+          // is never emitted, so this used to render EVERY blocker in the amber
+          // "warning" style. A person deciding whether to close saw no
+          // distinction between a blocker and a note.
+          severity: d.severity === 'blocker' ? 'critical' : 'warning',
+          // 'acknowledged' means somebody has seen it, not that it is fixed.
+          // Treating it as resolved greyed out live blockers.
+          resolved: d.status === 'resolved',
         })));
       });
   }, [dealId]);
