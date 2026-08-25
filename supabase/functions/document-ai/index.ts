@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireJwt } from "../_shared/require-jwt.ts";
+import { extractDocumentText, MIN_EXTRACTABLE_CHARS } from "../_shared/extract-text.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -542,7 +543,48 @@ serve(async (req) => {
     const adminClient = createClient(supabaseUrl, serviceKey);
 
     if (action === "classify") {
-      const keywordResult = classifyByKeywords(fileName || "", textContent || "");
+      // Read the actual document.
+      //
+      // Callers used to pass a placeholder ("[Document: x.pdf, Type hint: SPA]")
+      // and this function classified from the filename, writing that stub into
+      // text_content. Nothing downstream — obligations, discrepancy field
+      // checks, signature and consent extraction, document Q&A — had ever seen
+      // a real document. If the caller supplies genuine text we use it; a stub
+      // or nothing means we fetch and parse the file ourselves.
+      let effectiveText = textContent || "";
+      let extractionMethod = "caller_supplied";
+      let extractionProblem: string | null = null;
+
+      // Callers historically sent several placeholder shapes: "[Document: …]"
+      // and "[XLSX: …]". Anything bracketed-and-tiny is a stub, not content.
+      const looksLikeStub = /^\[(Document|XLSX|PDF|File):/i.test(effectiveText.trim()) ||
+                            effectiveText.trim().length < MIN_EXTRACTABLE_CHARS;
+
+      if (looksLikeStub && documentId) {
+        const { data: docRow } = await adminClient
+          .from("contract_documents")
+          .select("file_url, filename")
+          .eq("id", documentId)
+          .maybeSingle();
+
+        if (docRow?.file_url) {
+          const extracted = await extractDocumentText(
+            adminClient as never,
+            docRow.file_url,
+            docRow.filename || fileName || "document",
+            { apiKey: LOVABLE_API_KEY }
+          );
+          extractionMethod = extracted.method;
+          extractionProblem = extracted.problem ?? null;
+          if (extracted.text.length >= MIN_EXTRACTABLE_CHARS) {
+            effectiveText = extracted.text;
+          }
+        } else {
+          extractionProblem = "No stored file to read for this document.";
+        }
+      }
+
+      const keywordResult = classifyByKeywords(fileName || "", effectiveText);
       const hintType = keywordResult?.doc_type || "OTHER";
       const extractionSchema = EXTRACTION_SCHEMAS[hintType];
       const schemaHint = extractionSchema
@@ -681,19 +723,36 @@ serve(async (req) => {
         }).eq("id", documentId);
       }
 
-      if (dealId && result.doc_type !== "OTHER") {
-        await adminClient.from("contract_documents").upsert({
-          deal_id: dealId,
-          filename: fileName || "unknown",
-          doc_type: result.doc_type,
-          file_url: null,
-          text_content: textContent?.slice(0, 10000) || null,
-          status: "PARSED",
-          document_role: result.document_role || "mutual",
-          extracted_fields: result.extracted_fields || {},
+      // Update the row we were given, rather than inserting a second one.
+      //
+      // This was an upsert with onConflict:"id" and NO id in the payload, so
+      // Postgres generated a fresh uuid, found no conflict, and INSERTed. Every
+      // upload produced two contract_documents rows — the uploader's (user's
+      // doc_type, no text) and this one (AI doc_type, the stub) — and the
+      // versioning trigger then superseded the user's row with the duplicate.
+      //
+      // file_url is deliberately not touched: it was being nulled here, which
+      // orphaned the stored file.
+      if (documentId) {
+        const update: Record<string, unknown> = {
+          text_content: effectiveText.slice(0, 100000) || null,
+          status: extractionProblem && effectiveText.length < MIN_EXTRACTABLE_CHARS ? "PARSE_FAILED" : "PARSED",
+          extracted_fields: {
+            ...(result.extracted_fields || {}),
+            _extraction: { method: extractionMethod, problem: extractionProblem },
+          },
           extraction_confidence: result.confidence || 0,
           requirement_group: result.requirement_group || "Other",
-        }, { onConflict: "id" });
+          document_role: result.document_role || "mutual",
+        };
+        // Only let the classifier change the type when it is confident and has
+        // actually read something. A filename-only guess should not override
+        // what the person who uploaded it chose.
+        if (result.doc_type !== "OTHER" && (result.confidence || 0) >= 0.7 &&
+            effectiveText.length >= MIN_EXTRACTABLE_CHARS) {
+          update.doc_type = result.doc_type;
+        }
+        await adminClient.from("contract_documents").update(update).eq("id", documentId);
       }
 
       let ontologyWriteSummary = null;
