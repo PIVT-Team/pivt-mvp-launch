@@ -44,6 +44,68 @@ function printableRatio(s: string): number {
 }
 
 /**
+ * Build a glyph-code → unicode map from the document's ToUnicode CMaps.
+ *
+ * Many real PDFs (LaTeX, InDesign, several e-signature tools) embed CID fonts
+ * and write text as hex strings of glyph ids — `<0071004200600032>` — rather
+ * than literal `(text)`. Without the CMap those bytes are meaningless, which is
+ * why a perfectly good contract can extract to nothing.
+ *
+ * The maps from every font are merged into one. Fonts can in principle reuse
+ * code points, but in practice generators assign distinct ranges, and one
+ * shared map recovers the text far more often than it garbles it.
+ */
+function buildToUnicodeMap(streams: string[]): Map<number, string> {
+  const map = new Map<number, string>();
+  const hexToStr = (h: string) => {
+    let out = "";
+    for (let i = 0; i + 3 < h.length + 1; i += 4) {
+      const code = parseInt(h.slice(i, i + 4), 16);
+      if (!isNaN(code) && code !== 0) out += String.fromCharCode(code);
+    }
+    return out;
+  };
+
+  for (const cmap of streams) {
+    if (!cmap.includes("beginbfchar") && !cmap.includes("beginbfrange")) continue;
+
+    // <src> <dst>
+    for (const block of cmap.match(/beginbfchar([\s\S]*?)endbfchar/g) || []) {
+      for (const pair of block.match(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g) || []) {
+        const m = pair.match(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/)!;
+        map.set(parseInt(m[1], 16), hexToStr(m[2]));
+      }
+    }
+
+    // <lo> <hi> <dstStart>   — consecutive codes map to consecutive characters
+    for (const block of cmap.match(/beginbfrange([\s\S]*?)endbfrange/g) || []) {
+      for (const t of block.match(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/g) || []) {
+        const m = t.match(/<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>\s*<([0-9A-Fa-f]+)>/)!;
+        const lo = parseInt(m[1], 16), hi = parseInt(m[2], 16), dst = parseInt(m[3], 16);
+        if (hi - lo > 65535) continue;
+        for (let c = lo; c <= hi; c++) map.set(c, String.fromCharCode(dst + (c - lo)));
+      }
+    }
+  }
+  return map;
+}
+
+/** Decode a PDF hex string using the CMap, falling back to raw 2-byte codes. */
+function decodeHexString(hex: string, cmap: Map<number, string>): string {
+  const clean = hex.replace(/[^0-9A-Fa-f]/g, "");
+  let out = "";
+  // CID text is almost always 2 bytes per glyph.
+  for (let i = 0; i + 1 < clean.length; i += 4) {
+    const code = parseInt(clean.slice(i, i + 4), 16);
+    if (isNaN(code)) continue;
+    const mapped = cmap.get(code);
+    if (mapped !== undefined) out += mapped;
+    else if (code >= 32 && code <= 0x2fff) out += String.fromCharCode(code);
+  }
+  return out;
+}
+
+/**
  * Pull text out of a PDF's content streams.
  *
  * Handles the two forms that matter: uncompressed streams, and Flate-compressed
@@ -56,43 +118,59 @@ async function extractPdfTextLayer(bytes: Uint8Array): Promise<{ text: string; p
   const pages = (raw.match(/\/Type\s*\/Page[^s]/g) || []).length || 1;
   const chunks: string[] = [];
 
-  // Every stream ... endstream pair, decompressed where needed.
+  // Pass 1: inflate every stream once. ToUnicode CMaps live in their own
+  // streams, so the map has to be built before any content is decoded.
+  const decoded: string[] = [];
   const streamRe = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
   let m: RegExpExecArray | null;
   while ((m = streamRe.exec(raw)) !== null) {
     const body = m[1];
-    let content = body;
-
-    // Flate streams start with a zlib header (0x78). Inflate via DecompressionStream.
     if (body.charCodeAt(0) === 0x78) {
       try {
         const bin = new Uint8Array(body.length);
         for (let i = 0; i < body.length; i++) bin[i] = body.charCodeAt(i) & 0xff;
         const ds = new DecompressionStream("deflate");
-        const stream = new Blob([bin]).stream().pipeThrough(ds);
-        content = await new Response(stream).text();
-      } catch {
-        continue; // not actually deflate, or corrupt — skip this stream
-      }
+        decoded.push(await new Response(new Blob([bin]).stream().pipeThrough(ds)).text());
+      } catch { /* not deflate, or corrupt */ }
+    } else {
+      decoded.push(body);
     }
+  }
 
+  const cmap = buildToUnicodeMap(decoded);
+
+  // Pass 2: pull text out of the content streams.
+  for (const content of decoded) {
     if (!content.includes("BT") && !content.includes("Tj") && !content.includes("TJ")) continue;
 
-    // Tj: (literal) Tj      TJ: [(a) -250 (b)] TJ
+    // Text-showing operators, in both string forms:
+    //   literal : (text) Tj      /  [(a) -250 (b)] TJ
+    //   hex     : <0041> Tj      /  [<0041> -250 <0042>] TJ   (CID fonts)
     const out: string[] = [];
-    const tjRe = /\((?:\\.|[^\\()])*\)\s*Tj|\[((?:\((?:\\.|[^\\()])*\)|[^\]])*)\]\s*TJ/g;
+    const tjRe = /(?:\((?:\\.|[^\\()])*\)|<[0-9A-Fa-f\s]*>)\s*Tj|\[((?:\((?:\\.|[^\\()])*\)|<[0-9A-Fa-f\s]*>|[^\]])*)\]\s*TJ/g;
     let t: RegExpExecArray | null;
     while ((t = tjRe.exec(content)) !== null) {
       const seg = t[0];
-      const literals = seg.match(/\((?:\\.|[^\\()])*\)/g) || [];
-      const piece = literals
-        .map((l) =>
-          l.slice(1, -1)
+      let piece = "";
+      const tokenRe = /\((?:\\.|[^\\()])*\)|<[0-9A-Fa-f\s]*>|-?\d+(?:\.\d+)?/g;
+      let tok: RegExpExecArray | null;
+      while ((tok = tokenRe.exec(seg)) !== null) {
+        const v = tok[0];
+        // A kerning adjustment. Anything beyond roughly a quarter em is a word
+        // break in practice; smaller values are letter-spacing.
+        if (/^-?\d/.test(v)) {
+          if (parseFloat(v) <= -120 && piece && !piece.endsWith(" ")) piece += " ";
+          continue;
+        }
+        if (v.startsWith("<")) {
+          piece += decodeHexString(v.slice(1, -1), cmap);
+        } else {
+          piece += v.slice(1, -1)
             .replace(/\\([nrtbf])/g, (_, c) => ({ n: "\n", r: "\r", t: "\t", b: "", f: "" }[c as string] ?? ""))
             .replace(/\\(\d{1,3})/g, (_, o) => String.fromCharCode(parseInt(o, 8)))
-            .replace(/\\(.)/g, "$1")
-        )
-        .join("");
+            .replace(/\\(.)/g, "$1");
+        }
+      }
       if (piece.trim()) out.push(piece);
     }
     // A TD/Td/T* between blocks is a line break; approximate with newlines
@@ -210,14 +288,25 @@ export async function extractDocumentText(
       }
     }
 
+    // Distinguish the two failure modes: they need different responses from a
+    // human. A scan needs OCR or a replacement file; a short document may be
+    // perfectly fine and simply not have enough content to check.
+    const ratioNow = printableRatio(layer.text);
+    const problem = layer.text.length === 0
+      ? "This PDF has no readable text layer — it is most likely a scan. Its contents cannot be " +
+        "checked automatically until it is OCR'd or replaced with a text PDF."
+      : ratioNow <= 0.85
+      ? `The text in this PDF could not be decoded reliably (${Math.round(ratioNow * 100)}% legible). ` +
+        "It may use an unusual font encoding. Consider re-exporting it as a standard PDF."
+      : `Only ${layer.text.length} characters of text were found, which is too little to check ` +
+        "automatically. If this document should contain more, it may be partly scanned.";
+
     return {
       text: layer.text,
       method: layer.text ? "pdf_text_layer" : "none",
       quality: 0,
       pages: layer.pages,
-      problem:
-        "This PDF has no readable text layer — it is most likely a scan. " +
-        "Its contents cannot be checked automatically until it is OCR'd or replaced with a text PDF.",
+      problem,
     };
   }
 
