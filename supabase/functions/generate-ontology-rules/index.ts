@@ -348,6 +348,18 @@ const ONTOLOGY_RULES = [
   },
 ];
 
+// ─────────────────────────────────────────────────────────────────────────
+// SUPERSEDED by migration 20260521010000, which seeds these rules directly.
+//
+// This function had no caller anywhere and was the only way rules ever got
+// installed — so on any deployment where nobody remembered to curl it, the
+// discrepancy engine looped over a single rule and every other check silently
+// never ran.
+//
+// Kept because it is still the mechanism for adding rules to an already-
+// migrated database, but it now refuses to run unless explicitly confirmed, so
+// nobody re-introduces the duplicate rule keys the migration disables.
+// ─────────────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -355,6 +367,14 @@ Deno.serve(async (req) => {
 
   try {
     await requireJwt(req, corsHeaders);
+
+    const { confirm } = await req.json().catch(() => ({ confirm: false }));
+    if (!confirm) {
+      return new Response(JSON.stringify({
+        error: "Rules are seeded by migration 20260521010000. This function is only for adding rules to an already-migrated database. Send { confirm: true } if that is what you intend.",
+      }), { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

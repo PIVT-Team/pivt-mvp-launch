@@ -23,6 +23,7 @@ import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { AiConfidenceBadge } from '@/components/AiConfidenceBadge';
 import { hasMeaningfulChange, isAiDerivedRecord, recordFieldCorrections } from '@/lib/fieldCorrections';
+import { WireChangeHistory } from '../WireChangeHistory';
 
 /* ── Constants ── */
 const WIRE_DOC_TYPES = [
@@ -719,6 +720,12 @@ export const WireInstructions: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* The trigger records every wire change and resets verification when
+          bank details move. Without this the user sees a wire flip back to
+          unverified with no explanation — which is exactly the moment they
+          need to know what changed and where it came from. */}
+      <WireChangeHistory dealId={dealId} />
     </div>
   );
 };

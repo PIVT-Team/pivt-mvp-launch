@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import * as XLSX from 'xlsx';
+import { SimulationNotice } from './SimulationNotice';
 import {
   executeDisbursement, listDisbursementIntents, statusLabel,
   type DisbursementIntent, type DisbursementStatus,
@@ -266,6 +267,7 @@ export const WirePackCover: React.FC = () => {
 
   return (
     <motion.div {...fadeInUp} className="space-y-6">
+      <SimulationNotice className="mb-4" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
