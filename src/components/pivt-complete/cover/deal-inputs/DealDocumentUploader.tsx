@@ -149,7 +149,10 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
           documentId: docId,
           fileName: filename,
           dealId: dealId,
-          textContent: `[Document: ${filename}, Type hint: ${docType}]`,
+          // No text sent: document-ai downloads the stored file and extracts
+          // the real text. Passing a placeholder here is what made every
+          // downstream check reason about a filename.
+          typeHint: docType,
         },
       });
 

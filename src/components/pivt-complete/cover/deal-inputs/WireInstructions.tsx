@@ -220,7 +220,8 @@ export const WireInstructions: React.FC = () => {
             documentId: newDocId,
             fileName: file.name,
             dealId: dealId,
-            textContent: `[Document: ${file.name}, Type hint: ${docType}]`,
+            // See DealDocumentUploader — document-ai reads the stored file.
+            typeHint: docType,
           },
         }).then(() => {
           toast.success('Orchestrator pipeline complete. Downstream modules updated.');
