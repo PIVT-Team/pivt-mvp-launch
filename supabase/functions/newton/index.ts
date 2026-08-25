@@ -87,14 +87,43 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, dealContext } = await req.json();
+    const { messages, dealContext, deal_id } = await req.json();
+
+    // Server-assembled deal state.
+    //
+    // Newton previously answered purely from whatever `dealContext` the client
+    // chose to send — so its answers reflected what one screen happened to have
+    // loaded, not the deal. get-deal-context builds the authoritative pack
+    // server-side; nothing called it. Where a deal_id is supplied we prefer it,
+    // and fall back to the client blob so existing callers keep working.
+    let serverContext: unknown = null;
+    const dealIdForContext = deal_id || (dealContext as any)?.deal?.id;
+    if (dealIdForContext) {
+      try {
+        const admin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        const { data, error } = await admin.functions.invoke("get-deal-context", {
+          body: { deal_id: dealIdForContext },
+          headers: { Authorization: req.headers.get("Authorization") || "" },
+        });
+        if (!error && data && !(data as any).error) serverContext = data;
+      } catch (e) {
+        // Non-fatal — fall back to the client-supplied context.
+        console.error("get-deal-context failed, using client context:", e);
+      }
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     let contextualPrompt = SYSTEM_PROMPT;
     
-    if (dealContext) {
-      contextualPrompt += `\n\n## CURRENT DEAL CONTEXT\n\`\`\`json\n${JSON.stringify(dealContext, null, 2)}\n\`\`\``;
+    if (serverContext || dealContext) {
+      // Prefer the server-assembled pack; it reflects the database rather than
+      // whatever the open screen had in memory.
+      const ctx = serverContext ?? dealContext;
+      contextualPrompt += `\n\n## CURRENT DEAL CONTEXT\n(${serverContext ? "server-assembled from the database" : "client-supplied"})\n\`\`\`json\n${JSON.stringify(ctx, null, 2)}\n\`\`\``;
     }
 
     const authHeader = req.headers.get("authorization");
