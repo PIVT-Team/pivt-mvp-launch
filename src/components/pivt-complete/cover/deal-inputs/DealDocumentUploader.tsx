@@ -77,6 +77,26 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
 
   const docTypeValues = docTypes.map(t => t.value);
 
+  // Documents uploaded through THIS panel, remembered locally by id.
+  //
+  // The list used to filter on doc_type, but `document-ai` overwrites doc_type
+  // after parsing and the DB enum only allows SPA / FUNDS_FLOW /
+  // ESCROW_AGREEMENT / PAYOFF_LETTER / FEE_LETTER / OTHER. Anything the
+  // classifier resolved to OTHER — which is most contracts — fell straight out
+  // of the filter, so a document you had just uploaded and watched parse
+  // vanished from the list. A file a user uploaded must never disappear because
+  // a model disagreed about its type.
+  const storageKey = dealId ? `pivt:uploads:${dealId}:${docTypeValues.join(',')}` : '';
+  const readOwnIds = useCallback((): string[] => {
+    if (!storageKey) return [];
+    try { return JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch { return []; }
+  }, [storageKey]);
+  const rememberOwnId = useCallback((id: string) => {
+    if (!storageKey || !id) return;
+    const ids = Array.from(new Set([...readOwnIds(), id]));
+    try { localStorage.setItem(storageKey, JSON.stringify(ids)); } catch { /* quota — non-fatal */ }
+  }, [storageKey, readOwnIds]);
+
   const acceptedMimeTypes = [
     ...DEFAULT_ACCEPTED_MIME_TYPES,
     ...(allowSpreadsheets ? SPREADSHEET_MIME_TYPES : []),
@@ -91,18 +111,24 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
   const fetchDocs = useCallback(async () => {
     if (!dealId || isDemoDeal) { setLoading(false); return; }
     setLoading(true);
+    // Fetch by deal and filter client-side: the type is a label, not a gate.
     const { data } = await supabase
       .from('contract_documents')
       .select('id, doc_type, filename, file_url, status, uploaded_at, extracted_fields, extraction_confidence')
       .eq('deal_id', dealId)
-      .in('doc_type', docTypeValues as any);
-    setDocs((data || []).map((d: any) => ({
+      .order('uploaded_at', { ascending: false });
+
+    const ownIds = new Set(readOwnIds());
+    const visible = (data || []).filter(
+      (d: any) => docTypeValues.includes(d.doc_type) || ownIds.has(d.id)
+    );
+    setDocs(visible.map((d: any) => ({
       id: d.id, doc_type: d.doc_type, filename: d.filename,
       file_url: d.file_url, status: d.status, uploaded_at: d.uploaded_at,
       extracted_fields: d.extracted_fields, extraction_confidence: d.extraction_confidence,
     })));
     setLoading(false);
-  }, [dealId, isDemoDeal, docTypeValues.join(',')]);
+  }, [dealId, isDemoDeal, docTypeValues.join(','), readOwnIds]);
 
   useEffect(() => { fetchDocs(); }, [fetchDocs]);
 
@@ -194,6 +220,7 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
           .single();
         if (insertError) throw insertError;
         newDocId = insertData?.id;
+        if (newDocId) rememberOwnId(newDocId);
         toast.success('Document uploaded. Starting AI parsing…');
       }
       await fetchDocs();
