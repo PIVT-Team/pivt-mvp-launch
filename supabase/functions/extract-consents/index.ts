@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireJwt } from "../_shared/require-jwt.ts";
+import { chunkSequential, wasTruncated } from "../_shared/chunk-text.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -84,8 +85,18 @@ Deno.serve(async (req) => {
     if (!LOVABLE_API_KEY) return json({ error: "LOVABLE_API_KEY not configured" }, 500);
 
     const created: any[] = [];
+    const truncatedDocs: string[] = [];
 
     for (const doc of usable) {
+      const fullText = doc.text_content || "";
+      // Consent and notice provisions can sit anywhere in an agreement, so
+      // cover the whole document with overlapping windows rather than reading
+      // only the first 25k characters as this used to.
+      const chunks = chunkSequential(fullText);
+      if (wasTruncated(fullText, chunks)) truncatedDocs.push(doc.filename);
+      const seenInDoc = new Set<string>();
+
+      for (const chunk of chunks) {
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -107,7 +118,9 @@ Deno.serve(async (req) => {
             },
             {
               role: "user",
-              content: `Contract: ${doc.filename} (${doc.doc_type}, version ${doc.version})\n\n${(doc.text_content || "").slice(0, 25000)}`,
+              content: `Contract: ${doc.filename} (${doc.doc_type}, version ${doc.version})` +
+                       (chunk.total > 1 ? `\nSection: ${chunk.label} (${chunk.index + 1} of ${chunk.total})` : "") +
+                       `\n\n${chunk.text}`,
             },
           ],
           tools: [{ type: "function", function: { name: "emit_consents", description: "Consent/notice findings", parameters: CONSENT_SCHEMA } }],
@@ -123,6 +136,12 @@ Deno.serve(async (req) => {
 
       for (const f of findings) {
         if (Number(f.confidence) < 0.25) continue;
+
+        // Overlapping windows can surface the same clause twice.
+        const dedupeKey = [f.counterparty, f.clause_reference, f.trigger_event]
+          .map((v: string) => String(v || "").toLowerCase().trim()).join("::");
+        if (seenInDoc.has(dedupeKey)) continue;
+        seenInDoc.add(dedupeKey);
 
         const kind = f.requirement_type === "notice" ? "notice" : "consent";
         const trigger = String(f.trigger_event || "other").replace(/_/g, " ");
@@ -165,6 +184,7 @@ Deno.serve(async (req) => {
           status: "not_started",
         });
       }
+      }
     }
 
     if (created.length === 0) {
@@ -194,7 +214,10 @@ Deno.serve(async (req) => {
       documents_analysed: usable.length,
       unclear_requiring_classification: unclear,
       rows: inserted,
-      note: "Findings are proposed interpretations. None will contact a counterparty until reviewed and approved.",
+      partially_read: truncatedDocs,
+      note: truncatedDocs.length
+        ? `Findings are proposed interpretations; none will contact a counterparty until approved. NOTE: ${truncatedDocs.length} document(s) were too long to read in full (${truncatedDocs.join(", ")}) — some provisions may be missing.`
+        : "Findings are proposed interpretations. None will contact a counterparty until reviewed and approved.",
     });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);

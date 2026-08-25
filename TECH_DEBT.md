@@ -12,7 +12,21 @@ Ordered by impact, not by effort.
 
 ## P0 — will produce wrong answers or lose money
 
-### T1. Truncation silently discards contract text
+### ~~T1. Truncation silently discards contract text~~ — **FIXED**
+
+Both extractors now chunk with overlap via `_shared/chunk-text.ts`. Signatures
+use an ends-biased strategy (opening and execution pages first, then the
+middle); consents cover the document sequentially. Findings are deduped across
+overlapping windows, and when a document is still too large for the chunk cap
+the response carries `partially_read` and says so in `note` — a partial read no
+longer looks like a complete one. `document-ai`'s storage cap went from 100k to
+2MB.
+
+Demonstrated in test: on a 146,836-character agreement the old
+`slice(0, 25000)` did **not** contain the signatory's name; ends-biased chunking
+finds it in the second window. Original text follows.
+
+### T1 (original finding). Truncation silently discards contract text
 `extract-consents` and `extract-signature-matrix` send only the first **25,000
 characters** of a document to the model. `document-ai` stores only the first
 **100,000**.

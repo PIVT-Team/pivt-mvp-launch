@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireJwt } from "../_shared/require-jwt.ts";
+import { chunkEndsBiased, wasTruncated } from "../_shared/chunk-text.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -81,7 +82,17 @@ Deno.serve(async (req) => {
 
     // Per document, so every row carries a real source reference rather than a
     // finding attributed to an undifferentiated blob of text.
+    const truncatedDocs: string[] = [];
     for (const doc of usable) {
+      const fullText = doc.text_content || "";
+      // Execution blocks are at the END. Reading only the first 25k characters
+      // meant any document over roughly eight pages returned "no signatories"
+      // for a document full of them. Head and tail are read first.
+      const chunks = chunkEndsBiased(fullText);
+      if (wasTruncated(fullText, chunks)) truncatedDocs.push(doc.filename);
+      const seenInDoc = new Set<string>();
+
+      for (const chunk of chunks) {
       const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
@@ -101,7 +112,9 @@ Deno.serve(async (req) => {
             },
             {
               role: "user",
-              content: `Document: ${doc.filename} (${doc.doc_type}, version ${doc.version})\n\n${(doc.text_content || "").slice(0, 25000)}`,
+              content: `Document: ${doc.filename} (${doc.doc_type}, version ${doc.version})` +
+                       (chunk.total > 1 ? `\nSection: ${chunk.label} (${chunk.index + 1} of ${chunk.total})` : "") +
+                       `\n\n${chunk.text}`,
             },
           ],
           tools: [{ type: "function", function: { name: "emit_matrix", description: "Signature matrix rows", parameters: MATRIX_SCHEMA } }],
@@ -118,6 +131,12 @@ Deno.serve(async (req) => {
       for (const s of rows) {
         // Skip rows the model is unsure enough about to be noise.
         if (Number(s.confidence) < 0.3) continue;
+
+        // Overlapping windows mean the same block can be seen twice.
+        const dedupeKey = [s.document_name, s.signing_party, s.signatory_name, s.signatory_capacity]
+          .map((v: string) => String(v || "").toLowerCase().trim()).join("::");
+        if (seenInDoc.has(dedupeKey)) continue;
+        seenInDoc.add(dedupeKey);
 
         const who = s.signatory_name?.trim();
         const title = [
@@ -159,6 +178,7 @@ Deno.serve(async (req) => {
           status: "not_started",
         });
       }
+      }
     }
 
     if (created.length === 0) {
@@ -185,7 +205,11 @@ Deno.serve(async (req) => {
       documents_analysed: usable.length,
       awaiting_review: inserted?.length || 0,
       rows: inserted,
-      note: "All rows require human review before any packet can be circulated.",
+      // Never let a partial read look like a complete one.
+      partially_read: truncatedDocs,
+      note: truncatedDocs.length
+        ? `All rows require human review. NOTE: ${truncatedDocs.length} document(s) were too long to read in full (${truncatedDocs.join(", ")}) — some signatories may be missing.`
+        : "All rows require human review before any packet can be circulated.",
     });
   } catch (e) {
     return json({ error: e instanceof Error ? e.message : "Unknown error" }, 500);
