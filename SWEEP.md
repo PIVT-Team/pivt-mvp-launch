@@ -151,3 +151,42 @@ Two cheap guards would have caught most of it:
    done. I made exactly this mistake today: built the Requirements view, wired
    the router, ran the tests, and left it unreachable because no nav entry
    pointed at it.
+
+
+---
+
+## Sweep completed — outcome and corrections
+
+**Done:** S1 (obligation-extractor wired), S2 (rules function guarded), S3
+(simulation notice on execution surfaces), S4 (Newton chat mounted), S5
+(get-deal-context wired), S6 (blocker severity), S8 (49 files archived), S9a
+(wire change history reader), S10 (classifier can no longer override the user's
+document type on a filename guess).
+
+### Corrections to the original sweep
+
+**S7 was wrong.** I described `resolve-entity` as a competing fuzzy matcher to
+`normalizePayee`. It is not — it is a *human confirmation* endpoint that marks an
+existing `entity_resolution` row as confirmed or rejected. The two are
+complementary, not duplicates. The real gap is that nothing ever *proposes*
+resolutions, so the confirmation endpoint has no input. Left as-is; wiring
+proposal generation is a feature, not a cleanup.
+
+**The orphan counts in the original sweep were inflated.** They came from
+basename matching. A proper import-graph walk from `main.tsx` / `App.tsx`,
+following lazy `import()` too, found **51 unreachable files, not 21** — but
+several of those "orphaned edge functions" are legitimately called from outside
+the repo (webhooks, cron targets), so that count was too high in the other
+direction.
+
+Method matters more than the number: name matching produces both false
+positives and false negatives, and the reachability walk is the only version
+worth acting on.
+
+### Root cause found mid-sweep
+
+Everything above is secondary to what the sweep surfaced by accident: **no
+document text was ever extracted.** The uploader sent a 45-character placeholder
+and `document-ai` classified from the filename. Every extraction feature in the
+product was reasoning about a filename. Fixed separately — see
+`_shared/extract-text.ts`.

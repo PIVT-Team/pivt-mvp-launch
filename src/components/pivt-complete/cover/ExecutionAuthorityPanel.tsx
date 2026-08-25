@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { SimulationNotice } from './SimulationNotice';
 
 interface DealUserRole {
   id: string;
@@ -50,6 +51,7 @@ export const ExecutionAuthorityPanel: React.FC<ExecutionAuthorityPanelProps> = (
   if (loading) {
     return (
       <div className="pivt-card border border-border/40 p-4 flex items-center justify-center h-16">
+      <SimulationNotice className="mb-4" />
         <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
