@@ -735,7 +735,10 @@ serve(async (req) => {
       // orphaned the stored file.
       if (documentId) {
         const update: Record<string, unknown> = {
-          text_content: effectiveText.slice(0, 100000) || null,
+          // Postgres text has no practical limit; the old 100k cap clipped long
+          // agreements before any extractor could read them. 2MB is a guard
+          // against a runaway file, not a content decision.
+          text_content: effectiveText.slice(0, 2_000_000) || null,
           status: extractionProblem && effectiveText.length < MIN_EXTRACTABLE_CHARS ? "PARSE_FAILED" : "PARSED",
           extracted_fields: {
             ...(result.extracted_fields || {}),
