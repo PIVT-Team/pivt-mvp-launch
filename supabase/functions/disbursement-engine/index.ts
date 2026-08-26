@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requireJwt } from "../_shared/require-jwt.ts";
+import { calculateWaterfall } from "../_shared/waterfall.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,86 +47,9 @@ function evaluateEligibility(intent: DisbursementIntent, fxQuote: any | null): D
 }
 
 // ---------- Waterfall Calculator ----------
-function calculateWaterfall(
-  totalConsideration: number,
-  tiers: { id: string; tier_rank: number; name: string; allocation_logic_type: string; params: any }[],
-  recipients: { id: string; name: string; ownership_pct: number }[]
-) {
-  const sorted = [...tiers].sort((a, b) => a.tier_rank - b.tier_rank);
-  let remaining = totalConsideration;
-  const lines: any[] = [];
-
-  for (const tier of sorted) {
-    if (remaining <= 0) break;
-    let tierAmount = 0;
-
-    switch (tier.allocation_logic_type) {
-      case "fixed":
-        tierAmount = Math.min(tier.params.amount || 0, remaining);
-        break;
-      case "percentage":
-        tierAmount = Math.min(totalConsideration * (tier.params.percentage || 0) / 100, remaining);
-        break;
-      case "pro_rata":
-        tierAmount = Math.min(tier.params.pool_amount || remaining, remaining);
-        break;
-      case "threshold":
-        tierAmount = Math.min(tier.params.cap || remaining, remaining);
-        break;
-    }
-
-    remaining -= tierAmount;
-
-    // Distribute to recipients based on tier params
-    const tierRecipients = tier.params.recipient_ids
-      ? recipients.filter((r: any) => tier.params.recipient_ids.includes(r.id))
-      : recipients;
-
-    if (tier.allocation_logic_type === "pro_rata" && tierRecipients.length > 0) {
-      const totalPct = tierRecipients.reduce((s: number, r: any) => s + r.ownership_pct, 0);
-      for (const r of tierRecipients) {
-        const share = totalPct > 0 ? (r.ownership_pct / totalPct) * tierAmount : tierAmount / tierRecipients.length;
-        lines.push({
-          tier_id: tier.id,
-          tier_name: tier.name,
-          recipient_id: r.id,
-          recipient_name: r.name,
-          consideration_type: tier.params.consideration_type || "cash",
-          amount_original: Math.round(share * 100) / 100,
-          currency_original: tier.params.currency || "USD",
-          settlement_currency: tier.params.settlement_currency || "USD",
-          priority_rank: tier.tier_rank,
-        });
-      }
-    } else if (tierRecipients.length > 0) {
-      const perRecipient = tierAmount / tierRecipients.length;
-      for (const r of tierRecipients) {
-        lines.push({
-          tier_id: tier.id,
-          tier_name: tier.name,
-          recipient_id: r.id,
-          recipient_name: r.name,
-          consideration_type: tier.params.consideration_type || "cash",
-          amount_original: Math.round(perRecipient * 100) / 100,
-          currency_original: tier.params.currency || "USD",
-          settlement_currency: tier.params.settlement_currency || "USD",
-          priority_rank: tier.tier_rank,
-        });
-      }
-    }
-  }
-
-  // Version hash
-  const hashInput = JSON.stringify({ totalConsideration, tiers: sorted.map(t => ({ id: t.id, params: t.params })), lines });
-  const encoder = new TextEncoder();
-  const data = encoder.encode(hashInput);
-  // Simple hash for demo
-  let hash = 0;
-  for (const byte of data) { hash = ((hash << 5) - hash + byte) | 0; }
-  const versionHash = `wf-${Math.abs(hash).toString(16).padStart(8, "0")}`;
-
-  return { lines, versionHash, remaining, totalAllocated: totalConsideration - remaining };
-}
+//
+// Lives in _shared/waterfall.ts so it can be tested without a Deno runtime.
+// It is the arithmetic that decides who gets paid what.
 
 // ---------- Mock Provider ----------
 const MockProvider = {
@@ -287,12 +211,28 @@ Deno.serve(async (req) => {
         const { deal_id, total_consideration, tiers, recipients } = body;
         const result = calculateWaterfall(total_consideration, tiers, recipients);
 
+        // A tier whose recipient list matches nobody is a configuration error
+        // that produces a silently short payment run. Record it rather than
+        // letting the allocation look complete.
+        if (result.unpayableTiers.length > 0) {
+          console.warn(
+            `calculate-waterfall: ${result.unpayableTiers.length} tier(s) on deal ${deal_id} name recipients ` +
+            `that are not on this deal and were skipped: ` +
+            result.unpayableTiers.map((t) => `${t.tier_name} ($${t.amount})`).join(", ")
+          );
+        }
+
         // Store allocation snapshot
         const { data: allocation } = await supabase.from("waterfall_allocations").insert({
           deal_id,
           calculation_version_hash: result.versionHash,
           input_totals: { total_consideration, tier_count: tiers.length, recipient_count: recipients.length },
-          output_summary: { total_allocated: result.totalAllocated, remaining: result.remaining, line_count: result.lines.length },
+          output_summary: {
+            total_allocated: result.totalAllocated,
+            remaining: result.remaining,
+            line_count: result.lines.length,
+            unpayable_tiers: result.unpayableTiers,
+          },
         }).select().single();
 
         if (allocation) {

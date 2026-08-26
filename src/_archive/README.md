@@ -15,3 +15,14 @@ deleting anything.
 Excluded from the sweep: `src/components/ui/**` (the shadcn primitive kit — kept
 whole so future components can use it) and `vite-env.d.ts` (consumed by tsc, not
 imported).
+
+## Later additions
+
+`ApprovalsCover.tsx` and `DealInputsCover.tsx` were imported by
+`DealWorkspaceCover` but never rendered — the switch returns
+`ApprovalsWorkflowCover` (which reads and writes `deal_approvals` for real) and
+the individual `deal-inputs/*` panels instead. Both were pure `MOCK_*`
+constants: `ApprovalsCover` showed a $840M wire approval for "Project ATLAS"
+with approve and reject buttons that only raised a toast. Approving a wire is
+the most consequential action in this product, and that screen was theatre for
+a deal that does not exist.

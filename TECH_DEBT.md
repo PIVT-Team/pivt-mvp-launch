@@ -54,7 +54,28 @@ depends on a payment having happened is unfounded.
 **Fix:** real provider integration, or remove execution from the product surface
 until there is one. *Weeks, and a vendor decision.*
 
-### T3. Money is computed in floating point
+### ~~T3. Money is computed in floating point~~ — **FIXED**
+
+The waterfall now allocates in integer cents via `_shared/allocate.ts`, using
+the largest-remainder method, so each tier's payments sum to the tier exactly by
+construction. `Math.round(share * 100) / 100` rounded every share on its own and
+nothing made them add back up; a three-way split of $100 came to $99.99, and
+across twenty stakeholders on nine figures the residue is real money belonging
+to someone.
+
+The calculator moved to `_shared/waterfall.ts` so it can be tested without a
+Deno runtime, and it now asserts that allocated + unallocated equals the pool,
+refusing to produce a payment run if it ever does not.
+
+Found while testing: a tier whose `recipient_ids` matched nobody had its amount
+deducted from the pool and paid to no one, so `totalAllocated` counted money
+that appeared on no payment line. Those tiers are now reported in
+`unpayableTiers`, logged, and persisted on the allocation snapshot.
+
+Not covered: `NUMERIC(20,0)` columns in Postgres — the amounts are still stored
+as decimals. The arithmetic is exact; the storage is unchanged.
+
+### T3 (original finding). Money is computed in floating point
 `disbursement-engine` uses `Math.round(share * 100) / 100` for waterfall
 allocations. At 8–9 figures across 20+ stakeholders, cents drift and totals stop
 reconciling. Flagged in `ARCHITECTURE.md` as B5 and still open.
@@ -130,15 +151,31 @@ deal sees a different list, and clearing site data loses it.
 so a new `uploaded_as` — and filter on that. *~2 hours.* Honest interim, not a
 resting place.
 
-### ~~T7. Demo data still ships inside eight live components~~ — **PARTLY FIXED**
+### ~~T7. Demo data still ships inside eight live components~~ — **MOSTLY FIXED**
 
-Six pure-demo covers now carry a `SampleDataNotice` saying plainly that the
-content is illustrative. `DocumentsCover`'s demo-ingest action — which wrote
-fabricated `extracted_text` into `deal_documents`, where the extractors would
-read it as genuine contract text — is now restricted to demo deals.
+`DocumentsCover`'s demo-ingest action — which wrote fabricated `extracted_text`
+into `deal_documents`, where the extractors would read it as genuine contract
+text — is restricted to demo deals.
 
-Still open: wiring those six screens to real data, or removing them. The notice
-makes the state legible; it does not make the screens work.
+Of the six pure-demo covers, checking reachability rather than trusting the file
+list changed the answer twice:
+
+* **`ApprovalsCover` and `DealInputsCover` were never rendered.** Both were
+  imported by `DealWorkspaceCover` and neither appears in its switch — the real
+  `ApprovalsWorkflowCover`, which reads and writes `deal_approvals`, is what
+  users get. `ApprovalsCover` showed a $840M wire approval for a deal that does
+  not exist, with approve and reject buttons that only raised a toast. Both are
+  archived.
+* **`RiskMonitorCover` is now real.** `portfolioRiskService` reads open
+  discrepancies, pending approvals and unverified wires for the deals the viewer
+  can see, worst first, with demo deals labelled. It deliberately has no
+  readiness percentage: that number is defined by `getDealMetrics`, and a second
+  one computed from cheaper signals would disagree with the deal's own Execution
+  tab.
+
+Still fabricated and reachable from the sidebar: `CommunicationsHub`,
+`PortfolioPaymentsCover`, `AIDashboardCover`. Each carries a `SampleDataNotice`.
+The notice makes the state legible; it does not make the screens work.
 
 ### T7 (original finding). Demo data still ships inside eight live components
 `DealsCover`, `ApprovalsCover`, `CommunicationsHub`, `RiskMonitorCover`,

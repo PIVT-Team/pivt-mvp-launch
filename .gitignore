@@ -25,3 +25,4 @@ dist-ssr
 
 # Local Claude Code tooling (preview launch config, etc.)
 .claude/
+vitest.stress.config.ts
