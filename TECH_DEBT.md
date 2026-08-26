@@ -151,15 +151,31 @@ deal sees a different list, and clearing site data loses it.
 so a new `uploaded_as` — and filter on that. *~2 hours.* Honest interim, not a
 resting place.
 
-### ~~T7. Demo data still ships inside eight live components~~ — **PARTLY FIXED**
+### ~~T7. Demo data still ships inside eight live components~~ — **MOSTLY FIXED**
 
-Six pure-demo covers now carry a `SampleDataNotice` saying plainly that the
-content is illustrative. `DocumentsCover`'s demo-ingest action — which wrote
-fabricated `extracted_text` into `deal_documents`, where the extractors would
-read it as genuine contract text — is now restricted to demo deals.
+`DocumentsCover`'s demo-ingest action — which wrote fabricated `extracted_text`
+into `deal_documents`, where the extractors would read it as genuine contract
+text — is restricted to demo deals.
 
-Still open: wiring those six screens to real data, or removing them. The notice
-makes the state legible; it does not make the screens work.
+Of the six pure-demo covers, checking reachability rather than trusting the file
+list changed the answer twice:
+
+* **`ApprovalsCover` and `DealInputsCover` were never rendered.** Both were
+  imported by `DealWorkspaceCover` and neither appears in its switch — the real
+  `ApprovalsWorkflowCover`, which reads and writes `deal_approvals`, is what
+  users get. `ApprovalsCover` showed a $840M wire approval for a deal that does
+  not exist, with approve and reject buttons that only raised a toast. Both are
+  archived.
+* **`RiskMonitorCover` is now real.** `portfolioRiskService` reads open
+  discrepancies, pending approvals and unverified wires for the deals the viewer
+  can see, worst first, with demo deals labelled. It deliberately has no
+  readiness percentage: that number is defined by `getDealMetrics`, and a second
+  one computed from cheaper signals would disagree with the deal's own Execution
+  tab.
+
+Still fabricated and reachable from the sidebar: `CommunicationsHub`,
+`PortfolioPaymentsCover`, `AIDashboardCover`. Each carries a `SampleDataNotice`.
+The notice makes the state legible; it does not make the screens work.
 
 ### T7 (original finding). Demo data still ships inside eight live components
 `DealsCover`, `ApprovalsCover`, `CommunicationsHub`, `RiskMonitorCover`,
