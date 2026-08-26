@@ -68,7 +68,26 @@ funds-flow diff uses it.
 
 ## P1 — visibly wrong, or wrong under load
 
-### T4. XLSX and DOCX cannot be read
+### ~~T4. XLSX and DOCX cannot be extracted~~ — **FIXED**
+
+`supabase/functions/_shared/ooxml.ts` reads both formats directly from the ZIP
+container. Spreadsheets come out as TSV per sheet with column positions kept,
+percentages rendered as percentages (Excel stores 5% as 0.05) and dates as
+dates. Word tables are converted cell-first, so a party and its notice address
+stay on one line. Legacy .doc/.xls now get an actionable message.
+
+Found while testing: `document-ai` fetched and parsed the document and then sent
+the caller's `"[Document: foo.pdf]"` stub to the model anyway, so classification
+and field extraction were still reading a filename. It now sends the extracted
+text, opening and closing sections rather than a flat head-slice.
+
+Also found: `toCents` returned `NaN` for `"$1,234.56"` and truncated `"1.005"`
+to 100 cents. A NaN cent count compares unequal to everything, so every amount
+looked changed and no duplicate was detected.
+
+### T13. `SEED_TEST_DEAL.sql` in the repo root — **FIXED**, now `scripts/seed-test-deal.sql`.
+
+### T4 (original finding). XLSX and DOCX cannot be read
 `extract-text.ts` handles PDF and plain text. A spreadsheet returns
 "Unsupported file type". Cap-table ingestion — a core input — has no extraction
 path, and `CapTableCover` still sends a `[XLSX: …]` stub.
@@ -174,7 +193,7 @@ looks like it works because failure is invisible.
 
 **Fix:** log with context; never `catch {}` without a reason comment. *~1 hour.*
 
-### T13. `SEED_TEST_DEAL.sql` ships with a placeholder
+### T13. `scripts/seed-test-deal.sql` ships with a placeholder
 Contains `YOUR_EMAIL_HERE` and lives at the repo root. It guards against being
 run unedited, but it is test scaffolding sitting beside production migrations.
 

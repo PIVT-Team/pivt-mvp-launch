@@ -20,7 +20,7 @@
 
 DO $$
 DECLARE
-  v_email  text := 'YOUR_EMAIL_HERE';
+  v_email  text := 'support@pivttech.ai';
   v_user   uuid;
   v_deal   uuid := 'dddddddd-1111-4111-8111-111111111111';
 BEGIN

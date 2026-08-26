@@ -22,7 +22,14 @@
  * about the deal. Silently returning "" is what produced the current situation.
  */
 
-export type ExtractionMethod = "pdf_text_layer" | "plain_text" | "vision_ocr" | "none";
+import { extractOoxml, isOoxml } from "./ooxml.ts";
+
+export type ExtractionMethod =
+  | "pdf_text_layer"
+  | "plain_text"
+  | "vision_ocr"
+  | "office_xml"
+  | "none";
 
 export interface ExtractionResult {
   text: string;
@@ -274,6 +281,33 @@ export async function extractDocumentText(
       : { text, method: "plain_text", quality: 0.3, problem: "File contains very little text." };
   }
 
+  // Word and Excel. Spreadsheets matter disproportionately here: cap tables,
+  // funds flows and closing checklists arrive as .xlsx, and until this existed
+  // they decoded to ZIP noise and were reported as an unsupported file type.
+  if (isOoxml(filename, bytes)) {
+    try {
+      const office = await extractOoxml(bytes, filename);
+      if (office.text.length >= MIN_USEFUL_CHARS) {
+        return { text: office.text, method: "office_xml", quality: 1 };
+      }
+      return {
+        text: office.text,
+        method: office.text ? "office_xml" : "none",
+        quality: office.text ? 0.3 : 0,
+        problem: office.problem ??
+          `Only ${office.text.length} characters were found in this file, which is too little to check automatically.`,
+      };
+    } catch (e) {
+      return {
+        text: "",
+        method: "none",
+        quality: 0,
+        problem: `This Office file could not be opened (${String((e as Error)?.message ?? e)}). ` +
+          `It may be corrupt, password-protected, or saved in the older .doc/.xls format — re-save it as .docx or .xlsx.`,
+      };
+    }
+  }
+
   if (isPdf) {
     let layer = { text: "", pages: 1 };
     try {
@@ -335,7 +369,7 @@ export async function extractDocumentText(
     };
   }
 
-  // Word and everything else: try a best-effort decode, flag if it looks binary.
+  // Everything else: try a best-effort decode, flag if it looks binary.
   const guess = new TextDecoder().decode(bytes);
   if (printableRatio(guess) > 0.8 && guess.trim().length >= MIN_USEFUL_CHARS) {
     return { text: guess.trim(), method: "plain_text", quality: 0.6 };
@@ -344,7 +378,10 @@ export async function extractDocumentText(
     text: "",
     method: "none",
     quality: 0,
-    problem: `Unsupported file type for text extraction (${filename}). Upload a PDF or plain text file.`,
+    problem: /\.(doc|xls|ppt)$/i.test(lower)
+      ? `The legacy ${lower.slice(lower.lastIndexOf("."))} format cannot be read. Re-save this file as ` +
+        `.docx, .xlsx or PDF and upload it again.`
+      : `Unsupported file type for text extraction (${filename}). Upload a PDF, Word, Excel or plain text file.`,
   };
 }
 
