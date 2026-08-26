@@ -188,6 +188,38 @@ Still fabricated and reachable from the sidebar: `CommunicationsHub` and
 `AIDashboardCover`. Both carry a `SampleDataNotice`. The notice makes the state
 legible; it does not make the screens work.
 
+### T14. The demo-data problem is wider than `DEMO_*` naming — **NEW, P0**
+
+Walking the import graph and checking which reachable components never read the
+database found screens the original sweep missed entirely, because their
+fabricated content is written as inline literals rather than a `DEMO_` constant.
+
+**`CommentsCover` — fixed.** This is the worst one found so far. It is rendered
+inside the real deal workspace, on the user's own transaction. It showed a fixed
+conversation between "John Chen" and "Sarah Kim" about a 0.2% ESOP delta,
+imported the Supabase client and never called it, and posting appended to React
+state and raised "Comment posted" — the user's comment was gone on the next
+render. `deal_comments` and `comment_mentions` had existed the whole time with
+RLS in place. Now reads and writes for real, with author names from `profiles`,
+a load-failure state that is not an empty thread, and a post button that cannot
+double-submit.
+
+**Still open, in rough order of consequence:**
+
+| Screen | Rendered where | Backed by | Consequence |
+|---|---|---|---|
+| `WaterfallCover` | deal workspace | `waterfallStore`, a zustand store with **no persistence at all** | A waterfall someone builds is gone on refresh. `waterfall_tiers`, `waterfall_allocations` and `disbursement-engine`'s `calculate-waterfall` all exist and are not called. |
+| `TimelineCover` | sidebar | `timelineStore`, persisted to `localStorage` | Per-browser. A colleague sees a different timeline. Same class as T6. |
+| `AuditAndReports` | **nowhere** | `auditStore` with seeded demo entries | Dead code; archive. |
+| `CommunicationsHub` | sidebar | `DEMO_COMMENTS` | Portfolio view of the comments now stored for real — wire it to `deal_comments`. |
+| `AIDashboardCover` | sidebar + workspace | inline literals | 585 lines. Needs a decision about what it is for before wiring. |
+
+**The pattern.** Three separate times this session, reading the file list gave
+the wrong answer and walking the import graph gave the right one. The check that
+works is: *is this component reachable from `main.tsx`, is it actually rendered
+by its importer, and does it or its hooks ever touch Supabase?* It is worth
+running that as a test rather than as an investigation.
+
 ### T7 (original finding). Demo data still ships inside eight live components
 `DealsCover`, `ApprovalsCover`, `CommunicationsHub`, `RiskMonitorCover`,
 `PortfolioPaymentsCover`, `DocumentsCover`, `DealInputsCover`,
