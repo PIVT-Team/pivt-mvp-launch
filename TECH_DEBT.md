@@ -188,6 +188,24 @@ Still fabricated and reachable from the sidebar: `CommunicationsHub` and
 `AIDashboardCover`. Both carry a `SampleDataNotice`. The notice makes the state
 legible; it does not make the screens work.
 
+### T15. A frontend deploy can outrun the migration it needs — **NEW**
+
+I shipped the `uploaded_as` client change to production while its migration was
+still unapplied. PostgREST rejects an INSERT naming an unknown column outright
+(`PGRST204`) and a SELECT requesting one (`42703`), so uploading **and listing**
+documents were broken on pivt.tools until it was caught.
+
+The client now probes for the column once per session and omits it when absent,
+so the order stops mattering. But the underlying problem is structural: schema
+changes go through the Supabase SQL editor by hand while frontend changes go
+through GitHub Actions, and nothing checks that a deploy's schema dependencies
+are satisfied. Any future column this codebase reads or writes has the same
+failure mode.
+
+**Fix:** either run migrations from CI so the two move together, or add a
+startup check that compares required columns against the live schema and refuses
+to render the affected screens with a clear message. *~half a day.*
+
 ### T14. The demo-data problem is wider than `DEMO_*` naming — **NEW, P0**
 
 Walking the import graph and checking which reachable components never read the

@@ -59,6 +59,34 @@ interface DealDocumentUploaderProps {
   extraAcceptedExtensions?: string;
 }
 
+/**
+ * Whether `contract_documents.uploaded_as` exists in this database yet.
+ *
+ * The column is added by migration 20260521070000, and a frontend deploy can
+ * reach production before that migration is applied — which is exactly what
+ * happened: PostgREST rejects an INSERT that names an unknown column outright
+ * (PGRST204) and a SELECT that requests one (42703), so naming it unconditionally
+ * broke both uploading and listing documents until the migration ran.
+ *
+ * A schema change and the code that uses it deploy through different pipelines
+ * here, so the client cannot assume an order. Probed once per session and
+ * cached; after the migration is applied a reload picks it up.
+ */
+let uploadedAsColumn: boolean | null = null;
+
+async function hasUploadedAsColumn(): Promise<boolean> {
+  if (uploadedAsColumn !== null) return uploadedAsColumn;
+  const { error } = await supabase.from('contract_documents').select('uploaded_as').limit(1);
+  uploadedAsColumn = !error;
+  if (error) {
+    console.warn(
+      'contract_documents.uploaded_as is not present yet — falling back to doc_type and the ' +
+      'local upload list. Apply scripts/pending-migrations.sql to enable it.'
+    );
+  }
+  return uploadedAsColumn;
+}
+
 export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
   dealId, isDemoDeal, docTypes, icon, title, description, emptyStateText,
   allowSpreadsheets = false, extraAcceptedExtensions,
@@ -115,10 +143,14 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
   const fetchDocs = useCallback(async () => {
     if (!dealId || isDemoDeal) { setLoading(false); return; }
     setLoading(true);
+    const withUploadedAs = await hasUploadedAsColumn();
     // Fetch by deal and filter client-side: the type is a label, not a gate.
     const { data } = await supabase
       .from('contract_documents')
-      .select('id, doc_type, uploaded_as, filename, file_url, status, uploaded_at, extracted_fields, extraction_confidence')
+      .select(
+        `id, doc_type,${withUploadedAs ? ' uploaded_as,' : ''} filename, file_url, status, ` +
+        'uploaded_at, extracted_fields, extraction_confidence'
+      )
       .eq('deal_id', dealId)
       .order('uploaded_at', { ascending: false });
 
@@ -219,16 +251,18 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
         if (updateError) throw updateError;
         toast.success('Document replaced. Starting AI parsing…');
       } else {
+        // What the person said it is. `doc_type` is what the classifier will
+        // say it is, a few seconds from now — see the note on the column probe.
+        const row: Record<string, unknown> = {
+          deal_id: dealId, doc_type: docType,
+          filename: file.name, file_url: fileUrl,
+          status: 'UPLOADED', uploaded_by: user.id,
+        };
+        if (await hasUploadedAsColumn()) row.uploaded_as = docType;
+
         const { data: insertData, error: insertError } = await supabase
           .from('contract_documents')
-          .insert({
-            deal_id: dealId, doc_type: docType as any,
-            // What the person said it is. `doc_type` is what the classifier
-            // will say it is, a few seconds from now.
-            uploaded_as: docType,
-            filename: file.name, file_url: fileUrl,
-            status: 'UPLOADED' as any, uploaded_by: user.id,
-          } as any)
+          .insert(row as any)
           .select('id')
           .single();
         if (insertError) throw insertError;
