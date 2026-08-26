@@ -9,6 +9,7 @@ The fixes are stable on `dev`. Pasting any of them is safe — each is a self-co
 | Date | File | Commit on `dev` | Effect on live |
 |---|---|---|---|
 | 2026-05-13 | `supabase/functions/_shared/require-jwt.ts` | `8c70a56` | Replaced manual HS256 verification with `supabase.auth.getUser()`. Unblocked 10+ auth-requiring edge functions (document-ai, newton, manual-verify, etc.). |
+| 2026-08-26 | `scripts/lovable-paste-migrations.txt` | `20260521060000`, `20260521070000` | `app_settings` + `contract_documents.uploaded_as`. Verified live: `uploaded_as` returns 200 (was 42703), `app_settings` returns 42501 permission-denied (was PGRST205 not-found) — anon correctly locked out. |
 | 2026-05-13 | `src/services/newtonActionService.ts` | `608b03c` | Send user JWT (not anon key) so `newton-action` accepts authenticated requests. Fixes the "Unknown error" / "Action needs attention" that appeared when clicking Newton chips (Generate KYC, list blockers, etc.). |
 
 ## Still queued — paste when ready
