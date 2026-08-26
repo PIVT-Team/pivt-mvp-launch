@@ -32,6 +32,10 @@ jobs:
     # presence of the token as an env var and branch on that instead.
     env:
       HAS_VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN != '' }}
+      # The Vercel team slug. Set the VERCEL_SCOPE repository variable to move
+      # this deployment to a different team without editing the workflow; the
+      # fallback keeps the current team working with no configuration.
+      VERCEL_SCOPE: ${{ vars.VERCEL_SCOPE || 'pivt-team' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -85,10 +89,10 @@ jobs:
           set -e
           npx --yes vercel@latest link --yes \
             --project pivt-mvp-launch-abcef2ed \
-            --scope pivt-team \
+            --scope "$VERCEL_SCOPE" \
             --token="${{ secrets.VERCEL_TOKEN }}"
           npx --yes vercel@latest deploy --prebuilt --prod \
-            --scope pivt-team --token="${{ secrets.VERCEL_TOKEN }}"
+            --scope "$VERCEL_SCOPE" --token="${{ secrets.VERCEL_TOKEN }}"
 
       - name: Note when deployment is not configured
         if: env.HAS_VERCEL_TOKEN != 'true'

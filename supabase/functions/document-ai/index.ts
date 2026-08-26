@@ -739,8 +739,16 @@ serve(async (req) => {
             aiResult.confidence = keywordResult.confidence;
           }
           result = { ...result, ...aiResult };
-        } catch {
-          // fall back to deterministic result
+        } catch (e) {
+          // Falling back to the deterministic keyword result is correct, but it
+          // must not be invisible: a document classified as "Other" because the
+          // model returned malformed arguments looks identical to one that is
+          // genuinely unclassifiable.
+          console.error(
+            `document-ai: could not parse tool arguments for ${fileName ?? documentId} ` +
+            `(${String((e as Error)?.message ?? e)}); using keyword classification instead. ` +
+            `Arguments began: ${String(toolCall.function.arguments).slice(0, 200)}`
+          );
         }
       }
 

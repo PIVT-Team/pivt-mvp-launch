@@ -151,7 +151,9 @@ Deno.serve(async (req) => {
 
     const siteUrl = Deno.env.get("SITE_URL") || `https://pivt.tools`;
     const verifyUrl = `${siteUrl}/verify?token=${rawToken}`;
-    const logoUrl = `https://hipjywloeveadfndzary.supabase.co/storage/v1/object/public/email-assets/pivt-logo.png`;
+    // Derived from the runtime's own project URL rather than baked in, so this
+    // does not silently render a broken image in any other environment.
+    const logoUrl = `${(Deno.env.get("SUPABASE_URL") ?? "").replace(/\/+$/, "")}/storage/v1/object/public/email-assets/pivt-logo.png`;
 
     const isKYB = (stakeholder.stakeholder_type || "individual") === "entity";
     const dealName = deal?.deal_name || "a transaction";

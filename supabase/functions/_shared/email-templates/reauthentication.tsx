@@ -13,6 +13,8 @@ import {
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
+import { LOGO_URL } from './brand.ts'
+
 interface ReauthenticationEmailProps {
   token: string
 }
@@ -23,7 +25,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
     <Preview>Your verification code for PIVT</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Img src="https://hipjywloeveadfndzary.supabase.co/storage/v1/object/public/email-assets/pivt-logo.png" alt="PIVT" height="32" style={{ display: 'block', marginBottom: '24px' }} />
+        <Img src={LOGO_URL} alt="PIVT" height="32" style={{ display: 'block', marginBottom: '24px' }} />
         <Heading style={h1}>Confirm reauthentication</Heading>
         <Text style={text}>Use the code below to confirm your identity:</Text>
         <Text style={codeStyle}>{token}</Text>

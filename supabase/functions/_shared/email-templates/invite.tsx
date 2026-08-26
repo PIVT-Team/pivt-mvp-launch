@@ -15,6 +15,8 @@ import {
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
+import { LOGO_URL } from './brand.ts'
+
 interface InviteEmailProps {
   siteName: string
   siteUrl: string
@@ -31,7 +33,7 @@ export const InviteEmail = ({
     <Preview>You've been invited to join PIVT</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Img src="https://hipjywloeveadfndzary.supabase.co/storage/v1/object/public/email-assets/pivt-logo.png" alt="PIVT" height="32" style={{ display: 'block', marginBottom: '24px' }} />
+        <Img src={LOGO_URL} alt="PIVT" height="32" style={{ display: 'block', marginBottom: '24px' }} />
         <Heading style={h1}>You've been invited</Heading>
         <Text style={text}>
           You've been invited to join PIVT — the intelligence layer behind every close. Click the button below to accept the invitation and create your account.

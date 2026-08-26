@@ -141,7 +141,35 @@ extraction works beautifully.
 **Fix:** move demo data behind the existing `isDemoDeal` flag so it can never
 render for a real deal. *~half a day.*
 
-### T8. Project ref hard-coded in a migration
+### ~~T8 / T11. Environment identity baked into SQL, workflows and email~~ — **FIXED**
+
+Migration `20260521060000_runtime_settings.sql` adds `app_settings` and reads
+`functions_base_url` and `email_from_address` at call time. The base URL is
+*derived* from the service-role key already in Vault — a legacy Supabase key is
+a JWT carrying `"ref"` — so a second environment needs no paste. When it cannot
+be derived the cron job warns and leaves the mail queued rather than posting to
+the wrong project.
+
+Verified against a local Postgres 14: idempotent across three runs (the first
+guard I wrote matched the address rather than the rewritten call, so each run
+wrapped the lookup in another lookup), reads changed settings, and refuses
+loudly when unset.
+
+Wider than the original note: the project ref was also baked into the logo URL
+of all six auth email templates and `send-verification`, so mail from any other
+project would render a broken image. Those now derive it from `SUPABASE_URL`.
+The Vercel team slug is now the `VERCEL_SCOPE` repository variable, defaulting
+to the current team.
+
+### ~~T12. Three silent catch blocks~~ — **FIXED**
+
+A sweep found five. Three are correct as they stand (corrupted `localStorage`
+JSON, a storage quota rejection, a context provider being absent) and carry
+reason comments. The two that mattered now report: `document-ai` swallowing a
+malformed tool-call response — which made a mis-parsed document look identical
+to an unclassifiable one — and the cap-table reader's file-read failure.
+
+### T8 (original finding). Project ref hard-coded in a migration
 `20260521040000_email_queue_cron.sql` contains
 `https://hipjywloeveadfndzary.supabase.co/...` — mine. It breaks silently in any
 other environment, which matters the moment there is a staging project.

@@ -15,6 +15,8 @@ import {
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
+import { LOGO_URL } from './brand.ts'
+
 interface SignupEmailProps {
   siteName: string
   siteUrl: string
@@ -33,7 +35,7 @@ export const SignupEmail = ({
     <Preview>Confirm your email for PIVT</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Img src="https://hipjywloeveadfndzary.supabase.co/storage/v1/object/public/email-assets/pivt-logo.png" alt="PIVT" height="32" style={{ display: 'block', marginBottom: '24px' }} />
+        <Img src={LOGO_URL} alt="PIVT" height="32" style={{ display: 'block', marginBottom: '24px' }} />
         <Heading style={h1}>Confirm your email</Heading>
         <Text style={text}>
           Thanks for signing up for PIVT — the intelligence layer behind every close.
