@@ -68,7 +68,26 @@ funds-flow diff uses it.
 
 ## P1 — visibly wrong, or wrong under load
 
-### T4. XLSX and DOCX cannot be read
+### ~~T4. XLSX and DOCX cannot be extracted~~ — **FIXED**
+
+`supabase/functions/_shared/ooxml.ts` reads both formats directly from the ZIP
+container. Spreadsheets come out as TSV per sheet with column positions kept,
+percentages rendered as percentages (Excel stores 5% as 0.05) and dates as
+dates. Word tables are converted cell-first, so a party and its notice address
+stay on one line. Legacy .doc/.xls now get an actionable message.
+
+Found while testing: `document-ai` fetched and parsed the document and then sent
+the caller's `"[Document: foo.pdf]"` stub to the model anyway, so classification
+and field extraction were still reading a filename. It now sends the extracted
+text, opening and closing sections rather than a flat head-slice.
+
+Also found: `toCents` returned `NaN` for `"$1,234.56"` and truncated `"1.005"`
+to 100 cents. A NaN cent count compares unequal to everything, so every amount
+looked changed and no duplicate was detected.
+
+### T13. `SEED_TEST_DEAL.sql` in the repo root — **FIXED**, now `scripts/seed-test-deal.sql`.
+
+### T4 (original finding). XLSX and DOCX cannot be read
 `extract-text.ts` handles PDF and plain text. A spreadsheet returns
 "Unsupported file type". Cap-table ingestion — a core input — has no extraction
 path, and `CapTableCover` still sends a `[XLSX: …]` stub.
@@ -91,7 +110,18 @@ the product (`ARCHITECTURE.md` I1).
 **Fix:** cap pages sent to vision, refuse above a size threshold, add a budget
 check. *~2 hours.*
 
-### T6. Uploaded-document tracking lives in localStorage
+### ~~T6. Uploaded-document tracking lives in localStorage~~ — **FIXED**
+
+`contract_documents.uploaded_as` records the type the uploader chose and is
+never overwritten by classification, so the document list is the same for
+everyone on the deal. `doc_type` keeps its job — what the classifier decided.
+Existing rows that the classifier has not touched are backfilled; the rest keep
+NULL, because their origin is genuinely unknown, and the localStorage set stays
+as a fallback so those documents remain visible to whoever uploaded them.
+
+Migration `20260521070000_uploaded_as.sql`, verified idempotent locally.
+
+### T6 (original finding). Uploaded-document tracking lives in localStorage
 My fix for vanishing documents remembers "documents uploaded through this panel"
 in `localStorage`. It works, but it is per-browser: a colleague opening the same
 deal sees a different list, and clearing site data loses it.
@@ -122,7 +152,35 @@ extraction works beautifully.
 **Fix:** move demo data behind the existing `isDemoDeal` flag so it can never
 render for a real deal. *~half a day.*
 
-### T8. Project ref hard-coded in a migration
+### ~~T8 / T11. Environment identity baked into SQL, workflows and email~~ — **FIXED**
+
+Migration `20260521060000_runtime_settings.sql` adds `app_settings` and reads
+`functions_base_url` and `email_from_address` at call time. The base URL is
+*derived* from the service-role key already in Vault — a legacy Supabase key is
+a JWT carrying `"ref"` — so a second environment needs no paste. When it cannot
+be derived the cron job warns and leaves the mail queued rather than posting to
+the wrong project.
+
+Verified against a local Postgres 14: idempotent across three runs (the first
+guard I wrote matched the address rather than the rewritten call, so each run
+wrapped the lookup in another lookup), reads changed settings, and refuses
+loudly when unset.
+
+Wider than the original note: the project ref was also baked into the logo URL
+of all six auth email templates and `send-verification`, so mail from any other
+project would render a broken image. Those now derive it from `SUPABASE_URL`.
+The Vercel team slug is now the `VERCEL_SCOPE` repository variable, defaulting
+to the current team.
+
+### ~~T12. Three silent catch blocks~~ — **FIXED**
+
+A sweep found five. Three are correct as they stand (corrupted `localStorage`
+JSON, a storage quota rejection, a context provider being absent) and carry
+reason comments. The two that mattered now report: `document-ai` swallowing a
+malformed tool-call response — which made a mis-parsed document look identical
+to an unclassifiable one — and the cap-table reader's file-read failure.
+
+### T8 (original finding). Project ref hard-coded in a migration
 `20260521040000_email_queue_cron.sql` contains
 `https://hipjywloeveadfndzary.supabase.co/...` — mine. It breaks silently in any
 other environment, which matters the moment there is a staging project.
@@ -134,7 +192,22 @@ other environment, which matters the moment there is a staging project.
 
 ## P2 — worth fixing before it bites
 
-### T9. Thresholds I chose by judgement, not measurement
+### ~~T9. Thresholds I chose by judgement, not measurement~~ — **PARTLY FIXED**
+
+All eight now live in `supabase/functions/_shared/thresholds.ts`, each with what
+goes wrong when it is wrong, and each overridable by an environment variable —
+so a value can be moved without a deploy. A non-numeric override warns and keeps
+the default rather than silently becoming `NaN`.
+
+They are still not *measured*, and collecting them does not make them so. What
+changed is that the two that matter are now instrumented: every automatic
+accept/reject decision and every extraction emits a `threshold_decision` line
+with its inputs. That is the raw material for choosing real numbers. Until there
+is enough of it, these remain defensible defaults.
+
+The reminder cadence and token expiry live in SQL and are not yet covered.
+
+### T9 (original finding). Thresholds I chose by judgement, not measurement
 All in my session's code, all unmeasured:
 
 | Value | Where | Risk if wrong |
@@ -174,7 +247,7 @@ looks like it works because failure is invisible.
 
 **Fix:** log with context; never `catch {}` without a reason comment. *~1 hour.*
 
-### T13. `SEED_TEST_DEAL.sql` ships with a placeholder
+### T13. `scripts/seed-test-deal.sql` ships with a placeholder
 Contains `YOUR_EMAIL_HERE` and lives at the repo root. It guards against being
 run unedited, but it is test scaffolding sitting beside production migrations.
 

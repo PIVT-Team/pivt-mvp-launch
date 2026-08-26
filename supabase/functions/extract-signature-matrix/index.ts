@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireJwt } from "../_shared/require-jwt.ts";
 import { chunkEndsBiased, wasTruncated } from "../_shared/chunk-text.ts";
+import { THRESHOLDS } from "../_shared/thresholds.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -130,7 +131,7 @@ Deno.serve(async (req) => {
 
       for (const s of rows) {
         // Skip rows the model is unsure enough about to be noise.
-        if (Number(s.confidence) < 0.3) continue;
+        if (Number(s.confidence) < THRESHOLDS.signatureConfidenceFloor) continue;
 
         // Overlapping windows mean the same block can be seen twice.
         const dedupeKey = [s.document_name, s.signing_party, s.signatory_name, s.signatory_capacity]

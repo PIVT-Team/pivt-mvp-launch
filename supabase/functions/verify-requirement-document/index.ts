@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireJwt } from "../_shared/require-jwt.ts";
+import { THRESHOLDS, logThresholdDecision } from "../_shared/thresholds.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -177,17 +178,26 @@ Deno.serve(async (req) => {
     if (verdict === "verified" && issues.some((i) => i.severity === "high")) {
       verdict = "review_required";
     }
-    // Never auto-satisfy on a low-confidence match.
-    if (verdict === "verified" && Number(result.confidence) < 0.8) {
+    // Never auto-satisfy on a low-confidence match. This is the highest-stakes
+    // number in the pipeline — below it a human looks; above it the chasing
+    // stops — so every decision it makes is logged with its inputs. The
+    // threshold cannot be tuned without the distribution it is deciding on.
+    const confidence = Number(result.confidence) || 0;
+    if (verdict === "verified" && confidence < THRESHOLDS.autoVerifyConfidence) {
       verdict = "review_required";
       issues.push({
         code: "low_confidence", severity: "medium",
-        message: `Confidence ${Math.round(Number(result.confidence) * 100)}% is below the threshold for automatic acceptance.`,
+        message: `Confidence ${Math.round(confidence * 100)}% is below the threshold for automatic acceptance.`,
       });
     }
+    logThresholdDecision("auto_verify", confidence, THRESHOLDS.autoVerifyConfidence, verdict, {
+      requirement_id: evidence?.requirement_id ?? null,
+      evidence_id: evidence?.id ?? null,
+      document_type: result.document_type ?? null,
+    });
 
     return await persist(admin, evidence, {
-      verdict, confidence: Number(result.confidence) || 0, issues,
+      verdict, confidence, issues,
       reasoning: result.reasoning || "",
       details: {
         document_type: result.document_type, entity_name: result.entity_name,

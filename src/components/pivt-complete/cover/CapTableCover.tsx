@@ -179,14 +179,18 @@ export const CapTableCover: React.FC = () => {
         const raw = await file.text();
         textContent = raw.slice(0, 1_000_000);
       } else if (file.name.endsWith('.xlsx') || file.type.includes('spreadsheet')) {
-        // XLSX needs a binary read; we still pass a minimal hint and let the
-        // edge function pull from storage by document_id. Surfacing as
-        // SheetJS-parsed CSV would be heavier and isn't required for the
-        // first round of extraction.
+        // Deliberately left as a hint. The edge function detects a stub, pulls
+        // the file from storage and reads the workbook itself — sheet by sheet,
+        // with column positions and percent formats preserved. Parsing it here
+        // would ship a spreadsheet library to every browser to produce a worse
+        // result.
         textContent = `[XLSX: ${file.name}, Type hint: CAP_TABLE]`;
       }
-    } catch {
-      // Best-effort — fall back to the hint if reading fails.
+    } catch (e) {
+      // Falling back to the hint is safe — the edge function re-reads the file
+      // from storage — but a file that cannot be read in the browser is worth
+      // knowing about.
+      console.warn(`Could not read ${file.name} for preview:`, e);
     }
 
     try {

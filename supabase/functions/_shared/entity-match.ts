@@ -98,8 +98,45 @@ export function accountFingerprint(w: {
   return parts.join("|");
 }
 
-/** Money comparison in integer cents — never compare payment amounts as floats. */
+/**
+ * Money comparison in integer cents — never compare payment amounts as floats.
+ *
+ * Amounts do not always arrive as clean numbers. An extractor reading a funds
+ * flow returns the string it saw: "$1,234.56", "1,234.56 USD", "(1,234.56)" for
+ * a negative in accounting style. `Number("$1,234.56")` is NaN, and a NaN cent
+ * count compares unequal to everything — so every amount silently looked
+ * "changed" and no duplicate was ever detected.
+ *
+ * Decimal strings are parsed digit-by-digit rather than multiplied by 100.
+ * `Math.round(1.005 * 100)` is 100, not 101, because the product is
+ * 100.49999999999999 — a lost cent on a real invoice.
+ */
 export function toCents(amount: number | string | null | undefined): number {
   if (amount == null) return 0;
-  return Math.round(Number(amount) * 100);
+
+  if (typeof amount === "number") {
+    if (!Number.isFinite(amount)) return 0;
+    // toFixed first, so 1234.56 * 100 = 123456.00000000001 does not round up.
+    return Math.round(Number((amount * 100).toFixed(4)));
+  }
+
+  let s = String(amount).trim();
+  if (!s) return 0;
+
+  // Accounting negatives: (1,234.56)
+  let negative = /^\(.*\)$/.test(s);
+  if (negative) s = s.slice(1, -1);
+  if (s.startsWith("-")) { negative = true; s = s.slice(1); }
+
+  // Strip currency symbols, codes and separators, keeping digits and one point.
+  s = s.replace(/[^\d.]/g, "");
+  if (!s || !/\d/.test(s)) return 0;
+
+  const [whole, fraction = ""] = s.split(".");
+  const cents =
+    Number(whole || "0") * 100 +
+    Math.round(Number((fraction + "00").slice(0, 3)) / 10);
+
+  if (!Number.isFinite(cents)) return 0;
+  return negative ? -cents : cents;
 }

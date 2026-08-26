@@ -77,15 +77,19 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
 
   const docTypeValues = docTypes.map(t => t.value);
 
-  // Documents uploaded through THIS panel, remembered locally by id.
+  // Documents uploaded through THIS panel.
   //
   // The list used to filter on doc_type, but `document-ai` overwrites doc_type
-  // after parsing and the DB enum only allows SPA / FUNDS_FLOW /
-  // ESCROW_AGREEMENT / PAYOFF_LETTER / FEE_LETTER / OTHER. Anything the
-  // classifier resolved to OTHER — which is most contracts — fell straight out
-  // of the filter, so a document you had just uploaded and watched parse
-  // vanished from the list. A file a user uploaded must never disappear because
-  // a model disagreed about its type.
+  // after parsing. Anything the classifier resolved differently — most
+  // contracts land on OTHER — fell straight out of the filter, so a document
+  // you had just uploaded and watched parse vanished from the list. A file a
+  // user uploaded must never disappear because a model disagreed about its
+  // type.
+  //
+  // `uploaded_as` now records the uploader's own answer and is never
+  // overwritten, so the list is the same for every person on the deal. The
+  // localStorage set below is kept only for documents uploaded before that
+  // column existed; it is per-browser and is not the source of truth.
   const storageKey = dealId ? `pivt:uploads:${dealId}:${docTypeValues.join(',')}` : '';
   const readOwnIds = useCallback((): string[] => {
     if (!storageKey) return [];
@@ -114,13 +118,16 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
     // Fetch by deal and filter client-side: the type is a label, not a gate.
     const { data } = await supabase
       .from('contract_documents')
-      .select('id, doc_type, filename, file_url, status, uploaded_at, extracted_fields, extraction_confidence')
+      .select('id, doc_type, uploaded_as, filename, file_url, status, uploaded_at, extracted_fields, extraction_confidence')
       .eq('deal_id', dealId)
       .order('uploaded_at', { ascending: false });
 
     const ownIds = new Set(readOwnIds());
     const visible = (data || []).filter(
-      (d: any) => docTypeValues.includes(d.doc_type) || ownIds.has(d.id)
+      (d: any) =>
+        docTypeValues.includes(d.uploaded_as) ||
+        docTypeValues.includes(d.doc_type) ||
+        ownIds.has(d.id)
     );
     setDocs(visible.map((d: any) => ({
       id: d.id, doc_type: d.doc_type, filename: d.filename,
@@ -216,6 +223,9 @@ export const DealDocumentUploader: React.FC<DealDocumentUploaderProps> = ({
           .from('contract_documents')
           .insert({
             deal_id: dealId, doc_type: docType as any,
+            // What the person said it is. `doc_type` is what the classifier
+            // will say it is, a few seconds from now.
+            uploaded_as: docType,
             filename: file.name, file_url: fileUrl,
             status: 'UPLOADED' as any, uploaded_by: user.id,
           } as any)

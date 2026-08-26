@@ -184,6 +184,39 @@ type RelationshipCandidate = {
   effective_date?: string;
 };
 
+/**
+ * What the classifier actually gets to read.
+ *
+ * This used to send the caller's `textContent` — which, for every upload, was
+ * the stub string `"[Document: foo.pdf]"`. The document was fetched and parsed
+ * a few lines above and the result was then thrown away here, so classification
+ * and field extraction were still working from a filename.
+ *
+ * Sends the opening and the closing rather than the first N characters: the
+ * purchase price and party names are at the front, and the execution date,
+ * signature blocks and schedules are at the back. A flat head-slice of a long
+ * agreement reads the recitals and nothing else.
+ */
+const CLASSIFY_HEAD = 12_000;
+const CLASSIFY_TAIL = 6_000;
+
+function buildClassificationInput(fileName: string, text: string): string {
+  const body = text || "";
+  let excerpt: string;
+  if (body.length <= CLASSIFY_HEAD + CLASSIFY_TAIL) {
+    excerpt = body;
+  } else {
+    const skipped = body.length - CLASSIFY_HEAD - CLASSIFY_TAIL;
+    excerpt =
+      body.slice(0, CLASSIFY_HEAD) +
+      `\n\n[... ${skipped.toLocaleString()} characters omitted from the middle of this document ...]\n\n` +
+      body.slice(-CLASSIFY_TAIL);
+  }
+  return `Filename: ${fileName}\n\nDocument text${
+    body.length > CLASSIFY_HEAD + CLASSIFY_TAIL ? " (opening and closing sections)" : ""
+  }:\n${excerpt}`;
+}
+
 function classifyByKeywords(filename: string, textContent: string): { doc_type: string; confidence: number } | null {
   const combined = `${filename} ${(textContent || "").slice(0, 3000)}`.toLowerCase();
   let bestMatch: { doc_type: string; confidence: number; priority: number } | null = null;
@@ -603,7 +636,7 @@ serve(async (req) => {
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: CLASSIFICATION_PROMPT + schemaHint },
-            { role: "user", content: `Filename: ${fileName}\n\nDocument text (first 5000 chars):\n${(textContent || '').slice(0, 5000)}` },
+            { role: "user", content: buildClassificationInput(fileName || "", effectiveText) },
           ],
           tools: [{
             type: "function",
@@ -706,8 +739,16 @@ serve(async (req) => {
             aiResult.confidence = keywordResult.confidence;
           }
           result = { ...result, ...aiResult };
-        } catch {
-          // fall back to deterministic result
+        } catch (e) {
+          // Falling back to the deterministic keyword result is correct, but it
+          // must not be invisible: a document classified as "Other" because the
+          // model returned malformed arguments looks identical to one that is
+          // genuinely unclassifiable.
+          console.error(
+            `document-ai: could not parse tool arguments for ${fileName ?? documentId} ` +
+            `(${String((e as Error)?.message ?? e)}); using keyword classification instead. ` +
+            `Arguments began: ${String(toolCall.function.arguments).slice(0, 200)}`
+          );
         }
       }
 
@@ -717,7 +758,7 @@ serve(async (req) => {
           doc_type_confidence: result.confidence,
           extracted_fields: result.extracted_fields,
           validation_flags: result.validation_flags,
-          extracted_text: textContent?.slice(0, 10000) || null,
+          extracted_text: effectiveText.slice(0, 10000) || null,
           page_count: result.page_count_estimate || 1,
           status: "processed",
         }).eq("id", documentId);

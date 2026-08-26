@@ -14,6 +14,8 @@ import {
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
+import { LOGO_URL } from './brand.ts'
+
 interface MagicLinkEmailProps {
   siteName: string
   confirmationUrl: string
@@ -28,7 +30,7 @@ export const MagicLinkEmail = ({
     <Preview>Your login link for PIVT</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Img src="https://hipjywloeveadfndzary.supabase.co/storage/v1/object/public/email-assets/pivt-logo.png" alt="PIVT" height="32" style={{ display: 'block', marginBottom: '24px' }} />
+        <Img src={LOGO_URL} alt="PIVT" height="32" style={{ display: 'block', marginBottom: '24px' }} />
         <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
           Click the button below to sign in to PIVT. This link will expire shortly.
