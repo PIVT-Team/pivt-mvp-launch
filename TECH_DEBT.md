@@ -54,7 +54,28 @@ depends on a payment having happened is unfounded.
 **Fix:** real provider integration, or remove execution from the product surface
 until there is one. *Weeks, and a vendor decision.*
 
-### T3. Money is computed in floating point
+### ~~T3. Money is computed in floating point~~ — **FIXED**
+
+The waterfall now allocates in integer cents via `_shared/allocate.ts`, using
+the largest-remainder method, so each tier's payments sum to the tier exactly by
+construction. `Math.round(share * 100) / 100` rounded every share on its own and
+nothing made them add back up; a three-way split of $100 came to $99.99, and
+across twenty stakeholders on nine figures the residue is real money belonging
+to someone.
+
+The calculator moved to `_shared/waterfall.ts` so it can be tested without a
+Deno runtime, and it now asserts that allocated + unallocated equals the pool,
+refusing to produce a payment run if it ever does not.
+
+Found while testing: a tier whose `recipient_ids` matched nobody had its amount
+deducted from the pool and paid to no one, so `totalAllocated` counted money
+that appeared on no payment line. Those tiers are now reported in
+`unpayableTiers`, logged, and persisted on the allocation snapshot.
+
+Not covered: `NUMERIC(20,0)` columns in Postgres — the amounts are still stored
+as decimals. The arithmetic is exact; the storage is unchanged.
+
+### T3 (original finding). Money is computed in floating point
 `disbursement-engine` uses `Math.round(share * 100) / 100` for waterfall
 allocations. At 8–9 figures across 20+ stakeholders, cents drift and totals stop
 reconciling. Flagged in `ARCHITECTURE.md` as B5 and still open.
