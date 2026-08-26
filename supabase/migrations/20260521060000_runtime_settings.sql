@@ -188,36 +188,52 @@ $$;
 -- keeping that address as the seeded default so nothing changes today.
 DO $$
 DECLARE
-  v_src text;
+  v_oid  oid;
+  v_def  text;
+  v_new  text;
+  v_done boolean := false;
 BEGIN
-  SELECT prosrc INTO v_src
-  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
-  WHERE n.nspname = 'public' AND p.proname = 'tick_requirement_reminders';
+  -- Rebuild from `pg_get_functiondef`, which reproduces the function's real
+  -- signature — return type, language, volatility, SECURITY DEFINER, SET
+  -- clauses — instead of restating one here.
+  --
+  -- The first version of this block hardcoded `RETURNS void`. The live function
+  -- returns integer, so Postgres refused with 42P13 "cannot change return type
+  -- of existing function" and took the whole migration down with it. Nothing
+  -- should have to know the signature in order to edit a string inside the body.
+  FOR v_oid IN
+    SELECT p.oid
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'public'
+      AND p.proname = 'tick_requirement_reminders'
+  LOOP
+    v_def := pg_get_functiondef(v_oid);
 
-  IF v_src IS NULL THEN
+    -- Test for the REWRITTEN form, not the address. The rewritten source keeps
+    -- the address as a default argument, so checking for the address itself
+    -- matches every time and each re-run wraps the call in another call.
+    IF position('app_setting(''email_from_address''' IN v_def) > 0 THEN
+      RAISE NOTICE 'tick_requirement_reminders already reads its from-address from app_settings — leaving it alone.';
+      v_done := true;
+      CONTINUE;
+    END IF;
+
+    IF position('''PIVT <support@pivttech.ai>''' IN v_def) = 0 THEN
+      RAISE NOTICE 'tick_requirement_reminders does not contain the literal from-address — leaving it alone.';
+      v_done := true;
+      CONTINUE;
+    END IF;
+
+    v_new := replace(v_def, '''PIVT <support@pivttech.ai>''',
+                     'public.app_setting(''email_from_address'', ''PIVT <support@pivttech.ai>'')');
+
+    EXECUTE v_new;
+    RAISE NOTICE 'tick_requirement_reminders now reads its from-address from app_settings.';
+    v_done := true;
+  END LOOP;
+
+  IF NOT v_done THEN
     RAISE NOTICE 'tick_requirement_reminders not present — skipping from-address rewrite.';
-    RETURN;
   END IF;
-
-  -- Test for the REWRITTEN form, not the address. The rewritten source keeps
-  -- the address as a default argument, so checking for the address itself
-  -- matches every time and each re-run wraps the call in another call.
-  IF position('app_setting(''email_from_address''' IN v_src) > 0 THEN
-    RAISE NOTICE 'tick_requirement_reminders already reads its from-address from app_settings — leaving it alone.';
-    RETURN;
-  END IF;
-
-  IF position('''PIVT <support@pivttech.ai>''' IN v_src) = 0 THEN
-    RAISE NOTICE 'tick_requirement_reminders does not contain the literal from-address — leaving it alone.';
-    RETURN;
-  END IF;
-
-  v_src := replace(v_src, '''PIVT <support@pivttech.ai>''',
-                   'public.app_setting(''email_from_address'', ''PIVT <support@pivttech.ai>'')');
-
-  EXECUTE format(
-    'CREATE OR REPLACE FUNCTION public.tick_requirement_reminders() RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS %L',
-    v_src);
-
-  RAISE NOTICE 'tick_requirement_reminders now reads its from-address from app_settings.';
 END $$;
