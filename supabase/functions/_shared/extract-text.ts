@@ -36,6 +36,18 @@ export interface ExtractionResult {
 
 const MIN_USEFUL_CHARS = 200;
 
+/**
+ * Cost guards for the vision fallback.
+ *
+ * A scan with no text layer gets base64-encoded whole and sent to a multimodal
+ * model in one request. A 200-page scanned title report is an enormous call, and
+ * nothing in this product has per-org budgets or rate limits yet. An
+ * accidentally-uploaded 80MB scan should be refused with an explanation, not
+ * silently turned into the most expensive request the system can make.
+ */
+const VISION_MAX_BYTES = 8 * 1024 * 1024;   // ~8MB of PDF
+const VISION_MAX_PAGES = 30;
+
 /** Printable-character ratio. Binary noise from a failed parse scores near zero. */
 function printableRatio(s: string): number {
   if (!s) return 0;
@@ -278,6 +290,19 @@ export async function extractDocumentText(
 
     // Thin or garbled text layer — almost always a scan.
     if (opts.allowVision !== false && opts.apiKey) {
+      if (bytes.length > VISION_MAX_BYTES || (layer.pages ?? 1) > VISION_MAX_PAGES) {
+        return {
+          text: layer.text,
+          method: layer.text ? "pdf_text_layer" : "none",
+          quality: 0,
+          pages: layer.pages,
+          problem:
+            `This document has no readable text layer and is too large to transcribe automatically ` +
+            `(${Math.round(bytes.length / 1024 / 1024)}MB, ~${layer.pages} pages; the limit is ` +
+            `${VISION_MAX_BYTES / 1024 / 1024}MB and ${VISION_MAX_PAGES} pages). ` +
+            `Split it, or supply a text-based PDF.`,
+        };
+      }
       try {
         const vision = await extractViaVision(bytes, "application/pdf", opts.apiKey);
         if (vision.trim().length >= MIN_USEFUL_CHARS) {

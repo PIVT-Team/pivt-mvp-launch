@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
+import { SampleDataNotice } from './SampleDataNotice';
 
 // Demo aggregated comments across deals
 const DEMO_COMMENTS = [
@@ -103,6 +104,7 @@ export const CommunicationsHub: React.FC = () => {
 
   return (
     <motion.div {...staggerChildren} className="space-y-8">
+      <SampleDataNotice what="This communications view" className="mb-4" />
       {/* Header */}
       <motion.div {...fadeInUp} className="flex items-center justify-between">
         <div>

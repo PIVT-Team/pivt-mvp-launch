@@ -159,7 +159,7 @@ function simulateTextExtraction(fileName: string): string {
 
 export const DocumentsCover: React.FC = () => {
   const { deals, selectedDealId: pivtSelectedDealId, setSelectedDealId } = usePIVTStore();
-  const { dealId: contextDealId } = useDealWorkspace();
+  const { dealId: contextDealId, isDemoDeal } = useDealWorkspace();
   const { addEvent } = useAuditStore();
   // Use resolved deal ID from workspace context if available, otherwise fall back to pivtStore
   const selectedDealId = contextDealId || pivtSelectedDealId;
@@ -385,7 +385,19 @@ export const DocumentsCover: React.FC = () => {
   }, [uploadFile, guardEdit]);
 
   // ── Demo upload ──
+  //
+  // This writes DEMO_DOCUMENTS — including hand-written `extracted_text`
+  // describing a fictional $185M deal — straight into deal_documents. On a real
+  // deal that puts fabricated extraction results into the record, where the
+  // obligation, consent and signature extractors will read them as genuine
+  // contract text. Restricted to demo deals.
   const handleDemoUpload = useCallback(async () => {
+    if (!isDemoDeal) {
+      toast.error('Sample documents can only be added to a demo deal.', {
+        description: 'They contain fabricated extraction results, which would be read as real contract text on a live deal.',
+      });
+      return;
+    }
     setLoading(true);
     for (let i = 0; i < DEMO_DOCUMENTS.length; i++) {
       const demo = DEMO_DOCUMENTS[i];

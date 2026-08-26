@@ -5,6 +5,7 @@ import { ShieldAlert, ShieldCheck, AlertTriangle, Ban, ArrowRight } from 'lucide
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { usePIVTStore } from '@/stores/pivtStore';
+import { SampleDataNotice } from './SampleDataNotice';
 
 const MOCK_RISK_DATA = [
   {
@@ -44,6 +45,7 @@ export const RiskMonitorCover: React.FC = () => {
 
   return (
     <motion.div {...staggerChildren} className="space-y-8">
+      <SampleDataNotice what="This risk monitor" className="mb-4" />
       <motion.div {...fadeInUp}>
         <div className="flex items-center gap-3 mb-1">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${totalBlockers > 0 ? 'bg-red-500/10' : 'bg-emerald-500/10'}`}>
