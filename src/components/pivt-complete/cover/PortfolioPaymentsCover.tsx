@@ -1,56 +1,66 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
-import { Banknote, CheckCircle2, Clock, AlertTriangle, Zap, XCircle } from 'lucide-react';
+import { Banknote, CheckCircle2, Clock, AlertTriangle, Zap, XCircle, Loader2, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { usePIVTStore } from '@/stores/pivtStore';
-import { SampleDataNotice } from './SampleDataNotice';
+import { SimulationNotice } from './SimulationNotice';
+import {
+  getPortfolioPayments,
+  type PortfolioPaymentsSummary,
+  type DisbursementStatus,
+} from '@/services/portfolioPaymentsService';
 
-const MOCK_PORTFOLIO_PAYMENTS = [
-  { id: '1', deal: 'Project ATLAS', dealNumber: 'PIVT-2026-000142', recipient: 'Sarah Chen', amount: 55_500_000, currency: 'USD', status: 'eligible', updatedAt: '2026-02-14' },
-  { id: '2', deal: 'Project ATLAS', dealNumber: 'PIVT-2026-000142', recipient: 'Marcus Williams', amount: 37_000_000, currency: 'USD', status: 'pending_approvals', updatedAt: '2026-02-14' },
-  { id: '3', deal: 'Project ATLAS', dealNumber: 'PIVT-2026-000142', recipient: 'Sequoia Capital Fund XIV', amount: 27_750_000, currency: 'EUR', status: 'pending_conditions', updatedAt: '2026-02-13' },
-  { id: '4', deal: 'Project BEACON', dealNumber: 'PIVT-2026-000143', recipient: 'Andreessen Horowitz', amount: 18_500_000, currency: 'USD', status: 'executing', updatedAt: '2026-02-12' },
-  { id: '5', deal: 'Project CIPHER', dealNumber: 'PIVT-2026-000144', recipient: 'Tiger Global Management', amount: 14_800_000, currency: 'GBP', status: 'settled', updatedAt: '2026-02-10' },
-  { id: '6', deal: 'Project ATLAS', dealNumber: 'PIVT-2026-000142', recipient: 'Employee Option Pool', amount: 12_950_000, currency: 'USD', status: 'draft', updatedAt: '2026-02-15' },
-];
-
-const statusConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
+/**
+ * Payments across every deal.
+ *
+ * This screen used to render six invented payments and a portfolio total
+ * computed from them. It now reads `disbursement_intents`.
+ *
+ * Totals are shown per currency. The previous version added USD, EUR and GBP
+ * together and printed the result with a dollar sign — on a payments screen
+ * that is a wrong number presented as a total.
+ */
+const statusConfig: Record<DisbursementStatus, { color: string; icon: React.ReactNode; label: string }> = {
   draft: { color: 'text-muted-foreground', icon: <Clock className="w-3 h-3" />, label: 'Draft' },
   pending_conditions: { color: 'text-amber-500', icon: <AlertTriangle className="w-3 h-3" />, label: 'Pending Conditions' },
   pending_approvals: { color: 'text-amber-500', icon: <Clock className="w-3 h-3" />, label: 'Pending Approvals' },
   eligible: { color: 'text-emerald-500', icon: <CheckCircle2 className="w-3 h-3" />, label: 'Eligible' },
   executing: { color: 'text-blue-500', icon: <Zap className="w-3 h-3 animate-pulse" />, label: 'Executing' },
+  executed: { color: 'text-blue-500', icon: <Zap className="w-3 h-3" />, label: 'Executed' },
   settled: { color: 'text-emerald-600', icon: <CheckCircle2 className="w-3 h-3" />, label: 'Settled' },
+  reconciled: { color: 'text-emerald-600', icon: <CheckCircle2 className="w-3 h-3" />, label: 'Reconciled' },
   failed: { color: 'text-destructive', icon: <XCircle className="w-3 h-3" />, label: 'Failed' },
 };
 
-const fmt = (n: number) => `$${n.toLocaleString('en-US')}`;
+const money = (n: number, currency: string) =>
+  new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(n);
 
 export const PortfolioPaymentsCover: React.FC = () => {
   const { setSelectedDealId, setActiveSection } = usePIVTStore();
+  const [data, setData] = useState<PortfolioPaymentsSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const totalValue = MOCK_PORTFOLIO_PAYMENTS.reduce((s, p) => s + p.amount, 0);
-  const settled = MOCK_PORTFOLIO_PAYMENTS.filter(p => p.status === 'settled');
-  const blocked = MOCK_PORTFOLIO_PAYMENTS.filter(p => ['pending_conditions', 'pending_approvals'].includes(p.status));
+  useEffect(() => {
+    let cancelled = false;
+    getPortfolioPayments()
+      .then((d) => { if (!cancelled) { setData(d); setError(null); } })
+      .catch((e) => {
+        console.error('Portfolio payments query failed:', e);
+        if (!cancelled) setError(e?.message || 'Could not load payments.');
+      })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
-  const handleDealClick = (dealNumber: string) => {
-    // Find deal by number and navigate to workspace execution tab
-    const dealMap: Record<string, string> = {
-      'PIVT-2026-000142': 'deal-atlas',
-      'PIVT-2026-000143': 'deal-beacon',
-      'PIVT-2026-000144': 'deal-cipher',
-    };
-    const dealId = dealMap[dealNumber];
-    if (dealId) {
-      setSelectedDealId(dealId);
-      setActiveSection('workspace');
-    }
+  const openDeal = (dealId: string) => {
+    setSelectedDealId(dealId);
+    setActiveSection('workspace');
   };
 
   return (
     <motion.div {...staggerChildren} className="space-y-8">
-      <SampleDataNotice what="This portfolio payments view" className="mb-4" />
       <motion.div {...fadeInUp}>
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
@@ -58,71 +68,100 @@ export const PortfolioPaymentsCover: React.FC = () => {
           </div>
           <div>
             <h1 className="text-2xl font-bold" style={{ letterSpacing: '-0.03em' }}>Portfolio Payments</h1>
-            <p className="text-sm text-muted-foreground">Read-only aggregate view across all deals. Edit payments inside each Deal → Execution.</p>
+            <p className="text-sm text-muted-foreground">Disbursement intents across every deal you can see. Click a row to open its workspace.</p>
           </div>
         </div>
       </motion.div>
 
-      {/* Summary Cards */}
-      <motion.div {...fadeInUp} className="grid grid-cols-4 gap-4">
-        {[
-          { label: 'Total Pipeline', value: fmt(totalValue), sub: `${MOCK_PORTFOLIO_PAYMENTS.length} intents` },
-          { label: 'Settled', value: fmt(settled.reduce((s, p) => s + p.amount, 0)), sub: `${settled.length} completed` },
-          { label: 'Blocked', value: `${blocked.length}`, sub: 'need resolution', color: 'text-amber-500' },
-          { label: 'Active Deals', value: '3', sub: 'with payment activity' },
-        ].map(card => (
-          <div key={card.label} className="pivt-card p-5">
-            <p className="pivt-metric-label">{card.label}</p>
-            <p className={`text-xl font-semibold font-mono mt-2 ${card.color || ''}`}>{card.value}</p>
-            <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
-          </div>
-        ))}
-      </motion.div>
+      {data?.anySimulated && <SimulationNotice />}
 
-      {/* Payments Table */}
-      <motion.div {...fadeInUp} className="pivt-card overflow-hidden">
-        <div className="px-5 py-4 border-b border-border/30">
-          <h3 className="font-medium text-sm">All Disbursement Intents</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">Click a deal to navigate to its Execution tab</p>
+      {loading && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-12 justify-center">
+          <Loader2 className="w-4 h-4 animate-spin" /> Reading disbursement intents…
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border/30">
-                {['Deal', 'Recipient', 'Amount', 'Currency', 'Status', 'Updated'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-xs font-medium text-muted-foreground">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {MOCK_PORTFOLIO_PAYMENTS.map(p => {
-                const cfg = statusConfig[p.status] || statusConfig.draft;
-                return (
-                  <tr
-                    key={p.id}
-                    className="border-b border-border/20 hover:bg-muted/20 cursor-pointer transition-colors"
-                    onClick={() => handleDealClick(p.dealNumber)}
-                  >
-                    <td className="px-5 py-3">
-                      <p className="font-medium">{p.deal}</p>
-                      <p className="text-[10px] text-muted-foreground font-mono">{p.dealNumber}</p>
-                    </td>
-                    <td className="px-5 py-3">{p.recipient}</td>
-                    <td className="px-5 py-3 font-mono">{fmt(p.amount)}</td>
-                    <td className="px-5 py-3">{p.currency}</td>
-                    <td className="px-5 py-3">
-                      <Badge variant="outline" className={`text-[10px] gap-1 ${cfg.color}`}>
-                        {cfg.icon} {cfg.label}
-                      </Badge>
-                    </td>
-                    <td className="px-5 py-3 text-xs text-muted-foreground">{p.updatedAt}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      )}
+
+      {error && !loading && (
+        <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5">
+          <p className="text-sm font-medium text-red-500">Payments could not be loaded</p>
+          <p className="text-xs text-muted-foreground mt-1">{error} No payment figures are shown below.</p>
         </div>
-      </motion.div>
+      )}
+
+      {!loading && !error && data && (
+        <>
+          <motion.div {...fadeInUp} className="grid grid-cols-4 gap-4">
+            <div className="pivt-card p-5">
+              <p className="pivt-metric-label">Total by currency</p>
+              {data.totalsByCurrency.length === 0
+                ? <p className="text-xl font-semibold font-mono mt-2">—</p>
+                : data.totalsByCurrency.map(t => (
+                    <p key={t.currency} className="text-lg font-semibold font-mono mt-1">
+                      {money(t.amount, t.currency)}
+                      <span className="text-[10px] text-muted-foreground font-sans ml-2">{t.count} payment{t.count > 1 ? 's' : ''}</span>
+                    </p>
+                  ))}
+              <p className="text-xs text-muted-foreground mt-1">never summed across currencies</p>
+            </div>
+            {[
+              { label: 'Blocked', value: data.blockedCount, color: data.blockedCount > 0 ? 'text-amber-500' : '', sub: 'awaiting conditions or approvals' },
+              { label: 'Executed', value: data.executedCount, color: '', sub: 'executing, settled or reconciled' },
+              { label: 'Failed', value: data.failedCount, color: data.failedCount > 0 ? 'text-destructive' : '', sub: 'need attention' },
+            ].map(card => (
+              <div key={card.label} className="pivt-card p-5">
+                <p className="pivt-metric-label">{card.label}</p>
+                <p className={`text-xl font-semibold font-mono mt-2 ${card.color}`}>{card.value}</p>
+                <p className="text-xs text-muted-foreground mt-1">{card.sub}</p>
+              </div>
+            ))}
+          </motion.div>
+
+          {data.truncated && (
+            <div className="flex items-start gap-2 text-xs text-muted-foreground">
+              <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <span>Showing the {data.payments.length} most recently updated payments. The totals above cover only those.</span>
+            </div>
+          )}
+
+          {data.payments.length === 0 && (
+            <div className="pivt-card p-8 text-center">
+              <Banknote className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
+              <p className="text-sm font-medium">No payments yet</p>
+              <p className="text-xs text-muted-foreground mt-1">Disbursement intents appear here once a waterfall has been calculated on a deal.</p>
+            </div>
+          )}
+
+          <motion.div {...fadeInUp} className="space-y-2">
+            {data.payments.map(p => {
+              const cfg = statusConfig[p.status];
+              return (
+                <div
+                  key={p.id}
+                  onClick={() => openDeal(p.dealId)}
+                  className="pivt-card p-4 cursor-pointer hover:bg-muted/20 transition-colors flex items-center justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{p.recipient}</p>
+                    <p className="text-[10px] text-muted-foreground truncate">
+                      <span className="font-mono">{p.dealNumber}</span> · {p.dealName}
+                      {p.isDemo && <Badge variant="outline" className="ml-2 text-[9px] uppercase tracking-wide">Demo</Badge>}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-6 flex-shrink-0">
+                    <span className="font-mono text-sm">{money(p.amount, p.currency)}</span>
+                    <Badge variant="outline" className={`text-[10px] gap-1 ${cfg.color}`}>
+                      {cfg.icon}{cfg.label}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground w-24 text-right">
+                      {new Date(p.updatedAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </motion.div>
+        </>
+      )}
     </motion.div>
   );
 };

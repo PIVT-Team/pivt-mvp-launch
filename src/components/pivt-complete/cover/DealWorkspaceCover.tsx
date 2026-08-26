@@ -31,7 +31,6 @@ import { ContactsDealTab } from './ContactsDealTab';
 import { KycKybDealTab } from './KycKybDealTab';
 import { CapTableCover } from './CapTableCover';
 import { WaterfallCover } from './WaterfallCover';
-import { DocumentsCover } from './DocumentsCover';
 import { PaymentsCover } from './PaymentsCover';
 import { EscrowCover } from './EscrowCover';
 import { DealReportsCover } from './DealReportsCover';
