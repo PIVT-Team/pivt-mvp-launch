@@ -1,13 +1,14 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageSquare, Send, Reply, AtSign, ChevronDown, ChevronUp, ThumbsUp, CheckCircle2, AlertTriangle, Clock } from 'lucide-react';
+import { MessageSquare, Send, Reply, AtSign, ChevronDown, ChevronUp, ThumbsUp, CheckCircle2, AlertTriangle, Clock, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { fadeInUp } from '@/lib/animations';
 import { usePIVTStore, useSelectedDeal } from '@/stores/pivtStore';
-import { supabase } from '@/integrations/supabase/client';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { listDealComments, postDealComment, type DealComment } from '@/services/dealCommentsService';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -32,6 +33,23 @@ interface Participant {
   id: string;
   name: string;
   email: string;
+}
+
+/** The service returns camelCase; this screen was written around the row shape. */
+function toViewComment(c: DealComment): Comment {
+  return {
+    id: c.id,
+    deal_id: c.dealId,
+    author_user_id: c.authorUserId,
+    author_name: c.authorName,
+    body: c.body,
+    parent_id: c.parentId,
+    section_context: c.sectionContext,
+    visibility: c.visibility,
+    created_at: c.createdAt,
+    updated_at: c.createdAt,
+    replies: c.replies.map(toViewComment),
+  };
 }
 
 const SECTION_TAGS = ['General', 'Documents', 'Stakeholders', 'Payments', 'Escrow', 'Waterfall', 'Compliance'];
@@ -67,7 +85,11 @@ const ComposeBox: React.FC<{
   participants: Participant[];
   placeholder?: string;
   compact?: boolean;
-}> = ({ onSubmit, participants, placeholder = 'Add a comment...', compact = false }) => {
+  /** True while a write is in flight — the comment now goes to the database,
+   *  so a second click would post it twice. */
+  busy?: boolean;
+  disabled?: boolean;
+}> = ({ onSubmit, participants, placeholder = 'Add a comment...', compact = false, busy = false, disabled = false }) => {
   const [body, setBody] = useState('');
   const [section, setSection] = useState('General');
   const [showMentions, setShowMentions] = useState(false);
@@ -183,12 +205,12 @@ const ComposeBox: React.FC<{
 
         <Button
           onClick={handleSubmit}
-          disabled={!body.trim()}
+          disabled={!body.trim() || busy || disabled}
           size="sm"
           className="pivt-btn-primary gap-1.5 text-xs"
         >
-          <Send className="w-3.5 h-3.5" />
-          Post
+          {busy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+          {busy ? 'Posting…' : 'Post'}
         </Button>
       </div>
     </div>
@@ -323,9 +345,13 @@ const CommentItem: React.FC<{
 // ── Main Comments Feed ──
 export const CommentsCover: React.FC = () => {
   const deal = useSelectedDeal();
+  const { dealId: resolvedDealId } = useDealWorkspace();
   const { stakeholders } = usePIVTStore();
   const [comments, setComments] = useState<Comment[]>([]);
   const [filterSection, setFilterSection] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [posting, setPosting] = useState(false);
 
   // Demo participants from stakeholders
   const participants: Participant[] = useMemo(() =>
@@ -333,101 +359,76 @@ export const CommentsCover: React.FC = () => {
     [stakeholders]
   );
 
-  // Demo comments
-  useEffect(() => {
-    setComments([
-      {
-        id: 'c1', deal_id: deal.id, author_user_id: 'u1', author_name: 'John Chen',
-        body: 'Cap table reconciliation shows a 0.2% delta on ESOP pool. @Sarah Kim can you verify against the original grant ledger?',
-        parent_id: null, section_context: 'Stakeholders', visibility: 'internal',
-        created_at: new Date(Date.now() - 3600000).toISOString(),
-        updated_at: new Date(Date.now() - 3600000).toISOString(),
-        replies: [
-          {
-            id: 'c1r1', deal_id: deal.id, author_user_id: 'u2', author_name: 'Sarah Kim',
-            body: 'Confirmed — the delta is from the Q4 cliff vesting batch. Updated spreadsheet attached to Documents.',
-            parent_id: 'c1', section_context: null, visibility: 'internal',
-            created_at: new Date(Date.now() - 1800000).toISOString(),
-            updated_at: new Date(Date.now() - 1800000).toISOString(),
-          }
-        ]
-      },
-      {
-        id: 'c2', deal_id: deal.id, author_user_id: 'u3', author_name: 'Michael Torres',
-        body: 'Wire instructions for GIC Private Limited are still pending verification. Flagging as blocker for escrow release.',
-        parent_id: null, section_context: 'Payments', visibility: 'internal',
-        created_at: new Date(Date.now() - 7200000).toISOString(),
-        updated_at: new Date(Date.now() - 7200000).toISOString(),
-        replies: []
-      },
-      {
-        id: 'c3', deal_id: deal.id, author_user_id: 'u1', author_name: 'John Chen',
-        body: 'All closing documents have been uploaded and validated by Newton. Ready for final review.',
-        parent_id: null, section_context: 'Documents', visibility: 'internal',
-        created_at: new Date(Date.now() - 14400000).toISOString(),
-        updated_at: new Date(Date.now() - 14400000).toISOString(),
-        replies: []
-      },
-      {
-        id: 'c4', deal_id: deal.id, author_user_id: 'u4', author_name: 'Emily Rodriguez',
-        body: 'Buyer counsel has approved the waterfall distribution schedule v3. Moving to execution phase.',
-        parent_id: null, section_context: 'Compliance', visibility: 'internal',
-        created_at: new Date(Date.now() - 28800000).toISOString(),
-        updated_at: new Date(Date.now() - 28800000).toISOString(),
-        replies: [
-          {
-            id: 'c4r1', deal_id: deal.id, author_user_id: 'u3', author_name: 'Michael Torres',
-            body: 'Great — I\'ll queue the escrow release for tomorrow pending final sign-off.',
-            parent_id: 'c4', section_context: null, visibility: 'internal',
-            created_at: new Date(Date.now() - 25200000).toISOString(),
-            updated_at: new Date(Date.now() - 25200000).toISOString(),
-          }
-        ]
-      },
-    ]);
-  }, [deal.id]);
+  // Real comments. This screen used to render a fixed conversation between
+  // "John Chen" and "Sarah Kim" on whatever deal was open, including a live
+  // one, and posting appended to React state and raised "Comment posted" — the
+  // user's comment was gone on the next render. `deal_comments` had existed the
+  // whole time.
+  const load = useCallback(async () => {
+    if (!resolvedDealId) { setComments([]); setLoading(false); return; }
+    setLoading(true);
+    try {
+      const rows = await listDealComments(resolvedDealId);
+      setComments(rows.map(toViewComment));
+      setLoadError(null);
+    } catch (e: any) {
+      console.error('Could not load comments:', e);
+      setLoadError(e?.message || 'Could not load comments.');
+    } finally {
+      setLoading(false);
+    }
+  }, [resolvedDealId]);
+
+  useEffect(() => { void load(); }, [load]);
 
   const filteredComments = useMemo(() =>
     filterSection ? comments.filter(c => c.section_context === filterSection) : comments,
     [comments, filterSection]
   );
 
-  const handlePost = (body: string, section: string, mentions: string[]) => {
-    const newComment: Comment = {
-      id: `c-${Date.now()}`,
-      deal_id: deal.id,
-      author_user_id: 'current',
-      author_name: 'You',
-      body,
-      parent_id: null,
-      section_context: section,
-      visibility: 'internal',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      replies: [],
-    };
-    setComments([newComment, ...comments]);
-    toast.success('Comment posted');
+  // `mentions` arrive as display names from the picker; only ids that match a
+  // real participant are recorded. Inventing a mention row for a name we cannot
+  // resolve would create a notification pointing at nobody.
+  const resolveMentionIds = (names: string[]): string[] =>
+    names
+      .map(n => participants.find(p => p.name === n || p.id === n)?.id)
+      .filter((id): id is string => Boolean(id));
+
+  const write = async (
+    body: string,
+    opts: { section?: string | null; parentId?: string | null; mentions: string[] },
+    successMessage: string
+  ) => {
+    if (!resolvedDealId) {
+      toast.error('Open a saved deal before commenting.');
+      return;
+    }
+    setPosting(true);
+    try {
+      await postDealComment({
+        dealId: resolvedDealId,
+        body,
+        sectionContext: opts.section ?? null,
+        parentId: opts.parentId ?? null,
+        mentionedUserIds: resolveMentionIds(opts.mentions),
+      });
+      // Re-read rather than splicing local state: what is on screen should be
+      // what is stored, including anything a colleague posted meanwhile.
+      await load();
+      toast.success(successMessage);
+    } catch (e: any) {
+      console.error('Could not post comment:', e);
+      toast.error(`Comment not saved: ${e?.message || 'unknown error'}`);
+    } finally {
+      setPosting(false);
+    }
   };
 
-  const handleReply = (parentId: string, body: string, mentions: string[]) => {
-    const reply: Comment = {
-      id: `r-${Date.now()}`,
-      deal_id: deal.id,
-      author_user_id: 'current',
-      author_name: 'You',
-      body,
-      parent_id: parentId,
-      section_context: null,
-      visibility: 'internal',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setComments(prev => prev.map(c =>
-      c.id === parentId ? { ...c, replies: [...(c.replies || []), reply] } : c
-    ));
-    toast.success('Reply posted');
-  };
+  const handlePost = (body: string, section: string, mentions: string[]) =>
+    void write(body, { section, mentions }, 'Comment posted');
+
+  const handleReply = (parentId: string, body: string, mentions: string[]) =>
+    void write(body, { parentId, mentions }, 'Reply posted');
 
   const totalComments = comments.reduce((sum, c) => sum + 1 + (c.replies?.length || 0), 0);
 
@@ -447,7 +448,7 @@ export const CommentsCover: React.FC = () => {
       </motion.div>
 
       {/* Compose */}
-      <ComposeBox onSubmit={handlePost} participants={participants} />
+      <ComposeBox onSubmit={handlePost} participants={participants} busy={posting} disabled={!resolvedDealId} />
 
       {/* Section filters */}
       <div className="flex items-center gap-2 flex-wrap">
@@ -478,6 +479,30 @@ export const CommentsCover: React.FC = () => {
 
       {/* Feed */}
       <div className="space-y-3">
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+            <Loader2 className="w-4 h-4 animate-spin" /> Loading comments…
+          </div>
+        )}
+
+        {loadError && !loading && (
+          <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5">
+            <p className="text-sm font-medium text-red-500">Comments could not be loaded</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {loadError} This is not an empty conversation — nothing was read.
+            </p>
+          </div>
+        )}
+
+        {!resolvedDealId && !loading && (
+          <div className="pivt-card p-8 text-center">
+            <MessageSquare className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">
+              This deal has not been saved yet, so it has nowhere to keep comments.
+            </p>
+          </div>
+        )}
+
         <AnimatePresence>
           {filteredComments.map(comment => (
             <CommentItem
@@ -489,10 +514,12 @@ export const CommentsCover: React.FC = () => {
           ))}
         </AnimatePresence>
 
-        {filteredComments.length === 0 && (
+        {!loading && !loadError && resolvedDealId && filteredComments.length === 0 && (
           <div className="pivt-card p-12 text-center">
             <MessageSquare className="w-8 h-8 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No comments yet. Start the conversation.</p>
+            <p className="text-sm text-muted-foreground">
+              {filterSection ? `No comments tagged ${filterSection}.` : 'No comments yet. Start the conversation.'}
+            </p>
           </div>
         )}
       </div>
