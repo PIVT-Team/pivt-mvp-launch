@@ -140,7 +140,7 @@ Existing rows that the classifier has not touched are backfilled; the rest keep
 NULL, because their origin is genuinely unknown, and the localStorage set stays
 as a fallback so those documents remain visible to whoever uploaded them.
 
-Migration `20260521070000_uploaded_as.sql`, verified idempotent locally.
+Migration `20260521070000_uploaded_as.sql` — **applied 2026-08-26** and verified live.
 
 ### T6 (original finding). Uploaded-document tracking lives in localStorage
 My fix for vanishing documents remembers "documents uploaded through this panel"
@@ -259,7 +259,7 @@ a JWT carrying `"ref"` — so a second environment needs no paste. When it canno
 be derived the cron job warns and leaves the mail queued rather than posting to
 the wrong project.
 
-Verified against a local Postgres 14: idempotent across three runs (the first
+**Applied 2026-08-26.** Verified against a local Postgres 14 first: idempotent across three runs (the first
 guard I wrote matched the address rather than the rewritten call, so each run
 wrapped the lookup in another lookup), reads changed settings, and refuses
 loudly when unset.

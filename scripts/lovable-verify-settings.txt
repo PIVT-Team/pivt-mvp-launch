@@ -1,0 +1,12 @@
+Please run this SQL and show me the output.
+
+It fills in one setting only if it is missing (ON CONFLICT DO NOTHING, so a
+value derived by the previous migration is left alone), then prints the table.
+
+INSERT INTO public.app_settings (key, value, description)
+VALUES ('functions_base_url',
+        'https://hipjywloeveadfndzary.supabase.co/functions/v1',
+        'Base URL for edge functions invoked from the database.')
+ON CONFLICT (key) DO NOTHING;
+
+SELECT key, value FROM public.app_settings ORDER BY key;
