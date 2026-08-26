@@ -76,7 +76,13 @@ path, and `CapTableCover` still sends a `[XLSX: …]` stub.
 **Fix:** SheetJS in the edge function for XLSX; mammoth or similar for DOCX.
 *~half a day.*
 
-### T5. Vision OCR has no cost ceiling
+### ~~T5. Vision OCR has no cost ceiling~~ — **FIXED**
+
+Refuses above 8MB or 30 pages with an explanation naming the limits, rather than
+issuing the most expensive request the system can make. Per-org budgets are
+still absent (`ARCHITECTURE.md` I1) — this is a guard, not a budget.
+
+### T5 (original finding). Vision OCR has no cost ceiling
 When a PDF has no text layer, `extract-text.ts` base64-encodes the **entire
 file** into a single model call. A 200-page scan is one enormous request. There
 is no page cap, no size guard, no rate limit, and no per-org budget anywhere in
@@ -94,7 +100,17 @@ deal sees a different list, and clearing site data loses it.
 so a new `uploaded_as` — and filter on that. *~2 hours.* Honest interim, not a
 resting place.
 
-### T7. Demo data still ships inside eight live components
+### ~~T7. Demo data still ships inside eight live components~~ — **PARTLY FIXED**
+
+Six pure-demo covers now carry a `SampleDataNotice` saying plainly that the
+content is illustrative. `DocumentsCover`'s demo-ingest action — which wrote
+fabricated `extracted_text` into `deal_documents`, where the extractors would
+read it as genuine contract text — is now restricted to demo deals.
+
+Still open: wiring those six screens to real data, or removing them. The notice
+makes the state legible; it does not make the screens work.
+
+### T7 (original finding). Demo data still ships inside eight live components
 `DealsCover`, `ApprovalsCover`, `CommunicationsHub`, `RiskMonitorCover`,
 `PortfolioPaymentsCover`, `DocumentsCover`, `DealInputsCover`,
 `AIDashboardCover` all carry `DEMO_*` / `MOCK_*` constants.

@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useAuditStore } from '@/stores/auditStore';
+import { SampleDataNotice } from './SampleDataNotice';
 
 // ── Types ──
 interface ContractDocument {
@@ -292,6 +293,7 @@ export const DealInputsCover: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      <SampleDataNotice what="This summary" className="mb-4" />
       {/* Header */}
       <motion.div {...fadeInUp} className="flex items-center justify-between">
         <div>

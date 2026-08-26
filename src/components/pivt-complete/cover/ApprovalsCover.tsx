@@ -13,6 +13,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { useEditGuard } from '@/hooks/useEditGuard';
+import { SampleDataNotice } from './SampleDataNotice';
 
 // Extended approval data
 const MOCK_APPROVALS = [
@@ -65,6 +66,7 @@ export const ApprovalsCover: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <SampleDataNotice what="This approvals summary" className="mb-4" />
       {/* KYC Gating Banner */}
       {pendingKyc > 0 && (
         <div className="p-4 rounded-lg border border-discrepancy/30 bg-discrepancy/5 flex items-center gap-3">

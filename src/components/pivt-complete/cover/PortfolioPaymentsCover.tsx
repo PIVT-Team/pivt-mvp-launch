@@ -4,6 +4,7 @@ import { fadeInUp, staggerChildren } from '@/lib/animations';
 import { Banknote, CheckCircle2, Clock, AlertTriangle, Zap, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { usePIVTStore } from '@/stores/pivtStore';
+import { SampleDataNotice } from './SampleDataNotice';
 
 const MOCK_PORTFOLIO_PAYMENTS = [
   { id: '1', deal: 'Project ATLAS', dealNumber: 'PIVT-2026-000142', recipient: 'Sarah Chen', amount: 55_500_000, currency: 'USD', status: 'eligible', updatedAt: '2026-02-14' },
@@ -49,6 +50,7 @@ export const PortfolioPaymentsCover: React.FC = () => {
 
   return (
     <motion.div {...staggerChildren} className="space-y-8">
+      <SampleDataNotice what="This portfolio payments view" className="mb-4" />
       <motion.div {...fadeInUp}>
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">

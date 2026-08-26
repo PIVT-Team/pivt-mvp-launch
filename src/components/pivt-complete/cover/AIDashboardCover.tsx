@@ -16,6 +16,7 @@ import {
   SelectSeparator,
 } from '@/components/ui/select';
 import { usePIVTStore, type DemoDeal } from '@/stores/pivtStore';
+import { SampleDataNotice } from './SampleDataNotice';
 
 // ── Neural mesh animated background ──
 const NeuralMeshBackground: React.FC = () => {
@@ -247,6 +248,7 @@ export const AIDashboardCover: React.FC = () => {
 
   return (
     <motion.div {...staggerChildren} className="space-y-6 relative">
+      <SampleDataNotice what="This AI dashboard" className="mb-4" />
       {/* Neural mesh background */}
       <div className="absolute inset-0 -m-10 overflow-hidden pointer-events-none rounded-2xl">
         <NeuralMeshBackground />
