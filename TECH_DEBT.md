@@ -173,9 +173,20 @@ list changed the answer twice:
   one computed from cheaper signals would disagree with the deal's own Execution
   tab.
 
-Still fabricated and reachable from the sidebar: `CommunicationsHub`,
-`PortfolioPaymentsCover`, `AIDashboardCover`. Each carries a `SampleDataNotice`.
-The notice makes the state legible; it does not make the screens work.
+* **`DocumentsCover` was never rendered either.** The gate I added to its demo
+  upload earlier in this session — the one described below as "the sharpest"
+  finding — was protecting a screen nobody can reach. The risk was already zero.
+  It is archived. Worth recording: I found that by checking reachability rather
+  than reading the file, which is the second time in this session that assuming
+  from the file list gave the wrong answer.
+* **`PortfolioPaymentsCover` is now real.** It reads `disbursement_intents`,
+  totals per currency, and shows the simulation notice only when a mock provider
+  actually executed something. The old version added USD, EUR and GBP together
+  and printed the result with a dollar sign.
+
+Still fabricated and reachable from the sidebar: `CommunicationsHub` and
+`AIDashboardCover`. Both carry a `SampleDataNotice`. The notice makes the state
+legible; it does not make the screens work.
 
 ### T7 (original finding). Demo data still ships inside eight live components
 `DealsCover`, `ApprovalsCover`, `CommunicationsHub`, `RiskMonitorCover`,
