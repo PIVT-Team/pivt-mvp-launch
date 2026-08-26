@@ -110,7 +110,18 @@ the product (`ARCHITECTURE.md` I1).
 **Fix:** cap pages sent to vision, refuse above a size threshold, add a budget
 check. *~2 hours.*
 
-### T6. Uploaded-document tracking lives in localStorage
+### ~~T6. Uploaded-document tracking lives in localStorage~~ — **FIXED**
+
+`contract_documents.uploaded_as` records the type the uploader chose and is
+never overwritten by classification, so the document list is the same for
+everyone on the deal. `doc_type` keeps its job — what the classifier decided.
+Existing rows that the classifier has not touched are backfilled; the rest keep
+NULL, because their origin is genuinely unknown, and the localStorage set stays
+as a fallback so those documents remain visible to whoever uploaded them.
+
+Migration `20260521070000_uploaded_as.sql`, verified idempotent locally.
+
+### T6 (original finding). Uploaded-document tracking lives in localStorage
 My fix for vanishing documents remembers "documents uploaded through this panel"
 in `localStorage`. It works, but it is per-browser: a colleague opening the same
 deal sees a different list, and clearing site data loses it.
