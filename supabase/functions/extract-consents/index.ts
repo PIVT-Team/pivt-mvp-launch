@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireJwt } from "../_shared/require-jwt.ts";
 import { chunkSequential, wasTruncated } from "../_shared/chunk-text.ts";
+import { THRESHOLDS } from "../_shared/thresholds.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -135,7 +136,7 @@ Deno.serve(async (req) => {
       const findings = JSON.parse(call.function.arguments).findings || [];
 
       for (const f of findings) {
-        if (Number(f.confidence) < 0.25) continue;
+        if (Number(f.confidence) < THRESHOLDS.consentConfidenceFloor) continue;
 
         // Overlapping windows can surface the same clause twice.
         const dedupeKey = [f.counterparty, f.clause_reference, f.trigger_event]

@@ -192,7 +192,22 @@ other environment, which matters the moment there is a staging project.
 
 ## P2 — worth fixing before it bites
 
-### T9. Thresholds I chose by judgement, not measurement
+### ~~T9. Thresholds I chose by judgement, not measurement~~ — **PARTLY FIXED**
+
+All eight now live in `supabase/functions/_shared/thresholds.ts`, each with what
+goes wrong when it is wrong, and each overridable by an environment variable —
+so a value can be moved without a deploy. A non-numeric override warns and keeps
+the default rather than silently becoming `NaN`.
+
+They are still not *measured*, and collecting them does not make them so. What
+changed is that the two that matter are now instrumented: every automatic
+accept/reject decision and every extraction emits a `threshold_decision` line
+with its inputs. That is the raw material for choosing real numbers. Until there
+is enough of it, these remain defensible defaults.
+
+The reminder cadence and token expiry live in SQL and are not yet covered.
+
+### T9 (original finding). Thresholds I chose by judgement, not measurement
 All in my session's code, all unmeasured:
 
 | Value | Where | Risk if wrong |

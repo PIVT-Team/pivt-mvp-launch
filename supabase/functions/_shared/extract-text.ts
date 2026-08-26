@@ -23,6 +23,7 @@
  */
 
 import { extractOoxml, isOoxml } from "./ooxml.ts";
+import { THRESHOLDS, logThresholdDecision } from "./thresholds.ts";
 
 export type ExtractionMethod =
   | "pdf_text_layer"
@@ -41,7 +42,7 @@ export interface ExtractionResult {
   pages?: number;
 }
 
-const MIN_USEFUL_CHARS = 200;
+const MIN_USEFUL_CHARS = THRESHOLDS.minUsefulChars;
 
 /**
  * Cost guards for the vision fallback.
@@ -52,8 +53,8 @@ const MIN_USEFUL_CHARS = 200;
  * accidentally-uploaded 80MB scan should be refused with an explanation, not
  * silently turned into the most expensive request the system can make.
  */
-const VISION_MAX_BYTES = 8 * 1024 * 1024;   // ~8MB of PDF
-const VISION_MAX_PAGES = 30;
+const VISION_MAX_BYTES = THRESHOLDS.visionMaxBytes;
+const VISION_MAX_PAGES = THRESHOLDS.visionMaxPages;
 
 /** Printable-character ratio. Binary noise from a failed parse scores near zero. */
 function printableRatio(s: string): number {
@@ -178,7 +179,7 @@ async function extractPdfTextLayer(bytes: Uint8Array): Promise<{ text: string; p
         // A kerning adjustment. Anything beyond roughly a quarter em is a word
         // break in practice; smaller values are letter-spacing.
         if (/^-?\d/.test(v)) {
-          if (parseFloat(v) <= -120 && piece && !piece.endsWith(" ")) piece += " ";
+          if (parseFloat(v) <= THRESHOLDS.wordBreakKerning && piece && !piece.endsWith(" ")) piece += " ";
           continue;
         }
         if (v.startsWith("<")) {
@@ -256,7 +257,7 @@ async function extractViaVision(
  * so the caller can record it and a human can act. Throwing here would fail the
  * whole ingestion pass over one bad scan.
  */
-export async function extractDocumentText(
+async function extractDocumentTextInner(
   admin: { storage: { from: (b: string) => { download: (p: string) => Promise<{ data: Blob | null; error: unknown }> } } },
   storagePath: string,
   filename: string,
@@ -318,7 +319,7 @@ export async function extractDocumentText(
     }
 
     const ratio = printableRatio(layer.text);
-    if (layer.text.length >= MIN_USEFUL_CHARS && ratio > 0.85) {
+    if (layer.text.length >= MIN_USEFUL_CHARS && ratio > THRESHOLDS.minPrintableRatio) {
       return { text: layer.text, method: "pdf_text_layer", quality: Math.min(1, ratio), pages: layer.pages };
     }
 
@@ -354,7 +355,7 @@ export async function extractDocumentText(
     const problem = layer.text.length === 0
       ? "This PDF has no readable text layer — it is most likely a scan. Its contents cannot be " +
         "checked automatically until it is OCR'd or replaced with a text PDF."
-      : ratioNow <= 0.85
+      : ratioNow <= THRESHOLDS.minPrintableRatio
       ? `The text in this PDF could not be decoded reliably (${Math.round(ratioNow * 100)}% legible). ` +
         "It may use an unusual font encoding. Consider re-exporting it as a standard PDF."
       : `Only ${layer.text.length} characters of text were found, which is too little to check ` +
@@ -383,6 +384,30 @@ export async function extractDocumentText(
         `.docx, .xlsx or PDF and upload it again.`
       : `Unsupported file type for text extraction (${filename}). Upload a PDF, Word, Excel or plain text file.`,
   };
+}
+
+/**
+ * Extract, and record what happened.
+ *
+ * One line per document — length, legibility, strategy, and whether it cleared
+ * the bar — so the two floors above can eventually be chosen from evidence
+ * rather than judgement. Nothing was recording this, which is why every
+ * threshold in the pipeline is a guess.
+ */
+export async function extractDocumentText(
+  admin: { storage: { from: (b: string) => { download: (p: string) => Promise<{ data: Blob | null; error: unknown }> } } },
+  storagePath: string,
+  filename: string,
+  opts: { bucket?: string; apiKey?: string | null; allowVision?: boolean } = {}
+): Promise<ExtractionResult> {
+  const result = await extractDocumentTextInner(admin, storagePath, filename, opts);
+  logThresholdDecision("extraction", result.text.length, MIN_USEFUL_CHARS, result.method, {
+    filename,
+    quality: result.quality,
+    pages: result.pages ?? null,
+    problem: result.problem ?? null,
+  });
+  return result;
 }
 
 export const MIN_EXTRACTABLE_CHARS = MIN_USEFUL_CHARS;

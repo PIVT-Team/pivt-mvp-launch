@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { THRESHOLDS } from "../_shared/thresholds.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -91,7 +92,9 @@ Deno.serve(async (req) => {
 
     const bytes = decodeBase64(content_base64);
     if (bytes.length === 0) return json({ error: "The file appears to be empty." }, 400);
-    if (bytes.length > 20 * 1024 * 1024) return json({ error: "Files must be 20MB or smaller." }, 400);
+    if (bytes.length > THRESHOLDS.portalMaxUploadBytes) {
+      return json({ error: `Files must be ${Math.round(THRESHOLDS.portalMaxUploadBytes / 1024 / 1024)}MB or smaller.` }, 400);
+    }
 
     const safeName = filename.replace(/[^A-Za-z0-9._-]/g, "_").slice(-120);
     const path = `${request.deal_id}/requirements/${requirement.id}/${Date.now()}_${safeName}`;
