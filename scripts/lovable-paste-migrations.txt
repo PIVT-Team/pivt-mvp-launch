@@ -1,0 +1,314 @@
+Please apply the following SQL to the Supabase database as a migration.
+
+Run it exactly as written — do not rewrite, reformat, split, or "improve" it.
+It is additive and idempotent: it creates one table, three functions, one
+column and one index, and it is safe to run more than once. It needs no values
+filled in — the project URL derives itself from the service-role key that is
+already in Vault.
+
+Expected notices when it runs:
+  NOTICE: functions_base_url set to https://hipjywloeveadfndzary.supabase.co/functions/v1
+  NOTICE: tick_requirement_reminders now reads its from-address from app_settings
+
+--- SQL BEGINS ---
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- PIVT — pending migrations, in order. Paste this whole file into the
+-- Supabase SQL editor and run it once.
+--
+-- Both are additive and safe to re-run. Neither needs anything pasted in:
+-- the project URL is derived from the service-role key already in Vault.
+--
+-- Generated from:
+--   supabase/migrations/20260521060000_runtime_settings.sql
+--   supabase/migrations/20260521070000_uploaded_as.sql
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Runtime settings: stop baking this project's identity into SQL.
+--
+-- WHY THIS EXISTS
+-- Two migrations I wrote earlier hard-code values that belong to one specific
+-- environment:
+--
+--   * 20260521040000 posts to
+--     https://hipjywloeveadfndzary.supabase.co/functions/v1/process-email-queue
+--   * 20260521050000 sends reminders from 'PIVT <support@pivttech.ai>'
+--
+-- Neither fails loudly anywhere else. On a staging project the cron job would
+-- post this project's URL — draining production's queue from staging — and the
+-- from-address cannot be changed without a code deploy.
+--
+-- SAFETY: additive. Creates one table, three functions, and replaces the bodies
+-- of two existing cron functions. Behaviour on THIS project is unchanged: the
+-- base URL is derived from the service-role key already in Vault, and the
+-- from-address keeps its current value as the seeded default.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+-- ── 1. The settings table ─────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.app_settings (
+  key         text PRIMARY KEY,
+  value       text NOT NULL,
+  description text,
+  updated_at  timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.app_settings IS
+  'Environment-specific values read at runtime by database functions. Not user data — no deal or tenant scoping.';
+
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+
+-- No policies: nothing reachable from the anon or authenticated roles may read
+-- this table. It holds infrastructure endpoints, and the functions that need it
+-- are SECURITY DEFINER.
+REVOKE ALL ON public.app_settings FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.app_setting(p_key text, p_default text DEFAULT NULL)
+RETURNS text
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT coalesce((SELECT value FROM public.app_settings WHERE key = p_key), p_default);
+$$;
+
+REVOKE ALL ON FUNCTION public.app_setting(text, text) FROM anon, authenticated;
+
+
+-- ── 2. Derive this project's ref rather than asking for it ────────────────
+--
+-- A Supabase service-role key in the legacy format is a JWT whose payload
+-- carries `"ref": "<project-ref>"`. The key is already in Vault, so the project
+-- URL can be computed instead of pasted — one less thing to get wrong when
+-- someone stands up a second environment.
+--
+-- Newer `sb_secret_…` keys are opaque; for those this returns NULL and the
+-- setting must be inserted by hand, which the migration says out loud below.
+CREATE OR REPLACE FUNCTION public.project_ref_from_jwt(p_key text)
+RETURNS text
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  v_payload text;
+  v_json    jsonb;
+BEGIN
+  IF p_key IS NULL OR array_length(string_to_array(p_key, '.'), 1) <> 3 THEN
+    RETURN NULL;
+  END IF;
+
+  v_payload := split_part(p_key, '.', 2);
+  -- base64url → base64, then pad to a multiple of four.
+  v_payload := replace(replace(v_payload, '-', '+'), '_', '/');
+  v_payload := v_payload || repeat('=', (4 - (length(v_payload) % 4)) % 4);
+
+  BEGIN
+    v_json := convert_from(decode(v_payload, 'base64'), 'utf8')::jsonb;
+  EXCEPTION WHEN OTHERS THEN
+    -- An opaque or malformed key is a normal case, not an error: the caller
+    -- falls back to an explicitly configured URL.
+    RETURN NULL;
+  END;
+
+  RETURN v_json ->> 'ref';
+END;
+$$;
+
+
+-- ── 3. Seed the two settings ──────────────────────────────────────────────
+DO $$
+DECLARE
+  v_key  text;
+  v_ref  text;
+  v_url  text;
+BEGIN
+  SELECT decrypted_secret INTO v_key
+  FROM vault.decrypted_secrets WHERE name = 'email_queue_service_role_key';
+
+  v_ref := public.project_ref_from_jwt(v_key);
+
+  IF v_ref IS NOT NULL THEN
+    v_url := 'https://' || v_ref || '.supabase.co/functions/v1';
+    INSERT INTO public.app_settings (key, value, description)
+    VALUES ('functions_base_url', v_url,
+            'Base URL for edge functions invoked from the database. Derived from the service-role key in Vault.')
+    ON CONFLICT (key) DO NOTHING;
+    RAISE NOTICE 'functions_base_url set to %', v_url;
+  ELSIF EXISTS (SELECT 1 FROM public.app_settings WHERE key = 'functions_base_url') THEN
+    RAISE NOTICE 'functions_base_url already configured — leaving it alone.';
+  ELSE
+    RAISE WARNING
+      'Could not derive functions_base_url (the Vault key is opaque or missing). Cron jobs that call edge functions will do nothing until you run: INSERT INTO public.app_settings (key, value) VALUES (''functions_base_url'', ''https://<project-ref>.supabase.co/functions/v1'');';
+  END IF;
+
+  INSERT INTO public.app_settings (key, value, description)
+  VALUES ('email_from_address', 'PIVT <support@pivttech.ai>',
+          'From header for transactional email sent by database jobs. Must be a verified sender with the mail provider.')
+  ON CONFLICT (key) DO NOTHING;
+END $$;
+
+
+-- ── 4. Re-point the email queue tick ──────────────────────────────────────
+CREATE OR REPLACE FUNCTION public.tick_email_queue()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_key      text;
+  v_base     text;
+  v_pending  bigint := 0;
+  v_cooldown timestamptz;
+BEGIN
+  SELECT retry_after_until INTO v_cooldown FROM public.email_send_state WHERE id = 1;
+  IF v_cooldown IS NOT NULL AND v_cooldown > now() THEN
+    RETURN;
+  END IF;
+
+  BEGIN
+    SELECT coalesce((SELECT count(*) FROM pgmq.q_auth_emails), 0)
+         + coalesce((SELECT count(*) FROM pgmq.q_transactional_emails), 0)
+    INTO v_pending;
+  EXCEPTION WHEN OTHERS THEN
+    -- The queue tables are created by the pgmq extension; if they are missing
+    -- there is nothing to drain, and this job must not take the cron worker
+    -- down with it.
+    RAISE WARNING 'tick_email_queue: could not read pgmq queues (%)', SQLERRM;
+    v_pending := 0;
+  END;
+
+  IF v_pending = 0 THEN
+    RETURN;
+  END IF;
+
+  v_base := public.app_setting('functions_base_url');
+  IF v_base IS NULL THEN
+    RAISE WARNING 'tick_email_queue: app_settings.functions_base_url is not set; % message(s) left queued', v_pending;
+    RETURN;
+  END IF;
+
+  SELECT decrypted_secret INTO v_key
+  FROM vault.decrypted_secrets WHERE name = 'email_queue_service_role_key';
+
+  IF v_key IS NULL THEN
+    RAISE WARNING 'tick_email_queue: vault secret email_queue_service_role_key is missing; queue not drained';
+    RETURN;
+  END IF;
+
+  PERFORM net.http_post(
+    url     := v_base || '/process-email-queue',
+    headers := jsonb_build_object(
+                 'Content-Type',  'application/json',
+                 'Authorization', 'Bearer ' || v_key),
+    body    := '{}'::jsonb
+  );
+END;
+$$;
+
+
+-- ── 5. Re-point the reminder from-address ─────────────────────────────────
+--
+-- Replaces the two literal 'PIVT <support@pivttech.ai>' values with a lookup,
+-- keeping that address as the seeded default so nothing changes today.
+DO $$
+DECLARE
+  v_src text;
+BEGIN
+  SELECT prosrc INTO v_src
+  FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  WHERE n.nspname = 'public' AND p.proname = 'tick_requirement_reminders';
+
+  IF v_src IS NULL THEN
+    RAISE NOTICE 'tick_requirement_reminders not present — skipping from-address rewrite.';
+    RETURN;
+  END IF;
+
+  -- Test for the REWRITTEN form, not the address. The rewritten source keeps
+  -- the address as a default argument, so checking for the address itself
+  -- matches every time and each re-run wraps the call in another call.
+  IF position('app_setting(''email_from_address''' IN v_src) > 0 THEN
+    RAISE NOTICE 'tick_requirement_reminders already reads its from-address from app_settings — leaving it alone.';
+    RETURN;
+  END IF;
+
+  IF position('''PIVT <support@pivttech.ai>''' IN v_src) = 0 THEN
+    RAISE NOTICE 'tick_requirement_reminders does not contain the literal from-address — leaving it alone.';
+    RETURN;
+  END IF;
+
+  v_src := replace(v_src, '''PIVT <support@pivttech.ai>''',
+                   'public.app_setting(''email_from_address'', ''PIVT <support@pivttech.ai>'')');
+
+  EXECUTE format(
+    'CREATE OR REPLACE FUNCTION public.tick_requirement_reminders() RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS %L',
+    v_src);
+
+  RAISE NOTICE 'tick_requirement_reminders now reads its from-address from app_settings.';
+END $$;
+
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- Remember what a user said a document was, separately from what the
+-- classifier decided it is.
+--
+-- WHY THIS EXISTS
+-- `contract_documents.doc_type` serves two masters. A user picks it in the
+-- upload panel, and `document-ai` then overwrites it with its own
+-- classification. The panel lists documents by `doc_type`, so anything the
+-- model resolved differently — most contracts land on OTHER — dropped out of
+-- the list moments after the user watched it upload and parse.
+--
+-- The interim fix remembered the ids in `localStorage`, which works for one
+-- browser: a colleague opening the same deal sees a different list, and
+-- clearing site data loses it. This stores the user's answer where it belongs.
+--
+-- A file someone uploaded must never disappear because a model disagreed about
+-- its type.
+--
+-- SAFETY: additive. One nullable column and one index. Existing rows keep
+-- NULL — their origin is genuinely unknown, and the client keeps its
+-- localStorage fallback so those documents stay visible to whoever uploaded
+-- them.
+-- ═══════════════════════════════════════════════════════════════════════════
+
+ALTER TABLE public.contract_documents
+  ADD COLUMN IF NOT EXISTS uploaded_as text;
+
+COMMENT ON COLUMN public.contract_documents.uploaded_as IS
+  'The document type the uploader chose, never overwritten by classification. doc_type holds what the classifier decided. Filter user-facing lists on this.';
+
+-- The panel's query is "everything on this deal that was uploaded as one of
+-- these types".
+CREATE INDEX IF NOT EXISTS contract_documents_deal_uploaded_as_idx
+  ON public.contract_documents (deal_id, uploaded_as);
+
+-- Backfill what can be known honestly: rows never touched by the classifier
+-- still carry the type their uploader chose.
+UPDATE public.contract_documents
+   SET uploaded_as = doc_type::text
+ WHERE uploaded_as IS NULL
+   AND status IN ('UPLOADED', 'PROCESSING');
+
+--- SQL ENDS ---
+
+═══════════════════════════════════════════════════════════════════════════
+ONLY IF the run above printed a WARNING containing
+"Could not derive functions_base_url"
+═══════════════════════════════════════════════════════════════════════════
+
+That means the service-role key in Vault is one of the newer opaque
+`sb_secret_…` keys rather than a legacy JWT, so the project reference could not
+be read out of it. Nothing is broken — the setting simply was not seeded, and
+the email-queue cron will leave mail queued until it is. Paste this one
+statement as a second migration:
+
+INSERT INTO public.app_settings (key, value, description)
+VALUES ('functions_base_url',
+        'https://hipjywloeveadfndzary.supabase.co/functions/v1',
+        'Base URL for edge functions invoked from the database.')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now();
+
+If the run printed "NOTICE: functions_base_url set to …" instead, skip this —
+it is already done.

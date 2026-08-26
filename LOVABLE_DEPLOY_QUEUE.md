@@ -13,6 +13,28 @@ The fixes are stable on `dev`. Pasting any of them is safe — each is a self-co
 
 ## Still queued — paste when ready
 
+### 🔴 Two migrations (SQL, not code) — **paste this first**
+
+**[scripts/lovable-paste-migrations.txt](scripts/lovable-paste-migrations.txt)** —
+paste the whole file into Lovable and ask it to apply the SQL as a migration.
+
+Additive and idempotent; nothing to fill in. It adds `app_settings` plus a
+`contract_documents.uploaded_as` column.
+
+The client no longer *breaks* without it — it probes for the column and falls
+back — but until it runs:
+
+* document lists fall back to a per-browser `localStorage` set, so a colleague
+  on the same deal sees a different list;
+* the email-queue cron still posts to a hard-coded project URL;
+* requirement reminders still send from a hard-coded `support@pivttech.ai`.
+
+Lovable will create its own migration file alongside the two already committed
+at `supabase/migrations/2026052106*` and `*07*`. That duplication is harmless —
+every statement is `IF NOT EXISTS` / `CREATE OR REPLACE` / `ON CONFLICT DO
+NOTHING`, and it has been run three times against a local Postgres 14 to prove
+it.
+
 ### ⭐ Test 2 — edge functions (4 files, order-dependent)
 
 See **[LOVABLE_PASTE_TEST2.md](LOVABLE_PASTE_TEST2.md)** for the full guide. Summary:
