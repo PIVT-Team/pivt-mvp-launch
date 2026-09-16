@@ -5,7 +5,11 @@ ATL-001 — with a blocker of every kind the Closing Readiness screen knows:
 a changed wire, a purchase-price discrepancy, an approved-but-unrequested
 consent, an unverified seller, an unverified wire, a pending approval, and one
 invalidated approval. It also adds one unreviewed AI requirement that must NOT
-block. Run it exactly as written. It is safe to re-run: it replaces only that
+block.
+
+ONE THING TO CHECK FIRST: the line  v_email text := 'support@pivttech.ai';
+must be the email address I log into PIVT with. If it is different, change
+that one value and nothing else. It is safe to re-run: it replaces only that
 deal.
 
 Expected output: a NOTICE saying "expect can_close=false with 6 blockers", then
@@ -40,6 +44,8 @@ a six-row table of counts, each 1.
 -- ═══════════════════════════════════════════════════════════════════════════
 DO $$
 DECLARE
+  -- ⚠ Set this to the email you log into PIVT with. The deal is created
+  -- under that user; a wrong address raises an error rather than seeding.
   v_email   text := 'support@pivttech.ai';
   v_user    uuid;
   v_deal    uuid := 'aaaaaaaa-2222-4222-8222-222222222222';

@@ -193,8 +193,10 @@ legible; it does not make the screens work.
 The original note was about ordering. The real finding is that **edge functions
 never deployed at all** from commits that originated in git. Verified by calling
 every function on production: nine return the gateway's 404 "function not
-found" — the six Requirements Engine functions, and the three `persona-*` KYC
-functions committed in May. The live UI has screens that call them.
+found" — the six Requirements Engine functions (the live UI calls two of them), and
+the three `persona-*` functions committed in May — which nothing in the
+frontend references; they are dead code, not a broken KYC flow. An earlier
+note here said the KYC flow had been dark for months; that was wrong.
 
 The other 44 answer, which proves they *exist*, not that they run current code.
 Until CI deploys them, every backend change from this session — extraction,
@@ -252,7 +254,7 @@ double-submit.
 
 | Screen | Rendered where | Backed by | Consequence |
 |---|---|---|---|
-| `WaterfallCover` | deal workspace | `waterfallStore`, a zustand store with **no persistence at all** | A waterfall someone builds is gone on refresh. `waterfall_tiers`, `waterfall_allocations` and `disbursement-engine`'s `calculate-waterfall` all exist and are not called. |
+| ~~`WaterfallCover`~~ | deal workspace | **Fixed 2026-09-16.** Persists to `waterfall_tiers`, computes with the engine's own allocator, records snapshots through the engine (which now supersedes its prior drafts). | — |
 | `TimelineCover` | sidebar | `timelineStore`, persisted to `localStorage` | Per-browser. A colleague sees a different timeline. Same class as T6. |
 | `AuditAndReports` | **nowhere** | `auditStore` with seeded demo entries | Dead code; archive. |
 | `CommunicationsHub` | sidebar | `DEMO_COMMENTS` | Portfolio view of the comments now stored for real — wire it to `deal_comments`. |

@@ -25,6 +25,8 @@
 -- ═══════════════════════════════════════════════════════════════════════════
 DO $$
 DECLARE
+  -- ⚠ Set this to the email you log into PIVT with. The deal is created
+  -- under that user; a wrong address raises an error rather than seeding.
   v_email   text := 'support@pivttech.ai';
   v_user    uuid;
   v_deal    uuid := 'aaaaaaaa-2222-4222-8222-222222222222';
