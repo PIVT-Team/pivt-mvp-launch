@@ -188,7 +188,33 @@ Still fabricated and reachable from the sidebar: `CommunicationsHub` and
 `AIDashboardCover`. Both carry a `SampleDataNotice`. The notice makes the state
 legible; it does not make the screens work.
 
-### T15. A frontend deploy can outrun the migration it needs — **NEW**
+### T15. Nothing deployed the backend — **CONFIRMED WORSE THAN RECORDED; CI written**
+
+The original note was about ordering. The real finding is that **edge functions
+never deployed at all** from commits that originated in git. Verified by calling
+every function on production: nine return the gateway's 404 "function not
+found" — the six Requirements Engine functions, and the three `persona-*` KYC
+functions committed in May. The live UI has screens that call them.
+
+The other 44 answer, which proves they *exist*, not that they run current code.
+Until CI deploys them, every backend change from this session — extraction,
+money parsing, the waterfall, thresholds, the orchestrator diff — must be
+assumed dark.
+
+This was documented in `LOVABLE_PASTE_TEST2.md` before context compaction
+("edge functions don't reach production through git") and then lost. Several
+hours of backend work were verified only against frontend bundles.
+
+**Fix, written:** `.github/workflows/supabase.yml` deploys every function and
+applies pending migrations (via the Management API, tracked in the CLI's own
+`schema_migrations` table, gated by `supabase/.migration-baseline`) on every push
+to main. It needs one repository secret, `SUPABASE_ACCESS_TOKEN`, from an
+account with project access. Until it exists the jobs exit green with a
+warning naming what they would have done.
+
+**Interim:** `scripts/lovable-deploy-functions.txt` — one paste into Lovable.
+
+### T15 (original finding). A frontend deploy can outrun the migration it needs
 
 I shipped the `uploaded_as` client change to production while its migration was
 still unapplied. PostgREST rejects an INSERT naming an unknown column outright
