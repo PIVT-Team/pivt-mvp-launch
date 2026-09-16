@@ -61,89 +61,15 @@ export interface WaterfallState {
 
 const uid = () => crypto.randomUUID();
 
-// ── Calculation Engine ──
-
-function calculateWaterfall(pool: number, tiers: WaterfallTier[]): { tiers: WaterfallTier[]; unallocated: number; hasDiscrepancy: boolean } {
-  let remaining = pool;
-  let hasDiscrepancy = false;
-
-  const computed = tiers
-    .sort((a, b) => a.priority - b.priority)
-    .map(tier => {
-      let tierAmount = 0;
-
-      switch (tier.ruleType) {
-        case 'FIXED_AMOUNT':
-          tierAmount = Math.min(tier.ruleValue, remaining);
-          break;
-        case 'PERCENT_OF_POOL':
-          tierAmount = remaining;
-          break;
-        case 'PRO_RATA':
-          tierAmount = remaining;
-          break;
-        case 'WATERFALL_CAP':
-          tierAmount = Math.min(tier.ruleValue, remaining);
-          break;
-      }
-
-      if (tier.capAmount !== null && tier.capAmount > 0) {
-        tierAmount = Math.min(tierAmount, tier.capAmount);
-      }
-
-      const recipients = allocateRecipients(tier.recipients, tierAmount, pool);
-
-      const hasBlocked = recipients.some(r => r.status === 'BLOCKED');
-      const hasPending = recipients.some(r => r.status === 'PENDING');
-      const tierStatus: TierStatus = hasBlocked ? 'BLOCKED' : hasPending ? 'PENDING' : 'READY';
-
-      remaining -= tierAmount;
-
-      return { ...tier, computedTotal: tierAmount, recipients, status: tierStatus };
-    });
-
-  if (remaining < -0.01) hasDiscrepancy = true;
-
-  return { tiers: computed, unallocated: Math.max(remaining, 0), hasDiscrepancy };
-}
-
-function allocateRecipients(recipients: RecipientAllocation[], tierTotal: number, poolTotal: number): RecipientAllocation[] {
-  const proRataRecipients = recipients.filter(r => r.allocationType === 'PRO_RATA');
-  const proRataSum = proRataRecipients.reduce((s, r) => s + r.amountOrPercent, 0);
-
-  let fixedUsed = 0;
-  const fixedRecipients = recipients.filter(r => r.allocationType === 'FIXED_AMOUNT');
-  fixedRecipients.forEach(r => { fixedUsed += r.amountOrPercent; });
-
-  const pctRecipients = recipients.filter(r => r.allocationType === 'PERCENT_OF_TIER');
-  const pctSum = pctRecipients.reduce((s, r) => s + r.amountOrPercent, 0);
-
-  return recipients.map(r => {
-    let payout = 0;
-
-    switch (r.allocationType) {
-      case 'FIXED_AMOUNT':
-        payout = Math.min(r.amountOrPercent, tierTotal);
-        break;
-      case 'PERCENT_OF_TIER':
-        payout = (r.amountOrPercent / 100) * tierTotal;
-        break;
-      case 'PRO_RATA':
-        payout = proRataSum > 0 ? (r.amountOrPercent / proRataSum) * (tierTotal - fixedUsed - (pctSum / 100) * tierTotal) : 0;
-        break;
-    }
-
-    let status: TierStatus = 'READY';
-    if (r.status === 'BLOCKED') status = 'BLOCKED';
-    else if (r.status === 'PENDING') status = 'PENDING';
-
-    return {
-      ...r,
-      computedPayout: Math.max(payout, 0),
-      computedPctOfPool: poolTotal > 0 ? (payout / poolTotal) * 100 : 0,
-    };
-  });
-}
+// ── Calculation ──
+//
+// The arithmetic lives in supabase/functions/_shared/waterfall.ts and is the
+// same code the engine persists with. Two things changed by adopting it:
+//   * payouts are computed in integer cents and reconcile exactly;
+//   * a PERCENT_OF_POOL tier now takes ruleValue percent of the pool — the
+//     old local math ignored ruleValue and gave such a tier everything left.
+import { computeLocal } from "@/services/waterfallService";
+const calculateWaterfall = computeLocal;
 
 // ── Audit ──
 

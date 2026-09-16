@@ -248,6 +248,17 @@ Deno.serve(async (req) => {
           }));
           await supabase.from("waterfall_allocation_lines").insert(lineInserts);
 
+          // A recalculation supersedes the drafts of the previous one. Without
+          // this, every run appended a fresh set of draft intents alongside the
+          // old — three recalculations meant three payments to each recipient
+          // on the Payments screen. Only drafts derived from a waterfall are
+          // touched; anything a person has moved past draft is theirs.
+          await supabase.from("disbursement_intents")
+            .delete()
+            .eq("deal_id", deal_id)
+            .eq("status", "draft")
+            .not("waterfall_allocation_id", "is", null);
+
           // Auto-create disbursement intents for cash lines
           const cashLines = result.lines.filter((l: any) => l.consideration_type === "cash");
           for (const line of cashLines) {

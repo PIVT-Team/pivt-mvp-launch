@@ -102,3 +102,57 @@ describe('calculateWaterfall', () => {
     expect(r.totalAllocated).toBe(0);
   });
 });
+
+describe('per-recipient allocation rules inside a tier', () => {
+  const R = [
+    { id: 'a', name: 'A', ownership_pct: 60 },
+    { id: 'b', name: 'B', ownership_pct: 30 },
+    { id: 'c', name: 'C', ownership_pct: 10 },
+  ];
+  const rules = (list: Array<{ recipient_id: string; type: string; value?: number }>) =>
+    tier({ allocation_logic_type: 'fixed', params: { amount: 1_000_000, recipient_allocations: list } });
+
+  it('fixed, then percent of tier, then pro-rata over the remainder — and it reconciles', () => {
+    const r = calculateWaterfall(1_000_000, [rules([
+      { recipient_id: 'a', type: 'fixed', value: 250_000 },
+      { recipient_id: 'b', type: 'percent_of_tier', value: 10 },   // 100,000
+      { recipient_id: 'c', type: 'pro_rata' },                       // the rest
+    ])], R);
+    expect(r.lines.map((l) => [l.recipient_id, l.amount_original]))
+      .toEqual([['a', 250_000], ['b', 100_000], ['c', 650_000]]);
+    expect(paid(r)).toBe(1_000_000);
+  });
+
+  it('fixed claims larger than the tier are scaled down, never paid from nothing', () => {
+    const r = calculateWaterfall(100_000, [rules([
+      { recipient_id: 'a', type: 'fixed', value: 300_000 },
+      { recipient_id: 'b', type: 'fixed', value: 100_000 },
+    ])], R.slice(0, 2));
+    expect(paid(r)).toBe(100_000);
+    expect(r.lines[0].amount_original).toBe(75_000);
+    expect(r.lines[1].amount_original).toBe(25_000);
+  });
+
+  it('pro-rata weights default to ownership when no value is given', () => {
+    const r = calculateWaterfall(1_000, [rules([
+      { recipient_id: 'a', type: 'pro_rata' }, { recipient_id: 'b', type: 'pro_rata' }, { recipient_id: 'c', type: 'pro_rata' },
+    ])], R);
+    expect(r.lines.map((l) => l.amount_original)).toEqual([600, 300, 100]);
+  });
+
+  it('cents nobody can absorb return to the pool as unallocated, not vanish', () => {
+    const r = calculateWaterfall(1_000, [rules([
+      { recipient_id: 'a', type: 'fixed', value: 400 },
+      { recipient_id: 'b', type: 'fixed', value: 100 },
+    ])], R.slice(0, 2));
+    expect(paid(r)).toBe(500);
+    expect(r.remaining).toBe(500);
+    expect(r.totalAllocated).toBe(500);
+  });
+
+  it('tiers without rules behave exactly as before', () => {
+    const before = calculateWaterfall(185_000_000, [tier()], CAP_TABLE);
+    expect(paid(before)).toBe(185_000_000);
+    expect(before.lines).toHaveLength(5);
+  });
+});
