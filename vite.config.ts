@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Logic shared with edge functions — one definition of closing readiness.
+      "@shared": path.resolve(__dirname, "./supabase/functions/_shared"),
     },
   },
 }));

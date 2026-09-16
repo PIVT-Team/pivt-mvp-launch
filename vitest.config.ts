@@ -7,7 +7,7 @@ export default defineConfig({
     projects: [
       {
         plugins: [react()],
-        resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+        resolve: { alias: { "@": path.resolve(__dirname, "./src"), "@shared": path.resolve(__dirname, "./supabase/functions/_shared") } },
         test: {
           name: "app",
           environment: "jsdom",

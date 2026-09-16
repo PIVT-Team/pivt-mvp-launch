@@ -73,7 +73,7 @@ Screenshot-able once the two functions are deployed.
 | What must be true | Today | Work |
 |---|---|---|
 | One readiness view: "can this transaction close?" with clickable blockers | Live (`dealMetricsService.blockingIssues`) | — |
-| Newton's "what's blocking close?" agrees with that view | **No.** `get-deal-context` reads discrepancies, obligations, conditions, approvals — **not** `deal_requirements`, `wire_instructions` verification, or `deal_change_events`. Newton cannot see an unsigned packet or an unverified wire that the readiness view shows. | **Build**: one blocker definition, shared |
+| Newton's "what's blocking close?" agrees with that view | **Built 2026-09-16.** One pure `computeClosingReadiness()` in `_shared/closing-readiness.ts`; the screen and `get-deal-context` both call it with the same rows. The pack now carries `closing_readiness` (can_close, numbered blockers with source and next action). | Deploy |
 | Dual-counsel approvals, invalidated on upstream change | Live / orchestrator part not deployed | Deploy |
 | Bank-ready wire pack, only when green | `generate-wire-pack` live | — |
 | Waterfall allocations | Engine rewritten in integer cents — **not deployed**; **`WaterfallCover` never calls it** and keeps its state in a store with no persistence (T14) | Deploy + **Build** |
@@ -92,7 +92,7 @@ Screenshot-able once the two functions are deployed.
 
 | What must be true | Today | Work |
 |---|---|---|
-| "What's blocking close?" returns a structured list with three items and their sources | Prompt asks for structured, cited answers; context pack has discrepancy `message` + `rule_key` but **no document references**, and none of the requirements/wire state (§5) | **Build**: extend the context pack; instruct a fixed shape for blocker questions (item, source document, next action) |
+| "What's blocking close?" returns a structured list with three items and their sources | **Built 2026-09-16.** Newton answers blocker questions only from `closing_readiness`, in a fixed numbered shape — title, reason, *source*, next action — verbatim, no reordering or estimation. | Deploy |
 | Answer comes from the database, not the open screen | `get-deal-context` preference — **not deployed** | Deploy |
 
 ## 8. Stats strip

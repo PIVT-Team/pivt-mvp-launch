@@ -8,35 +8,22 @@ export interface DealMetricIssue {
   severity: "warn" | "error";
 }
 
-/** The five things a closing-readiness view reports on. */
-export type ReadinessCategory =
-  | "documents"
-  | "funds_flow"
-  | "verification"
-  | "approvals"
-  | "closing_requirements";
+import {
+  computeClosingReadiness, hasRequiredDoc, nStatus, nRole, nDocType,
+  REQUIRED_STAKEHOLDER_ROLES, BUYER_SIDE_ROLES, SELLER_SIDE_ROLES,
+  DEFAULT_REQUIRED_DOC_TYPES, COMPLETED_DOC_STATUSES, COMPLETED_APPROVAL_STATUSES,
+  BLOCKED_APPROVAL_STATUSES, VERIFIED_STAKEHOLDER_STATUSES, CONFIRMED_OBLIGATION_STATUSES,
+  VERIFIED_WIRE_STATUSES, SATISFIED_CONDITION_STATUSES, SETTLED_STATUSES,
+  type BlockingIssue, type ReadinessCategory,
+} from "@shared/closing-readiness";
+
+// The readiness vocabulary and the blocker computation live in
+// supabase/functions/_shared/closing-readiness.ts so the edge function Newton
+// reads from uses the same definition as this screen. Re-exported so existing
+// importers keep working.
+export type { BlockingIssue, ReadinessCategory };
 
 export type ReadinessCategoryStatus = "ready" | "attention" | "not_started";
-
-/**
- * A single reason this deal cannot close, in the shape a human needs: what is
- * wrong, why it matters, where the finding came from, and what to do about it.
- *
- * `targetSection` / `targetId` exist so the UI can make every blocker clickable
- * through to the thing it is about.
- */
-export interface BlockingIssue {
-  id: string;
-  category: ReadinessCategory;
-  title: string;
-  reason: string;
-  source: string;
-  action: string;
-  origin: "discrepancy" | "change_event" | "gate" | "requirement";
-  targetSection: string;
-  targetId?: string;
-  createdAt?: string;
-}
 
 export interface DealMetrics {
   dealId: string;
@@ -110,115 +97,6 @@ export interface DealMetrics {
   blockingRequirements: number;
   /** AI-extracted requirements a human has not yet approved or rejected. */
   requirementsAwaitingReview: number;
-}
-
-const REQUIRED_STAKEHOLDER_ROLES = new Set(["BUYER", "SELLER", "TARGET", "MERGER_SUB"]);
-const BUYER_SIDE_ROLES = new Set(["BUYER", "MERGER_SUB", "INVESTOR", "LENDER", "BUYER_COUNSEL", "ADMINISTRATIVE_AGENT"]);
-const SELLER_SIDE_ROLES = new Set(["SELLER", "TARGET", "SHAREHOLDER", "FOUNDER", "EMPLOYEE", "ADVISOR", "SELLER_COUNSEL"]);
-
-const DEFAULT_REQUIRED_DOC_TYPES = [
-  "SPA",
-  "FUNDS_FLOW",
-  "WIRE_INSTRUCTIONS",
-  "ESCROW_AGREEMENT",
-  "DISCLOSURE_SCHEDULES",
-  "BOARD_CONSENT",
-  "OFFICER_CERTIFICATE",
-];
-
-const REQUIRED_DOC_EQUIVALENTS: Record<string, string[]> = {
-  SPA: ["SPA", "MERGER_AGREEMENT", "PURCHASE_AGREEMENT"],
-  FUNDS_FLOW: ["FUNDS_FLOW", "WATERFALL_MODEL", "DISTRIBUTION_SCHEDULE"],
-  WIRE_INSTRUCTIONS: ["WIRE_INSTRUCTIONS", "WIRE_AUTHORIZATION", "BANK_LETTER"],
-  ESCROW_AGREEMENT: ["ESCROW_AGREEMENT"],
-  DISCLOSURE_SCHEDULES: ["DISCLOSURE_SCHEDULES"],
-  BOARD_CONSENT: ["BOARD_CONSENT", "STOCKHOLDER_CONSENT"],
-  OFFICER_CERTIFICATE: ["OFFICER_CERTIFICATE", "SECRETARY_CERTIFICATE"],
-};
-
-const COMPLETED_DOC_STATUSES = new Set(["PARSED", "EXTRACTION_COMPLETE", "VERIFIED", "PROCESSED", "COMPLETED"]);
-const COMPLETED_APPROVAL_STATUSES = new Set(["APPROVED", "COMPLETED"]);
-const BLOCKED_APPROVAL_STATUSES = new Set(["DECLINED", "EXPIRED", "FAILED_DELIVERY", "BLOCKED"]);
-const VERIFIED_STAKEHOLDER_STATUSES = new Set(["VERIFIED", "COMPLETED"]);
-const CONFIRMED_OBLIGATION_STATUSES = new Set(["CONFIRMED", "SATISFIED", "WAIVED"]);
-const VERIFIED_WIRE_STATUSES = new Set(["VERIFIED", "CONFIRMED", "APPROVED"]);
-const SATISFIED_CONDITION_STATUSES = new Set(["MET", "SATISFIED", "WAIVED"]);
-const SETTLED_STATUSES = new Set(["SETTLED", "EXECUTED", "COMPLETED"]);
-
-const pct = (done: number, total: number) => (total <= 0 ? 0 : Math.round((done / total) * 100));
-const nStatus = (status: string | null | undefined) => String(status || "").toUpperCase();
-const nRole = (role: string | null | undefined) => String(role || "").toUpperCase().replace(/[\s-]+/g, "_");
-const nDocType = (type: string | null | undefined) => String(type || "OTHER").toUpperCase().replace(/[\s-]+/g, "_");
-
-function hasRequiredDoc(records: Array<{ doc_type: string; status: string }>, requiredType: string, completedOnly: boolean) {
-  const accepted = new Set(REQUIRED_DOC_EQUIVALENTS[requiredType] || [requiredType]);
-  return records.some((d) => accepted.has(nDocType(d.doc_type)) && (!completedOnly || COMPLETED_DOC_STATUSES.has(nStatus(d.status))));
-}
-
-// ── Closing-readiness helpers ────────────────────────────────────────────────
-
-/** Which readiness category a change event belongs under. */
-function changeEventCategory(changeType: string): ReadinessCategory {
-  switch (changeType) {
-    case "approval_invalidated":
-      return "approvals";
-    case "verification_invalidated":
-    case "wire_details_changed":
-      return "verification";
-    case "payment_added":
-    case "payment_removed":
-    case "payment_amount_changed":
-    case "duplicate_payment_detected":
-      return "funds_flow";
-    case "document_version_added":
-      return "documents";
-    default:
-      return "closing_requirements";
-  }
-}
-
-/** Which readiness category a discrepancy rule belongs under. */
-function discrepancyCategory(ruleKey: string): ReadinessCategory {
-  const k = String(ruleKey || "");
-  if (/doc|schedule|certificate|consent|opinion|binder|standing/.test(k)) return "documents";
-  if (/funds_flow|wire|payee|waterfall|escrow|price|cap_table|fx|payment|intent/.test(k)) return "funds_flow";
-  if (/kyc|kyb|sanction|verif|tax_form/.test(k)) return "verification";
-  if (/approval|counsel/.test(k)) return "approvals";
-  return "closing_requirements";
-}
-
-/** Which readiness category a requirement belongs under. */
-function requirementCategory(kind: string): ReadinessCategory {
-  switch (kind) {
-    case "signature": return "approvals";
-    case "external_document": return "documents";
-    case "consent":
-    case "notice":
-    default: return "closing_requirements";
-  }
-}
-
-/** Deep-link target so every blocker is clickable through to its subject. */
-function sectionForObject(objectType: string | null | undefined, hint = ""): string {
-  switch (String(objectType || "")) {
-    case "wire_instruction": return "payments";
-    case "deal_approval": return "approvals";
-    case "cap_table_entry": return "stakeholders";
-    case "tax_recipient": return "tax";
-    case "intent": return "payments";
-    case "document": return "documents";
-    default: return sectionForCategory(discrepancyCategory(hint));
-  }
-}
-
-function sectionForCategory(category: ReadinessCategory): string {
-  switch (category) {
-    case "documents": return "documents";
-    case "funds_flow": return "payments";
-    case "verification": return "verification";
-    case "approvals": return "approvals";
-    default: return "overview";
-  }
 }
 
 function categoryRoll(
@@ -364,131 +242,29 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
   const completedDealInputs = REQUIRED_DEAL_INPUT_CATEGORIES.filter((k) => categoryChecks[k]).length;
   const totalDealInputs = totalUploadedDocuments + stakeholders.length + waterfall.length + totalWireInstructions + taxForms.length + totalObligations;
 
-  const stakeholdersConfigured = (buyerRows.length > 0 || !!deal?.buyer) && (sellerRows.length > 0 || !!deal?.seller);
-  const sellerVerified = sellerRows.length > 0 && sellerRows.every((s) => VERIFIED_STAKEHOLDER_STATUSES.has(nStatus(s.verification_status)));
-  const buyerVerified = buyerRows.length > 0 && buyerRows.every((s) => VERIFIED_STAKEHOLDER_STATUSES.has(nStatus(s.verification_status)));
-  const spaUploaded = hasRequiredDoc(allDocs, "SPA", false);
-  const wireInstructionsUploaded = totalWireInstructions > 0;
-  const paymentsApproved = totalWireInstructions > 0 && verifiedWireInstructions === totalWireInstructions;
-  const approvalsComplete = requiredApprovals > 0 && grantedRequiredApprovals === requiredApprovals;
+  // One definition of "can this close?" — shared with get-deal-context, so
+  // what Newton says and what this screen shows cannot disagree.
+  const readiness = computeClosingReadiness({
+    deal, stakeholders, contractDocs, dealDocs, wires, approvals,
+    discrepancies, changeEvents, requirements,
+  });
+  const {
+    stakeholdersConfigured, sellerVerified, buyerVerified, spaUploaded,
+    wireInstructionsUploaded, paymentsApproved, approvalsComplete,
+  } = readiness.gates;
 
   const totalSettlementRecords = paymentAllocations.length + escrowTransactions.length;
   const settledRecords = paymentAllocations.filter((p) => SETTLED_STATUSES.has(nStatus(p.status))).length + escrowTransactions.filter((t) => SETTLED_STATUSES.has(nStatus(t.status))).length;
   const settlementComplete = totalSettlementRecords > 0 && settledRecords === totalSettlementRecords;
 
   // ── Blocking issues ────────────────────────────────────────────────────
-  const blockerDiscrepancies = discrepancies.filter((d) => String(d.severity) === "blocker");
-  const blockingChangeEvents = changeEvents.filter((e) => e.blocks_closing === true);
-
-  const blockingIssues: BlockingIssue[] = [
-    // Change events first — they describe something that moved, which is
-    // almost always more urgent than a static gap.
-    ...blockingChangeEvents.map((e) => ({
-      id: `change:${e.id}`,
-      category: changeEventCategory(e.change_type),
-      title: e.title || "Change requires review",
-      reason: [e.what_changed, e.why_it_matters].filter(Boolean).join(" "),
-      source: e.source_label || "Deal change log",
-      action: e.recommended_action || "Review this change before closing.",
-      origin: "change_event" as const,
-      targetSection: sectionForObject(e.object_type, e.change_type),
-      targetId: e.object_id || undefined,
-      createdAt: e.created_at,
-    })),
-    ...blockerDiscrepancies.map((d) => ({
-      id: `disc:${d.id}`,
-      category: discrepancyCategory(d.rule_key),
-      title: d.message || d.rule_key,
-      reason: String((d.details as any)?.why_it_matters || d.message || ""),
-      source: String((d.details as any)?.source || `Rule: ${d.rule_key}`),
-      action: String((d.details as any)?.recommended_action || "Resolve this discrepancy before closing."),
-      origin: "discrepancy" as const,
-      targetSection: sectionForObject(d.object_type, d.rule_key),
-      targetId: d.object_id || undefined,
-      createdAt: d.created_at,
-    })),
-  ];
-
-  // Outstanding requirements — signatures, consents, notices, external
-  // deliverables. A requirement blocks only if someone marked it as blocking
-  // AND it has cleared human review; an unreviewed AI extraction is never
-  // allowed to gate a closing on its own.
-  const OPEN_REQ_STATUSES = new Set(["not_started", "draft_ready", "sent", "viewed", "responded", "under_review", "issue"]);
-  const openRequirements = requirements.filter(
-    (r) => OPEN_REQ_STATUSES.has(String(r.status)) && r.review_status !== "rejected"
-  );
-  const blockingRequirements = openRequirements.filter(
-    (r) => r.blocks_closing === true && r.review_status === "approved"
-  );
-  const requirementsAwaitingReview = requirements.filter((r) => r.review_status === "pending_review");
-
-  blockingIssues.push(
-    ...blockingRequirements.map((r) => {
-      const kindLabel = String(r.requirement_kind || "").replace(/_/g, " ");
-      // Entity names routinely end in a period ("Acme Inc."), so appending
-      // another one produces "Acme Inc..". Trim it before interpolating.
-      const rawWho = r.signatory_name || r.counterparty_name || r.counterparty_email || "the counterparty";
-      const who = String(rawWho).replace(/\.+$/, "");
-      const overdue = r.due_date && new Date(r.due_date) < new Date();
-      return {
-        id: `req:${r.id}`,
-        category: requirementCategory(r.requirement_kind),
-        title: r.title,
-        reason: [
-          r.description,
-          r.status === "issue" ? "The response received did not satisfy the request." :
-          r.status === "under_review" ? "A response arrived but needs human review." :
-          r.status === "not_started" ? `No ${kindLabel} request has been sent yet.` :
-          `Awaiting a response from ${who}.`,
-          overdue ? `Overdue since ${r.due_date}.` : "",
-        ].filter(Boolean).join(" "),
-        source: (r.source_ref as any)?.filename
-          ? `${(r.source_ref as any).filename}${(r.source_ref as any).clause_ref ? ` — ${(r.source_ref as any).clause_ref}` : ""}`
-          : r.source === "ai" ? "AI extraction (reviewed)" : "Manually added",
-        action: r.status === "under_review" ? `Review the document submitted by ${who}.`
-              : r.status === "issue" ? `Resolve the issue with ${who} and request a replacement.`
-              : r.status === "not_started" ? `Send the ${kindLabel} request to ${who}.`
-              : `Follow up with ${who}.`,
-        origin: "requirement" as const,
-        targetSection: requirementCategory(r.requirement_kind) === "approvals" ? "approvals" : "requirements",
-        targetId: r.id,
-        createdAt: r.created_at,
-      };
-    })
-  );
-
-  // Unmet hard gates are blockers too — surfaced in the same list so the view
-  // has one place to read rather than three.
-  const gateBlockers: Array<[boolean, string, ReadinessCategory, string, string, string]> = [
-    [stakeholdersConfigured, "Buyer and seller stakeholders not configured", "closing_requirements", "A deal cannot close without both sides identified.", "Deal record", "Add at least one buyer and one seller stakeholder."],
-    [sellerVerified, "Seller-side verification incomplete", "verification", "Funds cannot be released to an unverified party.", "Verification status", "Complete KYC/KYB for every seller-side stakeholder."],
-    [buyerVerified, "Buyer-side verification incomplete", "verification", "Funds cannot be sourced from an unverified party.", "Verification status", "Complete KYC/KYB for every buyer-side stakeholder."],
-    [spaUploaded, "No purchase agreement on file", "documents", "The operative agreement is missing, so nothing can be reconciled against it.", "Document set", "Upload the SPA or merger agreement."],
-    [wireInstructionsUploaded, "No wire instructions on file", "funds_flow", "There is no payment set to execute.", "Funds flow", "Upload the funds flow or add wire instructions."],
-    [paymentsApproved, "Not all wire instructions are verified", "verification", "Unverified payment instructions cannot be funded.", "Wire instructions", "Verify each remaining wire instruction."],
-    [approvalsComplete, "Required approvals outstanding", "approvals", "The payment set has not been authorised by everyone required.", "Approvals", "Collect the remaining required approvals."],
-  ];
-  for (const [ok, title, category, reason, source, action] of gateBlockers) {
-    if (!ok) {
-      blockingIssues.push({
-        id: `gate:${title}`, category, title, reason, source, action,
-        origin: "gate", targetSection: sectionForCategory(category),
-      });
-    }
-  }
-
-  const invalidatedApprovals = approvals.filter((a) => !!a.invalidated_at).length;
-
-  // A deal is ready only when the gates pass AND nothing is blocking. Before
-  // this, the gates alone decided, so "Ready" could appear over an open list of
-  // blockers the product had already computed.
-  const readyToClose =
-    stakeholdersConfigured && sellerVerified && buyerVerified && spaUploaded &&
-    wireInstructionsUploaded && paymentsApproved && approvalsComplete &&
-    blockerDiscrepancies.length === 0 &&
-    blockingChangeEvents.length === 0 &&
-    invalidatedApprovals === 0 &&
-    blockingRequirements.length === 0;
+  const { blockingIssues, canClose: readyToClose } = readiness;
+  const {
+    blockerDiscrepancies: openBlockerDiscrepancies,
+    blockingChangeEvents: openBlockingChangeEvents,
+    invalidatedApprovals,
+    openRequirements, blockingRequirements, requirementsAwaitingReview,
+  } = readiness.counts;
 
   const categoryStatus: Record<ReadinessCategory, ReadinessCategoryStatus> = {
     documents: categoryRoll(blockingIssues, "documents", totalUploadedDocuments > 0),
@@ -666,11 +442,11 @@ export async function getDealMetrics(dealId: string): Promise<DealMetrics> {
     reconciliationIssues,
     blockingIssues,
     categoryStatus,
-    openBlockerDiscrepancies: blockerDiscrepancies.length,
-    openBlockingChangeEvents: blockingChangeEvents.length,
+    openBlockerDiscrepancies,
+    openBlockingChangeEvents,
     invalidatedApprovals,
-    openRequirements: openRequirements.length,
-    blockingRequirements: blockingRequirements.length,
-    requirementsAwaitingReview: requirementsAwaitingReview.length,
+    openRequirements,
+    blockingRequirements,
+    requirementsAwaitingReview,
   };
 }
