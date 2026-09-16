@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { requireJwt } from "../_shared/require-jwt.ts";
+import { composeRequirementMessage } from "../_shared/requirement-message.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +41,9 @@ Deno.serve(async (req) => {
       return json({ error: "This request has already been sent." }, 409);
     }
 
+    const { data: deal } = await admin
+      .from("deals").select("deal_name").eq("id", rq.deal_id).maybeSingle();
+
     const { data: r } = await admin
       .from("deal_requirements").select("*").eq("id", rq.requirement_id).maybeSingle();
     if (!r) return json({ error: "Requirement not found." }, 404);
@@ -60,8 +64,22 @@ Deno.serve(async (req) => {
     const link = `${base}/submit?t=${raw}`;
 
     const expires = new Date(Date.now() + 30 * 864e5).toISOString();
-    const finalBody = String(body || "").replace("[SECURE UPLOAD LINK]", link);
-    const finalSubject = subject || `Document request — ${r.title}`;
+    // The link is the point of the message; it is present whatever the
+    // reviewer did to the text. See _shared/requirement-message.ts.
+    const composed = composeRequirementMessage({
+      subject, body, link,
+      requirementTitle: r.title,
+      recipientName: rq.recipient_name,
+      dealName: deal?.deal_name ?? null,
+    });
+    const finalBody = composed.body;
+    const finalSubject = composed.subject;
+
+    // From-address is a setting, not a literal (T11). Falls back to the
+    // historical value so nothing changes until someone sets it.
+    const { data: fromRow } = await admin
+      .from("app_settings").select("value").eq("key", "email_from_address").maybeSingle();
+    const fromAddress = fromRow?.value || "PIVT <support@pivttech.ai>";
 
     const sendingEnabled = (Deno.env.get("SEND_REQUIREMENT_EMAILS") || "").toLowerCase() === "true";
 

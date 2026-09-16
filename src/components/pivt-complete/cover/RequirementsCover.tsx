@@ -8,7 +8,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
 import {
   listRequirements, reviewRequirement,
-  type DealRequirement, type RequirementKind,
+  listRequests, draftRequestViaEngine, approveRequestToSend, sendRequest, cancelRequest,
+  type DealRequirement, type RequirementKind, type RequirementRequest, type DraftedRequest,
 } from '@/services/requirementsService';
 import { buildAllPackets, groupBySignatory } from '@/services/signaturePacketService';
 
@@ -58,16 +59,31 @@ export const RequirementsCover: React.FC = () => {
   const { dealId } = useDealWorkspace();
   const { toast } = useToast();
   const [rows, setRows] = useState<DealRequirement[]>([]);
+  const [requests, setRequests] = useState<RequirementRequest[]>([]);
+  const [requesting, setRequesting] = useState<DealRequirement | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<RequirementKind | 'all'>('all');
   const [reviewing, setReviewing] = useState<DealRequirement | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Latest live request per requirement. `listRequests` is newest-first, so
+  // the first one seen wins.
+  const requestFor = useMemo(() => {
+    const m = new Map<string, RequirementRequest>();
+    for (const q of requests) {
+      if (['cancelled', 'expired'].includes(q.status)) continue;
+      if (!m.has(q.requirement_id)) m.set(q.requirement_id, q);
+    }
+    return m;
+  }, [requests]);
+
   const load = useCallback(async () => {
     if (!dealId) return;
     setLoading(true);
     try {
-      setRows(await listRequirements(dealId));
+      const [reqRows, reqs] = await Promise.all([listRequirements(dealId), listRequests(dealId)]);
+      setRows(reqRows);
+      setRequests(reqs);
     } catch (e) {
       toast({ title: 'Could not load requirements', description: String((e as Error).message), variant: 'destructive' });
     } finally {
@@ -227,7 +243,11 @@ export const RequirementsCover: React.FC = () => {
       ) : (
         <div className="space-y-2">
           {visible.map((r) => (
-            <RequirementRow key={r.id} r={r} onReview={() => setReviewing(r)} />
+            <RequirementRow
+              key={r.id} r={r} request={requestFor.get(r.id)}
+              onReview={() => setReviewing(r)}
+              onRequest={() => setRequesting(r)}
+            />
           ))}
         </div>
       )}
@@ -239,15 +259,29 @@ export const RequirementsCover: React.FC = () => {
           onDone={async () => { setReviewing(null); await load(); }}
         />
       )}
+
+      {requesting && (
+        <RequestDrawer
+          requirement={requesting}
+          existing={requestFor.get(requesting.id)}
+          onClose={() => setRequesting(null)}
+          onDone={async () => { setRequesting(null); await load(); }}
+        />
+      )}
     </div>
   );
 };
 
 // ── one row of the matrix ───────────────────────────────────────────────────
-const RequirementRow: React.FC<{ r: DealRequirement; onReview: () => void }> = ({ r, onReview }) => {
+const RequirementRow: React.FC<{
+  r: DealRequirement; request?: RequirementRequest; onReview: () => void; onRequest: () => void;
+}> = ({ r, request, onReview, onRequest }) => {
   const pending = r.review_status === 'pending_review';
   const overdue = isOverdue(r);
   const src = (r.source_ref || {}) as Record<string, string>;
+  const closed = ['satisfied', 'waived', 'not_required'].includes(r.status);
+  // A request can only be raised for something a person has accepted as real.
+  const canRequest = r.review_status === 'approved' && !closed;
 
   return (
     <div className={`pivt-card p-4 border-l-4 ${
@@ -305,7 +339,164 @@ const RequirementRow: React.FC<{ r: DealRequirement; onReview: () => void }> = (
               Review
             </button>
           )}
+          {canRequest && !request && (
+            <button onClick={onRequest}
+              className="text-[10px] px-2.5 py-1 rounded-lg border border-accent/30 bg-accent/10 text-accent hover:bg-accent/20">
+              Request
+            </button>
+          )}
+          {request?.status === 'draft' && (
+            <button onClick={onRequest}
+              className="text-[10px] px-2.5 py-1 rounded-lg bg-discrepancy/15 text-discrepancy hover:bg-discrepancy/25">
+              Draft — review &amp; send
+            </button>
+          )}
+          {request && ['sent', 'opened'].includes(request.status) && (
+            <span className="text-[9px] px-2 py-1 rounded border border-border/60 text-muted-foreground"
+                  title={request.sent_at ? `Sent ${new Date(request.sent_at).toLocaleDateString()}` : undefined}>
+              {request.status === 'opened' ? 'Opened' : 'Sent'}
+              {request.reminder_count > 0 && ` · ${request.reminder_count} reminder${request.reminder_count > 1 ? 's' : ''}`}
+            </span>
+          )}
+          {request?.status === 'responded' && (
+            <span className="text-[9px] px-2 py-1 rounded border border-validated/40 text-validated">Responded</span>
+          )}
         </div>
+      </div>
+    </div>
+  );
+};
+
+// ── request drawer: draft, read, approve, send ─────────────────────────────
+//
+// The engine drafts the message from the requirement's own source clause and
+// writes the request with approved_to_send=false. Nothing leaves until a
+// person has read the text in this drawer and pressed the button; the
+// database re-checks that gate when the send function flips status to 'sent'.
+const RequestDrawer: React.FC<{
+  requirement: DealRequirement; existing?: RequirementRequest; onClose: () => void; onDone: () => void;
+}> = ({ requirement, existing, onClose, onDone }) => {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const [draft, setDraft] = useState<DraftedRequest | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [result, setResult] = useState<{ sent: boolean; link: string; message: string } | null>(null);
+
+  // A draft's text is not stored — the engine composes it on request. An
+  // abandoned draft row is withdrawn and a fresh one composed, so what is on
+  // screen is always what will be sent.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setBusy(true);
+      try {
+        if (existing?.status === 'draft') await cancelRequest(existing.id);
+        const d = await draftRequestViaEngine({ requirementId: requirement.id });
+        if (cancelled) return;
+        setDraft(d); setSubject(d.subject); setBody(d.body);
+      } catch (e) {
+        if (!cancelled) setError(String((e as Error).message));
+      } finally {
+        if (!cancelled) setBusy(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [requirement.id, existing?.id, existing?.status]);
+
+  const approveAndSend = async () => {
+    if (!draft) return;
+    setBusy(true);
+    try {
+      await approveRequestToSend(draft.request_id);
+      const r = await sendRequest({ requestId: draft.request_id, subject, body });
+      setResult(r);
+      toast({
+        title: r.sent ? 'Request sent' : 'Request prepared — not emailed',
+        description: r.sent
+          ? `Sent to ${draft.recipient}. Reminders follow the cadence until it is satisfied.`
+          : 'Email delivery is disabled in this environment. Copy the link below and send it yourself.',
+        variant: r.sent ? undefined : 'destructive',
+      });
+    } catch (e) {
+      setError(String((e as Error).message));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const discard = async () => {
+    if (draft) { try { await cancelRequest(draft.request_id); } catch { /* row may already be gone */ } }
+    onDone();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={result ? onDone : onClose}>
+      <div className="pivt-card w-full max-w-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+           onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold">Request: {requirement.title}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {draft ? `To ${draft.recipient}` : 'Composing from the source clause…'}
+            </p>
+          </div>
+          <button onClick={result ? onDone : onClose}><X className="w-4 h-4 text-muted-foreground" /></button>
+        </div>
+
+        {error && (
+          <div className="rounded-lg border border-blocking/30 bg-blocking/5 p-3 text-xs text-blocking">{error}</div>
+        )}
+
+        {busy && !draft && (
+          <div className="flex items-center gap-2 py-8 justify-center text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" /> Drafting…
+          </div>
+        )}
+
+        {draft && !result && (
+          <>
+            <label className="block">
+              <span className="text-[11px] text-muted-foreground">Subject</span>
+              <input value={subject} onChange={(e) => setSubject(e.target.value)}
+                     className="mt-1 w-full rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-[11px] text-muted-foreground">
+                Message — <code className="text-[10px]">[SECURE UPLOAD LINK]</code> becomes the counterparty's one-time link
+              </span>
+              <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={12}
+                        className="mt-1 w-full rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm font-mono" />
+            </label>
+            {draft.notes && draft.notes.length > 0 && (
+              <ul className="text-[11px] text-muted-foreground list-disc pl-4 space-y-0.5">
+                {draft.notes.map((n, i) => <li key={i}>{n}</li>)}
+              </ul>
+            )}
+            <div className="flex items-center justify-between pt-2">
+              <button disabled={busy} onClick={discard}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-border/60 hover:bg-muted/50 disabled:opacity-50">
+                Discard draft
+              </button>
+              <button disabled={busy || !subject.trim() || !body.trim()} onClick={approveAndSend}
+                      className="text-xs px-4 py-1.5 rounded-lg bg-accent text-accent-foreground hover:bg-accent/90 disabled:opacity-50">
+                {busy ? <Loader2 className="w-3 h-3 animate-spin inline" /> : 'Approve & send'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {result && (
+          <div className={`rounded-lg border p-4 text-sm space-y-2 ${result.sent ? 'border-validated/40 bg-validated/5' : 'border-discrepancy/40 bg-discrepancy/5'}`}>
+            <p className="font-medium">{result.sent ? 'Sent.' : 'Prepared, but not emailed.'}</p>
+            <p className="text-xs text-muted-foreground">{result.message}</p>
+            <p className="text-[11px] font-mono break-all select-all bg-muted/30 rounded px-2 py-1">{result.link}</p>
+            <div className="flex justify-end pt-1">
+              <button onClick={onDone} className="text-xs px-3 py-1.5 rounded-lg border border-border/60 hover:bg-muted/50">Done</button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

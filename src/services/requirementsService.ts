@@ -244,3 +244,107 @@ export function explainRequestError(err: unknown): string {
   }
   return msg || "Something went wrong sending this request.";
 }
+
+// ── the send path ───────────────────────────────────────────────────────────
+//
+// Until these existed the chain stopped at "requirement approved in review":
+// `draft-requirement-request` and `send-requirement-request` had no callers,
+// and nothing anywhere set `approved_to_send`. The database enforced
+// review-before-send on a path nobody could reach.
+
+/** All outbound requests on a deal, newest first. */
+export async function listRequests(dealId: string): Promise<RequirementRequest[]> {
+  const { data, error } = await supabase
+    .from("requirement_requests")
+    .select("*")
+    .eq("deal_id", dealId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []) as unknown as RequirementRequest[];
+}
+
+export interface DraftedRequest {
+  request_id: string;
+  recipient: string;
+  subject: string;
+  body: string;
+  notes?: string[];
+}
+
+/**
+ * Ask the engine for a draft. Server-side so the review gate is enforced there
+ * and the message text comes from the requirement's own source clause.
+ * Writes a `requirement_requests` row with approved_to_send=false.
+ */
+export async function draftRequestViaEngine(input: {
+  requirementId: string;
+  recipientEmail?: string;
+  recipientName?: string;
+  cadenceDays?: number[];
+  dueDate?: string;
+}): Promise<DraftedRequest> {
+  const { data, error } = await supabase.functions.invoke("draft-requirement-request", {
+    body: {
+      requirement_id: input.requirementId,
+      recipient_email: input.recipientEmail,
+      recipient_name: input.recipientName,
+      cadence_days: input.cadenceDays,
+      due_date: input.dueDate,
+    },
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || "Could not draft the request.");
+  return data as DraftedRequest;
+}
+
+/** The human gate. Recorded with who and when; the send function checks it. */
+export async function approveRequestToSend(requestId: string): Promise<void> {
+  const { data: session } = await supabase.auth.getUser();
+  const { error } = await supabase
+    .from("requirement_requests")
+    .update({
+      approved_to_send: true,
+      approved_by: session?.user?.id ?? null,
+      approved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", requestId);
+  if (error) throw error;
+}
+
+export interface SendResult {
+  sent: boolean;
+  link: string;
+  expires_at: string;
+  message: string;
+}
+
+/**
+ * Send (or, where email delivery is disabled in the environment, prepare) the
+ * approved request. The result says which happened; the UI must not say
+ * "sent" when the engine says "prepared".
+ */
+export async function sendRequest(input: {
+  requestId: string;
+  subject: string;
+  body: string;
+}): Promise<SendResult> {
+  // The portal lives at <site>/submit; BASE_URL covers a sub-path deploy.
+  const base = `${window.location.origin}${import.meta.env.BASE_URL || "/"}`.replace(/\/+$/, "");
+  const { data, error } = await supabase.functions.invoke("send-requirement-request", {
+    body: { request_id: input.requestId, subject: input.subject, body: input.body, portal_base_url: base },
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || "Could not send the request.");
+  return data as SendResult;
+}
+
+/** Withdraw a draft that was never approved. */
+export async function cancelRequest(requestId: string): Promise<void> {
+  const { error } = await supabase
+    .from("requirement_requests")
+    .update({ status: "cancelled", cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() } as never)
+    .eq("id", requestId)
+    .eq("status", "draft");
+  if (error) throw error;
+}

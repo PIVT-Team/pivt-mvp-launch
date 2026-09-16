@@ -62,11 +62,11 @@ Screenshot-able after deploy. Nothing to build.
 | What must be true | Today | Work |
 |---|---|---|
 | Signature matrix and consents proposed for review | `RequirementsCover` calls both extractors — **404** | Deploy |
-| A human reviews, then a request is drafted and sent | DB trigger enforces review-before-send. **`draft-requirement-request` and `send-requirement-request` have no callers. There is no button.** | **Build**: draft → review → approve-to-send actions in `RequirementsCover` |
+| A human reviews, then a request is drafted and sent | **Built 2026-09-16.** Approved requirements get a *Request* action; the engine drafts from the source clause; the person reads and edits the text, then *Approve & send* sets the gate and sends. The UI says *prepared, not emailed* when the environment has delivery off, and shows the one-time link. | Deploy (both functions 404 today) |
 | Counterparty receives a link, uploads, gets verified | `requirement-portal` and `verify-requirement-document` — **404**; portal page is live in the frontend | Deploy |
 | Reminders on a cadence, escalation on silence | Cron live (migration applied) — but it reads `requirement_requests`, which nothing creates | Unblocked by the build above |
 
-This stage cannot be screenshotted honestly until the send path exists.
+Screenshot-able once the two functions are deployed.
 
 ## 5. Stage: Close
 
