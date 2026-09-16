@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { requireJwt } from "../_shared/require-jwt.ts";
+import { computeClosingReadiness } from "../_shared/closing-readiness.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,7 +28,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const [deal, parties, members, conditions, approvals, documents, payments, obligations, contractDocs, discrepancies, intents, dealUserRoles, dealSettings] =
+    const [deal, parties, members, conditions, approvals, documents, payments, obligations, contractDocs, discrepancies, intents, dealUserRoles, dealSettings,
+           capTable, dealDocs, wiresRes, dealApprovalsRes, changeEventsRes, requirementsRes] =
       await Promise.all([
         supabase.from("deals").select("*").eq("id", deal_id).single(),
         supabase.from("deal_parties").select("*, organizations(name)").eq("deal_id", deal_id),
@@ -42,6 +44,15 @@ Deno.serve(async (req) => {
         supabase.from("disbursement_intents").select("*").eq("deal_id", deal_id),
         supabase.from("deal_user_roles").select("*").eq("deal_id", deal_id),
         supabase.from("deal_settings").select("*").eq("deal_id", deal_id).maybeSingle(),
+        // The rows the Closing Readiness screen reads and this pack never did.
+        // Without them Newton could not see an unsigned packet, an unverified
+        // wire, or an invalidated approval — and answered "ready" over them.
+        supabase.from("cap_table_entries").select("id, role, verification_status").eq("deal_id", deal_id),
+        supabase.from("deal_documents").select("id, doc_type, status").eq("deal_id", deal_id),
+        supabase.from("wire_instructions").select("id, verification_status").eq("deal_id", deal_id),
+        supabase.from("deal_approvals").select("id, status, required, invalidated_at").eq("deal_id", deal_id),
+        supabase.from("deal_change_events").select("id, change_type, severity, blocks_closing, status, title, what_changed, why_it_matters, recommended_action, source_label, object_type, object_id, created_at").eq("deal_id", deal_id).eq("status", "open"),
+        supabase.from("deal_requirements").select("id, requirement_kind, title, description, status, review_status, blocks_closing, due_date, counterparty_name, counterparty_email, signatory_name, source, source_ref, created_at").eq("deal_id", deal_id).is("deleted_at", null),
       ]);
 
     if (deal.error) {
@@ -67,7 +78,32 @@ Deno.serve(async (req) => {
       unsatisfiedConditions.length === 0 &&
       pendingApprovals.length === 0;
 
-    const contextPack = {
+      // A table that predates its migration comes back as an error; readiness
+      // then treats it as empty rather than failing the whole pack.
+      const rows = (r: { data?: unknown[] | null }) => (r?.data || []) as any[];
+      const closing = computeClosingReadiness({
+        deal: deal.data,
+        stakeholders: rows(capTable),
+        contractDocs: rows(contractDocs),
+        dealDocs: rows(dealDocs),
+        wires: rows(wiresRes),
+        approvals: rows(dealApprovalsRes),
+        discrepancies: rows(discrepancies),
+        changeEvents: rows(changeEventsRes),
+        requirements: rows(requirementsRes),
+      });
+
+      const contextPack = {
+        // THE answer to "can this transaction close?" — the same computation
+        // the Closing Readiness screen runs. Newton must answer blocker
+        // questions from this and nothing else.
+        closing_readiness: {
+          can_close: closing.canClose,
+          blocker_count: closing.blockingIssues.length,
+          blockers: closing.blockingIssues,
+          gates: closing.gates,
+          counts: closing.counts,
+        },
       deal: {
         deal_number: deal.data.deal_number,
         name: deal.data.deal_name,
