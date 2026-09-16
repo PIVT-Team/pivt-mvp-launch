@@ -257,7 +257,7 @@ double-submit.
 | ~~`WaterfallCover`~~ | deal workspace | **Fixed 2026-09-16.** Persists to `waterfall_tiers`, computes with the engine's own allocator, records snapshots through the engine (which now supersedes its prior drafts). | — |
 | `TimelineCover` | sidebar | `timelineStore`, persisted to `localStorage` | Per-browser. A colleague sees a different timeline. Same class as T6. |
 | `AuditAndReports` | **nowhere** | `auditStore` with seeded demo entries | Dead code; archive. |
-| `CommunicationsHub` | sidebar | `DEMO_COMMENTS` | Portfolio view of the comments now stored for real — wire it to `deal_comments`. |
+| ~~`CommunicationsHub`~~ | sidebar | **Fixed 2026-09-16.** Reads `deal_comments` across the viewer's deals, with reply counts and mentions. No read-receipt table exists, so 'unread' was removed rather than faked. | — |
 | `AIDashboardCover` | sidebar + workspace | inline literals | 585 lines. Needs a decision about what it is for before wiring. |
 
 **The pattern.** Three separate times this session, reading the file list gave

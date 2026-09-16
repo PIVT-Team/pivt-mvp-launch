@@ -36,7 +36,7 @@ That is Test 4 from the original brief, and it has never been run.
 | Discrepancies appear from the real text | Version-aware engine, 31 rules — engine deployed, **rules seeded, obligation-extractor invocation not deployed** | Deploy |
 | Newton answers about that deal from the database | `newton` → `get-deal-context` wiring — **not deployed** | Deploy |
 | A seed deal exists that exhibits all of it | **Built 2026-09-16.** `scripts/seed-closing-test-deal.sql` — one deal with a blocker of every origin (change event, discrepancy, requirement, three gates) plus an invalidated approval and an unreviewed AI requirement that must not block. A test runs `computeClosingReadiness` on the seeded rows and pins the six titles in order. Paste: `scripts/lovable-paste-closing-seed.txt`. | **You**: paste it (one-off SQL) |
-| Signed-out visitors don't see a fake dashboard | `/` renders "Welcome back" with zeroed stats to anyone — **live bug** | Build (small) |
+| Signed-out visitors don't see a fake dashboard | **Built 2026-09-16** (second attempt — the first commit's edit never applied). Signed-out `/` now says "Sign in to see your deals". | — |
 
 ## 2. Stage: Ingest
 
