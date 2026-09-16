@@ -99,6 +99,8 @@ interface WaterfallStore {
   recalculate: () => void;
   addAuditEntry: (action: string, details?: string) => void;
   initForDeal: (dealId: string, poolAmount: number) => void;
+  /** Replace the tiers with what the database holds for this deal. */
+  hydrate: (dealId: string, poolAmount: number, tiers: WaterfallTier[]) => void;
 }
 
 function buildEmptyState(): WaterfallState {
@@ -135,6 +137,10 @@ export const useWaterfallStore = create<WaterfallStore>()(
       });
     },
 
+    hydrate: (dealId, poolAmount, tiers) => {
+      const result = calculateWaterfall(poolAmount, tiers);
+      set({ waterfall: { ...buildEmptyState(), dealId, distributionPoolAmount: poolAmount, ...result, lastCalculated: new Date().toISOString() } });
+    },
     setDistributionPool: (amount) => {
       set(s => {
         const result = calculateWaterfall(amount, s.waterfall.tiers);

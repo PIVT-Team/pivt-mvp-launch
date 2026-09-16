@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useEditGuard } from '@/hooks/useEditGuard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeInUp } from '@/lib/animations';
@@ -12,6 +12,8 @@ import {
   RecipientAllocation,
 } from '@/stores/waterfallStore';
 import { useSelectedDeal, usePIVTStore } from '@/stores/pivtStore';
+import { useDealWorkspace } from '@/contexts/DealWorkspaceContext';
+import { loadTiers, saveTiers, runEngine } from '@/services/waterfallService';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -435,21 +437,77 @@ function exportJSON(waterfall: any) {
 // ── Main Component ──
 
 export const WaterfallCover: React.FC = () => {
-  const { waterfall, recalculate, addAuditEntry, initForDeal } = useWaterfallStore();
+  const { waterfall, recalculate, addAuditEntry, initForDeal, hydrate } = useWaterfallStore();
   const { tiers, distributionPoolAmount, unallocated, hasDiscrepancy } = waterfall;
-  const deal = useSelectedDeal();
+  const demoDeal = useSelectedDeal();
+  const { dealId: realDealId, isDemoDeal, realDeal } = useDealWorkspace();
   const { importPayments } = usePIVTStore();
   const { toast } = useToast();
   const [addTierOpen, setAddTierOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [engineBusy, setEngineBusy] = useState(false);
+  const [persistError, setPersistError] = useState<string | null>(null);
   const { guardEdit } = useEditGuard();
 
-  // Initialize waterfall for the current deal (empty state, no seed data)
+  // A real deal is keyed to the workspace's deal and its recorded value; a demo
+  // deal stays on the client store. Before this the screen keyed everything to
+  // the demo store's selected deal, so a real deal's waterfall lived nowhere.
+  const isReal = !isDemoDeal && !!realDealId;
+  const activeDealId = isReal ? realDealId! : demoDeal?.id;
+  const pool = isReal ? Number(realDeal?.deal_value || 0) : (demoDeal?.consideration || 0);
+
   React.useEffect(() => {
-    if (deal) {
-      initForDeal(deal.id, deal.consideration || 0);
+    if (activeDealId) initForDeal(activeDealId, pool);
+  }, [activeDealId, pool, initForDeal]);
+
+  // Hydrate a real deal's tiers from the database once per deal.
+  const hydratedFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!isReal || !activeDealId || hydratedFor.current === activeDealId) return;
+    hydratedFor.current = activeDealId;
+    loadTiers(activeDealId)
+      .then((rows) => hydrate(activeDealId, pool, rows))
+      .catch((e) => setPersistError(`Could not load the saved waterfall: ${String((e as Error).message)}`));
+  }, [isReal, activeDealId, pool, hydrate]);
+
+  // Autosave a real deal's tiers. Debounced so a person typing a value does
+  // not write on every keystroke; the store change is what triggers it.
+  const saveTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (!isReal || !activeDealId || hydratedFor.current !== activeDealId) return;
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      saveTiers(activeDealId, tiers)
+        .then(() => setPersistError(null))
+        .catch((e) => setPersistError(`Not saved: ${String((e as Error).message)}`));
+    }, 800);
+    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
+  }, [isReal, activeDealId, tiers]);
+
+  // Recalculate: instant on screen (same arithmetic as the engine), then for a
+  // real deal, recorded by the engine — allocation snapshot, lines, draft
+  // intents. The numbers cannot differ; the engine run is the record.
+  const recalculateAndRecord = useCallback(async () => {
+    recalculate();
+    if (!isReal || !activeDealId) return;
+    setEngineBusy(true);
+    try {
+      await saveTiers(activeDealId, tiers);
+      const run = await runEngine(activeDealId, pool, tiers);
+      addAuditEntry('Allocation recorded', `${run.versionHash} — ${fmtCompact(run.totalAllocated)} allocated`);
+      toast({
+        title: run.unpayableTiers.length ? 'Recorded, with tiers nobody can be paid from' : 'Allocation recorded',
+        description: run.unpayableTiers.length
+          ? `${run.unpayableTiers.map((t) => t.tier_name).join(', ')} name no recipients on this deal.`
+          : `Snapshot ${run.versionHash}. Draft payment intents updated on the Payments tab.`,
+        variant: run.unpayableTiers.length ? 'destructive' : undefined,
+      });
+    } catch (e) {
+      toast({ title: 'Engine did not record the allocation', description: String((e as Error).message), variant: 'destructive' });
+    } finally {
+      setEngineBusy(false);
     }
-  }, [deal?.id, deal?.consideration, initForDeal]);
+  }, [recalculate, isReal, activeDealId, tiers, pool, addAuditEntry, toast]);
 
   const guardedSetAddTierOpen = () => {
     guardEdit('ADD_WATERFALL_TIER', null, () => setAddTierOpen(true));
@@ -526,9 +584,12 @@ export const WaterfallCover: React.FC = () => {
         <Button variant="outline" size="sm" onClick={guardedSetAddTierOpen} className="gap-1.5">
           <Plus className="w-3.5 h-3.5" /> Add Tier
         </Button>
-        <Button variant="outline" size="sm" onClick={recalculate} className="gap-1.5">
-          <Calculator className="w-3.5 h-3.5" /> Recalculate
+        <Button variant="outline" size="sm" onClick={recalculateAndRecord} disabled={engineBusy} className="gap-1.5">
+          <Calculator className="w-3.5 h-3.5" /> {engineBusy ? 'Recording…' : isReal ? 'Recalculate & record' : 'Recalculate'}
         </Button>
+        {persistError && (
+          <span className="text-[11px] text-blocking self-center">{persistError}</span>
+        )}
         <Button variant="outline" size="sm" onClick={() => setExportOpen(true)} className="gap-1.5">
           <Download className="w-3.5 h-3.5" /> Export
         </Button>
