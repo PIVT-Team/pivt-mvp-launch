@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { listPortfolioComments, type PortfolioComment, type PortfolioDealOption } from '@/services/portfolioCommentsService';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquareText, Filter, Search, Clock, ArrowRight, Inbox, AtSign } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -6,53 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fadeInUp, staggerChildren } from '@/lib/animations';
 import { usePIVTStore, ActiveSection } from '@/stores/pivtStore';
-import { SampleDataNotice } from './SampleDataNotice';
 
 // Demo aggregated comments across deals
-const DEMO_COMMENTS = [
-  {
-    id: 'c1', dealId: 'atlas', dealName: 'Project ATLAS',
-    author: 'Sarah Chen', authorInitials: 'SC',
-    body: 'Wire instructions for a16z trust account are still missing. Can someone follow up with their ops team?',
-    sectionContext: 'payments', createdAt: '2026-02-26T14:32:00Z', unread: true, hasReply: true,
-    replyCount: 2, lastReplyAuthor: 'Marcus Williams',
-  },
-  {
-    id: 'c2', dealId: 'atlas', dealName: 'Project ATLAS',
-    author: 'Deal Admin', authorInitials: 'DA',
-    body: 'Waterfall Schedule v3 has been uploaded and is pending review. @BuyerCounsel please approve.',
-    sectionContext: 'documents', createdAt: '2026-02-26T11:15:00Z', unread: true, hasReply: false,
-    replyCount: 0, mentionsYou: true,
-  },
-  {
-    id: 'c3', dealId: 'beacon', dealName: 'Project BEACON',
-    author: 'Compliance Team', authorInitials: 'CT',
-    body: 'KYC verification for GIC Private Limited has failed due to TIN mismatch. Escalating to admin review.',
-    sectionContext: 'stakeholders', createdAt: '2026-02-25T16:45:00Z', unread: false, hasReply: true,
-    replyCount: 1, lastReplyAuthor: 'Sarah Chen',
-  },
-  {
-    id: 'c4', dealId: 'cipher', dealName: 'Project CIPHER',
-    author: 'Titan Legal', authorInitials: 'TL',
-    body: 'All escrow conditions have been met. Ready to proceed with fund release authorization.',
-    sectionContext: 'escrow', createdAt: '2026-02-25T09:00:00Z', unread: false, hasReply: false,
-    replyCount: 0,
-  },
-  {
-    id: 'c5', dealId: 'atlas', dealName: 'Project ATLAS',
-    author: 'Marcus Williams', authorInitials: 'MW',
-    body: 'ESOP pool discrepancy between 7.2% and 7.0% needs to be resolved before final cap table sign-off.',
-    sectionContext: 'cap-table', createdAt: '2026-02-24T15:20:00Z', unread: false, hasReply: true,
-    replyCount: 3, lastReplyAuthor: 'Deal Admin',
-  },
-  {
-    id: 'c6', dealId: 'beacon', dealName: 'Project BEACON',
-    author: 'Meridian Holdings', authorInitials: 'MH',
-    body: 'Requesting an extension on the closing date due to outstanding diligence items.',
-    sectionContext: 'general', createdAt: '2026-02-23T10:30:00Z', unread: false, hasReply: true,
-    replyCount: 4, lastReplyAuthor: 'Deal Admin',
-  },
-];
+
 
 const SECTION_COLORS: Record<string, string> = {
   payments: 'bg-amber-500/10 text-amber-600',
@@ -74,13 +31,28 @@ function timeAgo(dateStr: string): string {
 }
 
 export const CommunicationsHub: React.FC = () => {
-  const { deals, setActiveSection, setSelectedDealId } = usePIVTStore();
+  const { setActiveSection, setSelectedDealId } = usePIVTStore();
   const [dealFilter, setDealFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [comments, setComments] = useState<PortfolioComment[]>([]);
+  const [deals, setDeals] = useState<PortfolioDealOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Real comments across the portfolio. This screen used to render six
+  // invented comments on three invented deals to everyone who opened it.
+  useEffect(() => {
+    let cancelled = false;
+    listPortfolioComments()
+      .then((r) => { if (!cancelled) { setComments(r.comments); setDeals(r.deals); setLoadError(null); } })
+      .catch((e) => { console.error('Portfolio comments failed:', e); if (!cancelled) setLoadError(e?.message || 'Could not load comments.'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const filtered = useMemo(() => {
-    let result = DEMO_COMMENTS;
+    let result = comments;
     if (dealFilter !== 'all') result = result.filter(c => c.dealId === dealFilter);
     if (showUnreadOnly) result = result.filter(c => c.unread || c.mentionsYou);
     if (searchQuery.trim()) {
@@ -92,19 +64,19 @@ export const CommunicationsHub: React.FC = () => {
       );
     }
     return result;
-  }, [dealFilter, searchQuery, showUnreadOnly]);
+  }, [comments, dealFilter, searchQuery, showUnreadOnly]);
 
-  const unreadCount = DEMO_COMMENTS.filter(c => c.unread).length;
-  const mentionCount = DEMO_COMMENTS.filter(c => c.mentionsYou).length;
+  // No read-receipt table exists, so there is no honest unread count.
+  const unreadCount = 0;
+  const mentionCount = comments.filter(c => c.mentionsYou).length;
 
-  const handleCommentClick = (comment: typeof DEMO_COMMENTS[0]) => {
+  const handleCommentClick = (comment: PortfolioComment) => {
     setSelectedDealId(comment.dealId);
     setActiveSection('workspace' as ActiveSection);
   };
 
   return (
     <motion.div {...staggerChildren} className="space-y-8">
-      <SampleDataNotice what="This communications view" className="mb-4" />
       {/* Header */}
       <motion.div {...fadeInUp} className="flex items-center justify-between">
         <div>
@@ -151,7 +123,7 @@ export const CommunicationsHub: React.FC = () => {
           <SelectContent>
             <SelectItem value="all">All Deals</SelectItem>
             {deals.map(d => (
-              <SelectItem key={d.id} value={d.id}>{d.codeName}</SelectItem>
+              <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -164,14 +136,21 @@ export const CommunicationsHub: React.FC = () => {
               : 'text-muted-foreground border-border hover:bg-muted/40'
           }`}
         >
-          Unread & Mentions
+          Mentions me
         </button>
       </motion.div>
 
       {/* Feed */}
       <motion.div {...fadeInUp} className="space-y-2">
         <AnimatePresence mode="popLayout">
-          {filtered.length === 0 ? (
+          {loadError ? (
+            <div className="p-4 rounded-lg border border-red-500/30 bg-red-500/5">
+              <p className="text-sm font-medium text-red-500">Comments could not be loaded</p>
+              <p className="text-xs text-muted-foreground mt-1">{loadError} This is not an empty portfolio — nothing was read.</p>
+            </div>
+          ) : loading ? (
+            <p className="text-sm text-muted-foreground py-10 text-center">Reading comments…</p>
+          ) : filtered.length === 0 ? (
             <motion.div
               key="empty"
               initial={{ opacity: 0, y: 8 }}

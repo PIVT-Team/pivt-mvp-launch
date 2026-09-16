@@ -150,6 +150,25 @@ export const HomeCover: React.FC = () => {
     setActiveSection('workspace' as ActiveSection);
   };
 
+  // A signed-out visitor used to see "Welcome back", a placeholder avatar and
+  // a portfolio of zeros — a dashboard for nobody. Anyone landing on the app
+  // URL from the marketing site got that as their first impression of the
+  // product. Say what is actually true instead.
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Sign in to see your deals</h1>
+        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+          Your portfolio, open discrepancies and pending approvals appear here once you're signed in.
+        </p>
+        <a href="/login"
+           className="mt-6 inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+          Sign in
+        </a>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
