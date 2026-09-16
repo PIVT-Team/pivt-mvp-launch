@@ -1,0 +1,107 @@
+# Deploy edge functions and apply migrations to Supabase on every push to main.
+#
+# WHY THIS EXISTS
+# The frontend deploys through GitHub Actions. The backend did not deploy at
+# all: Lovable's GitHub sync ships the frontend but never creates new edge
+# functions from commits that originated in git, and gives no sign that it
+# hasn't. Nine functions — the whole Requirements Engine among them — sat in
+# the repo, referenced by the live UI, returning 404 from production. Every
+# backend change made outside Lovable's own editor was dark.
+#
+# Migrations had the same problem from the other side: applied by hand through
+# a paste, while the frontend that depended on them deployed automatically.
+# That ordering broke document uploads once already.
+#
+# SETUP — one repository secret (Settings -> Secrets and variables -> Actions):
+#   SUPABASE_ACCESS_TOKEN   supabase.com -> Account -> Access Tokens
+#                           Must belong to an account with access to the
+#                           project in supabase/config.toml.
+#
+# Until that secret exists both jobs print what they would have done and exit
+# green, so this file is safe to merge now.
+
+name: Supabase
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/functions/**"
+      - "supabase/migrations/**"
+      - "supabase/config.toml"
+      - "supabase/.migration-baseline"
+      - ".github/workflows/supabase.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  migrations:
+    name: Apply migrations
+    runs-on: ubuntu-latest
+    env:
+      HAS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Explain the missing secret
+        if: env.HAS_TOKEN != 'true'
+        run: |
+          echo "::warning::SUPABASE_ACCESS_TOKEN is not set — migrations were NOT applied."
+          echo "Pending (newer than supabase/.migration-baseline):"
+          python3 scripts/apply-migrations.py --list
+
+      - name: Apply pending migrations
+        if: env.HAS_TOKEN == 'true'
+        run: python3 scripts/apply-migrations.py
+
+  functions:
+    name: Deploy edge functions
+    runs-on: ubuntu-latest
+    # Functions may read columns a migration adds; land the schema first.
+    needs: migrations
+    env:
+      HAS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Explain the missing secret
+        if: env.HAS_TOKEN != 'true'
+        run: |
+          echo "::warning::SUPABASE_ACCESS_TOKEN is not set — edge functions were NOT deployed."
+          echo "Would have deployed:"
+          ls -1 supabase/functions | grep -v '^_' | sed 's/^/  /'
+
+      - uses: supabase/setup-cli@v1
+        if: env.HAS_TOKEN == 'true'
+        with:
+          version: latest
+
+      - name: Deploy every function
+        if: env.HAS_TOKEN == 'true'
+        run: |
+          set -euo pipefail
+          REF=$(sed -n 's/^project_id = "\(.*\)"/\1/p' supabase/config.toml)
+          echo "project: $REF"
+          # Deploys all functions under supabase/functions; per-function
+          # verify_jwt comes from config.toml. --use-api avoids needing Docker.
+          supabase functions deploy --project-ref "$REF" --use-api
+
+      - name: Verify every function answers
+        if: env.HAS_TOKEN == 'true'
+        run: |
+          set -euo pipefail
+          REF=$(sed -n 's/^project_id = "\(.*\)"/\1/p' supabase/config.toml)
+          fail=0
+          for f in $(ls -1 supabase/functions | grep -v '^_'); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" -X OPTIONS \
+              "https://$REF.supabase.co/functions/v1/$f" \
+              -H "Origin: https://pivt.tools" -H "Access-Control-Request-Method: POST")
+            if [ "$code" = "404" ]; then echo "::error::$f is not deployed (404)"; fail=1
+            else echo "  $f -> $code"; fi
+          done
+          exit $fail

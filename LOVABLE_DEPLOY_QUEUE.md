@@ -14,6 +14,18 @@ The fixes are stable on `dev`. Pasting any of them is safe — each is a self-co
 
 ## Still queued — paste when ready
 
+### 🔴 Deploy all edge functions — **paste this first, it unblocks everything backend**
+
+**[scripts/lovable-deploy-functions.txt](scripts/lovable-deploy-functions.txt)** —
+one paste. Nine functions return 404 from production (the whole Requirements
+Engine and the Persona KYC flow); the other 44 exist but run old code. Every
+backend change since Test 2 is dark until this runs.
+
+Permanent fix: `.github/workflows/supabase.yml` does this on every push once a
+`SUPABASE_ACCESS_TOKEN` repository secret exists — that needs someone with
+Supabase project access to generate it.
+
+
 ### ⭐ Test 2 — edge functions (4 files, order-dependent)
 
 See **[LOVABLE_PASTE_TEST2.md](LOVABLE_PASTE_TEST2.md)** for the full guide. Summary:
