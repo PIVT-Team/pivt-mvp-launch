@@ -76,7 +76,7 @@ Screenshot-able once the two functions are deployed.
 | Newton's "what's blocking close?" agrees with that view | **Built 2026-09-16.** One pure `computeClosingReadiness()` in `_shared/closing-readiness.ts`; the screen and `get-deal-context` both call it with the same rows. The pack now carries `closing_readiness` (can_close, numbered blockers with source and next action). | Deploy |
 | Dual-counsel approvals, invalidated on upstream change | Live / orchestrator part not deployed | Deploy |
 | Bank-ready wire pack, only when green | `generate-wire-pack` live | — |
-| Waterfall allocations | Engine rewritten in integer cents — **not deployed**; **`WaterfallCover` never calls it** and keeps its state in a store with no persistence (T14) | Deploy + **Build** |
+| Waterfall allocations | **Built 2026-09-16.** The screen persists tiers, computes with the engine's own allocator in the browser, and records snapshots + draft intents through the engine; the engine supersedes prior drafts on recalculation. | Deploy |
 | "Execute" | `MockProvider`. No rails. | **Decide** — the site must say *wire pack*, not *execution* |
 
 ## 6. Feature modules
