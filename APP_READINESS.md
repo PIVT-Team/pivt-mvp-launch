@@ -12,8 +12,10 @@ Legend: **Deploy** = code exists, not on production · **Build** = code missing 
 
 ## 0. The precondition everything else waits on
 
-**Nothing backend from the last month is on production.** Nine edge functions
-return 404; the other 44 exist but cannot be assumed current. Lovable's GitHub
+**The six Requirements Engine functions do not exist on production** — the
+gateway returns "Requested function was not found" — and the live UI calls four
+of them. The other 44 functions exist; whether they run the latest code cannot
+be verified from outside, so treat changes to them as unconfirmed, not absent. Lovable's GitHub
 sync ships the frontend only. Until this is fixed, no stage below can be
 demonstrated end to end and no screenshot of the Coordinate stage can be taken.
 

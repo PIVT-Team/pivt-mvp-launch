@@ -5,18 +5,15 @@ The code is already in this project via the GitHub sync — do not rewrite,
 refactor, or "fix" any of it; deploy it exactly as it is in the repo. The
 per-function verify_jwt settings are in supabase/config.toml.
 
-These nine currently return 404 from production because they were added
+These six currently return 404 from production because they were added
 through git and never deployed:
 
   draft-requirement-request
   extract-consents
   extract-signature-matrix
-  persona-create-inquiry
-  persona-watchlist-report
-  persona-webhook
   requirement-portal
   send-requirement-request
   verify-requirement-document
 
-The rest exist but are running old code and need redeploying too. Please deploy
+The rest exist; please redeploy them too so they are on the current code. Please deploy
 all of them, then list each function with its deploy status.

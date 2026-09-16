@@ -26,8 +26,8 @@ for any screenshot or clip of the product resolving something.
 ### 🔴 Deploy all edge functions — **paste this first, it unblocks everything backend**
 
 **[scripts/lovable-deploy-functions.txt](scripts/lovable-deploy-functions.txt)** —
-one paste. Nine functions return 404 from production (the whole Requirements
-Engine and the Persona KYC flow); the other 44 exist but run old code. Every
+one paste. Six functions return 404 from production (the whole Requirements Engine);
+the other 44 exist, currency unconfirmed. Every
 backend change since Test 2 is dark until this runs.
 
 Permanent fix: `.github/workflows/supabase.yml` does this on every push once a
