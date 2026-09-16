@@ -35,7 +35,7 @@ That is Test 4 from the original brief, and it has never been run.
 | Upload a real SPA / funds flow / cap table and get real text out | Extraction rewritten (PDF, scan, Excel, Word) — **not deployed** | Deploy |
 | Discrepancies appear from the real text | Version-aware engine, 31 rules — engine deployed, **rules seeded, obligation-extractor invocation not deployed** | Deploy |
 | Newton answers about that deal from the database | `newton` → `get-deal-context` wiring — **not deployed** | Deploy |
-| A seed deal exists that exhibits all of it | `scripts/seed-test-deal.sql` seeds a deal + 3 documents, no discrepancies, no requirements | **Build**: a seed that produces every blocker type, so the clip has something to resolve |
+| A seed deal exists that exhibits all of it | **Built 2026-09-16.** `scripts/seed-closing-test-deal.sql` — one deal with a blocker of every origin (change event, discrepancy, requirement, three gates) plus an invalidated approval and an unreviewed AI requirement that must not block. A test runs `computeClosingReadiness` on the seeded rows and pins the six titles in order. Paste: `scripts/lovable-paste-closing-seed.txt`. | **You**: paste it (one-off SQL) |
 | Signed-out visitors don't see a fake dashboard | `/` renders "Welcome back" with zeroed stats to anyone — **live bug** | Build (small) |
 
 ## 2. Stage: Ingest

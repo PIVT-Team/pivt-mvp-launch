@@ -14,6 +14,15 @@ The fixes are stable on `dev`. Pasting any of them is safe — each is a self-co
 
 ## Still queued — paste when ready
 
+### 🟡 Seed the closing-test deal (optional, one-off SQL)
+
+**[scripts/lovable-paste-closing-seed.txt](scripts/lovable-paste-closing-seed.txt)** —
+creates "Project ATLAS (closing test)" with a blocker of every kind, so the
+readiness screen, Newton, and the Requirements send path can all be exercised
+on one deal. Safe to re-run. Not needed for production; needed for Test 4 and
+for any screenshot or clip of the product resolving something.
+
+
 ### 🔴 Deploy all edge functions — **paste this first, it unblocks everything backend**
 
 **[scripts/lovable-deploy-functions.txt](scripts/lovable-deploy-functions.txt)** —
