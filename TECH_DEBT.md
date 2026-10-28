@@ -188,6 +188,28 @@ Still fabricated and reachable from the sidebar: `CommunicationsHub` and
 `AIDashboardCover`. Both carry a `SampleDataNotice`. The notice makes the state
 legible; it does not make the screens work.
 
+### T16. Production was overwritten by a stale build — **NEW, P0**
+
+On 2026-10-27 pivt.tools was found serving a build with none of the work from
+the last six weeks: the fabricated Risk Monitor was back, the signed-out home
+screen, Requirements send path, waterfall wiring and Communications were all
+absent. `main` still held everything; the last Actions deploy was 16 Sep; the
+live deployment was dated 27 Oct 21:02. The live `index.html` was 98 bytes
+longer than `main`'s and the bundle carried a `lovable` reference `main`'s
+build does not — so a Lovable publish (or a Vercel Git integration pointed at
+Lovable's copy) deployed over the Actions build. The old personal repo has not
+been pushed since 21 Aug and lacks the work, so Lovable's project state is
+stale wherever it is sourcing from.
+
+Restored the same day by re-running the Deploy workflow on `main` (run
+40608320005) and verifying the markers live.
+
+**Until the source is found:** after *any* action in Lovable — including
+pasting SQL — re-dispatch `deploy.yml` on `main` and check one marker string in
+the live bundle. **Fix:** find the Vercel project's second deploy source (Lovable
+publish, or a Git integration) and remove it, so Actions is the only path to
+production. Needs someone with Vercel access.
+
 ### T15. Nothing deployed the backend — **CONFIRMED WORSE THAN RECORDED; CI written**
 
 The original note was about ordering. The real finding is that **edge functions

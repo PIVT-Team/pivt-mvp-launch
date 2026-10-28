@@ -60,6 +60,8 @@ BEGIN
   END IF;
 
   -- Start clean.
+  DELETE FROM public.waterfall_tiers     WHERE deal_id = v_deal;
+  DELETE FROM public.deal_comments       WHERE deal_id = v_deal;
   DELETE FROM public.deal_change_events  WHERE deal_id = v_deal;
   DELETE FROM public.discrepancies       WHERE deal_id = v_deal;
   DELETE FROM public.deal_requirements   WHERE deal_id = v_deal;
@@ -83,11 +85,11 @@ BEGIN
   INSERT INTO public.deal_participants (deal_id, user_id, party_role) VALUES (v_deal, v_user, 'owner');
 
   -- Documents: the SPA gate passes; the two documents disagree on price.
-  INSERT INTO public.contract_documents (id, deal_id, doc_type, filename, status, is_current, version, text_content)
+  INSERT INTO public.contract_documents (id, deal_id, doc_type, filename, status, is_current, version, extraction_confidence, text_content)
   VALUES
-   (v_spa, v_deal, 'SPA', 'Greenfield_SPA_Execution.pdf', 'PARSED', true, 1,
+   (v_spa, v_deal, 'SPA', 'Greenfield_SPA_Execution.pdf', 'PARSED', true, 1, 0.94,
     'STOCK PURCHASE AGREEMENT dated 14 March 2026 among CleanTech Ventures, Inc. (Buyer), Meridian Holdings LLC (Seller) and Greenfield Solar Inc. 1.1 Purchase Price. One Hundred Eighty-Five Million Dollars ($185,000,000). 1.2 Escrow. $18,500,000. 3.6 Consents. The consent of Northgate Bank under the Credit Agreement is required prior to Closing.'),
-   (v_ff,  v_deal, 'FUNDS_FLOW', 'Greenfield_Funds_Flow_v3.xlsx', 'PARSED', true, 3,
+   (v_ff,  v_deal, 'FUNDS_FLOW', 'Greenfield_Funds_Flow_v3.xlsx', 'PARSED', true, 3, 0.91,
     'Sheet: Funds Flow. Purchase price 184,500,000. Escrow 18,500,000. Meridian Holdings LLC 77,700,000. Meridian Capital LLC 14,800,000.');
 
   -- Stakeholders: buyer verified; one seller-side party is not → gate blocker.
@@ -150,6 +152,41 @@ BEGIN
     'AI found a possible notice requirement; a person has not yet confirmed it.', 'not_started', 'pending_review', true,
     'Harbor Properties LP', NULL, 'Assignment', 'ai',
     jsonb_build_object('filename', 'Lease.pdf', 'clause_ref', '§9.3'), NULL);
+
+  -- Waterfall: three tiers in the shape the Waterfall screen persists and
+  -- hydrates (params.client), so the screen opens populated and reconciles.
+  INSERT INTO public.waterfall_tiers (id, deal_id, name, tier_rank, allocation_logic_type, params) VALUES
+   ('aaaaaaaa-2222-4222-8222-222222222401', v_deal, 'Transaction expenses', 1, 'fixed',
+    jsonb_build_object('amount', 4200000, 'recipient_ids', jsonb_build_array('r-apex','r-lazard'),
+      'recipient_allocations', jsonb_build_array(
+        jsonb_build_object('recipient_id','r-apex','type','fixed','value',1700000),
+        jsonb_build_object('recipient_id','r-lazard','type','fixed','value',2500000)),
+      'client', jsonb_build_object('id','aaaaaaaa-2222-4222-8222-222222222401','priority',1,'name','Transaction expenses','tierCategory','expense','ruleType','FIXED_AMOUNT','ruleValue',4200000,'capAmount',null,
+        'recipients', jsonb_build_array(
+          jsonb_build_object('id','r-apex','stakeholderId',null,'externalName','Apex Advisory LLC','externalEmail','billing@apex.example','entityType','entity','allocationType','FIXED_AMOUNT','amountOrPercent',1700000,'prerequisites',jsonb_build_object('kycRequired',true,'wireRequired',true,'approvalRequired',true),'computedPayout',0,'computedPctOfPool',0,'status','READY'),
+          jsonb_build_object('id','r-lazard','stakeholderId',null,'externalName','Lazard Frères & Co.','externalEmail','deals@lazard.example','entityType','entity','allocationType','FIXED_AMOUNT','amountOrPercent',2500000,'prerequisites',jsonb_build_object('kycRequired',true,'wireRequired',true,'approvalRequired',true),'computedPayout',0,'computedPctOfPool',0,'status','READY'))))),
+   ('aaaaaaaa-2222-4222-8222-222222222402', v_deal, 'Escrow holdback', 2, 'fixed',
+    jsonb_build_object('amount', 18500000, 'recipient_ids', jsonb_build_array('r-escrow'),
+      'recipient_allocations', jsonb_build_array(jsonb_build_object('recipient_id','r-escrow','type','pro_rata')),
+      'client', jsonb_build_object('id','aaaaaaaa-2222-4222-8222-222222222402','priority',2,'name','Escrow holdback','tierCategory','other','ruleType','FIXED_AMOUNT','ruleValue',18500000,'capAmount',null,
+        'recipients', jsonb_build_array(
+          jsonb_build_object('id','r-escrow','stakeholderId',null,'externalName','Northgate Bank, as Escrow Agent','externalEmail','escrow@northgate.example','entityType','entity','allocationType','PRO_RATA','amountOrPercent',1,'prerequisites',jsonb_build_object('kycRequired',true,'wireRequired',true,'approvalRequired',true),'computedPayout',0,'computedPctOfPool',0,'status','PENDING'))))),
+   ('aaaaaaaa-2222-4222-8222-222222222403', v_deal, 'Seller proceeds', 3, 'pro_rata',
+    jsonb_build_object('recipient_ids', jsonb_build_array('r-mh','r-mc','r-jo','r-pool'),
+      'recipient_allocations', jsonb_build_array(
+        jsonb_build_object('recipient_id','r-mh','type','pro_rata','value',42), jsonb_build_object('recipient_id','r-mc','type','pro_rata','value',8),
+        jsonb_build_object('recipient_id','r-jo','type','pro_rata','value',5),  jsonb_build_object('recipient_id','r-pool','type','pro_rata','value',20)),
+      'client', jsonb_build_object('id','aaaaaaaa-2222-4222-8222-222222222403','priority',3,'name','Seller proceeds','tierCategory','common','ruleType','PRO_RATA','ruleValue',0,'capAmount',null,
+        'recipients', jsonb_build_array(
+          jsonb_build_object('id','r-mh','stakeholderId',null,'externalName','Meridian Holdings LLC','externalEmail','ops@meridian.example','entityType','entity','allocationType','PRO_RATA','amountOrPercent',42,'prerequisites',jsonb_build_object('kycRequired',true,'wireRequired',true,'approvalRequired',true),'computedPayout',0,'computedPctOfPool',0,'status','PENDING'),
+          jsonb_build_object('id','r-mc','stakeholderId',null,'externalName','Meridian Capital LLC','externalEmail','cap@meridian.example','entityType','entity','allocationType','PRO_RATA','amountOrPercent',8,'prerequisites',jsonb_build_object('kycRequired',true,'wireRequired',true,'approvalRequired',true),'computedPayout',0,'computedPctOfPool',0,'status','READY'),
+          jsonb_build_object('id','r-jo','stakeholderId',null,'externalName','Jane Okafor','externalEmail','jane@example.com','entityType','individual','allocationType','PRO_RATA','amountOrPercent',5,'prerequisites',jsonb_build_object('kycRequired',true,'wireRequired',true,'approvalRequired',true),'computedPayout',0,'computedPctOfPool',0,'status','BLOCKED'),
+          jsonb_build_object('id','r-pool','stakeholderId',null,'externalName','Option Pool','externalEmail','','entityType','entity','allocationType','PRO_RATA','amountOrPercent',20,'prerequisites',jsonb_build_object('kycRequired',false,'wireRequired',true,'approvalRequired',true),'computedPayout',0,'computedPctOfPool',0,'status','PENDING')))));
+
+  -- A real comment thread, so Comments and Communications are not empty.
+  INSERT INTO public.deal_comments (id, deal_id, author_user_id, body, parent_id, section_context, visibility) VALUES
+   ('aaaaaaaa-2222-4222-8222-222222222501', v_deal, v_user, 'Funds flow v3 moved Meridian Holdings to a new account. Holding the wire until someone confirms on a known number.', NULL, 'Payments', 'internal'),
+   ('aaaaaaaa-2222-4222-8222-222222222502', v_deal, v_user, 'Calling their CFO at 2pm. Will attach the call note here.', 'aaaaaaaa-2222-4222-8222-222222222501', NULL, 'internal');
 
   RAISE NOTICE 'Seeded % — expect can_close=false with 6 blockers and 1 invalidated approval', v_deal;
 END $$;
